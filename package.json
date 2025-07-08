@@ -1,0 +1,16 @@
+{
+  "name": "native-document",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "rollup --config rollup.config.js --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@rollup/plugin-terser": "^0.4.4"
+  }
+}
