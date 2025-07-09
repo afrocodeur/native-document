@@ -1,6 +1,7 @@
 import { Observable } from "../../data/Observable";
 import {createTextNode} from "../../wrappers/HtmlElementWrapper";
 import Validator from "../../utils/validator";
+import DebugManager from "../../utils/debug-manager.js";
 
 /**
  * Show the element if the condition is true
@@ -11,15 +12,8 @@ import Validator from "../../utils/validator";
  * @returns {DocumentFragment}
  */
 export const ShowIf = function(condition, child, comment) {
-    let conditionObservable = condition, conditionChecker = null;
-
-    if(Validator.isObservableChecker(condition)) {
-        conditionObservable = condition.observable;
-        conditionChecker = condition.checker;
-    }
-
-    if(!(Validator.isObservable(conditionObservable))) {
-        return console.warn("ShowIf : condition must be an Observable / "+comment);
+    if(!(Validator.isObservable(condition))) {
+        return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
     }
     const element = document.createDocumentFragment();
     const positionKeeperStart = document.createComment('Show if : '+(comment || ''));
@@ -45,15 +39,12 @@ export const ShowIf = function(condition, child, comment) {
         return childElement;
     };
 
-    const currentValue = conditionChecker ? conditionChecker(conditionObservable.val()) : conditionObservable.val();
+    const currentValue = condition.val();
 
     if(currentValue) {
         element.appendChild(getChildElement());
     }
-    conditionObservable.subscribe(value => {
-        if(conditionChecker) {
-            value = conditionChecker(value);
-        }
+    condition.subscribe(value => {
         const parent = positionKeeperEnd.parentNode;
         if(value && parent) {
             parent.insertBefore(getChildElement(), positionKeeperEnd);
@@ -75,15 +66,9 @@ export const ShowIf = function(condition, child, comment) {
  * @returns {DocumentFragment}
  */
 export const HideIf = function(condition, child, comment) {
-    let conditionObservable = condition, conditionChecker = null;
 
-    if(Validator.isObservableChecker(condition)) {
-        conditionObservable = condition.observable;
-        conditionChecker = condition.checker;
-    }
-
-    const hideCondition = Observable(!conditionObservable.val());
-    conditionObservable.subscribe(value => hideCondition.set(conditionChecker ? conditionChecker(value) : !value));
+    const hideCondition = Observable(!condition.val());
+    condition.subscribe(value => hideCondition.set(!value));
 
     return ShowIf(hideCondition, child, comment);
 }

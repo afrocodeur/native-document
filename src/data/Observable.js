@@ -2,6 +2,7 @@ import ObservableItem from './ObservableItem';
 import Validator from "../utils/validator";
 import MemoryManager from "./MemoryManager";
 import NativeDocumentError from "../errors/NativeDocumentError";
+import {throttle} from "../utils/helpers.js";
 
 /**
  *
@@ -12,6 +13,18 @@ import NativeDocumentError from "../errors/NativeDocumentError";
 export function Observable(value) {
     return new ObservableItem(value);
 }
+
+
+Observable.computed = function(callback, dependencies = []) {
+    const initialValue = callback();
+    const observable = new ObservableItem(initialValue);
+
+    const updatedValue = throttle(() => observable.set(callback()), 10, { debounce: true });
+
+    dependencies.forEach(dependency => dependency.subscribe(updatedValue));
+
+    return observable;
+};
 
 /**
  *
@@ -26,18 +39,21 @@ Observable.cleanup = function(observable) {
  * @param {ObservableItem|Object<ObservableItem>} object
  * @returns {{}|*|null}
  */
-Observable.value = function(object) {
-    if(Validator.isObservable(object)) {
-        return object.val();
+Observable.value = function(data) {
+    if(Validator.isObservable(data)) {
+        return data.val();
     }
-    if(typeof object !== 'object') {
-        return null;
+    if(Validator.isProxy(data)) {
+        return data.$val();
     }
-    const value = {};
-    for(const key in object) {
-        value[key] = object[key].val();
+    if(Validator.isArray(data)) {
+        const result = [];
+        data.forEach(item => {
+            result.push(Observable.value(item));
+        });
+        return result;
     }
-    return value;
+    return data;
 }
 
 /**
@@ -48,10 +64,38 @@ Observable.value = function(object) {
 Observable.init = function(value) {
     const data = {};
     for(const key in value) {
-        data[key] = Observable(value[key]);
+        const itemValue = value[key];
+        if(Validator.isJson(itemValue)) {
+            console.log(itemValue)
+            data[key] = Observable.init(itemValue);
+            continue;
+        }
+        data[key] = Observable(itemValue);
     }
+
+    const $val = function() {
+        const result = {};
+        for(const key in data) {
+            const dataItem = data[key];
+            if(Validator.isObservable(dataItem)) {
+                result[key] = dataItem.val();
+            } else if(Validator.isProxy(dataItem)) {
+                result[key] = dataItem.$val();
+            } else {
+                result[key] = dataItem;
+            }
+        }
+        return result;
+    };
+
     return new Proxy(data, {
         get(target, property) {
+            if(property === '__isProxy__') {
+                return true;
+            }
+            if(property === '$val') {
+                return $val;
+            }
             if(target[property] !== undefined) {
                 return target[property];
             }
@@ -64,6 +108,8 @@ Observable.init = function(value) {
         }
     })
 };
+
+Observable.object = Observable.init;
 /**
  *
  * @param {Array} target

@@ -24,6 +24,7 @@ export function RouterComponent(router, container) {
             return;
         }
         const Component = route.component()
+        console.log({ params, query })
         const node = Component({ params, query });
         $cache.set(path, node);
         updateContainer(node);

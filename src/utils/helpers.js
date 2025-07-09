@@ -2,7 +2,7 @@
  *
  * @param {Function} fn
  * @param {number} delay
- * @param {{leading:Boolean, trailing:Boolean, debounce:Boolean}}options
+ * @param {{leading?:Boolean, trailing?:Boolean, debounce?:Boolean}}options
  * @returns {(function(...[*]): void)|*}
  */
 export const throttle = function(fn, delay, options = {}) {

@@ -62,17 +62,19 @@ const validateArgs = (args, argSchema, fnName = 'Function') => {
 
     // Validate each argument
     argSchema.forEach((schema, index) => {
+        const position = index + 1;
         const value = args[index];
 
         if (value === undefined) {
             if (!schema.optional) {
-                errors.push(`${fnName}: Missing required argument '${schema.name}' at position ${index}`);
+                errors.push(`${fnName}: Missing required argument '${schema.name}' at position ${position}`);
             }
             return;
         }
 
         if (!schema.validate(value)) {
-            errors.push(`${fnName}: Invalid argument '${schema.name}' at position ${index}, expected ${schema.type}, got ${typeof value}`);
+            const valueTypeOf = value?.constructor?.name || typeof value;
+            errors.push(`${fnName}: Invalid argument '${schema.name}' at position ${position}, expected ${schema.type}, got ${valueTypeOf}`);
         }
     });
 

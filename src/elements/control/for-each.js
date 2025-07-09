@@ -2,6 +2,7 @@ import ObservableItem from "../../data/ObservableItem";
 import {Observable} from "../../data/Observable";
 import {createTextNode} from "../../wrappers/HtmlElementWrapper";
 import Validator from "../../utils/validator";
+import {throttle} from "../../utils/helpers.js";
 
 
 /**
@@ -101,9 +102,9 @@ export function ForEach(data, callback, key) {
 
     buildContent();
     if(Validator.isObservable(data)) {
-        data.subscribe((newValue, oldValue) => {
+        data.subscribe(throttle((newValue, oldValue) => {
             buildContent(newValue, oldValue);
-        })
+        }, 50, { debounce: true }))
     }
     return element;
 }

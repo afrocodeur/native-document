@@ -80,11 +80,11 @@ export default function AttributesWrapper(element, attributes) {
             }
             continue;
         }
-        if(attributeName === 'class' && Validator.isObject(value)) {
+        if(attributeName === 'class' && Validator.isJson(value)) {
             bindClassAttribute(element, value);
             continue;
         }
-        if(attributeName === 'style' && Validator.isObject(value)) {
+        if(attributeName === 'style' && Validator.isJson(value)) {
             bindStyleAttribute(element, value);
             continue;
         }

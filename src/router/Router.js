@@ -9,6 +9,8 @@ import MemoryRouter from "./modes/MemoryRouter.js";
 import DebugManager from "../utils/debug-manager.js";
 import {RouterComponent} from "./RouterComponent.js";
 
+const DEFAULT_ROUTER_NAME = 'default';
+
 /**
  *
  * @param {{mode: 'memory'|'history'|'hash'}} $options
@@ -58,8 +60,8 @@ export default function Router($options = {}) {
     this.add = function(path, component, options) {
         const route = new Route(RouteGroupHelper.fullPath($groupTree, path), component, {
             ...options,
-            middlewares: RouteGroupHelper.fullMiddlewares($groupTree, options.middlewares),
-            name: options.name ? RouteGroupHelper.fullName($groupTree, options.name) : null,
+            middlewares: RouteGroupHelper.fullMiddlewares($groupTree, options?.middlewares || []),
+            name: options?.name ? RouteGroupHelper.fullName($groupTree, options.name) : null,
         });
         $routes.push(route);
         if(route.name()) {
@@ -141,7 +143,7 @@ export default function Router($options = {}) {
             }
         }
 
-        return { route: routeFound, params, query: queryParams, path };
+        return { route: routeFound, params, query: queryParams, path: target };
     };
 
     /**
@@ -172,6 +174,7 @@ export default function Router($options = {}) {
         $currentState.query = query;
         $currentState.path = path;
 
+        console.log($currentState.query)
         const middlewares = [...route.middlewares(), trigger];
         let currentIndex = 0;
         const request = { ...$currentState };
@@ -202,8 +205,8 @@ Router.create = function(options, callback) {
         throw new RouterError('Callback must be a function');
     }
     const router = new Router(options);
+    Router.routers[options.name || DEFAULT_ROUTER_NAME] = router;
     callback(router);
-    Router.routers[options.name || 'default'] = router;
 
     router.init(options.entry);
 
@@ -225,5 +228,5 @@ Router.create = function(options, callback) {
 };
 
 Router.get = function(name) {
-    return Router.routers[name];
+    return Router.routers[name || DEFAULT_ROUTER_NAME];
 };

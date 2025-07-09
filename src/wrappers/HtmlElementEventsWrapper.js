@@ -22,6 +22,18 @@ export default function HtmlElementEventsWrapper(element) {
             const callback = events[event];
             eventWrapper(element, event, callback);
         }
+        return element;
+    };
+    element.nd.on.prevent = function(events) {
+        for(const event in events) {
+            const callback = events[event];
+            eventWrapper(element, event, (event) => {
+                event.preventDefault();
+                callback && callback(event);
+                return element;
+            });
+        }
+        return element;
     };
     const events = {
         click: (callback) => eventWrapper(element, 'click', callback),
@@ -51,7 +63,14 @@ export default function HtmlElementEventsWrapper(element) {
         dragLeave: (callback) => eventWrapper(element, 'dragleave', callback),
     };
     for(let event in events) {
-        element.nd.on[event] = events[ event];
+        element.nd.on[event] = events[event];
+        element.nd.on.prevent[event] = function(callback) {
+            eventWrapper(element, event.toLowerCase(), (event) => {
+                event.preventDefault();
+                callback && callback(event);
+            });
+            return element;
+        };
     }
 
     return element;

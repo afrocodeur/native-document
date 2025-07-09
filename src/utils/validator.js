@@ -5,7 +5,10 @@ import ObservableChecker from "../data/ObservableChecker";
 
 const Validator = {
     isObservable(value) {
-        return value instanceof ObservableItem;
+        return value instanceof ObservableItem || value instanceof ObservableChecker;
+    },
+    isProxy(value) {
+        return value?.__isProxy__
     },
     isObservableChecker(value) {
         return value instanceof ObservableChecker;
@@ -32,7 +35,7 @@ const Validator = {
         return typeof value === 'object' && value !== null && !Array.isArray(value);
     },
     isElement(value) {
-        return value instanceof HTMLElement || value instanceof DocumentFragment;
+        return value instanceof HTMLElement || value instanceof DocumentFragment  || value instanceof Text;
     },
     isFragment(value) {
         return value instanceof DocumentFragment;

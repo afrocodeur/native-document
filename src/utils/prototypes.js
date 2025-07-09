@@ -1,15 +1,16 @@
-import ObservableItem from "../data/ObservableItem";
-import Validator from "./validator";
+import {withValidation} from "./args-types.js";
 
 
-HTMLElement.prototype.attr = function(name, value) {
-    if(value === undefined) return this.getAttribute(name);
-
-    if(Validator.isObservable(value)) {
-        value.subscribe(newValue => this.setAttribute(name, newValue));
-        this.setAttribute(name, value.val());
-        return this;
-    }
-    this.setAttribute(name, value);
-    return this;
+Function.prototype.args = function(...args) {
+    return withValidation(this, args);
 };
+
+Function.prototype.errorBoundary = function(callback) {
+    return (...args)  => {
+        try {
+            return this.apply(this, args);
+        } catch(e) {
+            return callback(e);
+        }
+    };
+}

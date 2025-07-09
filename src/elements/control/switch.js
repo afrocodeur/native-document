@@ -10,14 +10,8 @@ import Validator from "../../utils/validator";
  * @returns {DocumentFragment}
  */
 export const Switch = function (condition, onTrue, onFalse) {
-    let conditionObservable = condition, conditionChecker = null;
 
-    if(Validator.isObservableChecker(condition)) {
-        conditionObservable = condition.observable;
-        conditionChecker = condition.checker;
-    }
-
-    if(!Validator.isObservable(conditionObservable)) {
+    if(!Validator.isObservable(condition)) {
         throw new NativeDocumentError("Toggle : condition must be an Observable");
     }
 
@@ -41,9 +35,6 @@ export const Switch = function (condition, onTrue, onFalse) {
     }
 
     const handle = (value) => {
-        if(conditionChecker) {
-            value = conditionChecker(value);
-        }
         const parent = commentEnd.parentNode;
         if(!parent) {
             return;
@@ -63,8 +54,8 @@ export const Switch = function (condition, onTrue, onFalse) {
         }
     };
 
-    conditionObservable.subscribe(handle);
-    handle(conditionObservable.val());
+    condition.subscribe(handle);
+    handle(condition.val());
 
     return element;
 }
