@@ -225,11 +225,12 @@ const { Router, Link } = NativeDocument.router;
 
 const CustomMiddleware = (request, next) => {
     console.log('check custom middleware', request);
-    return next();
+    // request.params.customValue = true;
+    return next(request);
 };
 const AuthMiddleware = (request, next) => {
     console.log('check if user is authenticated');
-    return next();
+    return next(request);
 };
 
 
