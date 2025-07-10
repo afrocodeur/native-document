@@ -66,7 +66,6 @@ Observable.init = function(value) {
     for(const key in value) {
         const itemValue = value[key];
         if(Validator.isJson(itemValue)) {
-            console.log(itemValue)
             data[key] = Observable.init(itemValue);
             continue;
         }

@@ -174,7 +174,6 @@ export default function Router($options = {}) {
         $currentState.query = query;
         $currentState.path = path;
 
-        console.log($currentState.query)
         const middlewares = [...route.middlewares(), trigger];
         let currentIndex = 0;
         const request = { ...$currentState };
@@ -195,7 +194,7 @@ Router.routers = {};
 
 /**
  *
- * @param {{mode: 'memory'|'history'|'hash', name:string, entry: string}} options
+ * @param {{mode: 'memory'|'history'|'hash', name?:string, entry?: string}} options
  * @param {Function} callback
  * @param {Element} container
  */

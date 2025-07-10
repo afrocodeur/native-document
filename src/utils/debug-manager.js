@@ -1,8 +1,5 @@
-// Build configuration
-const isProd = process.env.NODE_ENV === 'production';
-
 const DebugManager = {
-    enabled: !isProd,
+    enabled: false,
 
     enable() {
         this.enabled = true;
@@ -13,7 +10,7 @@ const DebugManager = {
         this.enabled = false;
     },
 
-    log: isProd ? () => {} : function(category, message, data) {
+    log(category, message, data) {
         if (!this.enabled) return;
         console.group(`🔍 [${category}] ${message}`);
         if (data) console.log(data);
@@ -21,12 +18,12 @@ const DebugManager = {
         console.groupEnd();
     },
 
-    warn: isProd ? () => {} : function(category, message, data) {
+    warn(category, message, data) {
         if (!this.enabled) return;
         console.warn(`⚠️ [${category}] ${message}`, data);
     },
 
-    error: isProd ? () => {} : function(category, message, error) {
+    error(category, message, error) {
         console.error(`❌ [${category}] ${message}`, error);
     }
 };

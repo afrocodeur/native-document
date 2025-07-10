@@ -62,7 +62,6 @@ export default function AttributesWrapper(element, attributes) {
     Validator.validateAttributes(attributes);
 
     if(!Validator.isObject(attributes)) {
-        console.log(attributes);
         throw new NativeDocumentError('Attributes must be an object');
     }
 

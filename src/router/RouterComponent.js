@@ -19,12 +19,10 @@ export function RouterComponent(router, container) {
         const { route, params, query, path } = state;
         if($cache.has(path)) {
             const cacheNode = $cache.get(path);
-            console.log(cacheNode);
             updateContainer(cacheNode);
             return;
         }
-        const Component = route.component()
-        console.log({ params, query })
+        const Component = route.component();
         const node = Component({ params, query });
         $cache.set(path, node);
         updateContainer(node);

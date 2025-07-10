@@ -79,11 +79,8 @@ var NativeDocument = (function (exports) {
         return element;
     }
 
-    // Build configuration
-    const isProd = process.env.NODE_ENV === 'production';
-
     const DebugManager = {
-        enabled: !isProd,
+        enabled: false,
 
         enable() {
             this.enabled = true;
@@ -94,7 +91,7 @@ var NativeDocument = (function (exports) {
             this.enabled = false;
         },
 
-        log: isProd ? () => {} : function(category, message, data) {
+        log(category, message, data) {
             if (!this.enabled) return;
             console.group(`🔍 [${category}] ${message}`);
             if (data) console.log(data);
@@ -102,12 +99,12 @@ var NativeDocument = (function (exports) {
             console.groupEnd();
         },
 
-        warn: isProd ? () => {} : function(category, message, data) {
+        warn(category, message, data) {
             if (!this.enabled) return;
             console.warn(`⚠️ [${category}] ${message}`, data);
         },
 
-        error: isProd ? () => {} : function(category, message, error) {
+        error(category, message, error) {
             console.error(`❌ [${category}] ${message}`, error);
         }
     };
@@ -449,7 +446,6 @@ var NativeDocument = (function (exports) {
         Validator.validateAttributes(attributes);
 
         if(!Validator.isObject(attributes)) {
-            console.log(attributes);
             throw new NativeDocumentError('Attributes must be an object');
         }
 
@@ -914,7 +910,6 @@ var NativeDocument = (function (exports) {
         for(const key in value) {
             const itemValue = value[key];
             if(Validator.isJson(itemValue)) {
-                console.log(itemValue);
                 data[key] = Observable.init(itemValue);
                 continue;
             }
@@ -2065,12 +2060,10 @@ var NativeDocument = (function (exports) {
             const { route, params, query, path } = state;
             if($cache.has(path)) {
                 const cacheNode = $cache.get(path);
-                console.log(cacheNode);
                 updateContainer(cacheNode);
                 return;
             }
             const Component = route.component();
-            console.log({ params, query });
             const node = Component({ params, query });
             $cache.set(path, node);
             updateContainer(node);
@@ -2247,7 +2240,6 @@ var NativeDocument = (function (exports) {
             $currentState.query = query;
             $currentState.path = path;
 
-            console.log($currentState.query);
             const middlewares = [...route.middlewares(), trigger];
             let currentIndex = 0;
             const request = { ...$currentState };
@@ -2268,7 +2260,7 @@ var NativeDocument = (function (exports) {
 
     /**
      *
-     * @param {{mode: 'memory'|'history'|'hash', name:string, entry: string}} options
+     * @param {{mode: 'memory'|'history'|'hash', name?:string, entry?: string}} options
      * @param {Function} callback
      * @param {Element} container
      */
