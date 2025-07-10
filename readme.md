@@ -32,6 +32,16 @@ curl -o native-document.min.js https://raw.githubusercontent.com/afrocodeur/nati
 <script src="https://cdn.jsdelivr.net/gh/afrocodeur/native-document@latest/dist/native-document.min.js"></script>
 ```
 
+```bash
+#Use degit 
+
+npx degit afrocodeur/native-document-vite my-project
+cd my-project
+npm install
+npm start
+```
+
+
 
 ### Basic Example
 
