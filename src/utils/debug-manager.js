@@ -13,7 +13,7 @@ const DebugManager = {
         this.enabled = false;
     },
 
-    log: isProd ? () => {} : (category, message, data) => {
+    log: isProd ? () => {} : function(category, message, data) {
         if (!this.enabled) return;
         console.group(`🔍 [${category}] ${message}`);
         if (data) console.log(data);
@@ -21,12 +21,12 @@ const DebugManager = {
         console.groupEnd();
     },
 
-    warn: isProd ? () => {} : (category, message, data) => {
+    warn: isProd ? () => {} : function(category, message, data) {
         if (!this.enabled) return;
         console.warn(`⚠️ [${category}] ${message}`, data);
     },
 
-    error: isProd ? () => {} :(category, message, error) => {
+    error: isProd ? () => {} : function(category, message, error) {
         console.error(`❌ [${category}] ${message}`, error);
     }
 };

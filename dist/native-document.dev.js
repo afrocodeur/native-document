@@ -25,6 +25,18 @@ var NativeDocument = (function (exports) {
                 const callback = events[event];
                 eventWrapper(element, event, callback);
             }
+            return element;
+        };
+        element.nd.on.prevent = function(events) {
+            for(const event in events) {
+                const callback = events[event];
+                eventWrapper(element, event, (event) => {
+                    event.preventDefault();
+                    callback && callback(event);
+                    return element;
+                });
+            }
+            return element;
         };
         const events = {
             click: (callback) => eventWrapper(element, 'click', callback),
@@ -54,14 +66,24 @@ var NativeDocument = (function (exports) {
             dragLeave: (callback) => eventWrapper(element, 'dragleave', callback),
         };
         for(let event in events) {
-            element.nd.on[event] = events[ event];
+            element.nd.on[event] = events[event];
+            element.nd.on.prevent[event] = function(callback) {
+                eventWrapper(element, event.toLowerCase(), (event) => {
+                    event.preventDefault();
+                    callback && callback(event);
+                });
+                return element;
+            };
         }
 
         return element;
     }
 
+    // Build configuration
+    const isProd = process.env.NODE_ENV === 'production';
+
     const DebugManager = {
-        enabled: false,
+        enabled: !isProd,
 
         enable() {
             this.enabled = true;
@@ -72,7 +94,7 @@ var NativeDocument = (function (exports) {
             this.enabled = false;
         },
 
-        log(category, message, data) {
+        log: isProd ? () => {} : function(category, message, data) {
             if (!this.enabled) return;
             console.group(`🔍 [${category}] ${message}`);
             if (data) console.log(data);
@@ -80,12 +102,12 @@ var NativeDocument = (function (exports) {
             console.groupEnd();
         },
 
-        warn(category, message, data) {
+        warn: isProd ? () => {} : function(category, message, data) {
             if (!this.enabled) return;
             console.warn(`⚠️ [${category}] ${message}`, data);
         },
 
-        error(category, message, error) {
+        error: isProd ? () => {} : function(category, message, error) {
             console.error(`❌ [${category}] ${message}`, error);
         }
     };
@@ -157,13 +179,27 @@ var NativeDocument = (function (exports) {
 
     /**
      *
-     * @param {ObservableItem} observable
-     * @param {Function} checker
+     * @param {ObservableItem} $observable
+     * @param {Function} $checker
      * @class ObservableChecker
      */
-    function ObservableChecker(observable, checker) {
-        this.observable = observable;
-        this.checker = checker;
+    function ObservableChecker($observable, $checker) {
+        this.observable = $observable;
+        this.checker = $checker;
+
+        this.subscribe = function(callback) {
+            return $observable.subscribe((value) => {
+                callback && callback($checker(value));
+            });
+        };
+
+        this.val = function() {
+            return $checker && $checker($observable.val());
+        };
+
+        this.cleanup = function() {
+            return $observable.cleanup();
+        };
     }
 
     /**
@@ -265,7 +301,10 @@ var NativeDocument = (function (exports) {
 
     const Validator = {
         isObservable(value) {
-            return value instanceof ObservableItem;
+            return value instanceof ObservableItem || value instanceof ObservableChecker;
+        },
+        isProxy(value) {
+            return value?.__isProxy__
         },
         isObservableChecker(value) {
             return value instanceof ObservableChecker;
@@ -292,7 +331,7 @@ var NativeDocument = (function (exports) {
             return typeof value === 'object' && value !== null && !Array.isArray(value);
         },
         isElement(value) {
-            return value instanceof HTMLElement || value instanceof DocumentFragment;
+            return value instanceof HTMLElement || value instanceof DocumentFragment  || value instanceof Text;
         },
         isFragment(value) {
             return value instanceof DocumentFragment;
@@ -428,11 +467,11 @@ var NativeDocument = (function (exports) {
                 }
                 continue;
             }
-            if(attributeName === 'class' && Validator.isObject(value)) {
+            if(attributeName === 'class' && Validator.isJson(value)) {
                 bindClassAttribute(element, value);
                 continue;
             }
-            if(attributeName === 'style' && Validator.isObject(value)) {
+            if(attributeName === 'style' && Validator.isJson(value)) {
                 bindStyleAttribute(element, value);
                 continue;
             }
@@ -445,7 +484,7 @@ var NativeDocument = (function (exports) {
      *
      * @param {Function} fn
      * @param {number} delay
-     * @param {{leading:Boolean, trailing:Boolean, debounce:Boolean}}options
+     * @param {{leading?:Boolean, trailing?:Boolean, debounce?:Boolean}}options
      * @returns {(function(...[*]): void)|*}
      */
     const throttle = function(fn, delay, options = {}) {
@@ -762,17 +801,19 @@ var NativeDocument = (function (exports) {
 
         // Validate each argument
         argSchema.forEach((schema, index) => {
+            const position = index + 1;
             const value = args[index];
 
             if (value === undefined) {
                 if (!schema.optional) {
-                    errors.push(`${fnName}: Missing required argument '${schema.name}' at position ${index}`);
+                    errors.push(`${fnName}: Missing required argument '${schema.name}' at position ${position}`);
                 }
                 return;
             }
 
             if (!schema.validate(value)) {
-                errors.push(`${fnName}: Invalid argument '${schema.name}' at position ${index}, expected ${schema.type}, got ${typeof value}`);
+                const valueTypeOf = value?.constructor?.name || typeof value;
+                errors.push(`${fnName}: Invalid argument '${schema.name}' at position ${position}, expected ${schema.type}, got ${valueTypeOf}`);
             }
         });
 
@@ -797,6 +838,20 @@ var NativeDocument = (function (exports) {
         };
     };
 
+    Function.prototype.args = function(...args) {
+        return withValidation(this, args);
+    };
+
+    Function.prototype.errorBoundary = function(callback) {
+        return (...args)  => {
+            try {
+                return this.apply(this, args);
+            } catch(e) {
+                return callback(e);
+            }
+        };
+    };
+
     /**
      *
      * @param {*} value
@@ -806,6 +861,18 @@ var NativeDocument = (function (exports) {
     function Observable(value) {
         return new ObservableItem(value);
     }
+
+
+    Observable.computed = function(callback, dependencies = []) {
+        const initialValue = callback();
+        const observable = new ObservableItem(initialValue);
+
+        const updatedValue = throttle(() => observable.set(callback()), 10, { debounce: true });
+
+        dependencies.forEach(dependency => dependency.subscribe(updatedValue));
+
+        return observable;
+    };
 
     /**
      *
@@ -820,18 +887,21 @@ var NativeDocument = (function (exports) {
      * @param {ObservableItem|Object<ObservableItem>} object
      * @returns {{}|*|null}
      */
-    Observable.value = function(object) {
-        if(Validator.isObservable(object)) {
-            return object.val();
+    Observable.value = function(data) {
+        if(Validator.isObservable(data)) {
+            return data.val();
         }
-        if(typeof object !== 'object') {
-            return null;
+        if(Validator.isProxy(data)) {
+            return data.$val();
         }
-        const value = {};
-        for(const key in object) {
-            value[key] = object[key].val();
+        if(Validator.isArray(data)) {
+            const result = [];
+            data.forEach(item => {
+                result.push(Observable.value(item));
+            });
+            return result;
         }
-        return value;
+        return data;
     };
 
     /**
@@ -842,10 +912,38 @@ var NativeDocument = (function (exports) {
     Observable.init = function(value) {
         const data = {};
         for(const key in value) {
-            data[key] = Observable(value[key]);
+            const itemValue = value[key];
+            if(Validator.isJson(itemValue)) {
+                console.log(itemValue);
+                data[key] = Observable.init(itemValue);
+                continue;
+            }
+            data[key] = Observable(itemValue);
         }
+
+        const $val = function() {
+            const result = {};
+            for(const key in data) {
+                const dataItem = data[key];
+                if(Validator.isObservable(dataItem)) {
+                    result[key] = dataItem.val();
+                } else if(Validator.isProxy(dataItem)) {
+                    result[key] = dataItem.$val();
+                } else {
+                    result[key] = dataItem;
+                }
+            }
+            return result;
+        };
+
         return new Proxy(data, {
             get(target, property) {
+                if(property === '__isProxy__') {
+                    return true;
+                }
+                if(property === '$val') {
+                    return $val;
+                }
                 if(target[property] !== undefined) {
                     return target[property];
                 }
@@ -858,6 +956,8 @@ var NativeDocument = (function (exports) {
             }
         })
     };
+
+    Observable.object = Observable.init;
     /**
      *
      * @param {Array} target
@@ -1078,9 +1178,9 @@ var NativeDocument = (function (exports) {
 
         buildContent();
         if(Validator.isObservable(data)) {
-            data.subscribe((newValue, oldValue) => {
+            data.subscribe(throttle((newValue, oldValue) => {
                 buildContent();
-            });
+            }, 50, { debounce: true }));
         }
         return element;
     }
@@ -1094,15 +1194,8 @@ var NativeDocument = (function (exports) {
      * @returns {DocumentFragment}
      */
     const ShowIf = function(condition, child, comment) {
-        let conditionObservable = condition, conditionChecker = null;
-
-        if(Validator.isObservableChecker(condition)) {
-            conditionObservable = condition.observable;
-            conditionChecker = condition.checker;
-        }
-
-        if(!(Validator.isObservable(conditionObservable))) {
-            return console.warn("ShowIf : condition must be an Observable / "+comment);
+        if(!(Validator.isObservable(condition))) {
+            return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
         }
         const element = document.createDocumentFragment();
         const positionKeeperStart = document.createComment('Show if : '+(comment || ''));
@@ -1128,15 +1221,12 @@ var NativeDocument = (function (exports) {
             return childElement;
         };
 
-        const currentValue = conditionChecker ? conditionChecker(conditionObservable.val()) : conditionObservable.val();
+        const currentValue = condition.val();
 
         if(currentValue) {
             element.appendChild(getChildElement());
         }
-        conditionObservable.subscribe(value => {
-            if(conditionChecker) {
-                value = conditionChecker(value);
-            }
+        condition.subscribe(value => {
             const parent = positionKeeperEnd.parentNode;
             if(value && parent) {
                 parent.insertBefore(getChildElement(), positionKeeperEnd);
@@ -1158,15 +1248,9 @@ var NativeDocument = (function (exports) {
      * @returns {DocumentFragment}
      */
     const HideIf = function(condition, child, comment) {
-        let conditionObservable = condition, conditionChecker = null;
 
-        if(Validator.isObservableChecker(condition)) {
-            conditionObservable = condition.observable;
-            conditionChecker = condition.checker;
-        }
-
-        const hideCondition = Observable(!conditionObservable.val());
-        conditionObservable.subscribe(value => hideCondition.set(conditionChecker ? conditionChecker(value) : !value));
+        const hideCondition = Observable(!condition.val());
+        condition.subscribe(value => hideCondition.set(!value));
 
         return ShowIf(hideCondition, child, comment);
     };
@@ -1191,14 +1275,8 @@ var NativeDocument = (function (exports) {
      * @returns {DocumentFragment}
      */
     const Switch = function (condition, onTrue, onFalse) {
-        let conditionObservable = condition, conditionChecker = null;
 
-        if(Validator.isObservableChecker(condition)) {
-            conditionObservable = condition.observable;
-            conditionChecker = condition.checker;
-        }
-
-        if(!Validator.isObservable(conditionObservable)) {
+        if(!Validator.isObservable(condition)) {
             throw new NativeDocumentError("Toggle : condition must be an Observable");
         }
 
@@ -1222,9 +1300,6 @@ var NativeDocument = (function (exports) {
         }
 
         const handle = (value) => {
-            if(conditionChecker) {
-                value = conditionChecker(value);
-            }
             const parent = commentEnd.parentNode;
             if(!parent) {
                 return;
@@ -1244,8 +1319,8 @@ var NativeDocument = (function (exports) {
             }
         };
 
-        conditionObservable.subscribe(handle);
-        handle(conditionObservable.val());
+        condition.subscribe(handle);
+        handle(condition.val());
 
         return element;
     };
@@ -1292,7 +1367,7 @@ var NativeDocument = (function (exports) {
 
     const Br = HtmlElementWrapper('br');
 
-    const Link = HtmlElementWrapper('a');
+    const Link$1 = HtmlElementWrapper('a');
     const Pre = HtmlElementWrapper('pre');
     const Code = HtmlElementWrapper('code');
     const Blockquote = HtmlElementWrapper('blockquote');
@@ -1529,7 +1604,7 @@ var NativeDocument = (function (exports) {
         Label: Label,
         LazyImg: LazyImg,
         Legend: Legend,
-        Link: Link,
+        Link: Link$1,
         ListItem: ListItem,
         Main: Main,
         Mark: Mark,
@@ -1995,6 +2070,7 @@ var NativeDocument = (function (exports) {
                 return;
             }
             const Component = route.component();
+            console.log({ params, query });
             const node = Component({ params, query });
             $cache.set(path, node);
             updateContainer(node);
@@ -2005,6 +2081,8 @@ var NativeDocument = (function (exports) {
         handleCurrentRouterState(router.currentState());
         return container;
     }
+
+    const DEFAULT_ROUTER_NAME = 'default';
 
     /**
      *
@@ -2055,8 +2133,8 @@ var NativeDocument = (function (exports) {
         this.add = function(path, component, options) {
             const route = new Route(RouteGroupHelper.fullPath($groupTree, path), component, {
                 ...options,
-                middlewares: RouteGroupHelper.fullMiddlewares($groupTree, options.middlewares),
-                name: options.name ? RouteGroupHelper.fullName($groupTree, options.name) : null,
+                middlewares: RouteGroupHelper.fullMiddlewares($groupTree, options?.middlewares || []),
+                name: options?.name ? RouteGroupHelper.fullName($groupTree, options.name) : null,
             });
             $routes.push(route);
             if(route.name()) {
@@ -2138,7 +2216,7 @@ var NativeDocument = (function (exports) {
                 }
             }
 
-            return { route: routeFound, params, query: queryParams, path };
+            return { route: routeFound, params, query: queryParams, path: target };
         };
 
         /**
@@ -2169,6 +2247,7 @@ var NativeDocument = (function (exports) {
             $currentState.query = query;
             $currentState.path = path;
 
+            console.log($currentState.query);
             const middlewares = [...route.middlewares(), trigger];
             let currentIndex = 0;
             const request = { ...$currentState };
@@ -2199,8 +2278,8 @@ var NativeDocument = (function (exports) {
             throw new RouterError('Callback must be a function');
         }
         const router = new Router(options);
+        Router.routers[options.name || DEFAULT_ROUTER_NAME] = router;
         callback(router);
-        Router.routers[options.name || 'default'] = router;
 
         router.init(options.entry);
 
@@ -2222,11 +2301,34 @@ var NativeDocument = (function (exports) {
     };
 
     Router.get = function(name) {
-        return Router.routers[name];
+        return Router.routers[name || DEFAULT_ROUTER_NAME];
+    };
+
+    function Link(attributes, children){
+        const target = attributes.to || attributes.href;
+        if(Validator.isString(target)) {
+            const router = Router.get();
+            return Link$1({ ...attributes, href: target}, children).nd.on.prevent.click(() => {
+                router.push(target);
+            });
+        }
+        const router = Router.get(target.router);
+        if(!router) {
+            throw new RouterError('Router not found "'+target.router+'" for link "'+target.name+'"');
+        }
+        const url = router.generateUrl(target.name, target.params, target.query);
+        return Link$1({ ...attributes, href: url }, children).nd.on.prevent.click(() => {
+            router.push(url);
+        });
+    }
+
+    Link.blank = function(attributes, children){
+        return Link$1({ ...attributes, target: '_blank'}, children);
     };
 
     var router = /*#__PURE__*/Object.freeze({
         __proto__: null,
+        Link: Link,
         Router: Router
     });
 
