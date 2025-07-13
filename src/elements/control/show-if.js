@@ -11,7 +11,7 @@ import DebugManager from "../../utils/debug-manager.js";
  * @param {string|null} comment
  * @returns {DocumentFragment}
  */
-export const ShowIf = function(condition, child, comment) {
+export const ShowIf = function(condition, child, comment = null) {
     if(!(Validator.isObservable(condition))) {
         return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
     }

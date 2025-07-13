@@ -2,7 +2,7 @@ import HtmlElementWrapper from "../wrappers/HtmlElementWrapper";
 
 export const Div = HtmlElementWrapper('div');
 export const Span = HtmlElementWrapper('span');
-export const Label = HtmlElementWrapper('span');
+export const Label = HtmlElementWrapper('label');
 export const P = HtmlElementWrapper('p');
 export const Paragraph = P;
 export const Strong = HtmlElementWrapper('strong');

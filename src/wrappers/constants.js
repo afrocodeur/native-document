@@ -1,0 +1,2 @@
+
+export const BOOLEAN_ATTRIBUTES = ['checked', 'selected', 'disabled', 'readonly', 'required', 'autofocus', 'multiple', 'autocomplete', 'hidden', 'contenteditable', 'spellcheck', 'translate', 'draggable', 'async', 'defer', 'autoplay', 'controls', 'loop', 'muted', 'download', 'reversed', 'open', 'default', 'formnovalidate', 'novalidate', 'scoped', 'itemscope', 'allowfullscreen', 'allowpaymentrequest', 'playsinline'];

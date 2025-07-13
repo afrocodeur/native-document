@@ -1,6 +1,6 @@
 import Validator from "../utils/validator";
 import NativeDocumentError from "../errors/NativeDocumentError";
-
+import {BOOLEAN_ATTRIBUTES} from "./constants.js";
 
 /**
  *
@@ -55,6 +55,40 @@ function bindStyleAttribute(element, data) {
 /**
  *
  * @param {HTMLElement} element
+ * @param {string} attributeName
+ * @param {boolean|number|Observable} value
+ */
+function bindBooleanAttribute(element, attributeName, value) {
+    element[attributeName] = Boolean(Validator.isObservable(value) ? value.val() : value);
+    if(Validator.isObservable(value)) {
+        value.subscribe(newValue => {
+            element[attributeName] = Boolean(newValue);
+        });
+    }
+}
+
+
+/**
+ *
+ * @param {HTMLElement} element
+ * @param {string} attributeName
+ * @param {Observable} value
+ */
+function bindAttributeWithObservable(element, attributeName, value) {
+    value.subscribe(newValue => element.setAttribute(attributeName, newValue));
+    element.setAttribute(attributeName, value.val());
+    if(attributeName === 'value') {
+        if(['checkbox', 'radio'].includes(element.type)) {
+            element.addEventListener('input', () => value.set(element.checked));
+        } else {
+            element.addEventListener('input', () => value.set(element.value));
+        }
+    }
+}
+
+/**
+ *
+ * @param {HTMLElement} element
  * @param {Object} attributes
  */
 export default function AttributesWrapper(element, attributes) {
@@ -65,18 +99,15 @@ export default function AttributesWrapper(element, attributes) {
         throw new NativeDocumentError('Attributes must be an object');
     }
 
-    for(let attributeName in attributes) {
+    for(let key in attributes) {
+        const attributeName = key.toLowerCase();
         const value = attributes[attributeName];
+        if(BOOLEAN_ATTRIBUTES.includes(attributeName)) {
+            bindBooleanAttribute(element, attributeName, value);
+            continue;
+        }
         if(Validator.isObservable(value)) {
-            value.subscribe(newValue => element.setAttribute(attributeName, newValue));
-            element.setAttribute(attributeName, value.val());
-            if(attributeName === 'value') {
-                if(['checkbox', 'radio'].includes(element.type)) {
-                    element.addEventListener('input', () => value.set(element.checked));
-                } else {
-                    element.addEventListener('input', () => value.set(element.value));
-                }
-            }
+            bindAttributeWithObservable(element, attributeName, value);
             continue;
         }
         if(attributeName === 'class' && Validator.isJson(value)) {
