@@ -61,6 +61,9 @@ function bindStyleAttribute(element, data) {
 function bindBooleanAttribute(element, attributeName, value) {
     element[attributeName] = Boolean(Validator.isObservable(value) ? value.val() : value);
     if(Validator.isObservable(value)) {
+        if(['checked'].includes(attributeName)) {
+            element.addEventListener('input', () => value.set(element[attributeName]));
+        }
         value.subscribe(newValue => {
             element[attributeName] = Boolean(newValue);
         });
