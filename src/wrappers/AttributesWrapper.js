@@ -59,19 +59,29 @@ function bindStyleAttribute(element, data) {
  * @param {boolean|number|Observable} value
  */
 function bindBooleanAttribute(element, attributeName, value) {
-    element[attributeName] = Boolean(Validator.isObservable(value) ? value.val() : value);
+    const defaultValue = Validator.isObservable(value) ? value.val() : value;
+    if(Validator.isBoolean(defaultValue)) {
+        element[attributeName] = defaultValue;
+    }
+    else {
+        element[attributeName] = defaultValue === element.value;
+    }
     if(Validator.isObservable(value)) {
         if(['checked'].includes(attributeName)) {
             element.addEventListener('input', () => {
-                if(element.value) {
-                    value.set(element.value);
+                if(Validator.isBoolean(defaultValue)) {
+                    value.set(element[attributeName]);
                     return;
                 }
-                value.set(element[attributeName]);
+                value.set(element.value);
             });
         }
         value.subscribe(newValue => {
-            element[attributeName] = Boolean(newValue);
+            if(Validator.isBoolean(newValue)) {
+                element[attributeName] = newValue;
+                return;
+            }
+            element[attributeName] = newValue === element.value;
         });
     }
 }
