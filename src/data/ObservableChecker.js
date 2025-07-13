@@ -18,6 +18,13 @@ export default function ObservableChecker($observable, $checker) {
         return $checker && $checker($observable.val());
     };
 
+    this.set = function(value) {
+        return $observable.set(value);
+    };
+    this.trigger = function() {
+        return $observable.trigger();
+    }
+
     this.cleanup = function() {
         return $observable.cleanup();
     }
