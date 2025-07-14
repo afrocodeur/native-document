@@ -94,14 +94,18 @@ function bindBooleanAttribute(element, attributeName, value) {
  * @param {Observable} value
  */
 function bindAttributeWithObservable(element, attributeName, value) {
-    value.subscribe(newValue => element.setAttribute(attributeName, newValue));
-    element.setAttribute(attributeName, value.val());
-    if(attributeName === 'value') {
-        if(['checkbox', 'radio'].includes(element.type)) {
-            element.addEventListener('input', () => value.set(element.checked));
-        } else {
-            element.addEventListener('input', () => value.set(element.value));
+    const applyValue = (newValue) => {
+        if(attributeName === 'value') {
+            element.value = newValue;
+            return;
         }
+        element.setAttribute(attributeName, newValue);
+    };
+    value.subscribe(applyValue);
+    applyValue(value.val())
+
+    if(attributeName === 'value') {
+        element.addEventListener('input', () => value.set(element.value));
     }
 }
 
