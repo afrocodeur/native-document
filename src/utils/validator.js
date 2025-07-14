@@ -32,7 +32,7 @@ const Validator = {
         return typeof value === 'object';
     },
     isJson(value) {
-        return typeof value === 'object' && value !== null && !Array.isArray(value);
+        return typeof value === 'object' && value !== null && value.constructor.name === 'Object' && !Array.isArray(value);
     },
     isElement(value) {
         return value instanceof HTMLElement || value instanceof DocumentFragment  || value instanceof Text;
