@@ -3,6 +3,7 @@ import {Observable} from "../../data/Observable";
 import {createTextNode} from "../../wrappers/HtmlElementWrapper";
 import Validator from "../../utils/validator";
 import {throttle} from "../../utils/helpers.js";
+import Anchor from "../anchor";
 
 
 /**
@@ -43,12 +44,8 @@ const cleanBlockByCache = (cache, keyIds) => {
  * @returns {DocumentFragment}
  */
 export function ForEach(data, callback, key) {
-    const element = document.createDocumentFragment();
-    const blockStart = document.createComment('Foreach start');
-    const blockEnd = document.createComment('Foreach end');
-
-    element.appendChild(blockStart);
-    element.appendChild(blockEnd);
+    const element = new Anchor('ForEach');
+    const blockEnd = element.endElement();
 
     let cache = new Map();
 

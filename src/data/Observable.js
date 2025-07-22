@@ -69,6 +69,10 @@ Observable.init = function(value) {
             data[key] = Observable.init(itemValue);
             continue;
         }
+        else if(Validator.isArray(itemValue)) {
+            data[key] = Observable.array(itemValue);
+            continue;
+        }
         data[key] = Observable(itemValue);
     }
 
@@ -86,6 +90,9 @@ Observable.init = function(value) {
         }
         return result;
     };
+    const $clone = function() {
+
+    };
 
     return new Proxy(data, {
         get(target, property) {
@@ -94,6 +101,9 @@ Observable.init = function(value) {
             }
             if(property === '$val') {
                 return $val;
+            }
+            if(property === '$clone') {
+                return $clone;
             }
             if(target[property] !== undefined) {
                 return target[property];
@@ -109,6 +119,7 @@ Observable.init = function(value) {
 };
 
 Observable.object = Observable.init;
+Observable.json = Observable.init;
 /**
  *
  * @param {Array} target

@@ -98,4 +98,15 @@ export default function ObservableItem(value) {
         return new ObservableChecker(this, callback)
     };
 
+    const $object = this;
+    Object.defineProperty($object, '$value', {
+        get() {
+            return $object.val();
+        },
+        set(value) {
+            $object.set(value);
+            return $object;
+        }
+    })
+
 }

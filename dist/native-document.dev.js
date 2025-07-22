@@ -194,6 +194,13 @@ var NativeDocument = (function (exports) {
             return $checker && $checker($observable.val());
         };
 
+        this.set = function(value) {
+            return $observable.set(value);
+        };
+        this.trigger = function() {
+            return $observable.trigger();
+        };
+
         this.cleanup = function() {
             return $observable.cleanup();
         };
@@ -294,6 +301,17 @@ var NativeDocument = (function (exports) {
             return new ObservableChecker(this, callback)
         };
 
+        const $object = this;
+        Object.defineProperty($object, '$value', {
+            get() {
+                return $object.val();
+            },
+            set(value) {
+                $object.set(value);
+                return $object;
+            }
+        });
+
     }
 
     const Validator = {
@@ -325,7 +343,7 @@ var NativeDocument = (function (exports) {
             return typeof value === 'object';
         },
         isJson(value) {
-            return typeof value === 'object' && value !== null && !Array.isArray(value);
+            return typeof value === 'object' && value !== null && value.constructor.name === 'Object' && !Array.isArray(value);
         },
         isElement(value) {
             return value instanceof HTMLElement || value instanceof DocumentFragment  || value instanceof Text;
@@ -386,6 +404,8 @@ var NativeDocument = (function (exports) {
         }
     };
 
+    const BOOLEAN_ATTRIBUTES = ['checked', 'selected', 'disabled', 'readonly', 'required', 'autofocus', 'multiple', 'autocomplete', 'hidden', 'contenteditable', 'spellcheck', 'translate', 'draggable', 'async', 'defer', 'autoplay', 'controls', 'loop', 'muted', 'download', 'reversed', 'open', 'default', 'formnovalidate', 'novalidate', 'scoped', 'itemscope', 'allowfullscreen', 'allowpaymentrequest', 'playsinline'];
+
     /**
      *
      * @param {HTMLElement} element
@@ -439,6 +459,63 @@ var NativeDocument = (function (exports) {
     /**
      *
      * @param {HTMLElement} element
+     * @param {string} attributeName
+     * @param {boolean|number|Observable} value
+     */
+    function bindBooleanAttribute(element, attributeName, value) {
+        const defaultValue = Validator.isObservable(value) ? value.val() : value;
+        if(Validator.isBoolean(defaultValue)) {
+            element[attributeName] = defaultValue;
+        }
+        else {
+            element[attributeName] = defaultValue === element.value;
+        }
+        if(Validator.isObservable(value)) {
+            if(['checked'].includes(attributeName)) {
+                element.addEventListener('input', () => {
+                    if(Validator.isBoolean(defaultValue)) {
+                        value.set(element[attributeName]);
+                        return;
+                    }
+                    value.set(element.value);
+                });
+            }
+            value.subscribe(newValue => {
+                if(Validator.isBoolean(newValue)) {
+                    element[attributeName] = newValue;
+                    return;
+                }
+                element[attributeName] = newValue === element.value;
+            });
+        }
+    }
+
+
+    /**
+     *
+     * @param {HTMLElement} element
+     * @param {string} attributeName
+     * @param {Observable} value
+     */
+    function bindAttributeWithObservable(element, attributeName, value) {
+        const applyValue = (newValue) => {
+            if(attributeName === 'value') {
+                element.value = newValue;
+                return;
+            }
+            element.setAttribute(attributeName, newValue);
+        };
+        value.subscribe(applyValue);
+        applyValue(value.val());
+
+        if(attributeName === 'value') {
+            element.addEventListener('input', () => value.set(element.value));
+        }
+    }
+
+    /**
+     *
+     * @param {HTMLElement} element
      * @param {Object} attributes
      */
     function AttributesWrapper(element, attributes) {
@@ -449,18 +526,15 @@ var NativeDocument = (function (exports) {
             throw new NativeDocumentError('Attributes must be an object');
         }
 
-        for(let attributeName in attributes) {
+        for(let key in attributes) {
+            const attributeName = key.toLowerCase();
             const value = attributes[attributeName];
+            if(BOOLEAN_ATTRIBUTES.includes(attributeName)) {
+                bindBooleanAttribute(element, attributeName, value);
+                continue;
+            }
             if(Validator.isObservable(value)) {
-                value.subscribe(newValue => element.setAttribute(attributeName, newValue));
-                element.setAttribute(attributeName, value.val());
-                if(attributeName === 'value') {
-                    if(['checkbox', 'radio'].includes(element.type)) {
-                        element.addEventListener('input', () => value.set(element.checked));
-                    } else {
-                        element.addEventListener('input', () => value.set(element.value));
-                    }
-                }
+                bindAttributeWithObservable(element, attributeName, value);
                 continue;
             }
             if(attributeName === 'class' && Validator.isJson(value)) {
@@ -563,6 +637,86 @@ var NativeDocument = (function (exports) {
         subtree: true,
     });
 
+    const getChildAsNode = (child) => {
+        if(Validator.isFunction(child)) {
+            return getChildAsNode(child());
+        }
+        if(Validator.isElement(child)) {
+            return child;
+        }
+        return createTextNode(String(child))
+    };
+
+    function Anchor(name) {
+        const element = document.createDocumentFragment();
+
+        const anchorStart = document.createComment('Anchor Start : '+name);
+        const anchorEnd = document.createComment('/ Anchor End '+name);
+
+        element.appendChild(anchorStart);
+        element.appendChild(anchorEnd);
+
+        element.nativeInsertBefore = element.insertBefore;
+        element.nativeAppendChild = element.appendChild;
+
+        const insertBefore = function(parent, child, target) {
+            if(parent === element) {
+                parent.nativeInsertBefore(getChildAsNode(child), target);
+                return;
+            }
+            parent.insertBefore(getChildAsNode(child), target);
+        };
+
+        element.appendChild = function(child, before = null) {
+            const parent = anchorEnd.parentNode;
+            if(!parent) {
+                DebugManager.error('Anchor', 'Anchor : parent not found', child);
+                return;
+            }
+            before = before ?? anchorEnd;
+            if(Validator.isArray(child)) {
+                child.forEach((element) => {
+                    insertBefore(parent, element, before);
+                });
+                return element;
+            }
+            insertBefore(parent, child, before);
+        };
+
+        element.remove = function(trueRemove) {
+            if(anchorEnd.parentNode === element) {
+                return;
+            }
+            let itemToRemove = anchorStart.nextSibling, tempItem;
+            while(itemToRemove !== anchorEnd) {
+                tempItem = itemToRemove.nextSibling;
+                trueRemove ? itemToRemove.remove() : element.nativeAppendChild(itemToRemove);
+                itemToRemove = tempItem;
+            }
+            if(trueRemove) {
+                anchorEnd.remove();
+                anchorStart.remove();
+            }
+        };
+
+        element.insertBefore = function(child, anchor = null) {
+            element.appendChild(child, anchor);
+        };
+
+        element.clear = function() {
+            element.remove();
+        };
+
+        element.endElement = function() {
+            return anchorEnd;
+        };
+        element.startElement = function() {
+            return anchorStart;
+        };
+
+        return element;
+    }
+
     /**
      *
      * @param {HTMLElement|DocumentFragment} parent
@@ -609,6 +763,20 @@ var NativeDocument = (function (exports) {
 
         let $observer = null;
 
+        element.nd.appendChild = function(child) {
+            if(Validator.isArray(child)) {
+                ElementCreator.processChildren(child, element);
+                return;
+            }
+            if(Validator.isFunction(child)) {
+                child = child();
+                ElementCreator.processChildren(child(), element);
+            }
+            if(Validator.isElement(child)) {
+                ElementCreator.processChildren(child, element);
+            }
+        };
+
         element.nd.lifecycle = function(states) {
             $observer = $observer || DocumentObserver.watch(element);
 
@@ -647,7 +815,7 @@ var NativeDocument = (function (exports) {
          * @returns {HTMLElement|DocumentFragment}
          */
         createElement(name)  {
-            return name ? document.createElement(name) : document.createDocumentFragment();
+            return name ? document.createElement(name) : new Anchor('Fragment');
         },
         /**
          *
@@ -659,6 +827,14 @@ var NativeDocument = (function (exports) {
             const childrenArray = Array.isArray(children) ? children : [children];
             childrenArray.forEach(child => {
                 if (child === null) return;
+                if(Validator.isFunction(child)) {
+                    this.processChildren(child(), parent);
+                    return;
+                }
+                if(Validator.isArray(child)) {
+                    this.processChildren(child, parent);
+                    return;
+                }
                 if (Validator.isElement(child)) {
                     parent.appendChild(child);
                     return;
@@ -834,20 +1010,6 @@ var NativeDocument = (function (exports) {
         };
     };
 
-    Function.prototype.args = function(...args) {
-        return withValidation(this, args);
-    };
-
-    Function.prototype.errorBoundary = function(callback) {
-        return (...args)  => {
-            try {
-                return this.apply(this, args);
-            } catch(e) {
-                return callback(e);
-            }
-        };
-    };
-
     /**
      *
      * @param {*} value
@@ -913,6 +1075,10 @@ var NativeDocument = (function (exports) {
                 data[key] = Observable.init(itemValue);
                 continue;
             }
+            else if(Validator.isArray(itemValue)) {
+                data[key] = Observable.array(itemValue);
+                continue;
+            }
             data[key] = Observable(itemValue);
         }
 
@@ -930,6 +1096,9 @@ var NativeDocument = (function (exports) {
             }
             return result;
         };
+        const $clone = function() {
+
+        };
 
         return new Proxy(data, {
             get(target, property) {
@@ -938,6 +1107,9 @@ var NativeDocument = (function (exports) {
                 }
                 if(property === '$val') {
                     return $val;
+                }
+                if(property === '$clone') {
+                    return $clone;
                 }
                 if(target[property] !== undefined) {
                     return target[property];
@@ -953,6 +1125,7 @@ var NativeDocument = (function (exports) {
     };
 
     Observable.object = Observable.init;
+    Observable.json = Observable.init;
     /**
      *
      * @param {Array} target
@@ -1001,6 +1174,34 @@ var NativeDocument = (function (exports) {
         });
 
         setInterval(() => MemoryManager.cleanObservables(threshold), interval);
+    };
+
+    Function.prototype.args = function(...args) {
+        return withValidation(this, args);
+    };
+
+    Function.prototype.errorBoundary = function(callback) {
+        return (...args)  => {
+            try {
+                return this.apply(this, args);
+            } catch(e) {
+                return callback(e);
+            }
+        };
+    };
+
+    String.prototype.use = function(args) {
+        const value = this;
+
+        return Observable.computed(() => {
+            return value.replace(/\$\{(.*?)}/g, (match, key) => {
+                const data = args[key];
+                if(Validator.isObservable(data)) {
+                    return data.val();
+                }
+                return data;
+            });
+        }, Object.values(args));
     };
 
     const Store = (function() {
@@ -1114,12 +1315,8 @@ var NativeDocument = (function (exports) {
      * @returns {DocumentFragment}
      */
     function ForEach(data, callback, key) {
-        const element = document.createDocumentFragment();
-        const blockStart = document.createComment('Foreach start');
-        const blockEnd = document.createComment('Foreach end');
-
-        element.appendChild(blockStart);
-        element.appendChild(blockEnd);
+        const element = new Anchor('ForEach');
+        const blockEnd = element.endElement();
 
         let cache = new Map();
 
@@ -1188,16 +1385,11 @@ var NativeDocument = (function (exports) {
      * @param {string|null} comment
      * @returns {DocumentFragment}
      */
-    const ShowIf = function(condition, child, comment) {
+    const ShowIf = function(condition, child, comment = null) {
         if(!(Validator.isObservable(condition))) {
             return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
         }
-        const element = document.createDocumentFragment();
-        const positionKeeperStart = document.createComment('Show if : '+(comment || ''));
-        const positionKeeperEnd = document.createComment('Show if : '+(comment || ''));
-
-        element.appendChild(positionKeeperStart);
-        element.appendChild(positionKeeperEnd);
+        const element = new Anchor('Show if : '+(comment || ''));
 
         let childElement = null;
         const getChildElement = () => {
@@ -1222,13 +1414,10 @@ var NativeDocument = (function (exports) {
             element.appendChild(getChildElement());
         }
         condition.subscribe(value => {
-            const parent = positionKeeperEnd.parentNode;
-            if(value && parent) {
-                parent.insertBefore(getChildElement(), positionKeeperEnd);
+            if(value) {
+                element.appendChild(getChildElement());
             } else {
-                if(Validator.isElement(childElement)){
-                    childElement.remove();
-                }
+                element.remove();
             }
         });
 
@@ -1264,92 +1453,99 @@ var NativeDocument = (function (exports) {
 
     /**
      *
-     * @param {ObservableItem|ObservableChecker} condition
+     * @param {ObservableItem|ObservableChecker} $condition
+     * @param {{[key]: *}} values
+     * @returns {DocumentFragment}
+     */
+    const Match = function($condition, values) {
+
+        if(!Validator.isObservable($condition)) {
+            throw new NativeDocumentError("Toggle : condition must be an Observable");
+        }
+
+        const anchor = new Anchor();
+        const cache = new Map();
+
+        const getItem = function(key) {
+            if(cache.has(key)) {
+                return cache.get(key);
+            }
+            let item = values[key];
+            if(!item) {
+                return null;
+            }
+            if(Validator.isFunction(item)) {
+                item = item();
+            }
+            cache.set(key, item);
+            return item;
+        };
+
+        const defaultValue = $condition.val();
+        const defaultContent = getItem(defaultValue);
+        if(defaultContent) {
+            anchor.appendChild(defaultContent);
+        }
+
+        $condition.subscribe(value => {
+            const content = getItem(value);
+            anchor.remove();
+            if(content) {
+                anchor.appendChild(content);
+            }
+        });
+
+        return anchor;
+    };
+
+
+    /**
+     *
+     * @param {ObservableItem|ObservableChecker} $condition
      * @param {*} onTrue
      * @param {*} onFalse
      * @returns {DocumentFragment}
      */
-    const Switch = function (condition, onTrue, onFalse) {
+    const Switch = function ($condition, onTrue, onFalse) {
 
-        if(!Validator.isObservable(condition)) {
+        if(!Validator.isObservable($condition)) {
             throw new NativeDocumentError("Toggle : condition must be an Observable");
         }
 
-        const commentStart = document.createComment('Toggle Start');
-        const commentEnd = document.createComment('Toggle End');
-
-        const element = document.createDocumentFragment();
-        element.appendChild(commentStart);
-        element.appendChild(commentEnd);
-
-        const elements = {
-            onTrueNode: (Validator.isFunction(onTrue)) ? null : onTrue,
-            onFalseNode: (Validator.isFunction(onFalse)) ? null : onFalse,
-        };
-
-        if(Validator.isStringOrObservable(elements.onTrueNode)) {
-            elements.onTrueNode = createTextNode(elements.onTrueNode);
-        }
-        if(Validator.isStringOrObservable(elements.onFalseNode)) {
-            elements.onFalseNode = createTextNode(elements.onFalseNode);
-        }
-
-        const handle = (value) => {
-            const parent = commentEnd.parentNode;
-            if(!parent) {
-                return;
-            }
-            if(value) {
-                if(!elements.onTrueNode && Validator.isFunction(onTrue)) {
-                    elements.onTrueNode = onTrue();
-                }
-                elements.onFalseNode && elements.onFalseNode.remove();
-                parent.insertBefore(elements.onTrueNode, commentEnd);
-            } else {
-                if(!elements.onFalseNode && Validator.isFunction(onFalse)) {
-                    elements.onFalseNode = onFalse();
-                }
-                elements.onTrueNode && elements.onTrueNode.remove();
-                parent.insertBefore(elements.onFalseNode, commentEnd);
-            }
-        };
-
-        condition.subscribe(handle);
-        handle(condition.val());
-
-        return element;
+        return Match($condition, {
+            true: onTrue,
+            false: onFalse,
+        });
     };
 
     /**
      *
-     * @param condition
+     * @param {ObservableItem|ObservableChecker} $condition
      * @returns {{show: Function, otherwise: (((*) => {}):DocumentFragment)}
      */
-    const When = function(condition) {
+    const When = function($condition) {
+        if(!Validator.isObservable($condition)) {
+            throw new NativeDocumentError("When : condition must be an Observable");
+        }
+
         let $onTrue = null;
         let $onFalse = null;
 
         return {
             show(onTrue) {
-                if(!Validator.isElement(onTrue) && !Validator.isFunction(onTrue)) {
-                    throw new NativeDocumentError("When : onTrue must be a valid Element");
-                }
                 $onTrue = onTrue;
                 return this;
             },
             otherwise(onFalse) {
-                if(!Validator.isElement(onFalse) && !Validator.isFunction(onFalse)) {
-                    throw new NativeDocumentError("When : onFalse must be a valid Element");
-                }
                 $onFalse = onFalse;
-                return Switch(condition, $onTrue, $onFalse);
+                return Switch($condition, $onTrue, $onFalse);
             }
         }
     };
 
     const Div = HtmlElementWrapper('div');
     const Span = HtmlElementWrapper('span');
-    const Label = HtmlElementWrapper('span');
+    const Label = HtmlElementWrapper('label');
     const P = HtmlElementWrapper('p');
     const Paragraph = P;
     const Strong = HtmlElementWrapper('strong');
@@ -1603,6 +1799,7 @@ var NativeDocument = (function (exports) {
         ListItem: ListItem,
         Main: Main,
         Mark: Mark,
+        Match: Match,
         Menu: Menu,
         Meter: Meter,
         MonthInput: MonthInput,
@@ -2293,7 +2490,26 @@ var NativeDocument = (function (exports) {
     };
 
     Router.get = function(name) {
-        return Router.routers[name || DEFAULT_ROUTER_NAME];
+        const router = Router.routers[name || DEFAULT_ROUTER_NAME];
+        if(!router) {
+            throw new RouterError(`Router not found for name: ${name}`);
+        }
+        return router;
+    };
+
+    Router.push = function(target, name = null) {
+        return Router.get(name).push(target);
+    };
+
+    Router.replace = function(target, name = null) {
+        return Router.get(name).replace(target);
+    };
+
+    Router.forward = function(name = null) {
+        return Router.get(name).forward();
+    };
+    Router.back = function(name = null) {
+        return Router.get(name).back();
     };
 
     function Link(attributes, children){

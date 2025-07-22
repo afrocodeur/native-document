@@ -4,6 +4,7 @@ import NativeDocumentError from "../errors/NativeDocumentError";
 import DocumentObserver from "./DocumentObserver";
 import Validator from "../utils/validator";
 import DebugManager from "../utils/debug-manager";
+import Anchor from "../elements/anchor";
 
 /**
  *
@@ -51,6 +52,20 @@ const addUtilsMethods = function(element) {
 
     let $observer = null;
 
+    element.nd.appendChild = function(child) {
+        if(Validator.isArray(child)) {
+            ElementCreator.processChildren(child, element);
+            return;
+        }
+        if(Validator.isFunction(child)) {
+            child = child();
+            ElementCreator.processChildren(child(), element);
+        }
+        if(Validator.isElement(child)) {
+            ElementCreator.processChildren(child, element);
+        }
+    };
+
     element.nd.lifecycle = function(states) {
         $observer = $observer || DocumentObserver.watch(element);
 
@@ -89,7 +104,7 @@ export const ElementCreator = {
      * @returns {HTMLElement|DocumentFragment}
      */
     createElement(name)  {
-        return name ? document.createElement(name) : document.createDocumentFragment();
+        return name ? document.createElement(name) : new Anchor('Fragment');
     },
     /**
      *
@@ -101,6 +116,14 @@ export const ElementCreator = {
         const childrenArray = Array.isArray(children) ? children : [children];
         childrenArray.forEach(child => {
             if (child === null) return;
+            if(Validator.isFunction(child)) {
+                this.processChildren(child(), parent);
+                return;
+            }
+            if(Validator.isArray(child)) {
+                this.processChildren(child, parent);
+                return;
+            }
             if (Validator.isElement(child)) {
                 parent.appendChild(child);
                 return;

@@ -227,5 +227,24 @@ Router.create = function(options, callback) {
 };
 
 Router.get = function(name) {
-    return Router.routers[name || DEFAULT_ROUTER_NAME];
+    const router = Router.routers[name || DEFAULT_ROUTER_NAME];
+    if(!router) {
+        throw new RouterError(`Router not found for name: ${name}`);
+    }
+    return router;
+};
+
+Router.push = function(target, name = null) {
+    return Router.get(name).push(target);
+};
+
+Router.replace = function(target, name = null) {
+    return Router.get(name).replace(target);
+};
+
+Router.forward = function(name = null) {
+    return Router.get(name).forward();
+};
+Router.back = function(name = null) {
+    return Router.get(name).back();
 };

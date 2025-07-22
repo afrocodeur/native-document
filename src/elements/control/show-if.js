@@ -2,6 +2,7 @@ import { Observable } from "../../data/Observable";
 import {createTextNode} from "../../wrappers/HtmlElementWrapper";
 import Validator from "../../utils/validator";
 import DebugManager from "../../utils/debug-manager.js";
+import Anchor from "../anchor";
 
 /**
  * Show the element if the condition is true
@@ -15,12 +16,7 @@ export const ShowIf = function(condition, child, comment = null) {
     if(!(Validator.isObservable(condition))) {
         return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
     }
-    const element = document.createDocumentFragment();
-    const positionKeeperStart = document.createComment('Show if : '+(comment || ''));
-    const positionKeeperEnd = document.createComment('Show if : '+(comment || ''));
-
-    element.appendChild(positionKeeperStart);
-    element.appendChild(positionKeeperEnd);
+    const element = new Anchor('Show if : '+(comment || ''));
 
     let childElement = null;
     const getChildElement = () => {
@@ -45,13 +41,10 @@ export const ShowIf = function(condition, child, comment = null) {
         element.appendChild(getChildElement());
     }
     condition.subscribe(value => {
-        const parent = positionKeeperEnd.parentNode;
-        if(value && parent) {
-            parent.insertBefore(getChildElement(), positionKeeperEnd);
+        if(value) {
+            element.appendChild(getChildElement());
         } else {
-            if(Validator.isElement(childElement)){
-                childElement.remove();
-            }
+            element.remove();
         }
     });
 
