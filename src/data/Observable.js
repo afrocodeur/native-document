@@ -120,6 +120,26 @@ Observable.init = function(value) {
 
 Observable.object = Observable.init;
 Observable.json = Observable.init;
+Observable.update = function($target, data) {
+    for(const key in data) {
+        const targetItem = $target[key];
+        const newValue = data[key];
+
+        if(Validator.isObservable(targetItem)) {
+            if(Validator.isArray(newValue)) {
+                Observable.update(targetItem, newValue);
+                continue;
+            }
+            targetItem.set(newValue);
+            continue;
+        }
+        if(Validator.isProxy(targetItem)) {
+            Observable.update(targetItem, newValue);
+            continue;
+        }
+        $target[key] = newValue;
+    }
+};
 /**
  *
  * @param {Array} target

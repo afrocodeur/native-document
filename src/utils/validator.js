@@ -70,7 +70,13 @@ const Validator = {
 
         return children;
     },
-
+    containsObservables(data) {
+        if(!data) {
+            return false;
+        }
+        return Validator.isObject(data)
+            && Object.values(data).some(value => Validator.isObservable(value));
+    },
     validateAttributes(attributes) {
         if (!attributes || typeof attributes !== 'object') {
             return attributes;
