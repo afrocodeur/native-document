@@ -2,6 +2,7 @@ export { default as HtmlElementWrapper, ElementCreator } from './src/wrappers/Ht
 
 import './src/utils/prototypes.js';
 
+export * from './src/utils/plugins-manager';
 export * from './src/utils/args-types';
 export * from './src/data/Observable';
 export * from './src/data/Store';

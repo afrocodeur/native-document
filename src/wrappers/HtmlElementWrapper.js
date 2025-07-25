@@ -5,6 +5,7 @@ import DocumentObserver from "./DocumentObserver";
 import Validator from "../utils/validator";
 import DebugManager from "../utils/debug-manager";
 import Anchor from "../elements/anchor";
+import PluginsManager from "../utils/plugins-manager";
 
 /**
  *
@@ -160,6 +161,11 @@ export const ElementCreator = {
         HtmlElementEventsWrapper(element);
         const item = (typeof customWrapper === 'function') ? customWrapper(element) : element;
         addUtilsMethods(item);
+
+        PluginsManager.list().forEach(plugin => {
+            plugin?.element?.setup && plugin.element.setup(item, attributes);
+        });
+
         return item;
     }
 };
