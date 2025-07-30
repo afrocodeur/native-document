@@ -9,7 +9,7 @@ import MemoryRouter from "./modes/MemoryRouter.js";
 import DebugManager from "../utils/debug-manager.js";
 import {RouterComponent} from "./RouterComponent.js";
 
-const DEFAULT_ROUTER_NAME = 'default';
+export const DEFAULT_ROUTER_NAME = 'default';
 
 /**
  *
@@ -209,21 +209,21 @@ Router.create = function(options, callback) {
 
     router.init(options.entry);
 
-    return {
-        mount: (container) => {
-            if(Validator.isString(container)) {
-                const mountContainer = document.querySelector(container);
-                if(!mountContainer) {
-                    throw new RouterError(`Container not found for selector: ${container}`);
-                }
-                container = mountContainer;
-            } else if(!Validator.isElement(container)) {
-                throw new RouterError('Container must be a string or an Element');
+    router.mount = function(container) {
+        if(Validator.isString(container)) {
+            const mountContainer = document.querySelector(container);
+            if(!mountContainer) {
+                throw new RouterError(`Container not found for selector: ${container}`);
             }
-
-            RouterComponent(router, container);
+            container = mountContainer;
+        } else if(!Validator.isElement(container)) {
+            throw new RouterError('Container must be a string or an Element');
         }
+
+        return RouterComponent(router, container);
     };
+
+    return router;
 };
 
 Router.get = function(name) {

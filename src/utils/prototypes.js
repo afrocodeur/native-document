@@ -29,4 +29,17 @@ String.prototype.use = function(args) {
             return data;
         });
     }, Object.values(args));
+};
+
+String.prototype.resolveObservableTemplate = function() {
+    if(!Validator.containsObservableReference(this)) {
+        return this;
+    }
+    return this.split(/(\{\{#ObItem::\([0-9]+\)\}\})/g).filter(Boolean).map((value) => {
+        if(!Validator.containsObservableReference(value)) {
+            return value;
+        }
+        const [_, id] = value.match(/\{\{#ObItem::\(([0-9]+)\)\}\}/);
+        return Observable.getById(id);
+    });
 }

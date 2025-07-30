@@ -1,6 +1,7 @@
 import Validator from "../utils/validator";
 import NativeDocumentError from "../errors/NativeDocumentError";
 import {BOOLEAN_ATTRIBUTES} from "./constants.js";
+import {Observable} from "../data/Observable";
 
 /**
  *
@@ -124,7 +125,16 @@ export default function AttributesWrapper(element, attributes) {
 
     for(let key in attributes) {
         const attributeName = key.toLowerCase();
-        const value = attributes[attributeName];
+        let value = attributes[attributeName];
+        if(Validator.isString(value) && Validator.isFunction(value.resolveObservableTemplate)) {
+            value = value.resolveObservableTemplate();
+            if(Validator.isArray(value)) {
+                const observables = value.filter(item => Validator.isObservable(item));
+                value = Observable.computed(() => {
+                    return value.map(item => Validator.isObservable(item) ? item.val() : item).join(' ') || ' ';
+                }, observables);
+            }
+        }
         if(BOOLEAN_ATTRIBUTES.includes(attributeName)) {
             bindBooleanAttribute(element, attributeName, value);
             continue;

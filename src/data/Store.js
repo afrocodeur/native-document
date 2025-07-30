@@ -11,7 +11,7 @@ export const Store = (function() {
          * @returns {ObservableItem}
          */
         use(name) {
-            const {observer: originalObserver, followers } = $stores.get(name);
+            const {observer: originalObserver, subscribers } = $stores.get(name);
             const observerFollower = Observable(originalObserver.val());
             const unSubscriber = originalObserver.subscribe(value => observerFollower.set(value));
             const updaterUnsubscriber = observerFollower.subscribe(value => originalObserver.set(value));
@@ -20,7 +20,7 @@ export const Store = (function() {
                 updaterUnsubscriber();
                 observerFollower.cleanup();
             };
-            followers.add(observerFollower);
+            subscribers.add(observerFollower);
 
             return observerFollower;
         },
@@ -39,7 +39,7 @@ export const Store = (function() {
          */
         create(name, value) {
             const observer = Observable(value);
-            $stores.set(name, { observer, followers: new Set()});
+            $stores.set(name, { observer, subscribers: new Set()});
             return observer;
         },
         /**
@@ -54,9 +54,9 @@ export const Store = (function() {
         /**
          *
          * @param {string} name
-         * @returns {{observer: ObservableItem, followers: Set}}
+         * @returns {{observer: ObservableItem, subscribers: Set}}
          */
-        getWithFollowers(name) {
+        getWithSubscribers(name) {
             return $stores.get(name);
         },
         /**
@@ -67,7 +67,7 @@ export const Store = (function() {
             const item = $stores.get(name);
             if(!item) return;
             item.observer.cleanup();
-            item.followers.forEach(follower => follower.destroy());
+            item.subscribers.forEach(follower => follower.destroy());
             item.observer.clear();
         }
     };

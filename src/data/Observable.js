@@ -14,17 +14,30 @@ export function Observable(value) {
     return new ObservableItem(value);
 }
 
-
 Observable.computed = function(callback, dependencies = []) {
     const initialValue = callback();
     const observable = new ObservableItem(initialValue);
 
-    const updatedValue = throttle(() => observable.set(callback()), 10, { debounce: true });
+    const updatedValue = () => observable.set(callback());
 
     dependencies.forEach(dependency => dependency.subscribe(updatedValue));
 
     return observable;
 };
+
+/**
+ *
+ * @param id
+ * @returns {ObservableItem|null}
+ */
+Observable.getById = function(id) {
+    const item = MemoryManager.getObservableById(parseInt(id));
+    if(!item) {
+        throw new NativeDocumentError('Observable.getById : No observable found with id ' + id);
+    }
+    return item;
+};
+
 
 /**
  *

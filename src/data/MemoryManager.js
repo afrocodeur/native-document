@@ -5,10 +5,15 @@ const MemoryManager = (function() {
 
     let $nexObserverId = 0;
     const $observables = new Map();
-    const $registry = new FinalizationRegistry((heldValue) => {
-        DebugManager.log('MemoryManager', '🧹 Auto-cleanup observable:', heldValue);
-        heldValue.listeners.splice(0);
-    })
+    let $registry = null;
+    try {
+        $registry = new FinalizationRegistry((heldValue) => {
+            DebugManager.log('MemoryManager', '🧹 Auto-cleanup observable:', heldValue);
+            heldValue.listeners.splice(0);
+        });
+    } catch (e) {
+        DebugManager.warn('MemoryManager', 'FinalizationRegistry not supported, observables will not be cleaned automatically');
+    }
 
     return {
         /**
@@ -24,9 +29,14 @@ const MemoryManager = (function() {
                 id: id,
                 listeners
             };
-            $registry.register(observable, heldValue);
+            if($registry) {
+                $registry.register(observable, heldValue);
+            }
             $observables.set(id, new WeakRef(observable));
             return id;
+        },
+        getObservableById(id) {
+            return $observables.get(id)?.deref();
         },
         cleanup() {
             for (const [_, weakObservableRef] of $observables) {

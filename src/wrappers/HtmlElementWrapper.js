@@ -117,6 +117,9 @@ export const ElementCreator = {
         const childrenArray = Array.isArray(children) ? children : [children];
         childrenArray.forEach(child => {
             if (child === null) return;
+            if(Validator.isString(child) && Validator.isFunction(child.resolveObservableTemplate)) {
+                child = child.resolveObservableTemplate();
+            }
             if(Validator.isFunction(child)) {
                 this.processChildren(child(), parent);
                 return;
@@ -195,7 +198,7 @@ export default function HtmlElementWrapper(name, customWrapper) {
         } catch (error) {
             DebugManager.error('ElementCreation', `Error creating ${$tagName}`, error);
         }
-    }
+    };
 
     builder.hold = (children, attributes) => (() => builder(children, attributes));
 

@@ -1,20 +1,23 @@
 import Validator from "../utils/validator.js";
 import {Link as NativeLink} from "../../elements.js";
-import Router from "./Router.js";
+import Router, {DEFAULT_ROUTER_NAME} from "./Router.js";
 import RouterError from "../errors/RouterError.js";
 
 
-export function Link(attributes, children){
-    const target = attributes.to || attributes.href;
+export function Link(options, children){
+    const { to, href, ...attributes } = options;
+    const target = to || href;
     if(Validator.isString(target)) {
         const router = Router.get();
         return NativeLink({ ...attributes, href: target}, children).nd.on.prevent.click(() => {
             router.push(target);
         });
     }
-    const router = Router.get(target.router);
+    const routerName = target.router || DEFAULT_ROUTER_NAME;
+    const router = Router.get(routerName);
+    console.log(routerName)
     if(!router) {
-        throw new RouterError('Router not found "'+target.router+'" for link "'+target.name+'"');
+        throw new RouterError('Router not found "'+routerName+'" for link "'+target.name+'"');
     }
     const url = router.generateUrl(target.name, target.params, target.query);
     return NativeLink({ ...attributes, href: url }, children).nd.on.prevent.click(() => {

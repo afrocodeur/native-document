@@ -109,4 +109,8 @@ export default function ObservableItem(value) {
         }
     })
 
+    this.toString = function() {
+        return   '{{#ObItem::(' +$memoryId+ ')}}';
+    };
+
 }

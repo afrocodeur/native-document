@@ -17,6 +17,9 @@ export default function ObservableChecker($observable, $checker) {
     this.val = function() {
         return $checker && $checker($observable.val());
     };
+    this.check = function(callback) {
+        return $observable.check(() => callback(this.val()));
+    };
 
     this.set = function(value) {
         return $observable.set(value);

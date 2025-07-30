@@ -1,505 +1,269 @@
-# 🚀 NativeDocument
+# NativeDocument
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow.svg)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-[![Size](https://img.shields.io/badge/Size-~15KB-green.svg)](https://github.com/yourusername/nativedocument)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)](#)
+[![Version](https://img.shields.io/badge/Version-1.0.0-orange.svg)](#)
+[![Bundle Size](https://img.shields.io/badge/Bundle%20Size-~25kb-green.svg)](#)
 
-> A lightweight, reactive JavaScript framework for building modern web applications with zero dependencies.
+> **A reactive JavaScript framework that preserves native DOM simplicity without sacrificing modern features**
 
-NativeDocument provides a reactive programming model similar to React but using vanilla JavaScript and modern web APIs. It features automatic memory management, a complete set of HTML elements, routing, state management, and real-time DOM updates.
+NativeDocument combines the familiarity of vanilla JavaScript with the power of modern reactivity. No compilation, no virtual DOM, just pure JavaScript with an intuitive API.
 
-## ✨ Features
+## Why NativeDocument?
 
-- 🔄 **Reactive Observables** - Automatic DOM updates when data changes
-- 🧠 **Smart Memory Management** - Automatic cleanup with FinalizationRegistry
-- 🎯 **Zero Dependencies** - Pure vanilla JavaScript
-- 🛣️ **Built-in Router** - Hash, History, and Memory modes
-- 🏪 **Global State Management** - Share state across components
-- 📦 **Complete HTML Elements** - All HTML elements with extended functionality
-- 🎨 **Conditional Rendering** - ShowIf, ToggleView, ForEach components
-- ✅ **Runtime Validation** - Type checking and argument validation
-
-
-## 🚀 Quick Start
-
-### Installation
-
-```bash
-# Download the minified version
-curl -o native-document.min.js https://raw.githubusercontent.com/afrocodeur/native-document/refs/heads/main/dist/native-document.min.js
-
-# Or include via CDN
+### **Instant Start**
+```html
 <script src="https://cdn.jsdelivr.net/gh/afrocodeur/native-document@latest/dist/native-document.min.js"></script>
 ```
 
-```bash
-#Use degit 
-
-npx degit afrocodeur/native-document-vite my-project
-cd my-project
-npm install
-npm start
-```
-
-
-
-### Basic Example
-
+### **Familiar API**
 ```javascript
-const { Observable } = NativeDocument;
-const { H1, P, Button } = NativeDocument.elements;
-// Create reactive state
-const count = Observable(0);
-const message = Observable("Hello World!");
+import { Div, Button, Observable } from 'native-document/src/elements';
+import { Observable } from 'native-document';
 
-// Create reactive UI
-const app = Div([
-    H1(message),
-    P(['Count: ',count]),
-    Button("Increment").nd.on.click(() => count.set(count.val() + 1)),
-    Button("Reset").nd.on.click(() => count.set(0))
+// CDN
+// const { Div, Button } = NativeDocument.elements;
+// const { Observable } = NativeDocument;
+
+const count = Observable(0);
+
+const App = Div({ class: 'app' }, [
+    Div([ 'Count ', count]),
+    // OR Div(`Count ${count}`),
+    Button('Increment').nd.on.click(() => count.set(count.val() + 1))
 ]);
 
-// Mount to DOM
-document.body.appendChild(app);
+document.body.appendChild(App);
 ```
 
-## 📚 Core Concepts
+### **Complete Features**
+- **Native reactivity** with observables
+- **Global store** for state management
+- **Built-in conditional rendering**
+- **Full-featured router** (hash, history, memory modes)
+- **Advanced debugging system**
+- **Automatic memory management** via FinalizationRegistry
+
+## Quick Installation
+
+### Option 1: CDN (Instant Start)
+```html
+<script src="https://cdn.jsdelivr.net/gh/afrocodeur/native-document@latest/dist/native-document.min.js"></script>
+<script>
+  const { Div, Observable } = NativeDocument.elements
+  // Your code here
+</script>
+```
+
+### Option 2: Vite Template (Complete Project)
+```bash
+npx degit afrocodeur/native-document-vite my-app
+cd my-app
+npm install
+npm run dev
+```
+
+### Option 3: NPM/Yarn
+```bash
+npm install native-document
+# or
+yarn add native-document
+```
+
+## Quick Example
+
+```javascript
+import { Div, Input, Button, ShowIf, ForEach } from 'native-document/src/elements'
+import { Observable } from 'native-document'
+
+// CDN
+// const { Div, Input, Button, ShowIf, ForEach } = NativeDocument.elements;
+// const { Observable } = NativeDocument;
+
+// Reactive state
+const todos = Observable.array([])
+const newTodo = Observable('')
+
+// Todo Component
+const TodoApp = Div({ class: 'todo-app' }, [
+
+    // Input for new todo
+    Input({ placeholder: 'Add new task...', value: newTodo }),
+
+    // Add button
+    Button('Add Todo').nd.on.click(() => {
+        if (newTodo.val().trim()) {
+            todos.push({ id: Date.now(), text: newTodo.val(), done: false })
+            newTodo.set('')
+        }
+    }),
+
+    // Todo list
+    ForEach(todos, (todo, index) =>
+        Div({ class: 'todo-item' }, [
+            Input({ type: 'checkbox', checked: todo.done }),
+            `${todo.text}`,
+            Button('Delete').nd.on.click(() => todos.splice(index.val(), 1))
+        ]), /*item key (string | callback) */(item) => item),
+
+    // Empty state
+    ShowIf(
+        todos.check(list => list.length === 0),
+        Div({ class: 'empty' }, 'No todos yet!')
+    )
+]);
+
+document.body.appendChild(TodoApp)
+```
+
+## Core Concepts
 
 ### Observables
-
-Observables are the heart of NativeDocument's reactivity system:
-
+Reactive data that automatically updates the DOM:
 ```javascript
-const { Observable } = NativeDocument;
-// Create observable
-const name = Observable("John");
+import { Div } from 'native-document/src/elements'
+import { Observable } from 'native-document'
 
-// Get value
-console.log(name.val()); // "John"
+// CDN
+// const { Div  } = NativeDocument.elements;
+// const { Observable } = NativeDocument;
 
-// Subscribe to changes
-const unsubscribe = name.subscribe((newValue, oldValue) => {
-  console.log(`Changed from ${oldValue} to ${newValue}`);
-});
+const user = Observable({ name: 'John', age: 25 });
+const greeting = Observable.computed(() => `Hello ${user.$value.name}!`, [user])
+// Or const greeting = Observable.computed(() => `Hello ${user.val().name}!`, [user])
 
-// Set value
-name.set("Jane");
+document.body.appendChild(Div(greeting));
 
-// Cleanup
-unsubscribe();
+// user.name = 'Fausty'; // will not work
+// user.$value = { ...user.$value, name: ' Hermes!' }; // will work
+// user.set(data => ({ ...data, name: 'Hermes!' })); // will work
+user.set({ ...user.val(), name: 'Hermes!' });
 ```
 
-
-### 📦 Elements
-
-All HTML elements are available as functions:
-
+### Elements
+Familiar HTML element creation with reactive bindings:
 ```javascript
-const { Observable } = NativeDocument;
-const { Div, H1, H2, P, Link, Strong, Input, Button, Br } = NativeDocument.elements;
-// Basic elements
-const header = H1("My App");
-const paragraph = P("Welcome to NativeDocument!");
+import { Div, Button } from 'native-document/src/elements'
+import { Observable } from 'native-document'
 
-// With attributes
-const link = Link({href: "https://example.com", target: "_blank" }, "Click me");
+// CDN
+// const { Div, Button  } = NativeDocument.elements;
+// const { Observable } = NativeDocument;
 
-const name = Observable('');
+const App  = function() {
+    const isVisible = Observable(true)
+    
+    return Div([
+        Div({
+            class: { 'hidden': isVisible.check(v => !v) },
+            style: { opacity: isVisible.check(v => v ? 1 : 0.2) }
+        }, 'Content'),
+        Button('Toggle').nd.on.click(() => isVisible.set(v => !v)),
+    ]);
+};
 
-// With reactive attributes
-const input = Input({
-    type: "text",
-    value: name, // Observable binding
-    placeholder: "Enter name"
-});
-
-// Nested elements
-const card = Div({ class: "card" }, [
-    H2("Card Title"),
-    Strong(name),
-    P("Card content here..."),
-    Button("Action")
-]);
-
-document.body.appendChild(Div([
-    input,
-    card,
-    Br(),
-    link
-]));
+document.body.appendChild(App());
 ```
-
 
 ### Conditional Rendering
-
+Built-in components for dynamic content:
 ```javascript
-const { Observable } = NativeDocument;
-const { ShowIf, Switch, When, Div, P, Button, Br, H2 } = NativeDocument.elements;
+ShowIf(user.check(u => u.isLoggedIn), 
+  Div('Welcome back!')
+)
 
+Match(theme, {
+  'dark': Div({ class: 'dark-mode' }),
+  'light': Div({ class: 'light-mode' })
+})
 
-const isVisible = Observable(true);
-const user = Observable({ name: "John", age: 15 });
+Switch(condition, onTrue, onFalse)
 
-// Show/hide elements
-const conditionalContent = Div([
-    ShowIf(isVisible, P("This content is visible!")),
-    Button('Toggle').nd.on.click(() => isVisible.set((currentValue) => !currentValue))
-]);
-
-const whenContent = Div([
-    H2('When'),
-    When(user.check(u => u.age >= 18))
-        .show(() => P("Adult content"))
-        .otherwise(() => P("Minor content")),
-]);
-
-// Toggle between two states
-const toggleContent = Div([
-    H2('Switch'),
-    Switch(
-        user.check(u => u.age >= 18),
-        () => P("Adult content"), // use function to create element only if requested
-        () => P("Minor content")
-    ),
-    Button('Toggle user age').nd.on.click(() => user.set((currentValue) => ({ ...currentValue, age: currentValue.age === 25 ? 15 :25 })))
-]);
-
-document.body.appendChild(Div([
-    conditionalContent,
-    Br(),
-    whenContent,
-    Br(),
-    toggleContent
-]));
+When(condition)
+    .show(onTrue)
+    .otherwise(onFalse)
 ```
 
-### Lists and Iteration
+## Documentation
 
-```javascript
-const { Observable } = NativeDocument;
-const { ForEach, Div, P, Button, Br, H4 } = NativeDocument.elements;
+- **[Getting Started](docs/getting-started.md)** - Installation and first steps
+- **[Core Concepts](docs/core-concepts.md)** - Understanding the fundamentals
+- **[Observables](docs/observables.md)** - Reactive state management
+- **[Elements](docs/elements.md)** - Creating and composing UI
+- **[Conditional Rendering](docs/conditional-rendering.md)** - Dynamic content
+- **[Routing](docs/routing.md)** - Navigation and URL management
+- **[State Management](docs/state-management.md)** - Global state patterns
+- **[Lifecycle Events](docs/lifecycle-events.md)** - Lifecycle events
+- **[Memory Management](docs/memory-management.md)** - Memory management
+- **[Anchor](docs/anchor.md)** - Anchor
 
-const items = Observable([
-    { id: 1, name: "Apple", price: 1.20 },
-    { id: 2, name: "Banana", price: 0.80 },
-    { id: 3, name: "Orange", price: 1.50 }
-]);
+## Examples
 
-const itemList = ForEach(items, (item, index) =>
-    Div({ class: "item" }, [
-        H4(item.name),
-        P(`$${item.price}`),
-        Button("Remove").nd.on.click(() => {
-            items.set((currentItems) => currentItems.filter(i => i.id !== item.id))
-        })
-    ]), 'id');
-
-document.body.appendChild(itemList);
+### Todo App
+```bash
+# Complete todo application with local storage
+git clone https://github.com/afrocodeur/native-document-examples
+cd examples/todo-app
 ```
 
-### Forms
-
-```javascript
-
-const { EmailInput, Form, Label, Strong, SubmitButton, Input, Div } = NativeDocument.elements;
-const { Observable } = NativeDocument;
-
-const formData = Observable.object({ name: "", email: "d.mamadou@miridoo.net" });
-
-const FormItem = (title, input) => {
-    return Div([
-        Label(Strong(title)),
-        Div(input)
-    ]);
-}
-
-const form = Form([
-    FormItem("Name", Input({ value: formData.name })),
-    FormItem("Email", Input({ value: formData.email })),
-    SubmitButton("Submit")
-]).nd.on.prevent.submit((event) => {
-    console.log(Observable.value(formData));
-});
-
-document.body.appendChild(form);
-```
-## 🛣️ Routing
-
-NativeDocument includes a powerful routing system:
-
-```javascript
-
-const { Div, Button, Main } = NativeDocument.elements;
-const { Router, Link } = NativeDocument.router;
-
-const CustomMiddleware = (request, next) => {
-    console.log('check custom middleware', request);
-    // request.params.customValue = true;
-    return next(request);
-};
-const AuthMiddleware = (request, next) => {
-    console.log('check if user is authenticated');
-    return next(request);
-};
-
-
-const DefaultLayout = (children) => {
-    return Div([
-        Main({ class: 'main-container', style: 'padding: 1rem 0' }, children),
-        Div({ class: 'navigation-container'}, Div([
-            Link({ to: '/' }, 'Home'), // Link from router
-            Link({ to: { name: 'profile' } }, 'Profile'),
-            Link({ to: { name: 'user.show', params: {id: 1} } }, 'Show User'),
-            Link({ to: { name: 'admin.dashboard' } }, 'Show Admin Dashboard'),
-            Link({ to: { name: 'admin.users' } }, 'Show Admin User'),
-            Button('Product Page').nd.on.click(() => {
-                const router = Router.get();
-                // Navigate programmatically
-                router.push('/product/123?name=ProductName');
-            }),
-        ]))
-    ]);
-};
-
-const HomePage = () => {
-    return DefaultLayout(Div('Home page'));
-};
-const UserPage = ({ params, query  }) => {
-    return DefaultLayout(Div('User page for '+params.id));
-};
-const ProductPage = ({ params, query }) => {
-    return DefaultLayout(Div('Product page '+params.id+' with product name '+query.name));
-};
-const AdminDashboard = () => {
-    return DefaultLayout(Div('Admin dashboard'));
-};
-const AdminUsers = () => {
-    return DefaultLayout(Div('Admin users'));
-};
-const ProfilePage = () => {
-    return DefaultLayout(Div('Profile page'));
-}
-
-
-const router = Router.create({ mode: "history" }, (router) => {
-    // Basic route
-    router.add("/", HomePage, { name: 'home' });
-
-    // Route with parameters
-    router.add("/user/{id}", UserPage, { name: "user.show" });
-
-    // Route with constraints
-    router.add("/product/{id:number}", ProductPage);
-
-    // Grouped routes with middleware
-    router.group("/admin", { middlewares: [AuthMiddleware], name: 'admin' }, () => {
-        router.add("/dashboard", AdminDashboard, { name: 'dashboard' }); // name = admin.dashboard
-        router.add("/users", AdminUsers, { name: 'users' }); // name = admin.users
-    });
-
-    // Named routes
-    router.add("/profile", ProfilePage, { name: "profile" });
-
-    router.add(".*",  () => {
-        return DefaultLayout(
-            Div([
-                '404',
-                Div('Route not found')
-            ])
-        );
-    })
-}).mount(document.body);
-
+### SPA Router
+```bash
+# Single Page Application with routing
+cd examples/routing-spa
 ```
 
-## 🏪 State Management
-
-### Global Store
-
-```javascript
-const { Div, P, Button, ShowIf, When } = NativeDocument.elements;
-const { Store, Observable } = NativeDocument;
-
-const $ = Observable.computed;
-
-// Create global store
-Store.create("user", {
-    name: "Anonymous",
-    loginAt: '...',
-    isLoggedIn: false
-});
-
-const Footer = () => {
-    const user = Store.use("user");
-    const dynamicLoginAtText = $(() => 'Login at '+user.val().loginAt, [user]);
-
-    return Div({ class: 'footer-container', style: { padding: '1rem 0' }}, [
-        ShowIf(user.check(u => u.isLoggedIn), P(dynamicLoginAtText))
-    ]);
-};
-
-// Use in components
-const Header = () => {
-    const user = Store.use("user");
-
-    return Div([
-        When(user.check(u => u.isLoggedIn))
-            .show(() => {
-                const dynamicHelloText = $(() => 'Hello '+user.val().name, [user]);
-
-                return Div([
-                    P(dynamicHelloText),
-                    Button("Logout").nd.on.click(() => {
-                        user.set({ name: null, isLoggedIn: false })
-                    })
-                ]);
-            })
-            .otherwise(() => {
-                return Button('Login').nd.on.click(() => {
-                    user.set({ name: "John", loginAt: (new Date()).toLocaleString(), isLoggedIn: true })
-                });
-            })
-    ]);
-};
-
-const App = () => {
-    return Div([
-        Header(),
-        Footer()
-    ]);
-}
-
-document.body.appendChild(App());
+### Reusable Components
+```bash
+# Component library patterns
+cd examples/components
 ```
 
+## Key Features Deep Dive
 
+### Performance Optimized
+- Direct DOM manipulation (no virtual DOM overhead)
+- Automatic batching of updates
+- Lazy evaluation of computed values
+- Efficient list rendering with keyed updates
 
-### Local State
-
+### Developer Experience
 ```javascript
-const { Div, H2, Button } = NativeDocument.elements;
-const { Observable } = NativeDocument;
+// Built-in debugging
+Observable.debug.enable()
 
-const Counter = () => {
-    const count = Observable(0);
+// Argument validation
+const createUser = (function (name, age) {
+  // Auto-validates argument types
+}).args(ArgTypes.string('name'), ArgTypes.number('age'))
 
-    const Increment = () => count.set(count.val() + 1);
-    const Decrement = () => count.set(currentValue => --currentValue)
+// Error boundaries
+const AppWithBoundayError = App.errorBoundary(() => {
+    return Div('Error in the Create User component');
+})
 
-    return Div({}, [
-        H2(['Count: ', count]),
-        Button("-").nd.on.click(Decrement),
-        Button("+").nd.on.click(Increment),
-    ]);
-};
-
-document.body.appendChild(Counter());
+document.body.appendChild(AppWithBoundayError());
 ```
 
+## Contributing
 
-## 🔧 Advanced Features
+We welcome contributions! Please see our [Contributing Guide](docs/contributing.md) for details.
 
-### Lifecycle Hooks
-
-```javascript
-const { Div, Button, ShowIf } = NativeDocument.elements;
-const { Observable } = NativeDocument;
-
-const MyComponent = () => {
-    const element = Div('Hello my component');
-
-    return element
-        .nd.mounted(() => {
-            console.log("Component mounted");
-        })
-        .nd.unmounted(() => {
-            console.log("Component unmounted");
-        });
-};
-
-const App = () => {
-    const isActive = Observable(true);
-
-    return Div([
-        ShowIf(isActive, () => MyComponent()),
-        Button('Toggle').nd.on.click(() => isActive.set(!isActive.val()))
-    ]);
-}
-
-document.body.appendChild(App());
+### Development Setup
+```bash
+git clone https://github.com/afrocodeur/native-document
+cd native-document
+npm install
+npm run dev
 ```
 
+## License
 
-### Custom Validation
+MIT © [AfroCodeur](https://github.com/afrocodeur)
 
-```javascript
-const { withValidation, ArgTypes } = NativeDocument;
+## Acknowledgments
 
-const createUser = (name, age, email) => {
-    // Function implementation
-    return { name, age, email };
-};
+Thanks to all contributors and the JavaScript community for inspiration.
 
-const createUserWithArgsValidation = withValidation(createUser, [
-    ArgTypes.string("name"),
-    ArgTypes.number("age"),
-    ArgTypes.string("email")
-]);
+---
 
-// Usage
-const user = createUserWithArgsValidation("John", 25, "john@example.com");
-```
-
-### Custom Validation with Function prototype (args)
-
-```javascript
-
-const { withValidation, ArgTypes, Observable } = NativeDocument;
-
-const createUser = ((name, age, email) => {
-    // Function implementation
-    console.log(name, age, email);
-    return { name, age, email };
-}).args(ArgTypes.string('name'), ArgTypes.number('age'), ArgTypes.string('email'));
-
-
-// Usage
-const user = createUser('John', 25, "john@example.com");
-
-```
-
-
-## 🎨 Styling
-
-NativeDocument works great with CSS:
-
-```javascript
-const { Div, H2, Button, ShowIf } = NativeDocument.elements;
-const { withValidation, ArgTypes, Observable } = NativeDocument;
-
-const StyledComponent = () => {
-    const isActive = Observable(false);
-
-    return Div({
-        class: {
-            "component": true,
-            "active": isActive,
-            "inactive": isActive.check(active => !active)
-        },
-        style: {
-            color: isActive.check(active => active ? "white" : "black"),
-            backgroundColor: isActive.check(active => active ? "#2980b9" : "#7f8c8d"),
-            padding: "20px",
-            borderRadius: "4px"
-        }
-    }, [
-        H2("Styled Component"),
-        ShowIf(isActive, Div({ style: 'color: white; padding: 1rem 0'}, 'Styled Component is active')),
-        Button("Toggle").nd.on.click(() => isActive.set((val) => !val))
-    ]);
-};
-
-// Usage
-document.body.appendChild(StyledComponent());
-```
+**Ready to build with native simplicity?** [Get Started →](docs/getting-started.md)

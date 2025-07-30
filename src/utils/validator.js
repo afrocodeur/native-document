@@ -70,12 +70,28 @@ const Validator = {
 
         return children;
     },
+    /**
+     * Check if the data contains observables.
+     * @param {Array|Object} data
+     * @returns {boolean}
+     */
     containsObservables(data) {
         if(!data) {
             return false;
         }
         return Validator.isObject(data)
             && Object.values(data).some(value => Validator.isObservable(value));
+    },
+    /**
+     * Check if the data contains an observable reference.
+     * @param {string} data
+     * @returns {boolean}
+     */
+    containsObservableReference(data) {
+        if(!data || typeof data !== 'string') {
+            return false;
+        }
+        return /\{\{#ObItem::\([0-9]+\)\}\}/.test(data);
     },
     validateAttributes(attributes) {
         if (!attributes || typeof attributes !== 'object') {

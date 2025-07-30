@@ -113,10 +113,15 @@ var NativeDocument = (function (exports) {
 
         let $nexObserverId = 0;
         const $observables = new Map();
-        const $registry = new FinalizationRegistry((heldValue) => {
-            DebugManager.log('MemoryManager', '🧹 Auto-cleanup observable:', heldValue);
-            heldValue.listeners.splice(0);
-        });
+        let $registry = null;
+        try {
+            $registry = new FinalizationRegistry((heldValue) => {
+                DebugManager.log('MemoryManager', '🧹 Auto-cleanup observable:', heldValue);
+                heldValue.listeners.splice(0);
+            });
+        } catch (e) {
+            DebugManager.warn('MemoryManager', 'FinalizationRegistry not supported, observables will not be cleaned automatically');
+        }
 
         return {
             /**
@@ -132,9 +137,14 @@ var NativeDocument = (function (exports) {
                     id: id,
                     listeners
                 };
-                $registry.register(observable, heldValue);
+                if($registry) {
+                    $registry.register(observable, heldValue);
+                }
                 $observables.set(id, new WeakRef(observable));
                 return id;
+            },
+            getObservableById(id) {
+                return $observables.get(id)?.deref();
             },
             cleanup() {
                 for (const [_, weakObservableRef] of $observables) {
@@ -193,6 +203,9 @@ var NativeDocument = (function (exports) {
         this.val = function() {
             return $checker && $checker($observable.val());
         };
+        this.check = function(callback) {
+            return $observable.check(() => callback(this.val()));
+        };
 
         this.set = function(value) {
             return $observable.set(value);
@@ -227,7 +240,7 @@ var NativeDocument = (function (exports) {
 
         const $listeners = [];
 
-        MemoryManager.register(this, $listeners);
+        const $memoryId = MemoryManager.register(this, $listeners);
 
         this.trigger = () => {
             $listeners.forEach(listener => {
@@ -312,6 +325,10 @@ var NativeDocument = (function (exports) {
             }
         });
 
+        this.toString = function() {
+            return   '{{#ObItem::(' +$memoryId+ ')}}';
+        };
+
     }
 
     const Validator = {
@@ -381,7 +398,29 @@ var NativeDocument = (function (exports) {
 
             return children;
         },
-
+        /**
+         * Check if the data contains observables.
+         * @param {Array|Object} data
+         * @returns {boolean}
+         */
+        containsObservables(data) {
+            if(!data) {
+                return false;
+            }
+            return Validator.isObject(data)
+                && Object.values(data).some(value => Validator.isObservable(value));
+        },
+        /**
+         * Check if the data contains an observable reference.
+         * @param {string} data
+         * @returns {boolean}
+         */
+        containsObservableReference(data) {
+            if(!data || typeof data !== 'string') {
+                return false;
+            }
+            return /\{\{#ObItem::\([0-9]+\)\}\}/.test(data);
+        },
         validateAttributes(attributes) {
             if (!attributes || typeof attributes !== 'object') {
                 return attributes;
@@ -405,6 +444,243 @@ var NativeDocument = (function (exports) {
     };
 
     const BOOLEAN_ATTRIBUTES = ['checked', 'selected', 'disabled', 'readonly', 'required', 'autofocus', 'multiple', 'autocomplete', 'hidden', 'contenteditable', 'spellcheck', 'translate', 'draggable', 'async', 'defer', 'autoplay', 'controls', 'loop', 'muted', 'download', 'reversed', 'open', 'default', 'formnovalidate', 'novalidate', 'scoped', 'itemscope', 'allowfullscreen', 'allowpaymentrequest', 'playsinline'];
+
+    /**
+     *
+     * @param {Function} fn
+     * @param {number} delay
+     * @param {{leading?:Boolean, trailing?:Boolean, debounce?:Boolean}}options
+     * @returns {(function(...[*]): void)|*}
+     */
+    const throttle = function(fn, delay, options = {}) {
+        let timer = null;
+        let lastExecTime = 0;
+        const { leading = true, trailing = true, debounce = false } = options;
+
+        return  function(...args) {
+            const now = Date.now();
+            if (debounce) {
+                // debounce mode: reset the timer for each call
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(this, args), delay);
+                return;
+            }
+            if (leading && now - lastExecTime >= delay) {
+                fn.apply(this, args);
+                lastExecTime = now;
+            }
+            if (trailing && !timer) {
+                timer = setTimeout(() => {
+                    fn.apply(this, args);
+                    lastExecTime = Date.now();
+                    timer = null;
+                }, delay - (now - lastExecTime));
+            }
+        }
+    };
+
+    const trim = function(str, char) {
+        return str.replace(new RegExp(`^[${char}]+|[${char}]+$`, 'g'), '');
+    };
+
+    /**
+     *
+     * @param {*} value
+     * @returns {ObservableItem}
+     * @constructor
+     */
+    function Observable(value) {
+        return new ObservableItem(value);
+    }
+
+    Observable.computed = function(callback, dependencies = []) {
+        const initialValue = callback();
+        const observable = new ObservableItem(initialValue);
+
+        const updatedValue = () => observable.set(callback());
+
+        dependencies.forEach(dependency => dependency.subscribe(updatedValue));
+
+        return observable;
+    };
+
+    /**
+     *
+     * @param id
+     * @returns {ObservableItem|null}
+     */
+    Observable.getById = function(id) {
+        const item = MemoryManager.getObservableById(parseInt(id));
+        if(!item) {
+            throw new NativeDocumentError('Observable.getById : No observable found with id ' + id);
+        }
+        return item;
+    };
+
+
+    /**
+     *
+     * @param {ObservableItem} observable
+     */
+    Observable.cleanup = function(observable) {
+        observable.cleanup();
+    };
+
+    /**
+     * Get the value of an observable or an object of observables.
+     * @param {ObservableItem|Object<ObservableItem>} object
+     * @returns {{}|*|null}
+     */
+    Observable.value = function(data) {
+        if(Validator.isObservable(data)) {
+            return data.val();
+        }
+        if(Validator.isProxy(data)) {
+            return data.$val();
+        }
+        if(Validator.isArray(data)) {
+            const result = [];
+            data.forEach(item => {
+                result.push(Observable.value(item));
+            });
+            return result;
+        }
+        return data;
+    };
+
+    /**
+     *
+     * @param {Object} value
+     * @returns {Proxy}
+     */
+    Observable.init = function(value) {
+        const data = {};
+        for(const key in value) {
+            const itemValue = value[key];
+            if(Validator.isJson(itemValue)) {
+                data[key] = Observable.init(itemValue);
+                continue;
+            }
+            else if(Validator.isArray(itemValue)) {
+                data[key] = Observable.array(itemValue);
+                continue;
+            }
+            data[key] = Observable(itemValue);
+        }
+
+        const $val = function() {
+            const result = {};
+            for(const key in data) {
+                const dataItem = data[key];
+                if(Validator.isObservable(dataItem)) {
+                    result[key] = dataItem.val();
+                } else if(Validator.isProxy(dataItem)) {
+                    result[key] = dataItem.$val();
+                } else {
+                    result[key] = dataItem;
+                }
+            }
+            return result;
+        };
+        const $clone = function() {
+
+        };
+
+        return new Proxy(data, {
+            get(target, property) {
+                if(property === '__isProxy__') {
+                    return true;
+                }
+                if(property === '$val') {
+                    return $val;
+                }
+                if(property === '$clone') {
+                    return $clone;
+                }
+                if(target[property] !== undefined) {
+                    return target[property];
+                }
+                return undefined;
+            },
+            set(target, prop, newValue) {
+                if(target[prop] !== undefined) {
+                    target[prop].set(newValue);
+                }
+            }
+        })
+    };
+
+    Observable.object = Observable.init;
+    Observable.json = Observable.init;
+    Observable.update = function($target, data) {
+        for(const key in data) {
+            const targetItem = $target[key];
+            const newValue = data[key];
+
+            if(Validator.isObservable(targetItem)) {
+                if(Validator.isArray(newValue)) {
+                    Observable.update(targetItem, newValue);
+                    continue;
+                }
+                targetItem.set(newValue);
+                continue;
+            }
+            if(Validator.isProxy(targetItem)) {
+                Observable.update(targetItem, newValue);
+                continue;
+            }
+            $target[key] = newValue;
+        }
+    };
+    /**
+     *
+     * @param {Array} target
+     * @returns {ObservableItem}
+     */
+    Observable.array = function(target) {
+        if(!Array.isArray(target)) {
+            throw new NativeDocumentError('Observable.array : target must be an array');
+        }
+        const observer = Observable(target);
+
+        const methods = ['push', 'pop', 'shift', 'unshift', 'reverse', 'sort', 'splice'];
+
+        methods.forEach((method) => {
+            observer[method] = function(...values) {
+                const target = observer.val();
+                const result = target[method].apply(target, arguments);
+                observer.trigger();
+                return result;
+            };
+        });
+
+        const overrideMethods = ['map', 'filter', 'reduce', 'some', 'every', 'find'];
+        overrideMethods.forEach((method) => {
+            observer[method] = function(callback) {
+                return observer.val()[method](callback);
+            };
+        });
+
+        return observer;
+    };
+
+    /**
+     * Enable auto cleanup of observables.
+     * @param {Boolean} enable
+     * @param {{interval:Boolean, threshold:number}} options
+     */
+    Observable.autoCleanup = function(enable = false, options = {}) {
+        if(!enable) {
+            return;
+        }
+        const { interval = 60000, threshold = 100 } = options;
+
+        window.addEventListener('beforeunload', () => {
+            MemoryManager.cleanup();
+        });
+
+        setInterval(() => MemoryManager.cleanObservables(threshold), interval);
+    };
 
     /**
      *
@@ -528,7 +804,16 @@ var NativeDocument = (function (exports) {
 
         for(let key in attributes) {
             const attributeName = key.toLowerCase();
-            const value = attributes[attributeName];
+            let value = attributes[attributeName];
+            if(Validator.isString(value) && Validator.isFunction(value.resolveObservableTemplate)) {
+                value = value.resolveObservableTemplate();
+                if(Validator.isArray(value)) {
+                    const observables = value.filter(item => Validator.isObservable(item));
+                    value = Observable.computed(() => {
+                        return value.map(item => Validator.isObservable(item) ? item.val() : item).join(' ') || ' ';
+                    }, observables);
+                }
+            }
             if(BOOLEAN_ATTRIBUTES.includes(attributeName)) {
                 bindBooleanAttribute(element, attributeName, value);
                 continue;
@@ -549,44 +834,6 @@ var NativeDocument = (function (exports) {
         }
         return element;
     }
-
-    /**
-     *
-     * @param {Function} fn
-     * @param {number} delay
-     * @param {{leading?:Boolean, trailing?:Boolean, debounce?:Boolean}}options
-     * @returns {(function(...[*]): void)|*}
-     */
-    const throttle = function(fn, delay, options = {}) {
-        let timer = null;
-        let lastExecTime = 0;
-        const { leading = true, trailing = true, debounce = false } = options;
-
-        return  function(...args) {
-            const now = Date.now();
-            if (debounce) {
-                // debounce mode: reset the timer for each call
-                clearTimeout(timer);
-                timer = setTimeout(() => fn.apply(this, args), delay);
-                return;
-            }
-            if (leading && now - lastExecTime >= delay) {
-                fn.apply(this, args);
-                lastExecTime = now;
-            }
-            if (trailing && !timer) {
-                timer = setTimeout(() => {
-                    fn.apply(this, args);
-                    lastExecTime = Date.now();
-                    timer = null;
-                }, delay - (now - lastExecTime));
-            }
-        }
-    };
-
-    const trim = function(str, char) {
-        return str.replace(new RegExp(`^[${char}]+|[${char}]+$`, 'g'), '');
-    };
 
     const DocumentObserver = {
         elements: new Map(),
@@ -717,6 +964,16 @@ var NativeDocument = (function (exports) {
         return element;
     }
 
+    const pluginsManager = (function() {
+
+        const $plugins = [];
+
+        return {
+            list : () => $plugins,
+            add : (plugin) => $plugins.push(plugin)
+        };
+    }());
+
     /**
      *
      * @param {HTMLElement|DocumentFragment} parent
@@ -827,6 +1084,9 @@ var NativeDocument = (function (exports) {
             const childrenArray = Array.isArray(children) ? children : [children];
             childrenArray.forEach(child => {
                 if (child === null) return;
+                if(Validator.isString(child) && Validator.isFunction(child.resolveObservableTemplate)) {
+                    child = child.resolveObservableTemplate();
+                }
                 if(Validator.isFunction(child)) {
                     this.processChildren(child(), parent);
                     return;
@@ -871,6 +1131,11 @@ var NativeDocument = (function (exports) {
             HtmlElementEventsWrapper(element);
             const item = (typeof customWrapper === 'function') ? customWrapper(element) : element;
             addUtilsMethods(item);
+
+            pluginsManager.list().forEach(plugin => {
+                plugin?.element?.setup && plugin.element.setup(item, attributes);
+            });
+
             return item;
         }
     };
@@ -1010,172 +1275,6 @@ var NativeDocument = (function (exports) {
         };
     };
 
-    /**
-     *
-     * @param {*} value
-     * @returns {ObservableItem}
-     * @constructor
-     */
-    function Observable(value) {
-        return new ObservableItem(value);
-    }
-
-
-    Observable.computed = function(callback, dependencies = []) {
-        const initialValue = callback();
-        const observable = new ObservableItem(initialValue);
-
-        const updatedValue = throttle(() => observable.set(callback()), 10, { debounce: true });
-
-        dependencies.forEach(dependency => dependency.subscribe(updatedValue));
-
-        return observable;
-    };
-
-    /**
-     *
-     * @param {ObservableItem} observable
-     */
-    Observable.cleanup = function(observable) {
-        observable.cleanup();
-    };
-
-    /**
-     * Get the value of an observable or an object of observables.
-     * @param {ObservableItem|Object<ObservableItem>} object
-     * @returns {{}|*|null}
-     */
-    Observable.value = function(data) {
-        if(Validator.isObservable(data)) {
-            return data.val();
-        }
-        if(Validator.isProxy(data)) {
-            return data.$val();
-        }
-        if(Validator.isArray(data)) {
-            const result = [];
-            data.forEach(item => {
-                result.push(Observable.value(item));
-            });
-            return result;
-        }
-        return data;
-    };
-
-    /**
-     *
-     * @param {Object} value
-     * @returns {Proxy}
-     */
-    Observable.init = function(value) {
-        const data = {};
-        for(const key in value) {
-            const itemValue = value[key];
-            if(Validator.isJson(itemValue)) {
-                data[key] = Observable.init(itemValue);
-                continue;
-            }
-            else if(Validator.isArray(itemValue)) {
-                data[key] = Observable.array(itemValue);
-                continue;
-            }
-            data[key] = Observable(itemValue);
-        }
-
-        const $val = function() {
-            const result = {};
-            for(const key in data) {
-                const dataItem = data[key];
-                if(Validator.isObservable(dataItem)) {
-                    result[key] = dataItem.val();
-                } else if(Validator.isProxy(dataItem)) {
-                    result[key] = dataItem.$val();
-                } else {
-                    result[key] = dataItem;
-                }
-            }
-            return result;
-        };
-        const $clone = function() {
-
-        };
-
-        return new Proxy(data, {
-            get(target, property) {
-                if(property === '__isProxy__') {
-                    return true;
-                }
-                if(property === '$val') {
-                    return $val;
-                }
-                if(property === '$clone') {
-                    return $clone;
-                }
-                if(target[property] !== undefined) {
-                    return target[property];
-                }
-                return undefined;
-            },
-            set(target, prop, newValue) {
-                if(target[prop] !== undefined) {
-                    target[prop].set(newValue);
-                }
-            }
-        })
-    };
-
-    Observable.object = Observable.init;
-    Observable.json = Observable.init;
-    /**
-     *
-     * @param {Array} target
-     * @returns {ObservableItem}
-     */
-    Observable.array = function(target) {
-        if(!Array.isArray(target)) {
-            throw new NativeDocumentError('Observable.array : target must be an array');
-        }
-        const observer = Observable(target);
-
-        const methods = ['push', 'pop', 'shift', 'unshift', 'reverse', 'sort', 'splice'];
-
-        methods.forEach((method) => {
-            observer[method] = function(...values) {
-                const target = observer.val();
-                const result = target[method].apply(target, arguments);
-                observer.trigger();
-                return result;
-            };
-        });
-
-        const overrideMethods = ['map', 'filter', 'reduce', 'some', 'every', 'find'];
-        overrideMethods.forEach((method) => {
-            observer[method] = function(callback) {
-                return observer.val()[method](callback);
-            };
-        });
-
-        return observer;
-    };
-
-    /**
-     * Enable auto cleanup of observables.
-     * @param {Boolean} enable
-     * @param {{interval:Boolean, threshold:number}} options
-     */
-    Observable.autoCleanup = function(enable = false, options = {}) {
-        if(!enable) {
-            return;
-        }
-        const { interval = 60000, threshold = 100 } = options;
-
-        window.addEventListener('beforeunload', () => {
-            MemoryManager.cleanup();
-        });
-
-        setInterval(() => MemoryManager.cleanObservables(threshold), interval);
-    };
-
     Function.prototype.args = function(...args) {
         return withValidation(this, args);
     };
@@ -1204,6 +1303,19 @@ var NativeDocument = (function (exports) {
         }, Object.values(args));
     };
 
+    String.prototype.resolveObservableTemplate = function() {
+        if(!Validator.containsObservableReference(this)) {
+            return this;
+        }
+        return this.split(/(\{\{#ObItem::\([0-9]+\)\}\})/g).filter(Boolean).map((value) => {
+            if(!Validator.containsObservableReference(value)) {
+                return value;
+            }
+            const [_, id] = value.match(/\{\{#ObItem::\(([0-9]+)\)\}\}/);
+            return Observable.getById(id);
+        });
+    };
+
     const Store = (function() {
 
         const $stores = new Map();
@@ -1215,7 +1327,7 @@ var NativeDocument = (function (exports) {
              * @returns {ObservableItem}
              */
             use(name) {
-                const {observer: originalObserver, followers } = $stores.get(name);
+                const {observer: originalObserver, subscribers } = $stores.get(name);
                 const observerFollower = Observable(originalObserver.val());
                 const unSubscriber = originalObserver.subscribe(value => observerFollower.set(value));
                 const updaterUnsubscriber = observerFollower.subscribe(value => originalObserver.set(value));
@@ -1224,7 +1336,7 @@ var NativeDocument = (function (exports) {
                     updaterUnsubscriber();
                     observerFollower.cleanup();
                 };
-                followers.add(observerFollower);
+                subscribers.add(observerFollower);
 
                 return observerFollower;
             },
@@ -1243,7 +1355,7 @@ var NativeDocument = (function (exports) {
              */
             create(name, value) {
                 const observer = Observable(value);
-                $stores.set(name, { observer, followers: new Set()});
+                $stores.set(name, { observer, subscribers: new Set()});
                 return observer;
             },
             /**
@@ -1258,9 +1370,9 @@ var NativeDocument = (function (exports) {
             /**
              *
              * @param {string} name
-             * @returns {{observer: ObservableItem, followers: Set}}
+             * @returns {{observer: ObservableItem, subscribers: Set}}
              */
-            getWithFollowers(name) {
+            getWithSubscribers(name) {
                 return $stores.get(name);
             },
             /**
@@ -1271,7 +1383,7 @@ var NativeDocument = (function (exports) {
                 const item = $stores.get(name);
                 if(!item) return;
                 item.observer.cleanup();
-                item.followers.forEach(follower => follower.destroy());
+                item.subscribers.forEach(follower => follower.destroy());
                 item.observer.clear();
             }
         };
@@ -1742,6 +1854,7 @@ var NativeDocument = (function (exports) {
         __proto__: null,
         Abbr: Abbr,
         Address: Address,
+        Anchor: Anchor,
         Article: Article,
         Aside: Aside,
         AsyncImg: AsyncImg,
@@ -2472,21 +2585,21 @@ var NativeDocument = (function (exports) {
 
         router.init(options.entry);
 
-        return {
-            mount: (container) => {
-                if(Validator.isString(container)) {
-                    const mountContainer = document.querySelector(container);
-                    if(!mountContainer) {
-                        throw new RouterError(`Container not found for selector: ${container}`);
-                    }
-                    container = mountContainer;
-                } else if(!Validator.isElement(container)) {
-                    throw new RouterError('Container must be a string or an Element');
+        router.mount = function(container) {
+            if(Validator.isString(container)) {
+                const mountContainer = document.querySelector(container);
+                if(!mountContainer) {
+                    throw new RouterError(`Container not found for selector: ${container}`);
                 }
-
-                RouterComponent(router, container);
+                container = mountContainer;
+            } else if(!Validator.isElement(container)) {
+                throw new RouterError('Container must be a string or an Element');
             }
+
+            return RouterComponent(router, container);
         };
+
+        return router;
     };
 
     Router.get = function(name) {
@@ -2512,17 +2625,20 @@ var NativeDocument = (function (exports) {
         return Router.get(name).back();
     };
 
-    function Link(attributes, children){
-        const target = attributes.to || attributes.href;
+    function Link(options, children){
+        const { to, href, ...attributes } = options;
+        const target = to || href;
         if(Validator.isString(target)) {
             const router = Router.get();
             return Link$1({ ...attributes, href: target}, children).nd.on.prevent.click(() => {
                 router.push(target);
             });
         }
-        const router = Router.get(target.router);
+        const routerName = target.router || DEFAULT_ROUTER_NAME;
+        const router = Router.get(routerName);
+        console.log(routerName);
         if(!router) {
-            throw new RouterError('Router not found "'+target.router+'" for link "'+target.name+'"');
+            throw new RouterError('Router not found "'+routerName+'" for link "'+target.name+'"');
         }
         const url = router.generateUrl(target.name, target.params, target.query);
         return Link$1({ ...attributes, href: url }, children).nd.on.prevent.click(() => {
@@ -2537,6 +2653,7 @@ var NativeDocument = (function (exports) {
     var router = /*#__PURE__*/Object.freeze({
         __proto__: null,
         Link: Link,
+        RouteParamPatterns: RouteParamPatterns,
         Router: Router
     });
 
