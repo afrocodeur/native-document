@@ -10,7 +10,7 @@ const getChildAsNode = (child) => {
     if(Validator.isElement(child)) {
         return child;
     }
-    return createTextNode(String(child))
+    return createTextNode(child)
 }
 
 export default function Anchor(name) {

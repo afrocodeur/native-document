@@ -6,9 +6,13 @@ Anchors are a NativeDocument class that enables dynamic DOM manipulation without
 
 Anchors are instances of the Anchor class that use two comment nodes as invisible markers:
 
+ `NativeDocumentFragment is Anchor alias`
+
 ```javascript
 // Create an anchor instance
 const anchor = new Anchor("My Content");
+// Or
+// const anchor = new NativeDocumentFragment("My Content");
 
 // In the DOM, this creates:
 // <!-- Anchor Start : My Content -->
@@ -177,7 +181,7 @@ fragment.appendChild(Div("Content"));
 // Gets replaced entirely when appended to parent
 ```
 
-**Use Anchor** for dynamic content management:
+**Use Anchor (NativeDocumentFragment)** for dynamic content management:
 
 ```javascript
 // Dynamic content area that can be updated multiple times
