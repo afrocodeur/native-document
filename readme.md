@@ -260,6 +260,33 @@ npm run dev
 
 MIT © [AfroCodeur](https://github.com/afrocodeur)
 
+## ❤️ Support the Project
+
+NativeDocument is developed and maintained in my spare time.  
+If it helps you build better applications, consider supporting its development:
+
+[![Ko-fi](https://img.shields.io/badge/☕_Buy_me_a_coffee-F16061?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/native_document)
+
+You can also support the project via crypto donations:
+
+- **USDT (TRC20)**
+- **USDT (BSC)**
+- **USDC (Base)**
+
+```
+0xCe426776DDb07256aBd58c850dd57041BC85Ea7D
+```
+
+Your support helps me:
+
+- Maintain and improve NativeDocument
+- Write better documentation and examples
+- Fix bugs and ship new features
+- Produce tutorials and learning content
+
+Thanks for your support! 🙏
+
+
 ## Acknowledgments
 
 Thanks to all contributors and the JavaScript community for inspiration.
