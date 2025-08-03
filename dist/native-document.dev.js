@@ -356,6 +356,9 @@ var NativeDocument = (function (exports) {
         isFunction(value) {
             return typeof value === 'function';
         },
+        isAsyncFunction(value) {
+            return typeof value === 'function' && value.constructor.name === 'AsyncFunction';
+        },
         isObject(value) {
             return typeof value === 'object';
         },
@@ -493,15 +496,43 @@ var NativeDocument = (function (exports) {
         return new ObservableItem(value);
     }
 
+    /**
+     *
+     * @param {Function} callback
+     * @param {Array|Function} dependencies
+     * @returns {ObservableItem}
+     */
     Observable.computed = function(callback, dependencies = []) {
         const initialValue = callback();
         const observable = new ObservableItem(initialValue);
-
         const updatedValue = () => observable.set(callback());
+
+        if(Validator.isFunction(dependencies)) {
+            if(!Validator.isObservable(dependencies.$observer)) {
+                throw new NativeDocumentError('Observable.computed : dependencies must be valid batch function');
+            }
+            dependencies.$observer.subscribe(updatedValue);
+            return observable;
+        }
 
         dependencies.forEach(dependency => dependency.subscribe(updatedValue));
 
         return observable;
+    };
+
+    Observable.batch = function(callback) {
+        const $observer = Observable(0);
+        const batch = function() {
+            if(Validator.isAsyncFunction(callback)) {
+                return (callback(...arguments)).then(() => {
+                    $observer.trigger();
+                }).catch(error => { throw error; });
+            }
+            callback(...arguments);
+            $observer.trigger();
+        };
+        batch.$observer = $observer;
+        return batch;
     };
 
     /**
@@ -891,7 +922,7 @@ var NativeDocument = (function (exports) {
         if(Validator.isElement(child)) {
             return child;
         }
-        return createTextNode(String(child))
+        return createTextNode(child)
     };
 
     function Anchor(name) {
@@ -1916,6 +1947,7 @@ var NativeDocument = (function (exports) {
         Menu: Menu,
         Meter: Meter,
         MonthInput: MonthInput,
+        NativeDocumentFragment: Anchor,
         Nav: Nav,
         NumberInput: NumberInput,
         Option: Option,

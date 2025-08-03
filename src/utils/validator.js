@@ -28,6 +28,9 @@ const Validator = {
     isFunction(value) {
         return typeof value === 'function';
     },
+    isAsyncFunction(value) {
+        return typeof value === 'function' && value.constructor.name === 'AsyncFunction';
+    },
     isObject(value) {
         return typeof value === 'object';
     },
