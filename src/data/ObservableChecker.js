@@ -7,11 +7,15 @@
 export default function ObservableChecker($observable, $checker) {
     this.observable = $observable;
     this.checker = $checker;
+    const $unSubscriptions = [];
 
     this.subscribe = function(callback) {
-        return $observable.subscribe((value) => {
+        const unSubscribe = $observable.subscribe((value) => {
             callback && callback($checker(value));
         });
+        $unSubscriptions.push(unSubscribe);
+
+        return unSubscribe;
     };
 
     this.val = function() {
@@ -26,9 +30,9 @@ export default function ObservableChecker($observable, $checker) {
     };
     this.trigger = function() {
         return $observable.trigger();
-    }
+    };
 
     this.cleanup = function() {
-        return $observable.cleanup();
-    }
+        $unSubscriptions.forEach(unSubscription => unSubscription());
+    };
 }

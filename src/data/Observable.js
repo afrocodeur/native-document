@@ -203,7 +203,7 @@ Observable.array = function(target) {
         };
     });
 
-    const overrideMethods = ['map', 'filter', 'reduce', 'some', 'every', 'find'];
+    const overrideMethods = ['map', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex'];
     overrideMethods.forEach((method) => {
         observer[method] = function(callback) {
             return observer.val()[method](callback);

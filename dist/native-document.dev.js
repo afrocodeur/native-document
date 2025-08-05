@@ -193,11 +193,15 @@ var NativeDocument = (function (exports) {
     function ObservableChecker($observable, $checker) {
         this.observable = $observable;
         this.checker = $checker;
+        const $unSubscriptions = [];
 
         this.subscribe = function(callback) {
-            return $observable.subscribe((value) => {
+            const unSubscribe = $observable.subscribe((value) => {
                 callback && callback($checker(value));
             });
+            $unSubscriptions.push(unSubscribe);
+
+            return unSubscribe;
         };
 
         this.val = function() {
@@ -215,7 +219,7 @@ var NativeDocument = (function (exports) {
         };
 
         this.cleanup = function() {
-            return $observable.cleanup();
+            $unSubscriptions.forEach(unSubscription => unSubscription());
         };
     }
 
@@ -685,7 +689,7 @@ var NativeDocument = (function (exports) {
             };
         });
 
-        const overrideMethods = ['map', 'filter', 'reduce', 'some', 'every', 'find'];
+        const overrideMethods = ['map', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex'];
         overrideMethods.forEach((method) => {
             observer[method] = function(callback) {
                 return observer.val()[method](callback);
@@ -1442,12 +1446,21 @@ var NativeDocument = (function (exports) {
      * @param {Set} keyIds
      */
     const cleanBlockByCache = (cache, keyIds) => {
-        for(const [key, {child}] of cache.entries()) {
+        const toRemove = [];
+        for(const [key, cacheItem] of cache.entries()) {
             if(keyIds.has(key)) {
                 continue;
             }
-            child.remove();
+            toRemove.push({ key, cacheItem });
         }
+        if(toRemove.length === 0) {
+            return;
+        }
+        toRemove.forEach(({ key, cacheItem }) => {
+            cacheItem.child.remove();
+            cacheItem.indexObserver.cleanup();
+            cache.delete(key);
+        });
     };
 
     /**
@@ -1460,33 +1473,102 @@ var NativeDocument = (function (exports) {
     function ForEach(data, callback, key) {
         const element = new Anchor('ForEach');
         const blockEnd = element.endElement();
+        const blockStart = element.startElement();
 
         let cache = new Map();
+        const keyIds = new Set();
 
         const handleContentItem = (item, indexKey) => {
             const keyId = getKey(item, indexKey, key);
 
             if(cache.has(keyId)) {
-                cache.get(keyId).indexObserver.set(indexKey);
+                const cacheItem = cache.get(keyId);
+                cacheItem.indexObserver.set(indexKey);
+                cacheItem.isNew = false;
             }
             else {
-                const indexObserver = Observable(indexKey);
-                let child = callback(item, indexObserver);
-                if(Validator.isStringOrObservable(child)) {
-                    child = createTextNode(child);
+
+                try {
+                    const indexObserver = Observable(indexKey);
+                    let child = callback(item, indexObserver);
+                    if(Validator.isStringOrObservable(child)) {
+                        child = createTextNode(child);
+                    }
+                    cache.set(keyId, { isNew: true, child, indexObserver});
+                } catch (e) {
+                    DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
+                    throw e;
                 }
-                cache.set(keyId, { child, indexObserver});
             }
             return keyId;
         };
-        const keyIds = new Set();
 
-        const buildContent = () => {
-            const items = (Validator.isObservable(data)) ? data.val() : data;
+        const batchDOMUpdates = () => {
             const parent = blockEnd.parentNode;
             if(!parent) {
                 return;
             }
+
+            let previousElementSibling = blockStart;
+            const elementsToInsert = [];
+            const elementsToMove = [];
+            let fragment = null;
+
+            let saveFragment = (beforeTarget) => {
+                if(fragment) {
+                    elementsToInsert.push({ child: fragment, before: beforeTarget });
+                    fragment = null;
+                }
+            };
+
+            const keyIdsArray = Array.from(keyIds);
+            for(let i = 0; i < keyIdsArray.length; i++) {
+                const itemKey = keyIdsArray[i];
+                const cacheItem = cache.get(itemKey);
+                if(!cacheItem) {
+                    continue;
+                }
+
+                if(previousElementSibling && previousElementSibling.nextSibling === cacheItem.child) {
+                    previousElementSibling = cacheItem.child;
+                    saveFragment(cacheItem.child);
+                    continue;
+                }
+                if(cacheItem.isNew) {
+                    fragment = fragment || document.createDocumentFragment();
+                    fragment.append(cacheItem.child);
+                    cacheItem.isNew = false;
+                    continue;
+                }
+                saveFragment(cacheItem.child);
+                const nextChild = cache.get(keyIdsArray[i + 1])?.child;
+                if(nextChild) {
+                    if(cacheItem.child.nextSibling !== nextChild) {
+                        elementsToMove.push({ child: cacheItem.child, before: nextChild });
+                    }
+                }
+
+                previousElementSibling = cacheItem.child;
+            }
+            saveFragment(blockEnd);
+
+            elementsToInsert.forEach(({ child, before }) => {
+                if(before) {
+                    parent.insertBefore(child, before);
+                } else {
+                    element.appendChild(child);
+                }
+            });
+
+            elementsToMove.forEach(({ child, before }) => {
+                parent.insertBefore(child, before);
+            });
+            saveFragment = null;
+
+        };
+
+        const buildContent = () => {
+            const items = (Validator.isObservable(data)) ? data.val() : data;
             keyIds.clear();
             if(Array.isArray(items)) {
                 items.forEach((item, index) => keyIds.add(handleContentItem(item, index)));
@@ -1497,25 +1579,13 @@ var NativeDocument = (function (exports) {
             }
 
             cleanBlockByCache(cache, keyIds);
-            let nextElementSibling = blockEnd;
-            for(const item of [...keyIds].reverse()) {
-                const { child } = cache.get(item);
-                if(child) {
-                    if(nextElementSibling && nextElementSibling.previousSibling === child) {
-                        nextElementSibling = child;
-                        continue;
-                    }
-                    parent.insertBefore(child, nextElementSibling);
-                    nextElementSibling = child;
-                }
-            }
+
+            batchDOMUpdates();
         };
 
         buildContent();
         if(Validator.isObservable(data)) {
-            data.subscribe(throttle((newValue, oldValue) => {
-                buildContent();
-            }, 50, { debounce: true }));
+            data.subscribe(buildContent);
         }
         return element;
     }
