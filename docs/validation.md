@@ -187,7 +187,5 @@ registerUser.args(
 
 ## Next Steps
 
-- **[Advanced Features](advanced-features.md)** - Error boundaries and debugging tools
-- **[API Reference](api-reference.md)** - Complete ArgTypes and validation API
 - **[Memory Management](memory-management.md)** - Debugging memory issues with validation
 - **[Lifecycle Events](lifecycle-events.md)** - Validate lifecycle callback arguments

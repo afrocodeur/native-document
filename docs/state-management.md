@@ -95,7 +95,7 @@ const UserMenu = () => {
     return Nav([
         ShowIf(user.check(u => u.isLoggedIn), [
             Link({ to: '/profile' }, 'My Profile'),
-            Button('Logout').nd.on.click(() => {
+            Button('Logout').nd.onClick(() => {
                 user.set({ ...user.$value, isLoggedIn: false });
             })
         ])
@@ -126,7 +126,7 @@ Modify store state using the returned observable's methods:
 const ThemeToggle = () => {
     const theme = Store.use('theme');
     
-    return Button('Toggle Theme').nd.on.click(() => {
+    return Button('Toggle Theme').nd.onClick(() => {
         const current = theme.$value;
         theme.set(current === 'light' ? 'dark' : 'light');
     });
@@ -154,7 +154,7 @@ const LoginForm = () => {
     return Form([
         Input({ type: 'email', value: email, placeholder: 'Email' }),
         Input({ type: 'password', value: password, placeholder: 'Password' }),
-        Button('Login').nd.on.click(handleLogin)
+        Button('Login').nd.onClick(handleLogin)
     ]);
 };
 ```
@@ -187,9 +187,9 @@ const UserSettings = () => {
         Input({ 
             value: user.check(u => u.name),
             placeholder: 'Name'
-        }).nd.on.input(e => updateName(e.target.value)),
+        }).nd.onInput(e => updateName(e.target.value)),
         
-        Button('Dark Mode').nd.on.click(() => 
+        Button('Dark Mode').nd.onClick(() => 
             updatePreferences({ theme: 'dark' })
         )
     ]);
@@ -418,6 +418,6 @@ const createAppState = () => {
 
 Now that you understand state management, explore these related topics:
 
-- **[Lifecycle Events](docs/lifecycle-events.md)** - Lifecycle events
-- **[Memory Management](docs/memory-management.md)** - Memory management
-- **[Anchor](docs/anchor.md)** - Anchor
+- **[Lifecycle Events](lifecycle-events.md)** - Lifecycle events
+- **[Memory Management](memory-management.md)** - Memory management
+- **[Anchor](anchor.md)** - Anchor

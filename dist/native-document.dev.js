@@ -1,84 +1,6 @@
 var NativeDocument = (function (exports) {
     'use strict';
 
-    function eventWrapper(element, name, callback) {
-        element.addEventListener(name, callback);
-        return element;
-    }
-
-    /**
-     *
-     * @param {HTMLElement} element
-     * @returns {HTMLElement}
-     */
-    function HtmlElementEventsWrapper(element) {
-
-        if(!element.nd) {
-            element.nd = {};
-        }
-
-        /**
-         * @param {Object<string,Function>} events
-         */
-        element.nd.on = function(events) {
-            for(const event in events) {
-                const callback = events[event];
-                eventWrapper(element, event, callback);
-            }
-            return element;
-        };
-        element.nd.on.prevent = function(events) {
-            for(const event in events) {
-                const callback = events[event];
-                eventWrapper(element, event, (event) => {
-                    event.preventDefault();
-                    callback && callback(event);
-                    return element;
-                });
-            }
-            return element;
-        };
-        const events = {
-            click: (callback) => eventWrapper(element, 'click', callback),
-            focus: (callback) => eventWrapper(element, 'focus', callback),
-            blur: (callback) => eventWrapper(element, 'blur', callback),
-            input: (callback) => eventWrapper(element, 'input', callback),
-            change: (callback) => eventWrapper(element, 'change', callback),
-            keyup: (callback) => eventWrapper(element, 'keyup', callback),
-            keydown: (callback) => eventWrapper(element, 'keydown', callback),
-            beforeInput: (callback) => eventWrapper(element, 'beforeinput', callback),
-            mouseOver: (callback) => eventWrapper(element, 'mouseover', callback),
-            mouseOut: (callback) => eventWrapper(element, 'mouseout', callback),
-            mouseDown: (callback) => eventWrapper(element, 'mousedown', callback),
-            mouseUp: (callback) => eventWrapper(element, 'mouseup', callback),
-            mouseMove: (callback) => eventWrapper(element, 'mousemove', callback),
-            hover: (mouseInCallback, mouseOutCallback) => {
-                element.addEventListener('mouseover', mouseInCallback);
-                element.addEventListener('mouseout', mouseOutCallback);
-            },
-            dropped: (callback) => eventWrapper(element, 'drop', callback),
-            submit: (callback) => eventWrapper(element, 'submit', callback),
-            dragEnd: (callback) => eventWrapper(element, 'dragend', callback),
-            dragStart: (callback) => eventWrapper(element, 'dragstart', callback),
-            drop: (callback) => eventWrapper(element, 'drop', callback),
-            dragOver: (callback) => eventWrapper(element, 'dragover', callback),
-            dragEnter: (callback) => eventWrapper(element, 'dragenter', callback),
-            dragLeave: (callback) => eventWrapper(element, 'dragleave', callback),
-        };
-        for(let event in events) {
-            element.nd.on[event] = events[event];
-            element.nd.on.prevent[event] = function(callback) {
-                eventWrapper(element, event.toLowerCase(), (event) => {
-                    event.preventDefault();
-                    callback && callback(event);
-                });
-                return element;
-            };
-        }
-
-        return element;
-    }
-
     const DebugManager = {
         enabled: false,
 
@@ -111,37 +33,24 @@ var NativeDocument = (function (exports) {
 
     const MemoryManager = (function() {
 
-        let $nexObserverId = 0;
+        let $nextObserverId = 0;
         const $observables = new Map();
-        let $registry = null;
-        try {
-            $registry = new FinalizationRegistry((heldValue) => {
-                DebugManager.log('MemoryManager', '🧹 Auto-cleanup observable:', heldValue);
-                heldValue.listeners.splice(0);
-            });
-        } catch (e) {
-            DebugManager.warn('MemoryManager', 'FinalizationRegistry not supported, observables will not be cleaned automatically');
-        }
 
         return {
             /**
              * Register an observable and return an id.
              *
              * @param {ObservableItem} observable
-             * @param {Function[]} listeners
+             * @param {Function} getListeners
              * @returns {number}
              */
-            register(observable, listeners) {
-                const id = ++$nexObserverId;
-                const heldValue = {
-                    id: id,
-                    listeners
-                };
-                if($registry) {
-                    $registry.register(observable, heldValue);
-                }
+            register(observable) {
+                const id = ++$nextObserverId;
                 $observables.set(id, new WeakRef(observable));
                 return id;
+            },
+            unregister(id) {
+                $observables.delete(id);
             },
             getObservableById(id) {
                 return $observables.get(id)?.deref();
@@ -193,35 +102,36 @@ var NativeDocument = (function (exports) {
     function ObservableChecker($observable, $checker) {
         this.observable = $observable;
         this.checker = $checker;
-        const $unSubscriptions = [];
-
-        this.subscribe = function(callback) {
-            const unSubscribe = $observable.subscribe((value) => {
-                callback && callback($checker(value));
-            });
-            $unSubscriptions.push(unSubscribe);
-
-            return unSubscribe;
-        };
-
-        this.val = function() {
-            return $checker && $checker($observable.val());
-        };
-        this.check = function(callback) {
-            return $observable.check(() => callback(this.val()));
-        };
-
-        this.set = function(value) {
-            return $observable.set(value);
-        };
-        this.trigger = function() {
-            return $observable.trigger();
-        };
-
-        this.cleanup = function() {
-            $unSubscriptions.forEach(unSubscription => unSubscription());
-        };
+        this.unSubscriptions = [];
     }
+
+    ObservableChecker.prototype.subscribe = function(callback) {
+        const unSubscribe = this.observable.subscribe((value) => {
+            callback && callback(this.checker(value));
+        });
+        this.unSubscriptions.push(unSubscribe);
+        return unSubscribe;
+    };
+
+    ObservableChecker.prototype.check = function(callback) {
+        return this.observable.check(() => callback(this.val()));
+    };
+
+    ObservableChecker.prototype.val = function() {
+        return this.checker && this.checker(this.observable.val());
+    };
+
+    ObservableChecker.prototype.set = function(value) {
+        return this.observable.set(value);
+    };
+
+    ObservableChecker.prototype.trigger = function() {
+        return this.observable.trigger();
+    };
+
+    ObservableChecker.prototype.cleanup = function() {
+        return this.observable.cleanup();
+    };
 
     /**
      *
@@ -236,104 +146,183 @@ var NativeDocument = (function (exports) {
             throw new NativeDocumentError('ObservableItem cannot be an Observable');
         }
 
-        const $initialValue = (typeof value === 'object') ? JSON.parse(JSON.stringify(value)) : value;
+        this.$previousValue = value;
+        this.$currentValue = value;
+        this.$isCleanedUp = false;
 
-        let $previousValue = value;
-        let $currentValue = value;
-        let $isCleanedUp = false;
+        this.$listeners = null;
+        this.$watchers = null;
 
-        const $listeners = [];
-
-        const $memoryId = MemoryManager.register(this, $listeners);
-
-        this.trigger = () => {
-            $listeners.forEach(listener => {
-                try {
-                    listener($currentValue, $previousValue);
-                } catch (error) {
-                    DebugManager.error('Listener Undefined', 'Error in observable listener:', error);
-                    this.unsubscribe(listener);
-                }
-            });
-
-        };
-
-        this.originalValue = () => $initialValue;
-
-        /**
-         * @param {*} data
-         */
-        this.set = (data) => {
-            const newValue = (typeof data === 'function') ? data($currentValue) : data;
-            if($currentValue === newValue) {
-                return;
-            }
-            $previousValue = $currentValue;
-            $currentValue = newValue;
-            this.trigger();
-        };
-
-        this.val = () => $currentValue;
-
-        this.cleanup = function() {
-            $listeners.splice(0);
-            $isCleanedUp = true;
-        };
-
-        /**
-         *
-         * @param {Function} callback
-         * @returns {(function(): void)}
-         */
-        this.subscribe = (callback) => {
-            if ($isCleanedUp) {
-                DebugManager.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
-                return () => {};
-            }
-            if (typeof callback !== 'function') {
-                throw new NativeDocumentError('Callback must be a function');
-            }
-
-            $listeners.push(callback);
-            return () => this.unsubscribe(callback);
-        };
-
-        /**
-         * Unsubscribe from an observable.
-         * @param {Function} callback
-         */
-        this.unsubscribe = (callback) => {
-            const index = $listeners.indexOf(callback);
-            if (index > -1) {
-                $listeners.splice(index, 1);
-            }
-        };
-
-        /**
-         * Create an Observable checker instance
-         * @param callback
-         * @returns {ObservableChecker}
-         */
-        this.check = function(callback) {
-            return new ObservableChecker(this, callback)
-        };
-
-        const $object = this;
-        Object.defineProperty($object, '$value', {
-            get() {
-                return $object.val();
-            },
-            set(value) {
-                $object.set(value);
-                return $object;
-            }
-        });
-
-        this.toString = function() {
-            return   '{{#ObItem::(' +$memoryId+ ')}}';
-        };
-
+        this.$memoryId = MemoryManager.register(this);
     }
+
+    Object.defineProperty(ObservableItem.prototype, '$value', {
+        get() {
+            return this.$currentValue;
+        },
+        set(value) {
+            this.set(value);
+        },
+        configurable: true,
+    });
+
+    ObservableItem.prototype.triggerListeners = function(operations) {
+        const $listeners = this.$listeners;
+        const $previousValue = this.$previousValue;
+        const $currentValue = this.$currentValue;
+
+        operations = operations || {};
+        if($listeners?.length) {
+            for(let i = 0, length = $listeners.length; i < length; i++) {
+                $listeners[i]($currentValue, $previousValue, operations);
+            }
+        }
+    };
+
+    ObservableItem.prototype.triggerWatchers = function() {
+        if(!this.$watchers) {
+            return;
+        }
+
+        const $watchers = this.$watchers;
+        const $previousValue = this.$previousValue;
+        const $currentValue = this.$currentValue;
+
+        if($watchers.has($currentValue)) {
+            const watchValueList = $watchers.get($currentValue);
+            watchValueList.forEach(itemValue => {
+                if(itemValue.ifTrue.called) {
+                    return;
+                }
+                itemValue.ifTrue.callback();
+                itemValue.else.called = false;
+            });
+        }
+        if($watchers.has($previousValue)) {
+            const watchValueList = $watchers.get($previousValue);
+            watchValueList.forEach(itemValue => {
+                if(itemValue.else.called) {
+                    return;
+                }
+                itemValue.else.callback();
+                itemValue.ifTrue.called = false;
+            });
+        }
+    };
+
+    ObservableItem.prototype.trigger = function(operations) {
+        this.triggerListeners(operations);
+        this.triggerWatchers();
+    };
+
+    /**
+     * @param {*} data
+     */
+    ObservableItem.prototype.set = function(data) {
+        const newValue = (typeof data === 'function') ? data(this.$currentValue) : data;
+        if(this.$currentValue === newValue) {
+            return;
+        }
+        this.$previousValue = this.$currentValue;
+        this.$currentValue = newValue;
+        this.trigger();
+    };
+
+    ObservableItem.prototype.val = function() {
+        return this.$currentValue;
+    };
+
+    ObservableItem.prototype.disconnectAll = function() {
+        this.$listeners?.splice(0);
+        this.$previousValue = null;
+        this.$currentValue = null;
+        if(this.$watchers) {
+            for (const [_, watchValueList] of this.$watchers) {
+                for (const itemValue of watchValueList) {
+                    itemValue.ifTrue.callback = null;
+                    itemValue.else.callback = null;
+                }
+                watchValueList.clear();
+            }
+        }
+        this.$watchers?.clear();
+        this.$listeners = null;
+        this.$watchers = null;
+    };
+    ObservableItem.prototype.cleanup = function() {
+        MemoryManager.unregister(this.$memoryId);
+        this.disconnectAll();
+        this.$isCleanedUp = true;
+        delete this.$value;
+    };
+
+    /**
+     *
+     * @param {Function} callback
+     * @returns {(function(): void)}
+     */
+    ObservableItem.prototype.subscribe = function(callback) {
+        this.$listeners = this.$listeners ?? [];
+        if (this.$isCleanedUp) {
+            DebugManager.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
+            return () => {};
+        }
+        if (typeof callback !== 'function') {
+            throw new NativeDocumentError('Callback must be a function');
+        }
+
+        this.$listeners.push(callback);
+        return () => this.unsubscribe(callback);
+    };
+
+    ObservableItem.prototype.on = function(value, callback, elseCallback) {
+        this.$watchers = this.$watchers ?? new Map();
+
+        let watchValueList = this.$watchers.get(value);
+        if(!watchValueList) {
+            watchValueList = new Set();
+            this.$watchers.set(value, watchValueList);
+        }
+
+        let itemValue = {
+            ifTrue: { callback, called: false },
+            else: { callback: elseCallback, called: false }
+        };
+        watchValueList.add(itemValue);
+        return () => {
+            watchValueList?.delete(itemValue);
+            if(watchValueList.size === 0) {
+                this.$watchers?.delete(value);
+            }
+            watchValueList = null;
+            itemValue = null;
+        };
+    };
+
+    /**
+     * Unsubscribe from an observable.
+     * @param {Function} callback
+     */
+    ObservableItem.prototype.unsubscribe = function(callback) {
+        const index = this.$listeners.indexOf(callback);
+        if (index > -1) {
+            this.$listeners.splice(index, 1);
+        }
+    };
+
+    /**
+     * Create an Observable checker instance
+     * @param callback
+     * @returns {ObservableChecker}
+     */
+    ObservableItem.prototype.check = function(callback) {
+        return new ObservableChecker(this, callback)
+    };
+    ObservableItem.prototype.get = ObservableItem.prototype.check;
+
+        ObservableItem.prototype.toString = function() {
+        return '{{#ObItem::(' +this.$memoryId+ ')}}';
+    };
 
     const Validator = {
         isObservable(value) {
@@ -450,40 +439,182 @@ var NativeDocument = (function (exports) {
         }
     };
 
+    const getChildAsNode = (child) => {
+        if(Validator.isFunction(child)) {
+            return getChildAsNode(child());
+        }
+        if(Validator.isElement(child)) {
+            return child;
+        }
+        return createTextNode(child)
+    };
+
+    function Anchor(name) {
+        const element = document.createDocumentFragment();
+
+        const anchorStart = document.createComment('Anchor Start : '+name);
+        const anchorEnd = document.createComment('/ Anchor End '+name);
+
+        element.appendChild(anchorStart);
+        element.appendChild(anchorEnd);
+
+        element.nativeInsertBefore = element.insertBefore;
+        element.nativeAppendChild = element.appendChild;
+
+        const insertBefore = function(parent, child, target) {
+            if(parent === element) {
+                parent.nativeInsertBefore(getChildAsNode(child), target);
+                return;
+            }
+            parent.insertBefore(getChildAsNode(child), target);
+        };
+
+        element.appendElement = function(child, before = null) {
+            if(anchorEnd.parentNode === element) {
+                anchorEnd.parentNode.nativeInsertBefore(child, before || anchorEnd);
+                return;
+            }
+            anchorEnd.parentNode?.insertBefore(child, before || anchorEnd);
+        };
+
+        element.appendChild = function(child, before = null) {
+            const parent = anchorEnd.parentNode;
+            if(!parent) {
+                DebugManager.error('Anchor', 'Anchor : parent not found', child);
+                return;
+            }
+            before = before ?? anchorEnd;
+            if(Validator.isArray(child)) {
+                const fragment = document.createDocumentFragment();
+                for(let i = 0, length = child.length; i < length; i++) {
+                    fragment.appendChild(getChildAsNode(child[i]));
+                }
+                insertBefore(parent, fragment, before);
+                return element;
+            }
+            insertBefore(parent, child, before);
+        };
+
+        element.removeChildren = function() {
+            const parent = anchorEnd.parentNode;
+            if(parent === element) {
+                return;
+            }
+            if(parent.firstChild === anchorStart && parent.lastChild === anchorEnd) {
+                parent.replaceChildren(anchorStart, anchorEnd);
+                return;
+            }
+
+            let itemToRemove = anchorStart.nextSibling, tempItem;
+            const fragment = document.createDocumentFragment();
+            while(itemToRemove && itemToRemove !== anchorEnd) {
+                tempItem = itemToRemove.nextSibling;
+                fragment.append(itemToRemove);
+                itemToRemove =  tempItem;
+            }
+            fragment.replaceChildren();
+        };
+        element.remove = function() {
+            const parent = anchorEnd.parentNode;
+            if(parent === element) {
+                return;
+            }
+            let itemToRemove = anchorStart.nextSibling, tempItem;
+            while(itemToRemove !== anchorEnd) {
+                tempItem = itemToRemove.nextSibling;
+                element.nativeAppendChild(itemToRemove);
+                itemToRemove = tempItem;
+            }
+        };
+
+        element.removeWithAnchors = function() {
+            element.removeChildren();
+            anchorStart.remove();
+            anchorEnd.remove();
+        };
+
+        element.replaceContent = function(child) {
+            const parent = anchorEnd.parentNode;
+            if(!parent) {
+                return;
+            }
+            if(parent.firstChild === anchorStart && parent.lastChild === anchorEnd) {
+                parent.replaceChildren(anchorStart, child, anchorEnd);
+                return;
+            }
+            element.removeChildren();
+            parent.insertBefore(child, anchorEnd);
+        };
+
+        element.insertBefore = function(child, anchor = null) {
+            element.appendChild(child, anchor);
+        };
+
+        element.clear = function() {
+            element.remove();
+        };
+
+        element.endElement = function() {
+            return anchorEnd;
+        };
+        element.startElement = function() {
+            return anchorStart;
+        };
+
+        return element;
+    }
+
     const BOOLEAN_ATTRIBUTES = ['checked', 'selected', 'disabled', 'readonly', 'required', 'autofocus', 'multiple', 'autocomplete', 'hidden', 'contenteditable', 'spellcheck', 'translate', 'draggable', 'async', 'defer', 'autoplay', 'controls', 'loop', 'muted', 'download', 'reversed', 'open', 'default', 'formnovalidate', 'novalidate', 'scoped', 'itemscope', 'allowfullscreen', 'allowpaymentrequest', 'playsinline'];
 
+    const invoke = function(fn, args, context) {
+        if(context) {
+            fn.apply(context, args);
+        } else {
+            fn(...args);
+        }
+    };
     /**
      *
      * @param {Function} fn
      * @param {number} delay
-     * @param {{leading?:Boolean, trailing?:Boolean, debounce?:Boolean}}options
+     * @param {{leading?:Boolean, trailing?:Boolean, debounce?:Boolean, check: Function}}options
      * @returns {(function(...[*]): void)|*}
      */
-    const throttle = function(fn, delay, options = {}) {
+    const debounce = function(fn, delay, options = {}) {
         let timer = null;
-        let lastExecTime = 0;
-        const { leading = true, trailing = true, debounce = false } = options;
+        let lastArgs = null;
 
         return  function(...args) {
-            const now = Date.now();
-            if (debounce) {
-                // debounce mode: reset the timer for each call
-                clearTimeout(timer);
-                timer = setTimeout(() => fn.apply(this, args), delay);
-                return;
+            const context = options.context === true ? this : null;
+            if(options.check) {
+                options.check(...args);
             }
-            if (leading && now - lastExecTime >= delay) {
-                fn.apply(this, args);
-                lastExecTime = now;
-            }
-            if (trailing && !timer) {
-                timer = setTimeout(() => {
-                    fn.apply(this, args);
-                    lastExecTime = Date.now();
-                    timer = null;
-                }, delay - (now - lastExecTime));
-            }
+            lastArgs = args;
+
+            // debounce mode: reset the timer for each call
+            clearTimeout(timer);
+            timer = setTimeout(() => invoke(fn, lastArgs, context), delay);
         }
+    };
+
+
+    /**
+     *
+     * @param {*} item
+     * @param {string|null} defaultKey
+     * @param {?Function} key
+     * @returns {*}
+     */
+    const getKey = (item, defaultKey, key) => {
+        if(Validator.isFunction(key)) return key(item, defaultKey);
+        if(Validator.isObservable(item)) {
+            const val = item.val();
+            return (val && key) ? val[key] : defaultKey;
+        }
+        if(!Validator.isObject(item)) {
+            return item;
+        }
+        return item[key] ?? defaultKey;
     };
 
     const trim = function(str, char) {
@@ -502,45 +633,6 @@ var NativeDocument = (function (exports) {
 
     /**
      *
-     * @param {Function} callback
-     * @param {Array|Function} dependencies
-     * @returns {ObservableItem}
-     */
-    Observable.computed = function(callback, dependencies = []) {
-        const initialValue = callback();
-        const observable = new ObservableItem(initialValue);
-        const updatedValue = () => observable.set(callback());
-
-        if(Validator.isFunction(dependencies)) {
-            if(!Validator.isObservable(dependencies.$observer)) {
-                throw new NativeDocumentError('Observable.computed : dependencies must be valid batch function');
-            }
-            dependencies.$observer.subscribe(updatedValue);
-            return observable;
-        }
-
-        dependencies.forEach(dependency => dependency.subscribe(updatedValue));
-
-        return observable;
-    };
-
-    Observable.batch = function(callback) {
-        const $observer = Observable(0);
-        const batch = function() {
-            if(Validator.isAsyncFunction(callback)) {
-                return (callback(...arguments)).then(() => {
-                    $observer.trigger();
-                }).catch(error => { throw error; });
-            }
-            callback(...arguments);
-            $observer.trigger();
-        };
-        batch.$observer = $observer;
-        return batch;
-    };
-
-    /**
-     *
      * @param id
      * @returns {ObservableItem|null}
      */
@@ -552,151 +644,12 @@ var NativeDocument = (function (exports) {
         return item;
     };
 
-
     /**
      *
      * @param {ObservableItem} observable
      */
     Observable.cleanup = function(observable) {
         observable.cleanup();
-    };
-
-    /**
-     * Get the value of an observable or an object of observables.
-     * @param {ObservableItem|Object<ObservableItem>} object
-     * @returns {{}|*|null}
-     */
-    Observable.value = function(data) {
-        if(Validator.isObservable(data)) {
-            return data.val();
-        }
-        if(Validator.isProxy(data)) {
-            return data.$val();
-        }
-        if(Validator.isArray(data)) {
-            const result = [];
-            data.forEach(item => {
-                result.push(Observable.value(item));
-            });
-            return result;
-        }
-        return data;
-    };
-
-    /**
-     *
-     * @param {Object} value
-     * @returns {Proxy}
-     */
-    Observable.init = function(value) {
-        const data = {};
-        for(const key in value) {
-            const itemValue = value[key];
-            if(Validator.isJson(itemValue)) {
-                data[key] = Observable.init(itemValue);
-                continue;
-            }
-            else if(Validator.isArray(itemValue)) {
-                data[key] = Observable.array(itemValue);
-                continue;
-            }
-            data[key] = Observable(itemValue);
-        }
-
-        const $val = function() {
-            const result = {};
-            for(const key in data) {
-                const dataItem = data[key];
-                if(Validator.isObservable(dataItem)) {
-                    result[key] = dataItem.val();
-                } else if(Validator.isProxy(dataItem)) {
-                    result[key] = dataItem.$val();
-                } else {
-                    result[key] = dataItem;
-                }
-            }
-            return result;
-        };
-        const $clone = function() {
-
-        };
-
-        return new Proxy(data, {
-            get(target, property) {
-                if(property === '__isProxy__') {
-                    return true;
-                }
-                if(property === '$val') {
-                    return $val;
-                }
-                if(property === '$clone') {
-                    return $clone;
-                }
-                if(target[property] !== undefined) {
-                    return target[property];
-                }
-                return undefined;
-            },
-            set(target, prop, newValue) {
-                if(target[prop] !== undefined) {
-                    target[prop].set(newValue);
-                }
-            }
-        })
-    };
-
-    Observable.object = Observable.init;
-    Observable.json = Observable.init;
-    Observable.update = function($target, data) {
-        for(const key in data) {
-            const targetItem = $target[key];
-            const newValue = data[key];
-
-            if(Validator.isObservable(targetItem)) {
-                if(Validator.isArray(newValue)) {
-                    Observable.update(targetItem, newValue);
-                    continue;
-                }
-                targetItem.set(newValue);
-                continue;
-            }
-            if(Validator.isProxy(targetItem)) {
-                Observable.update(targetItem, newValue);
-                continue;
-            }
-            $target[key] = newValue;
-        }
-    };
-    /**
-     *
-     * @param {Array} target
-     * @returns {ObservableItem}
-     */
-    Observable.array = function(target) {
-        if(!Array.isArray(target)) {
-            throw new NativeDocumentError('Observable.array : target must be an array');
-        }
-        const observer = Observable(target);
-
-        const methods = ['push', 'pop', 'shift', 'unshift', 'reverse', 'sort', 'splice'];
-
-        methods.forEach((method) => {
-            observer[method] = function(...values) {
-                const target = observer.val();
-                const result = target[method].apply(target, arguments);
-                observer.trigger();
-                return result;
-            };
-        });
-
-        const overrideMethods = ['map', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex'];
-        overrideMethods.forEach((method) => {
-            observer[method] = function(callback) {
-                return observer.val()[method](callback);
-            };
-        });
-
-        return observer;
     };
 
     /**
@@ -720,31 +673,17 @@ var NativeDocument = (function (exports) {
     /**
      *
      * @param {HTMLElement} element
-     * @param {string} className
-     * @param {string} value
-     */
-    const toggleClassItem = function(element, className, value) {
-        if(value) {
-            element.classList.add(className);
-        } else {
-            element.classList.remove(className);
-        }
-    };
-
-    /**
-     *
-     * @param {HTMLElement} element
      * @param {Object} data
      */
     function bindClassAttribute(element, data) {
         for(let className in data) {
             const value = data[className];
             if(Validator.isObservable(value)) {
-                toggleClassItem(element, className, value.val());
-                value.subscribe(newValue => toggleClassItem(element, className, newValue));
+                element.classList.toggle(className, value.val());
+                value.subscribe(newValue => element.classList.toggle(className, newValue));
                 continue;
             }
-            toggleClassItem(element, className, value);
+            element.classList.toggle(className, value);
         }
     }
 
@@ -816,8 +755,8 @@ var NativeDocument = (function (exports) {
             }
             element.setAttribute(attributeName, newValue);
         };
-        value.subscribe(applyValue);
         applyValue(value.val());
+        value.subscribe(applyValue);
 
         if(attributeName === 'value') {
             element.addEventListener('input', () => value.set(element.value));
@@ -866,248 +805,62 @@ var NativeDocument = (function (exports) {
                 continue;
             }
             element.setAttribute(attributeName, value);
+
         }
         return element;
     }
 
-    const DocumentObserver = {
-        elements: new Map(),
-        observer: null,
-        checkMutation: throttle(function() {
-            for(const [element, data] of DocumentObserver.elements.entries()) {
-                const isCurrentlyInDom = document.body.contains(element);
-                if(isCurrentlyInDom && !data.inDom) {
-                    data.inDom = true;
-                    data.mounted.forEach(callback => callback(element));
-                } else if(!isCurrentlyInDom && data.inDom) {
-                    data.inDom = false;
-                    data.unmounted.forEach(callback => callback(element));
-                }
-            }
-        }, 10, { debounce: true }),
-        /**
-         *
-         * @param {HTMLElement} element
-         * @returns {{watch: (function(): Map<any, any>), disconnect: (function(): boolean), mounted: (function(*): Set<any>), unmounted: (function(*): Set<any>)}}
-         */
-        watch: function(element) {
-            let data = {};
-            if(DocumentObserver.elements.has(element)) {
-                data = DocumentObserver.elements.get(element);
-            } else {
-                const inDom = document.body.contains(element);
-                data = {
-                    inDom,
-                    mounted: new Set(),
-                    unmounted: new Set(),
-                };
-                DocumentObserver.elements.set(element, data);
-            }
-
-            return {
-                watch: () => DocumentObserver.elements.set(element, data),
-                disconnect: () => DocumentObserver.elements.delete(element),
-                mounted: (callback) => data.mounted.add(callback),
-                unmounted: (callback) => data.unmounted.add(callback)
-            };
-        }
-    };
-
-    DocumentObserver.observer = new MutationObserver(DocumentObserver.checkMutation);
-    DocumentObserver.observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-    });
-
-    const getChildAsNode = (child) => {
-        if(Validator.isFunction(child)) {
-            return getChildAsNode(child());
-        }
-        if(Validator.isElement(child)) {
-            return child;
-        }
-        return createTextNode(child)
-    };
-
-    function Anchor(name) {
-        const element = document.createDocumentFragment();
-
-        const anchorStart = document.createComment('Anchor Start : '+name);
-        const anchorEnd = document.createComment('/ Anchor End '+name);
-
-        element.appendChild(anchorStart);
-        element.appendChild(anchorEnd);
-
-        element.nativeInsertBefore = element.insertBefore;
-        element.nativeAppendChild = element.appendChild;
-
-        const insertBefore = function(parent, child, target) {
-            if(parent === element) {
-                parent.nativeInsertBefore(getChildAsNode(child), target);
-                return;
-            }
-            parent.insertBefore(getChildAsNode(child), target);
-        };
-
-        element.appendChild = function(child, before = null) {
-            const parent = anchorEnd.parentNode;
-            if(!parent) {
-                DebugManager.error('Anchor', 'Anchor : parent not found', child);
-                return;
-            }
-            before = before ?? anchorEnd;
-            if(Validator.isArray(child)) {
-                child.forEach((element) => {
-                    insertBefore(parent, element, before);
-                });
-                return element;
-            }
-            insertBefore(parent, child, before);
-        };
-
-        element.remove = function(trueRemove) {
-            if(anchorEnd.parentNode === element) {
-                return;
-            }
-            let itemToRemove = anchorStart.nextSibling, tempItem;
-            while(itemToRemove !== anchorEnd) {
-                tempItem = itemToRemove.nextSibling;
-                trueRemove ? itemToRemove.remove() : element.nativeAppendChild(itemToRemove);
-                itemToRemove = tempItem;
-            }
-            if(trueRemove) {
-                anchorEnd.remove();
-                anchorStart.remove();
-            }
-        };
-
-        element.insertBefore = function(child, anchor = null) {
-            element.appendChild(child, anchor);
-        };
-
-        element.clear = function() {
-            element.remove();
-        };
-
-        element.endElement = function() {
-            return anchorEnd;
-        };
-        element.startElement = function() {
-            return anchorStart;
-        };
-
-        return element;
-    }
-
-    const pluginsManager = (function() {
-
-        const $plugins = [];
-
-        return {
-            list : () => $plugins,
-            add : (plugin) => $plugins.push(plugin)
-        };
-    }());
-
-    /**
-     *
-     * @param {HTMLElement|DocumentFragment} parent
-     * @param {ObservableItem} observable
-     * @returns {Text}
-     */
-    const createObservableNode = function(parent, observable) {
-        const text = document.createTextNode('');
-        observable.subscribe(value => text.textContent = String(value));
-        text.textContent = observable.val();
-        parent && parent.appendChild(text);
-        return text;
-    };
-
-    /**
-     *
-     * @param {HTMLElement|DocumentFragment} parent
-     * @param {*} value
-     * @returns {Text}
-     */
-    const createStaticTextNode = function(parent, value) {
-        const text = document.createTextNode('');
-        text.textContent = String(value);
-        parent && parent.appendChild(text);
-        return text;
-    };
-
-    /**
-     *
-     * @param {HTMLElement} element
-     */
-    const addUtilsMethods = function(element) {
-        element.nd.wrap = (callback) => {
-            if(!Validator.isFunction(callback)) {
-                throw new NativeDocumentError('Callback must be a function');
-            }
-            callback && callback(element);
-            return element;
-        };
-        element.nd.ref = (target, name) => {
-            target[name] = element;
-            return element;
-        };
-
-        let $observer = null;
-
-        element.nd.appendChild = function(child) {
-            if(Validator.isArray(child)) {
-                ElementCreator.processChildren(child, element);
-                return;
-            }
-            if(Validator.isFunction(child)) {
-                child = child();
-                ElementCreator.processChildren(child(), element);
-            }
-            if(Validator.isElement(child)) {
-                ElementCreator.processChildren(child, element);
-            }
-        };
-
-        element.nd.lifecycle = function(states) {
-            $observer = $observer || DocumentObserver.watch(element);
-
-            states.mounted && $observer.mounted(states.mounted);
-            states.unmounted && $observer.unmounted(states.unmounted);
-            return element;
-        };
-
-        element.nd.mounted = (callback) => {
-            $observer = $observer || DocumentObserver.watch(element);
-            $observer.mounted(callback);
-            return element;
-        };
-        element.nd.unmounted = (callback) => {
-            $observer = $observer || DocumentObserver.watch(element);
-            $observer.unmounted(callback);
-            return element;
-        };
-    };
-
-    /**
-     *
-     * @param {*} value
-     * @returns {Text}
-     */
-    const createTextNode = function(value) {
-        return (Validator.isObservable(value))
-            ? createObservableNode(null, value)
-            : createStaticTextNode(null, value);
-    };
+    const $nodeCache = new Map();
+    let $textNodeCache = null;
 
     const ElementCreator = {
+        createTextNode() {
+            if(!$textNodeCache) {
+                $textNodeCache = document.createTextNode('');
+            }
+            return $textNodeCache.cloneNode();
+        },
+        /**
+         *
+         * @param {HTMLElement|DocumentFragment} parent
+         * @param {ObservableItem} observable
+         * @returns {Text}
+         */
+        createObservableNode(parent, observable) {
+            const text = ElementCreator.createTextNode();
+            observable.subscribe(value => text.nodeValue = String(value));
+            text.nodeValue = observable.val();
+            parent && parent.appendChild(text);
+            return text;
+        },
+
+        /**
+         *
+         * @param {HTMLElement|DocumentFragment} parent
+         * @param {*} value
+         * @returns {Text}
+         */
+        createStaticTextNode(parent, value) {
+            let text = ElementCreator.createTextNode();
+            text.nodeValue = String(value);
+            parent && parent.appendChild(text);
+            return text;
+        },
         /**
          *
          * @param {string} name
          * @returns {HTMLElement|DocumentFragment}
          */
         createElement(name)  {
-            return name ? document.createElement(name) : new Anchor('Fragment');
+            if(name) {
+                if($nodeCache.has(name)) {
+                    return $nodeCache.get(name).cloneNode();
+                }
+                const node = document.createElement(name);
+                $nodeCache.set(name, node);
+                return node.cloneNode();
+            }
+            return new Anchor('Fragment');
         },
         /**
          *
@@ -1117,31 +870,33 @@ var NativeDocument = (function (exports) {
         processChildren(children, parent) {
             if(children === null) return;
             const childrenArray = Array.isArray(children) ? children : [children];
-            childrenArray.forEach(child => {
-                if (child === null) return;
+
+            for(let i = 0, length = childrenArray.length; i < length; i++) {
+                let child = childrenArray[i];
+                if (child === null) continue;
                 if(Validator.isString(child) && Validator.isFunction(child.resolveObservableTemplate)) {
                     child = child.resolveObservableTemplate();
                 }
                 if(Validator.isFunction(child)) {
                     this.processChildren(child(), parent);
-                    return;
+                    continue;
                 }
                 if(Validator.isArray(child)) {
                     this.processChildren(child, parent);
-                    return;
+                    continue;
                 }
                 if (Validator.isElement(child)) {
                     parent.appendChild(child);
-                    return;
+                    continue;
                 }
                 if (Validator.isObservable(child)) {
-                    createObservableNode(parent, child);
-                    return;
+                    ElementCreator.createObservableNode(parent, child);
+                    continue;
                 }
                 if (child) {
-                    createStaticTextNode(parent, child);
+                    ElementCreator.createStaticTextNode(parent, child);
                 }
-            });
+            }
         },
         /**
          *
@@ -1162,18 +917,205 @@ var NativeDocument = (function (exports) {
          * @returns {HTMLElement|DocumentFragment}
          */
         setup(element, attributes, customWrapper) {
-            element.nd = {};
-            HtmlElementEventsWrapper(element);
-            const item = (typeof customWrapper === 'function') ? customWrapper(element) : element;
-            addUtilsMethods(item);
-
-            pluginsManager.list().forEach(plugin => {
-                plugin?.element?.setup && plugin.element.setup(item, attributes);
-            });
-
-            return item;
+            return element;
         }
     };
+
+    const DocumentObserver = {
+        mounted: new WeakMap(),
+        mountedSupposedSize: 0,
+        unmounted: new WeakMap(),
+        unmountedSupposedSize: 0,
+        observer: null,
+        checkMutation: debounce(function(mutationsList) {
+            for(const mutation of mutationsList) {
+                if(DocumentObserver.mountedSupposedSize > 0 ) {
+                    for(const node of mutation.addedNodes) {
+                        const data = DocumentObserver.mounted.get(node);
+                        if(!data) {
+                            continue;
+                        }
+                        data.inDom = true;
+                        data.mounted && data.mounted(node);
+                    }
+                }
+
+                if(DocumentObserver.unmountedSupposedSize > 0 ) {
+                    for(const node of mutation.removedNodes) {
+                        const data = DocumentObserver.unmounted.get(node);
+                        if(!data) {
+                            continue;
+                        }
+
+                        data.inDom = false;
+                        if(data.unmounted && data.unmounted(node) === true) {
+                            data.disconnect();
+                            node.nd?.remove();
+                        }
+                    }
+                }
+            }
+        }, 16),
+        /**
+         *
+         * @param {HTMLElement} element
+         * @param {boolean} inDom
+         * @returns {{watch: (function(): Map<any, any>), disconnect: (function(): boolean), mounted: (function(*): Set<any>), unmounted: (function(*): Set<any>)}}
+         */
+        watch: function(element, inDom = false) {
+            let data = {
+                inDom,
+                mounted: null,
+                unmounted: null,
+                disconnect: () => {
+                    DocumentObserver.mounted.delete(element);
+                    DocumentObserver.unmounted.delete(element);
+                    DocumentObserver.mountedSupposedSize--;
+                    DocumentObserver.unmountedSupposedSize--;
+                    data = null;
+                }
+            };
+
+            return {
+                disconnect: data.disconnect,
+                mounted: (callback) => {
+                    data.mounted = callback;
+                    DocumentObserver.mounted.set(element, data);
+                    DocumentObserver.mountedSupposedSize++;
+                },
+                unmounted: (callback) => {
+                    data.unmounted = callback;
+                    DocumentObserver.unmounted.set(element, data);
+                    DocumentObserver.unmountedSupposedSize++;
+                }
+            };
+        }
+    };
+
+    DocumentObserver.observer = new MutationObserver(DocumentObserver.checkMutation);
+    DocumentObserver.observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+    });
+
+    Object.defineProperty(HTMLElement.prototype, 'nd', {
+        get() {
+            if(this.$ndProx) {
+                return this.$ndProx;
+            }
+            let element = this;
+            let lifecycle = null;
+
+            this.$ndProx = new Proxy({}, {
+                get(target, property) {
+                    if(/^on[A-Z]/.test(property)) {
+                        const event = property.replace(/^on/, '').toLowerCase();
+                        const shouldPrevent = event.toLowerCase().startsWith('prevent');
+                        let eventName = event.replace(/^prevent/i, '');
+                        const shouldStop = event.toLowerCase().startsWith('stop');
+                        eventName = eventName.replace(/^stop/i, '');
+
+                        return function(callback) {
+                            if(shouldPrevent && !shouldStop) {
+                                element.addEventListener(eventName, function(event) {
+                                    event.preventDefault();
+                                    callback(event);
+                                });
+                                return element;
+                            }
+                            if(!shouldPrevent && shouldStop) {
+                                element.addEventListener(eventName, function(event) {
+                                    event.stopPropagation();
+                                    callback(event);
+                                });
+                                return element;
+                            }
+                            if(shouldPrevent && shouldStop) {
+                                element.addEventListener(eventName, function(event) {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    callback(event);
+                                });
+                                return element;
+                            }
+                            element.addEventListener(eventName, callback);
+                            return element;
+                        };
+                    }
+                    if(property === 'ref') {
+                        if(ref) {
+                            return ref;
+                        }
+                        return function(target, name) {
+                            target[name] = element;
+                            return element;
+                        };
+                    }
+                    if(property === 'unmountChildren') {
+                        return () => {
+                            for(let i = 0, length = element.children.length; i < length; i++) {
+                                let elementchildren = element.children[i];
+                                if(!elementchildren.$ndProx) {
+                                    elementchildren.nd?.remove();
+                                }
+                                elementchildren = null;
+                            }
+                        };
+                    }
+                    if(property === 'remove') {
+                        return function() {
+                            element.nd.unmountChildren();
+                            lifecycle = null;
+                            element.$ndProx = null;
+                            delete element.nd?.on?.prevent;
+                            delete element.nd?.on;
+                            delete element.nd;
+                        };
+                    }
+                    if(property === 'hasLifecycle') {
+                        return lifecycle !== null;
+                    }
+                    if(property === 'lifecycle') {
+                        if(lifecycle) {
+                            return lifecycle;
+                        }
+                        let $observer = null;
+                        lifecycle = function(states) {
+                            $observer = $observer || DocumentObserver.watch(element);
+
+                            states.mounted && $observer.mounted(states.mounted);
+                            states.unmounted && $observer.unmounted(states.unmounted);
+                            return element;
+                        };
+                        return lifecycle;
+                    }
+                    if(property === 'mounted' || property === 'unmounted') {
+                        return function(callback) {
+                            element.nd.lifecycle({ [property]: callback});
+                            return element;
+                        };
+                    }
+                },
+                set(target, p, newValue, receiver) {
+
+                },
+                configurable: true
+            });
+            return this.$ndProx;
+        }
+    });
+
+    /**
+     *
+     * @param {*} value
+     * @returns {Text}
+     */
+    const createTextNode = function(value) {
+        return (Validator.isObservable(value))
+            ? ElementCreator.createObservableNode(null, value)
+            : ElementCreator.createStaticTextNode(null, value);
+    };
+
 
     /**
      *
@@ -1182,7 +1124,7 @@ var NativeDocument = (function (exports) {
      * @returns {Function}
      */
     function HtmlElementWrapper(name, customWrapper) {
-        const $tagName = name.toLowerCase().trim();
+        const $tagName = name.toLowerCase();
 
         const builder = function(attributes, children = null) {
             try {
@@ -1192,11 +1134,12 @@ var NativeDocument = (function (exports) {
                     attributes = tempChildren;
                 }
                 const element = ElementCreator.createElement($tagName);
+                const finalElement = (typeof customWrapper === 'function') ? customWrapper(element) : element;
 
-                ElementCreator.processAttributes(element, attributes);
-                ElementCreator.processChildren(children, element);
+                ElementCreator.processAttributes(finalElement, attributes);
+                ElementCreator.processChildren(children, finalElement);
 
-                return ElementCreator.setup(element, attributes, customWrapper);
+                return ElementCreator.setup(finalElement, attributes, customWrapper);
             } catch (error) {
                 DebugManager.error('ElementCreation', `Error creating ${$tagName}`, error);
             }
@@ -1351,6 +1294,229 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    const methods = ['push', 'pop', 'shift', 'unshift', 'reverse', 'sort', 'splice'];
+
+    /**
+     *
+     * @param {Array} target
+     * @returns {ObservableItem}
+     */
+    Observable.array = function(target) {
+        if(!Array.isArray(target)) {
+            throw new NativeDocumentError('Observable.array : target must be an array');
+        }
+        const observer = Observable(target);
+
+        methods.forEach((method) => {
+            observer[method] = function(...values) {
+                const result = observer.val()[method](...values);
+                observer.trigger({ action: method, args: values, result });
+                return result;
+            };
+        });
+
+        observer.clear = function() {
+            observer.$value.length = 0;
+            observer.trigger({ action: 'clear' });
+            return true;
+        };
+
+        observer.remove = function(index) {
+            const deleted = observer.$value.splice(index, 1);
+            if(deleted.length === 0) {
+                return [];
+            }
+            observer.trigger({ action: 'remove', args: [index], result: deleted[0] });
+            return deleted;
+        };
+
+        observer.swap = function(indexA, indexB) {
+            const value = observer.$value;
+            const length = value.length;
+            if(length < indexA || length < indexB) {
+                return false;
+            }
+            if(indexB < indexA) {
+                const temp = indexA;
+                indexA = indexB;
+                indexB = temp;
+            }
+            const elementA = value[indexA];
+            const elementB = value[indexB];
+
+            value[indexA] = elementB;
+            value[indexB] = elementA;
+            observer.trigger({ action: 'swap', args: [indexA, indexB], result: [elementA, elementB] });
+            return true;
+        };
+
+        observer.length = function() {
+            return observer.$value.length;
+        };
+
+        const overrideMethods = ['map', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex', 'concat'];
+        overrideMethods.forEach((method) => {
+            observer[method] = function(...args) {
+                return observer.val()[method](...args);
+            };
+        });
+
+        return observer;
+    };
+
+    /**
+     *
+     * @param {Function} callback
+     * @returns {Function}
+     */
+    Observable.batch = function(callback) {
+        const $observer = Observable(0);
+        const batch = function() {
+            if(Validator.isAsyncFunction(callback)) {
+                return (callback(...arguments)).then(() => {
+                    $observer.trigger();
+                }).catch(error => { throw error; });
+            }
+            callback(...arguments);
+            $observer.trigger();
+        };
+        batch.$observer = $observer;
+        return batch;
+    };
+
+    /**
+     *
+     * @param {Object} value
+     * @returns {Proxy}
+     */
+    Observable.init = function(value) {
+        const data = {};
+        for(const key in value) {
+            const itemValue = value[key];
+            if(Validator.isJson(itemValue)) {
+                data[key] = Observable.init(itemValue);
+                continue;
+            }
+            else if(Validator.isArray(itemValue)) {
+                data[key] = Observable.array(itemValue);
+                continue;
+            }
+            data[key] = Observable(itemValue);
+        }
+
+        const $val = function() {
+            const result = {};
+            for(const key in data) {
+                const dataItem = data[key];
+                if(Validator.isObservable(dataItem)) {
+                    result[key] = dataItem.val();
+                } else if(Validator.isProxy(dataItem)) {
+                    result[key] = dataItem.$value;
+                } else {
+                    result[key] = dataItem;
+                }
+            }
+            return result;
+        };
+        const $clone = function() {
+
+        };
+
+        return new Proxy(data, {
+            get(target, property) {
+                if(property === '__isProxy__') {
+                    return true;
+                }
+                if(property === '$value') {
+                    return $val();
+                }
+                if(property === '$clone') {
+                    return $clone;
+                }
+                if(target[property] !== undefined) {
+                    return target[property];
+                }
+                return undefined;
+            },
+            set(target, prop, newValue) {
+                if(target[prop] !== undefined) {
+                    target[prop].set(newValue);
+                }
+            }
+        })
+    };
+
+    /**
+     * Get the value of an observable or an object of observables.
+     * @param {ObservableItem|Object<ObservableItem>} data
+     * @returns {{}|*|null}
+     */
+    Observable.value = function(data) {
+        if(Validator.isObservable(data)) {
+            return data.val();
+        }
+        if(Validator.isProxy(data)) {
+            return data.$value;
+        }
+        if(Validator.isArray(data)) {
+            const result = [];
+            data.forEach(item => {
+                result.push(Observable.value(item));
+            });
+            return result;
+        }
+        return data;
+    };
+
+
+    Observable.update = function($target, data) {
+        for(const key in data) {
+            const targetItem = $target[key];
+            const newValue = data[key];
+
+            if(Validator.isObservable(targetItem)) {
+                if(Validator.isArray(newValue)) {
+                    Observable.update(targetItem, newValue);
+                    continue;
+                }
+                targetItem.set(newValue);
+                continue;
+            }
+            if(Validator.isProxy(targetItem)) {
+                Observable.update(targetItem, newValue);
+                continue;
+            }
+            $target[key] = newValue;
+        }
+    };
+
+    Observable.object = Observable.init;
+    Observable.json = Observable.init;
+
+    /**
+     *
+     * @param {Function} callback
+     * @param {Array|Function} dependencies
+     * @returns {ObservableItem}
+     */
+    Observable.computed = function(callback, dependencies = []) {
+        const initialValue = callback();
+        const observable = new ObservableItem(initialValue);
+        const updatedValue = () => observable.set(callback());
+
+        if(Validator.isFunction(dependencies)) {
+            if(!Validator.isObservable(dependencies.$observer)) {
+                throw new NativeDocumentError('Observable.computed : dependencies must be valid batch function');
+            }
+            dependencies.$observer.subscribe(updatedValue);
+            return observable;
+        }
+
+        dependencies.forEach(dependency => dependency.subscribe(updatedValue));
+
+        return observable;
+    };
+
     const Store = (function() {
 
         const $stores = new Map();
@@ -1426,45 +1592,6 @@ var NativeDocument = (function (exports) {
 
     /**
      *
-     * @param {*} item
-     * @param {string|null} defaultKey
-     * @param {?Function} key
-     * @returns {*}
-     */
-    const getKey = (item, defaultKey, key) => {
-        if(Validator.isFunction(key)) return key(item, defaultKey);
-        if(Validator.isObservable(item)) {
-            const val = item.val();
-            return (val && key) ? val[key] : defaultKey;
-        }
-        return item[key] ?? defaultKey;
-    };
-
-    /**
-     *
-     * @param {Map} cache
-     * @param {Set} keyIds
-     */
-    const cleanBlockByCache = (cache, keyIds) => {
-        const toRemove = [];
-        for(const [key, cacheItem] of cache.entries()) {
-            if(keyIds.has(key)) {
-                continue;
-            }
-            toRemove.push({ key, cacheItem });
-        }
-        if(toRemove.length === 0) {
-            return;
-        }
-        toRemove.forEach(({ key, cacheItem }) => {
-            cacheItem.child.remove();
-            cacheItem.indexObserver.cleanup();
-            cache.delete(key);
-        });
-    };
-
-    /**
-     *
      * @param {Array|Object|ObservableItem} data
      * @param {Function} callback
      * @param {?Function} key
@@ -1473,120 +1600,408 @@ var NativeDocument = (function (exports) {
     function ForEach(data, callback, key) {
         const element = new Anchor('ForEach');
         const blockEnd = element.endElement();
-        const blockStart = element.startElement();
+        element.startElement();
 
         let cache = new Map();
+        let lastKeyOrder = null;
         const keyIds = new Set();
+
+        const clear = () => {
+            element.removeChildren();
+            cleanCache();
+        };
+
+        const cleanCache = (parent) => {
+            for(const [keyId, cacheItem] of cache.entries()) {
+                if(keyIds.has(keyId)) {
+                    continue;
+                }
+                const child = cacheItem.child?.deref();
+                if(parent && child) {
+                    parent.removeChild(child);
+                }
+                cacheItem.indexObserver?.cleanup();
+                cacheItem.child = null;
+                cacheItem.indexObserver = null;
+                cache.delete(cacheItem.keyId);
+                lastKeyOrder && lastKeyOrder.delete(cacheItem.keyId);
+            }
+        };
 
         const handleContentItem = (item, indexKey) => {
             const keyId = getKey(item, indexKey, key);
 
             if(cache.has(keyId)) {
                 const cacheItem = cache.get(keyId);
-                cacheItem.indexObserver.set(indexKey);
+                cacheItem.indexObserver?.set(indexKey);
                 cacheItem.isNew = false;
-            }
-            else {
-
-                try {
-                    const indexObserver = Observable(indexKey);
-                    let child = callback(item, indexObserver);
-                    if(Validator.isStringOrObservable(child)) {
-                        child = createTextNode(child);
-                    }
-                    cache.set(keyId, { isNew: true, child, indexObserver});
-                } catch (e) {
-                    DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
-                    throw e;
+                if(cacheItem.child?.deref()) {
+                    return keyId;
                 }
+                cache.delete(keyId);
+            }
+
+            try {
+                const indexObserver = callback.length >= 2 ? Observable(indexKey) : null;
+                let child = callback(item, indexObserver);
+                if(Validator.isStringOrObservable(child)) {
+                    child = createTextNode(child);
+                }
+                cache.set(keyId, { keyId, isNew: true, child: new WeakRef(child), indexObserver});
+            } catch (e) {
+                DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
+                throw e;
             }
             return keyId;
         };
 
-        const batchDOMUpdates = () => {
+        const batchDOMUpdates = (parent) => {
+            const fragment = document.createDocumentFragment();
+            for(const itemKey of keyIds) {
+                const cacheItem = cache.get(itemKey);
+                if(!cacheItem) {
+                    continue;
+                }
+                const child = cacheItem.child?.deref();
+                child && fragment.appendChild(child);
+            }
+            parent.insertBefore(fragment, blockEnd);
+        };
+
+        const diffingDOMUpdates = (parent) => {
+            let fragment = document.createDocumentFragment();
+            const newKeys = Array.from(keyIds);
+            Array.from(lastKeyOrder);
+
+            for(const index in newKeys) {
+                const itemKey = newKeys[index];
+                const cacheItem = cache.get(itemKey);
+                if(!cacheItem) {
+                    continue;
+                }
+                const child = cacheItem.child.deref();
+                if(!child) {
+                    continue;
+                }
+                fragment.appendChild(child);
+            }
+            element.replaceContent(fragment);
+        };
+
+        const buildContent = () => {
             const parent = blockEnd.parentNode;
             if(!parent) {
                 return;
             }
 
-            let previousElementSibling = blockStart;
-            const elementsToInsert = [];
-            const elementsToMove = [];
-            let fragment = null;
-
-            let saveFragment = (beforeTarget) => {
-                if(fragment) {
-                    elementsToInsert.push({ child: fragment, before: beforeTarget });
-                    fragment = null;
-                }
-            };
-
-            const keyIdsArray = Array.from(keyIds);
-            for(let i = 0; i < keyIdsArray.length; i++) {
-                const itemKey = keyIdsArray[i];
-                const cacheItem = cache.get(itemKey);
-                if(!cacheItem) {
-                    continue;
-                }
-
-                if(previousElementSibling && previousElementSibling.nextSibling === cacheItem.child) {
-                    previousElementSibling = cacheItem.child;
-                    saveFragment(cacheItem.child);
-                    continue;
-                }
-                if(cacheItem.isNew) {
-                    fragment = fragment || document.createDocumentFragment();
-                    fragment.append(cacheItem.child);
-                    cacheItem.isNew = false;
-                    continue;
-                }
-                saveFragment(cacheItem.child);
-                const nextChild = cache.get(keyIdsArray[i + 1])?.child;
-                if(nextChild) {
-                    if(cacheItem.child.nextSibling !== nextChild) {
-                        elementsToMove.push({ child: cacheItem.child, before: nextChild });
-                    }
-                }
-
-                previousElementSibling = cacheItem.child;
-            }
-            saveFragment(blockEnd);
-
-            elementsToInsert.forEach(({ child, before }) => {
-                if(before) {
-                    parent.insertBefore(child, before);
-                } else {
-                    element.appendChild(child);
-                }
-            });
-
-            elementsToMove.forEach(({ child, before }) => {
-                parent.insertBefore(child, before);
-            });
-            saveFragment = null;
-
-        };
-
-        const buildContent = () => {
             const items = (Validator.isObservable(data)) ? data.val() : data;
             keyIds.clear();
             if(Array.isArray(items)) {
-                items.forEach((item, index) => keyIds.add(handleContentItem(item, index)));
+                for(let i = 0, length = items.length; i < length; i++) {
+                    const keyId= handleContentItem(items[i], i);
+                    keyIds.add(keyId);
+                }
             } else {
                 for(const indexKey in items) {
-                    keyIds.add(handleContentItem(items[indexKey], indexKey));
+                    const keyId = handleContentItem(items[indexKey], indexKey);
+                    keyIds.add(keyId);
                 }
             }
 
-            cleanBlockByCache(cache, keyIds);
+            if(keyIds.size === 0) {
+                clear();
+                lastKeyOrder?.clear();
+                return;
+            }
 
-            batchDOMUpdates();
+            cleanCache(parent);
+            if(!lastKeyOrder || lastKeyOrder.size === 0) {
+                batchDOMUpdates(parent);
+            } else {
+                diffingDOMUpdates();
+            }
+            lastKeyOrder?.clear();
+            lastKeyOrder = new Set([...keyIds]);
         };
 
         buildContent();
         if(Validator.isObservable(data)) {
             data.subscribe(buildContent);
         }
+        return element;
+    }
+
+    function ForEachArray(data, callback, key, configs = {}) {
+        const element = new Anchor('ForEach Array');
+        const blockEnd = element.endElement();
+        const blockStart = element.startElement();
+
+        let cache = new Map();
+        let nodeCacheByElement = new WeakMap();
+        let lastNumberOfItems = 0;
+
+        const keysCache = new WeakMap();
+
+        const clear = () => {
+            element.removeChildren();
+            cleanCache();
+            lastNumberOfItems = 0;
+        };
+        const getItemKey = (item, indexKey) => {
+            if(keysCache.has(item)) {
+                return keysCache.get(item);
+            }
+            return getKey(item, indexKey, key);
+        };
+
+        const updateIndexObservers = (items, startFrom = 0) => {
+            if(callback.length < 2) {
+                return;
+            }
+            let index = startFrom;
+            for(let i = startFrom, length = items?.length; i < length; i++) {
+                const cacheItem = cache.get(getItemKey(items[i], i));
+                if(!cacheItem) {
+                    continue;
+                }
+                cacheItem.indexObserver?.deref()?.set(index);
+                index++;
+            }
+        };
+
+        const removeCacheItem = (cacheItem, removeChild = true) => {
+            if(!cacheItem) {
+                return;
+            }
+            const child = cacheItem.child?.deref();
+            cacheItem.indexObserver?.deref()?.cleanup();
+            cacheItem.child = null;
+            cacheItem.indexObserver = null;
+            nodeCacheByElement.delete(cacheItem.item);
+            keysCache.delete(cacheItem.item);
+            cacheItem.item = null;
+            if(removeChild) {
+                child?.remove();
+                cache.delete(cacheItem.keyId);
+            }
+        };
+
+        const removeCacheItemByKey = (keyId, removeChild = true) => {
+            removeCacheItem(cache.get(keyId), removeChild);
+        };
+
+        const cleanCache = () => {
+            for (const [keyId, cacheItem] of cache.entries()) {
+                removeCacheItem(cacheItem, false);
+            }
+            cache.clear();
+        };
+
+        const buildItem = (item, indexKey) => {
+            const keyId = getItemKey(item, indexKey);
+
+            if(cache.has(keyId)) {
+                const cacheItem = cache.get(keyId);
+                cacheItem.indexObserver?.deref()?.set(indexKey);
+                cacheItem.isNew = false;
+                const child = cacheItem.child?.deref();
+                if(child) {
+                    return child;
+                }
+                cache.delete(keyId);
+            }
+
+            try {
+                const indexObserver = callback.length >= 2 ? Observable(indexKey) : null;
+                let child = callback(item, indexObserver);
+                if(Validator.isStringOrObservable(child)) {
+                    child = createTextNode(child);
+                }
+                cache.set(keyId, {
+                    keyId,
+                    isNew: true,
+                    item,
+                    child: new WeakRef(child),
+                    indexObserver: (indexObserver ? new WeakRef(indexObserver) : null)
+                });
+                keysCache.set(item, keyId);
+                if(Validator.isObject(item)) {
+                    nodeCacheByElement.set(item, child);
+                }
+                return child;
+            } catch (e) {
+                DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
+                throw e;
+            }
+        };
+        const getChildByKey = function(keyId, fragment) {
+            const cacheItem = cache.get(keyId);
+            if(!cacheItem) {
+                return null;
+            }
+            const child = cacheItem.child?.deref();
+            if(!child) {
+                removeCacheItem(cacheItem, false);
+                return null;
+            }
+            return child;
+        };
+
+        const removeByKey = function(keyId, fragment) {
+            const cacheItem = cache.get(keyId);
+            if(!cacheItem) {
+                return null;
+            }
+            const child = cacheItem.child?.deref();
+            if(!child) {
+                return null;
+            }
+
+            if(fragment) {
+                fragment.appendChild(child);
+                return;
+            }
+            child.remove();
+        };
+
+        const Actions = {
+            toFragment(items, startIndexFrom = 0){
+                const fragment = document.createDocumentFragment();
+                for(let i = 0, length = items.length; i < length; i++) {
+                    fragment.append(buildItem(items[i], lastNumberOfItems));
+                    lastNumberOfItems++;
+                }
+                return fragment;
+            },
+            add(items, delay = 0) {
+                setTimeout(() => {
+                    element.appendElement(Actions.toFragment(items));
+                }, delay);
+            },
+            replace(items) {
+                clear();
+                Actions.add(items);
+            },
+            reOrder(items) {
+                let child = null;
+                const fragment = document.createDocumentFragment();
+                for(const item of items) {
+                    child = nodeCacheByElement.get(item);
+                    if(child) {
+                        fragment.appendChild(child);
+                    }
+                }
+                child = null;
+                element.appendElement(fragment, blockEnd);
+            },
+            removeOne(element, index) {
+                let child = nodeCacheByElement.get(element);
+                if(child) {
+                    child.remove();
+                    nodeCacheByElement.delete(element);
+                    removeCacheItemByKey(getItemKey(element, index));
+                }
+                child = null;
+            },
+            clear,
+            push(items) {
+                let delay = 0;
+                if(configs.pushDelay) {
+                    delay = configs.pushDelay(items) ?? 0;
+                } else {
+                    delay = (items.length >= 1000) ? 10 : 0;
+                }
+                Actions.add(items, delay);
+            },
+            unshift(values){
+                element.insertBefore(Actions.toFragment(values), blockStart.nextSibling);
+            },
+            splice(args, deleted) {
+                const [start, deleteCount, ...values] = args;
+                let elementBeforeFirst = null;
+                const garbageFragment = document.createDocumentFragment();
+
+                if(deleted.length > 0) {
+                    let firstKey = getItemKey(deleted[0], start);
+                    if(deleted.length === 1) {
+                        removeByKey(firstKey, garbageFragment);
+                    } else if(deleted.length > 1) {
+                        const firstChildRemoved = getChildByKey(firstKey);
+                        elementBeforeFirst = firstChildRemoved?.previousSibling;
+
+                        for(let i = 0; i < deleted.length; i++) {
+                            const keyId = getItemKey(deleted[i], start + i);
+                            removeByKey(keyId, garbageFragment);
+                        }
+                    }
+                } else {
+                    elementBeforeFirst = blockEnd;
+                }
+                garbageFragment.replaceChildren();
+
+                if(values && values.length && elementBeforeFirst) {
+                    element.insertBefore(Actions.toFragment(values), elementBeforeFirst.nextSibling);
+                }
+
+            },
+            reverse(_, reversed) {
+                Actions.reOrder(reversed);
+            },
+            sort(_, sorted) {
+                Actions.reOrder(sorted);
+            },
+            remove(_, deleted) {
+                Actions.removeOne(deleted);
+            },
+            pop(_, deleted) {
+                Actions.removeOne(deleted);
+            },
+            shift(_, deleted) {
+                Actions.removeOne(deleted);
+            },
+            swap(args, elements) {
+                const parent = blockEnd.parentNode;
+
+                let childA = nodeCacheByElement.get(elements[0]);
+                let childB = nodeCacheByElement.get(elements[1]);
+                if(!childA || !childB) {
+                    return;
+                }
+
+                const childBNext = childB.nextSibling;
+                parent.insertBefore(childB, childA);
+                parent.insertBefore(childA, childBNext);
+                childA = null;
+                childB = null;
+            }
+        };
+
+        const buildContent = (items, _, operations) => {
+            if(operations.action === 'clear' || !items.length) {
+                if(lastNumberOfItems === 0) {
+                    return;
+                }
+                clear();
+            }
+
+            if(!operations?.action) {
+                if(lastNumberOfItems === 0) {
+                    Actions.add(items);
+                    return;
+                }
+                Actions.replace(items);
+            }
+            else if(Actions[operations.action]) {
+                Actions[operations.action](operations.args, operations.result);
+            }
+            updateIndexObservers(items, 0);
+        };
+
+        buildContent(data.val(), null, {action: null});
+        if(Validator.isObservable(data)) {
+            data.subscribe(buildContent);
+        }
+
         return element;
     }
 
@@ -1921,6 +2336,10 @@ var NativeDocument = (function (exports) {
     const UnorderedList = HtmlElementWrapper('ul');
     const ListItem = HtmlElementWrapper('li');
 
+    const Li = ListItem;
+    const Ol = OrderedList;
+    const Ul = UnorderedList;
+
     const Audio = HtmlElementWrapper('audio');
     const Video = HtmlElementWrapper('video');
     const Source = HtmlElementWrapper('source');
@@ -1989,6 +2408,7 @@ var NativeDocument = (function (exports) {
         FileInput: FileInput,
         Footer: Footer,
         ForEach: ForEach,
+        ForEachArray: ForEachArray,
         Form: Form,
         Fragment: Fragment,
         H1: H1,
@@ -2009,6 +2429,7 @@ var NativeDocument = (function (exports) {
         Label: Label,
         LazyImg: LazyImg,
         Legend: Legend,
+        Li: Li,
         Link: Link$1,
         ListItem: ListItem,
         Main: Main,
@@ -2020,6 +2441,7 @@ var NativeDocument = (function (exports) {
         NativeDocumentFragment: Anchor,
         Nav: Nav,
         NumberInput: NumberInput,
+        Ol: Ol,
         Option: Option,
         OrderedList: OrderedList,
         Output: Output,
@@ -2065,6 +2487,7 @@ var NativeDocument = (function (exports) {
         TimeInput: TimeInput,
         Tr: Tr,
         Track: Track,
+        Ul: Ul,
         UnorderedList: UnorderedList,
         UrlInput: UrlInput,
         Var: Var,

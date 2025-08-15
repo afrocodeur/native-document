@@ -6,13 +6,13 @@ Anchors are a NativeDocument class that enables dynamic DOM manipulation without
 
 Anchors are instances of the Anchor class that use two comment nodes as invisible markers:
 
- `NativeDocumentFragment is Anchor alias`
+`NativeDocumentFragment is an Anchor alias`
 
 ```javascript
 // Create an anchor instance
 const anchor = new Anchor("My Content");
-// Or
-// const anchor = new NativeDocumentFragment("My Content");
+// Or using the alias
+const anchor = new NativeDocumentFragment("My Content");
 
 // In the DOM, this creates:
 // <!-- Anchor Start : My Content -->
@@ -43,7 +43,7 @@ const anchor = new Anchor("Dynamic Area");
 anchor.appendChild(Div("Dynamic content")); // Uses comment markers system
 ```
 
-## Dynamic Content Insertion
+## Creating and Using Anchors
 
 ### Creating Anchors
 
@@ -77,29 +77,10 @@ anchor.appendChild(Div("Dynamic content 2"));
 // </div>
 ```
 
-### remove() - Clear Content Between Markers
-
-```javascript
-// Remove all content between markers (markers remain)
-anchor.remove(); // Content cleared, anchor can be reused
-
-// Remove markers and all content permanently  
-anchor.remove(true); // Destroys the entire anchor system
-```
-
-### clear() - Empty Content
-
-```javascript
-// Alias for remove() - clears content but keeps anchor
-anchor.clear();
-```
-
-## Anchor Methods
-
 ### insertBefore() - Positioned Insertion
 
 ```javascript
-const anchor = Fragment();
+const anchor = new Anchor("Ordered Content");
 const element1 = Div("First");
 const element2 = Div("Second");
 
@@ -108,20 +89,95 @@ anchor.insertBefore(element2, element1); // Inserts before element1
 // Result: element2, element1
 ```
 
+### replaceContent() - Replace All Content
+
+```javascript
+const anchor = new Anchor("Replaceable");
+anchor.appendChild(Div("Old content"));
+
+// Replace all content between markers with new content
+anchor.replaceContent(Div("New content"));
+```
+
+## Content Management Methods
+
+### remove() vs removeChildren() vs clear()
+
+```javascript
+const anchor = new Anchor("Content Management");
+
+// Remove all content between markers (markers remain)
+anchor.remove(); // Content cleared, anchor can be reused
+anchor.removeChildren(); // Same as remove() - more explicit name
+
+// Alias for remove() - clears content but keeps anchor
+anchor.clear();
+```
+
+### removeWithAnchors() - Complete Removal
+
+```javascript
+// Remove markers AND all content permanently  
+anchor.removeWithAnchors(); // Destroys the entire anchor system
+```
+
+## Anchor Access Methods
+
 ### Access Markers
 
 ```javascript
-const anchor = Fragment();
+const anchor = new Anchor("My Anchor");
 
 // Get the start and end comment nodes
 const start = anchor.startElement();
 const end = anchor.endElement();
 
-console.log(start.textContent); // "Anchor Start : Fragment"
-console.log(end.textContent);   // "/ Anchor End Fragment"
+console.log(start.textContent); // "Anchor Start : My Anchor"
+console.log(end.textContent);   // "/ Anchor End My Anchor"
 ```
 
-## Practical Usage with Conditionals
+## Practical Usage Examples
+
+### Working with Arrays of Content
+
+```javascript
+const anchor = new Anchor("Multi Content");
+const container = Div();
+container.appendChild(anchor);
+
+// Insert multiple elements without a containing wrapper
+anchor.appendChild([
+    H1("Title"),
+    P("Paragraph"),
+    Button("Action")
+]);
+
+// DOM: No wrapper element, just the three elements between markers
+```
+
+### Dynamic Content Updates
+
+```javascript
+const contentAnchor = new Anchor("Dynamic Updates");
+const isLoading = Observable(true);
+const data = Observable(null);
+
+// Initial loading state
+contentAnchor.appendChild(Div("Loading..."));
+
+// Update content based on state changes
+isLoading.subscribe(loading => {
+    if (loading) {
+        contentAnchor.replaceContent(Div("Loading..."));
+    } else if (data.val()) {
+        contentAnchor.replaceContent(
+            Div(`Data: ${data.val()}`)
+        );
+    }
+});
+```
+
+## Built-in Components Using Anchors
 
 ### ShowIf with Anchors
 
@@ -152,36 +208,43 @@ const list = ForEach(items, (item) =>
 items.push("Item 3"); // New div inserted at anchor position
 items.splice(0, 1);   // First div removed, others shift within markers
 ```
-:m
-### Multiple Elements Without Wrapper
+
+### Match/Switch Components
 
 ```javascript
-const anchor = new Anchor("Multi Content");
-const container = Div();
-container.appendChild(anchor);
+const currentView = Observable('loading');
 
-// Insert multiple elements without a containing wrapper
-anchor.appendChild([
-    H1("Title"),
-    P("Paragraph"),
-    Button("Action")
-]);
+// Match returns an anchor managing different content states
+const content = Match(currentView, {
+    loading: () => Div("Loading..."),
+    success: () => Div("Data loaded!"),
+    error: () => Div("Error occurred")
+});
 
-// DOM: No wrapper element, just the three elements between markers
+currentView.set('success'); // Content switches without wrapper changes
 ```
 
-## Why Use Anchors vs Fragment?
+## When to Use Fragment vs Anchor
 
-**Use Fragment** for standard DOM operations:
+### Use Fragment for:
+- **One-time content creation** that won't change
+- **Standard DOM operations** following web standards
+- **Static content grouping** before insertion
 
 ```javascript
 // Standard DocumentFragment behavior
-const fragment = Fragment();
-fragment.appendChild(Div("Content"));
+const fragment = Fragment(
+    H1("Static Title"),
+    P("Static content")
+);
 // Gets replaced entirely when appended to parent
 ```
 
-**Use Anchor (NativeDocumentFragment)** for dynamic content management:
+### Use Anchor for:
+- **Dynamic content management** that updates frequently
+- **Conditional rendering** systems
+- **List management** with add/remove operations
+- **Custom rendering patterns**
 
 ```javascript
 // Dynamic content area that can be updated multiple times
@@ -191,22 +254,122 @@ anchor.remove(); // Clear content
 anchor.appendChild(Div("New content")); // Add different content - markers remain
 ```
 
+## Performance Considerations
+
+### Memory Management
+```javascript
+// Anchors are automatically cleaned up when removed from DOM
+const anchor = new Anchor("Temporary");
+
+// Manual cleanup if needed
+anchor.removeWithAnchors(); // Fully destroys anchor and frees memory
+```
+
+### Batch Operations
+```javascript
+// Efficient: batch multiple updates
+const fragment = document.createDocumentFragment();
+fragment.appendChild(Div("Item 1"));
+fragment.appendChild(Div("Item 2"));
+anchor.appendChild(fragment);
+
+// Less efficient: individual appendChild calls
+anchor.appendChild(Div("Item 1"));
+anchor.appendChild(Div("Item 2"));
+```
+
+## Advanced Patterns
+
+### Creating Custom Anchor-Based Components
+
+```javascript
+
+function ConditionalList(condition, items) {
+    const anchor = new Anchor("ConditionalList");
+
+    const updateContent = (value) => {
+        console.log(value);
+        if (value) {
+            const listItems = items.val().map(item => Li(item));
+            anchor.replaceContent(Ul(listItems));
+        } else {
+            anchor.remove();
+        }
+    };
+
+    condition.subscribe(updateContent);
+    items.subscribe(updateContent);
+    updateContent(condition.val()); // Initial render
+
+    return anchor;
+}
+
+// use ConditionalList
+const condition = new Observable(true);
+let id = 0;
+const items = new Observable.array([]);
+
+document.body.appendChild(Div([
+    ConditionalList(condition, items),
+    Button("Toggle").nd.onClick(() => condition.set(!condition.val())),
+    Button("Add").nd.onClick(() => items.push('Item '+(++id))),
+]));
+```
+
+### Anchor-Based Layout Manager
+
+```javascript
+function LayoutManager() {
+    const header = new Anchor("Header");
+    const content = new Anchor("Content");
+    const footer = new Anchor("Footer");
+    
+    return {
+        setHeader: (component) => header.replaceContent(component),
+        setContent: (component) => content.replaceContent(component),
+        setFooter: (component) => footer.replaceContent(component),
+        render: () => Div([header, content, footer])
+    };
+}
+```
+
 ## Best Practices
 
-1. **Use anchors for custom rendering systems** - Build optimized conditional logic
+1. **Use descriptive anchor names** for easier debugging
 2. **Anchors are reusable** - Content can be added/removed multiple times
-3. **Use remove(true)** only when permanently destroying the anchor
+3. **Use `removeWithAnchors()` only when permanently destroying** the anchor
 4. **Anchors are invisible** - They don't affect layout or styling
-5. **Create your own patterns** - Anchors enable custom rendering solutions that can outperform built-in functions
+5. **Prefer `replaceContent()` over `remove()` + `appendChild()`** for better performance
+6. **Create custom patterns** - Anchors enable custom rendering solutions
+7. **Consider memory implications** when creating many anchors
+8. **Use batch operations** for multiple content updates
+
+## Common Pitfalls
+
+❌ **Don't do this:**
+```javascript
+// Inefficient - creates unnecessary DOM manipulations
+anchor.remove();
+anchor.appendChild(content1);
+anchor.remove();
+anchor.appendChild(content2);
+```
+
+✅ **Do this instead:**
+```javascript
+// Efficient - direct replacement
+anchor.replaceContent(content1);
+anchor.replaceContent(content2);
+```
 
 ## Next Steps
 
-- **[Getting Started](docs/getting-started.md)** - Installation and first steps
-- **[Core Concepts](docs/core-concepts.md)** - Understanding the fundamentals
-- **[Observables](docs/observables.md)** - Reactive state management
-- **[Elements](docs/elements.md)** - Creating and composing UI
-- **[Conditional Rendering](docs/conditional-rendering.md)** - Dynamic content
-- **[Routing](docs/routing.md)** - Navigation and URL management
-- **[State Management](docs/state-management.md)** - Global state patterns
-- **[Lifecycle Events](docs/lifecycle-events.md)** - Lifecycle events
-- **[Memory Management](docs/memory-management.md)** - Memory management
+- **[Getting Started](getting-started.md)** - Installation and first steps
+- **[Core Concepts](core-concepts.md)** - Understanding the fundamentals
+- **[Observables](observables.md)** - Reactive state management
+- **[Elements](elements.md)** - Creating and composing UI
+- **[Conditional Rendering](conditional-rendering.md)** - Dynamic content
+- **[List Rendering](list-rendering.md)** - (ForEach | ForEachArray) and dynamic lists
+- **[Routing](routing.md)** - Navigation and URL management
+- **[State Management](state-management.md)** - Global state patterns
+- **[Memory Management](memory-management.md)** - Memory management

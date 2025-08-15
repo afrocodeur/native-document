@@ -23,10 +23,10 @@ The `ShowIf` function renders content only when the Observable condition is trut
 const user = Observable({ name: 'Alice', isLoggedIn: false });
 
 const App = Div([
-    Button('Login').nd.on.click(() => 
+    Button('Login').nd.onClick(() => 
         user.set({ ...user.val(), isLoggedIn: true })
     ),
-    Button('Logout').nd.on.click(() => 
+    Button('Logout').nd.onClick(() => 
         user.set({ ...user.val(), isLoggedIn: false })
     ),
     
@@ -65,8 +65,8 @@ const WeatherApp = Div([
     ShowIf(isCold, Div({ class: 'cold' }, '🧥 It\'s cold! Wear a jacket.')),
     ShowIf(isHot, Div({ class: 'hot' }, '☀️ It\'s hot! Stay hydrated.')),
     Div([
-        Button('-').nd.on.click(() => --temperature.$value),
-        Button('+').nd.on.click(() => ++temperature.$value),
+        Button('-').nd.onClick(() => --temperature.$value),
+        Button('+').nd.onClick(() => ++temperature.$value),
     ])
 ]);
 ```
@@ -110,7 +110,7 @@ ShowIf(condition.check(val => !val), content)
 const isDarkMode = Observable(false);
 
 const ThemeToggle = Div([
-    Button('Toggle Theme').nd.on.click(() => isDarkMode.set(!isDarkMode.val())),
+    Button('Toggle Theme').nd.onClick(() => isDarkMode.set(!isDarkMode.val())),
     
     Switch(isDarkMode,
         Div({ class: 'dark-indicator' }, '🌙 Dark Mode'),    // when true
@@ -166,7 +166,7 @@ const gameState = Observable({
 const GameDisplay = Match(gameState.check(state => state.phase), {
     menu: () => Div({ class: 'game-menu' }, [
         H1('Welcome to the Game'),
-        Button('Start Game').nd.on.click(() => 
+        Button('Start Game').nd.onClick(() => 
             gameState.set({ ...gameState.val(), phase: 'playing' })
         )
     ]),
@@ -174,17 +174,17 @@ const GameDisplay = Match(gameState.check(state => state.phase), {
     playing: () => Div({ class: 'game-ui' }, [
         Div(['Score: ', gameState.check(s => s.score)]),
         Div(['Level: ', gameState.check(s => s.level)]),
-        Button('Pause').nd.on.click(() => 
+        Button('Pause').nd.onClick(() => 
             gameState.set({ ...gameState.val(), phase: 'paused' })
         ),
-        Button('Game Over').nd.on.click(() =>
+        Button('Game Over').nd.onClick(() =>
             gameState.set({ ...gameState.val(), phase: 'gameOver' })
         )
     ]),
     
     paused: () => Div({ class: 'game-paused' }, [
         H2('Game Paused'),
-        Button('Resume').nd.on.click(() => 
+        Button('Resume').nd.onClick(() => 
             gameState.set({ ...gameState.val(), phase: 'playing' })
         )
     ]),
@@ -192,7 +192,7 @@ const GameDisplay = Match(gameState.check(state => state.phase), {
     gameOver: () => Div({ class: 'game-over' }, [
         H2('Game Over'),
         Div(['Final Score: ', gameState.check(s => s.score)]),
-        Button('Play Again').nd.on.click(() => 
+        Button('Play Again').nd.onClick(() => 
             gameState.set({ phase: 'menu', score: 0, level: 1 })
         )
     ])
@@ -275,7 +275,7 @@ const isValidEmail = formData.email.check(e =>
 const isValidPassword = formData.password.check(p => p.length >= 8);
 
 const passwordsMatch = Observable.computed(() => {
-    const data = formData.$val();
+    const data = formData.$value;
     return data.password === data.confirmPassword && data.password.length > 0;
 }, [formData.password, formData.confirmPassword]);
 
@@ -319,8 +319,8 @@ const RegistrationForm = Div({ class: 'registration-form' }, [
     
     // Submit button
     Switch(canSubmit,
-        Button('Create Account').nd.on.click(() => {
-            console.log('Creating account...', formData.$val());
+        Button('Create Account').nd.onClick(() => {
+            console.log('Creating account...', formData.$value);
         }),
         Button({ disabled: true, class: 'disabled' }, 'Create Account')
     )
@@ -347,20 +347,20 @@ const App = Div({ class: 'app' }, [
             // Authenticated header
             () => Div({ class: 'user-menu' }, [
                 Span(['Welcome, ', appState.user.val().name]),
-                Button('Settings').nd.on.click(() => 
+                Button('Settings').nd.onClick(() => 
                     appState.currentView.set('settings')
                 ),
-                Button('Logout').nd.on.click(() => {
+                Button('Logout').nd.onClick(() => {
                     appState.user.set(null);
                     appState.currentView.set('welcome');
                 })
             ]),
             // Guest header
             Div({ class: 'auth-buttons' }, [
-                Button('Sign In').nd.on.click(() => 
+                Button('Sign In').nd.onClick(() => 
                     appState.currentView.set('login')
                 ),
-                Button('Sign Up').nd.on.click(() => 
+                Button('Sign Up').nd.onClick(() => 
                     appState.currentView.set('register')
                 )
             ])
@@ -544,12 +544,12 @@ const requestState = Observable.object({
 });
 
 const DataView = Match(requestState.status, {
-    idle: Button('Load Data').nd.on.click(loadData),
+    idle: Button('Load Data').nd.onClick(loadData),
     loading: Div({ class: 'loading' }, 'Loading...'),
     success: () => DataDisplay(requestState.data.val()),
     error: () => Div({ class: 'error' }, [
         'Error: ', requestState.error,
-        Button('Retry').nd.on.click(loadData)
+        Button('Retry').nd.onClick(loadData)
     ])
 });
 ```
@@ -621,8 +621,9 @@ const StatusContent = Match(status, {
 
 Now that you understand conditional rendering, explore these related topics:
 
-- **[Routing](docs/routing.md)** - Navigation and URL management
-- **[State Management](docs/state-management.md)** - Global state patterns
-- **[Lifecycle Events](docs/lifecycle-events.md)** - Lifecycle events
-- **[Memory Management](docs/memory-management.md)** - Memory management
-- **[Anchor](docs/anchor.md)** - Anchor
+- **[List Rendering](list-rendering.md)** - (ForEach | ForEachArray) and dynamic lists
+- **[Routing](routing.md)** - Navigation and URL management
+- **[State Management](state-management.md)** - Global state patterns
+- **[Lifecycle Events](lifecycle-events.md)** - Lifecycle events
+- **[Memory Management](memory-management.md)** - Memory management
+- **[Anchor](anchor.md)** - Anchor

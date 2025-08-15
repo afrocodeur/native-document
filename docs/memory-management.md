@@ -87,4 +87,4 @@ window.addEventListener('beforeunload', () => {
 
 ## Next Steps
 
-- **[Anchor](docs/anchor.md)** - Anchor
+- **[Anchor](anchor.md)** - Anchor

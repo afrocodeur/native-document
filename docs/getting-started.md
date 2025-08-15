@@ -29,7 +29,7 @@ The fastest way to get started is using our CDN. Simply add this script tag to y
 
     const App = Div({ class: 'app' }, [
         Div(['Count: ', count]),
-        Button('Increment').nd.on.click(() => count.set(count.val() + 1))
+        Button('Increment').nd.onClick(() => count.set(count.val() + 1))
     ]);
 
     document.body.appendChild(App);
@@ -75,7 +75,7 @@ const count = Observable(0);
 
 const App = Div({ class: 'app' }, [
     Div(['Count: ', count]),
-    Button('Increment').nd.on.click(() => count.set(count.val() + 1))
+    Button('Increment').nd.onClick(() => count.set(count.val() + 1))
 ]);
 
 document.body.appendChild(App);
@@ -142,16 +142,16 @@ const CounterApp = Div({ class: 'counter-app' }, [
     ]),
 
     Div([
-        Button('Decrease').nd.on.click(() => {
-            count.set(count.val() - 1);
+        Button('Decrease').nd.onClick(() => {
+            count.$value--;
         }),
 
-        Button('Reset').nd.on.click(() => {
+        Button('Reset').nd.onClick(() => {
             count.set(0);
         }),
 
-        Button('Increase').nd.on.click(() => {
-            count.set(count.val() + 1);
+        Button('Increase').nd.onClick(() => {
+            count.$value++;
         })
     ])
 ]);
@@ -165,7 +165,7 @@ document.body.appendChild(CounterApp);
 1. **Imported Components**: We used `Div`, `Button`, and `H1` from `NativeDocument.elements`
 2. **Created Reactive State**: `Observable(0)` creates a reactive value that starts at 0
 3. **Built the UI**: Elements are created with attributes and children
-4. **Added Event Handlers**: `.nd.on.click()` attaches click event listeners
+4. **Added Event Handlers**: `.nd.onClick()` attaches click event listeners
 5. **Automatic Updates**: When `count` changes, the UI updates automatically
 
 ## Todo List Application
@@ -216,7 +216,7 @@ const TodoApp = Div({ class: 'todo-app' }, [
             placeholder: 'What needs to be done?',
             value: newTodo
         }),
-        Button('Add').nd.on.click(addTodo)
+        Button('Add').nd.onClick(addTodo)
     ]),
 
     // Todo list container
@@ -230,7 +230,7 @@ const TodoApp = Div({ class: 'todo-app' }, [
                     Input({
                         type: 'checkbox',
                         checked: Observable(todo.done)
-                    }).nd.on.change((e) => {
+                    }).nd.onChange((e) => {
                         const todoList = todos.val();
                         todoList[index.val()].done = e.target.checked;
                         todos.set([...todoList]);
@@ -238,7 +238,7 @@ const TodoApp = Div({ class: 'todo-app' }, [
 
                     Div(['Task: ', todo.text]),
 
-                    Button('Delete').nd.on.click(() => {
+                    Button('Delete').nd.onClick(() => {
                         todos.splice(index.val(), 1);
                     })
                 ]),
@@ -249,9 +249,9 @@ const TodoApp = Div({ class: 'todo-app' }, [
 
     // Filters
     Div({ class: 'filters' }, [
-        Button('All').nd.on.click(() => filter.set('all')),
-        Button('Active').nd.on.click(() => filter.set('active')),
-        Button('Completed').nd.on.click(() => filter.set('completed'))
+        Button('All').nd.onClick(() => filter.set('all')),
+        Button('Active').nd.onClick(() => filter.set('active')),
+        Button('Completed').nd.onClick(() => filter.set('completed'))
     ])
 
 ]);
@@ -273,8 +273,8 @@ document.body.appendChild(TodoApp);
 - Children can be strings, numbers, elements, or observables
 
 ### Event Handling
-- `.nd.on.click()` - Add click event listener
-- `.nd.on.change()` - Add change event listener
+- `.nd.onClick()` - Add click event listener
+- `.nd.onChange()` - Add change event listener
 - Event handlers receive the native event object
 
 ### Conditional Rendering
@@ -312,11 +312,11 @@ export function TodoItem(todo, onToggle, onDelete) {
         Input({
             type: 'checkbox',
             checked: todo.done
-        }).nd.on.change(onToggle),
+        }).nd.onChange(onToggle),
 
         Div(['Task: ', todo.text]),
 
-        Button('Delete').nd.on.click(onDelete)
+        Button('Delete').nd.onClick(onDelete)
     ]);
 }
 ```
@@ -350,15 +350,16 @@ NativeDocument works in all modern browsers that support:
 
 Now that you've built your first NativeDocument applications, explore these topics:
 
-- **[Core Concepts](docs/core-concepts.md)** - Understanding the fundamentals
-- **[Observables](docs/observables.md)** - Reactive state management
-- **[Elements](docs/elements.md)** - Creating and composing UI
-- **[Conditional Rendering](docs/conditional-rendering.md)** - Dynamic content
-- **[Routing](docs/routing.md)** - Navigation and URL management
-- **[State Management](docs/state-management.md)** - Global state patterns
-- **[Lifecycle Events](docs/lifecycle-events.md)** - Lifecycle events
-- **[Memory Management](docs/memory-management.md)** - Memory management
-- **[Anchor](docs/anchor.md)** - Anchor
+- **[Core Concepts](core-concepts.md)** - Understanding the fundamentals
+- **[Observables](observables.md)** - Reactive state management
+- **[Elements](elements.md)** - Creating and composing UI
+- **[Conditional Rendering](conditional-rendering.md)** - Dynamic content
+- **[List Rendering](list-rendering.md)** - (ForEach | ForEachArray) and dynamic lists
+- **[Routing](routing.md)** - Navigation and URL management
+- **[State Management](state-management.md)** - Global state patterns
+- **[Lifecycle Events](lifecycle-events.md)** - Lifecycle events
+- **[Memory Management](memory-management.md)** - Memory management
+- **[Anchor](anchor.md)** - Anchor
 
 ## Common Issues
 

@@ -6,31 +6,17 @@ import {Observable} from "../data/Observable";
 /**
  *
  * @param {HTMLElement} element
- * @param {string} className
- * @param {string} value
- */
-const toggleClassItem = function(element, className, value) {
-    if(value) {
-        element.classList.add(className);
-    } else {
-        element.classList.remove(className);
-    }
-}
-
-/**
- *
- * @param {HTMLElement} element
  * @param {Object} data
  */
 function bindClassAttribute(element, data) {
     for(let className in data) {
         const value = data[className];
         if(Validator.isObservable(value)) {
-            toggleClassItem(element, className, value.val());
-            value.subscribe(newValue => toggleClassItem(element, className, newValue));
+            element.classList.toggle(className, value.val());
+            value.subscribe(newValue => element.classList.toggle(className, newValue));
             continue;
         }
-        toggleClassItem(element, className, value);
+        element.classList.toggle(className, value)
     }
 }
 
@@ -102,8 +88,8 @@ function bindAttributeWithObservable(element, attributeName, value) {
         }
         element.setAttribute(attributeName, newValue);
     };
+    applyValue(value.val());
     value.subscribe(applyValue);
-    applyValue(value.val())
 
     if(attributeName === 'value') {
         element.addEventListener('input', () => value.set(element.value));
@@ -152,6 +138,7 @@ export default function AttributesWrapper(element, attributes) {
             continue;
         }
         element.setAttribute(attributeName, value);
+
     }
     return element;
 }

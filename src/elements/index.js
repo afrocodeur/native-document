@@ -1,6 +1,7 @@
 import HtmlElementWrapper from "../wrappers/HtmlElementWrapper";
 
 export * from './control/for-each';
+export * from './control/for-each-array';
 export * from './control/show-if';
 export * from './control/switch';
 export * from './content-formatter';

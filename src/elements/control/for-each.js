@@ -2,49 +2,9 @@ import ObservableItem from "../../data/ObservableItem";
 import {Observable} from "../../data/Observable";
 import {createTextNode} from "../../wrappers/HtmlElementWrapper";
 import Validator from "../../utils/validator";
-import {throttle} from "../../utils/helpers.js";
 import Anchor from "../anchor";
 import DebugManager from "../../utils/debug-manager";
-
-
-/**
- *
- * @param {*} item
- * @param {string|null} defaultKey
- * @param {?Function} key
- * @returns {*}
- */
-const getKey = (item, defaultKey, key) => {
-    if(Validator.isFunction(key)) return key(item, defaultKey);
-    if(Validator.isObservable(item)) {
-        const val = item.val();
-        return (val && key) ? val[key] : defaultKey;
-    }
-    return item[key] ?? defaultKey;
-}
-
-/**
- *
- * @param {Map} cache
- * @param {Set} keyIds
- */
-const cleanBlockByCache = (cache, keyIds) => {
-    const toRemove = [];
-    for(const [key, cacheItem] of cache.entries()) {
-        if(keyIds.has(key)) {
-            continue;
-        }
-        toRemove.push({ key, cacheItem });
-    }
-    if(toRemove.length === 0) {
-        return;
-    }
-    toRemove.forEach(({ key, cacheItem }) => {
-        cacheItem.child.remove();
-        cacheItem.indexObserver.cleanup();
-        cache.delete(key);
-    });
-}
+import {getKey} from "../../utils/helpers";
 
 /**
  *
@@ -59,111 +19,128 @@ export function ForEach(data, callback, key) {
     const blockStart = element.startElement();
 
     let cache = new Map();
+    let lastKeyOrder = null;
     const keyIds = new Set();
+
+    const clear = () => {
+        element.removeChildren();
+        cleanCache();
+    };
+
+    const cleanCache = (parent) => {
+        for(const [keyId, cacheItem] of cache.entries()) {
+            if(keyIds.has(keyId)) {
+                continue;
+            }
+            const child = cacheItem.child?.deref();
+            if(parent && child) {
+                parent.removeChild(child);
+            }
+            cacheItem.indexObserver?.cleanup();
+            cacheItem.child = null;
+            cacheItem.indexObserver = null;
+            cache.delete(cacheItem.keyId);
+            lastKeyOrder && lastKeyOrder.delete(cacheItem.keyId);
+        }
+    };
 
     const handleContentItem = (item, indexKey) => {
         const keyId = getKey(item, indexKey, key);
 
         if(cache.has(keyId)) {
             const cacheItem = cache.get(keyId);
-            cacheItem.indexObserver.set(indexKey);
+            cacheItem.indexObserver?.set(indexKey);
             cacheItem.isNew = false;
-        }
-        else {
-
-            try {
-                const indexObserver = Observable(indexKey);
-                let child = callback(item, indexObserver);
-                if(Validator.isStringOrObservable(child)) {
-                    child = createTextNode(child);
-                }
-                cache.set(keyId, { isNew: true, child, indexObserver});
-            } catch (e) {
-                DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
-                throw e;
+            if(cacheItem.child?.deref()) {
+                return keyId;
             }
+            cache.delete(keyId);
+        }
+
+        try {
+            const indexObserver = callback.length >= 2 ? Observable(indexKey) : null;
+            let child = callback(item, indexObserver);
+            if(Validator.isStringOrObservable(child)) {
+                child = createTextNode(child);
+            }
+            cache.set(keyId, { keyId, isNew: true, child: new WeakRef(child), indexObserver});
+        } catch (e) {
+            DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
+            throw e;
         }
         return keyId;
     };
 
-    const batchDOMUpdates = () => {
+    const batchDOMUpdates = (parent) => {
+        const fragment = document.createDocumentFragment();
+        for(const itemKey of keyIds) {
+            const cacheItem = cache.get(itemKey);
+            if(!cacheItem) {
+                continue;
+            }
+            const child = cacheItem.child?.deref();
+            child && fragment.appendChild(child);
+        }
+        parent.insertBefore(fragment, blockEnd);
+    }
+
+    const diffingDOMUpdates = (parent) => {
+        const operations = [];
+        let fragment = document.createDocumentFragment();
+        const newKeys = Array.from(keyIds);
+        const oldKeys = Array.from(lastKeyOrder);
+
+        let currentPosition = blockStart;
+
+        for(const index in newKeys) {
+            const itemKey = newKeys[index];
+            const cacheItem = cache.get(itemKey);
+            if(!cacheItem) {
+                continue;
+            }
+            const child = cacheItem.child.deref();
+            if(!child) {
+                continue;
+            }
+            fragment.appendChild(child);
+        }
+        element.replaceContent(fragment);
+    };
+
+    const buildContent = () => {
         const parent = blockEnd.parentNode;
         if(!parent) {
             return;
         }
 
-        let previousElementSibling = blockStart;
-        const elementsToInsert = [];
-        const elementsToMove = [];
-        let fragment = null;
-
-        let saveFragment = (beforeTarget) => {
-            if(fragment) {
-                elementsToInsert.push({ child: fragment, before: beforeTarget });
-                fragment = null;
-            }
-        };
-
-        const keyIdsArray = Array.from(keyIds);
-        for(let i = 0; i < keyIdsArray.length; i++) {
-            const itemKey = keyIdsArray[i];
-            const cacheItem = cache.get(itemKey);
-            if(!cacheItem) {
-                continue;
-            }
-
-            if(previousElementSibling && previousElementSibling.nextSibling === cacheItem.child) {
-                previousElementSibling = cacheItem.child;
-                saveFragment(cacheItem.child);
-                continue;
-            }
-            if(cacheItem.isNew) {
-                fragment = fragment || document.createDocumentFragment();
-                fragment.append(cacheItem.child);
-                cacheItem.isNew = false;
-                continue;
-            }
-            saveFragment(cacheItem.child);
-            const nextChild = cache.get(keyIdsArray[i + 1])?.child;
-            if(nextChild) {
-                if(cacheItem.child.nextSibling !== nextChild) {
-                    elementsToMove.push({ child: cacheItem.child, before: nextChild });
-                }
-            }
-
-            previousElementSibling = cacheItem.child;
-        }
-        saveFragment(blockEnd);
-
-        elementsToInsert.forEach(({ child, before }) => {
-            if(before) {
-                parent.insertBefore(child, before);
-            } else {
-                element.appendChild(child);
-            }
-        });
-
-        elementsToMove.forEach(({ child, before }) => {
-            parent.insertBefore(child, before);
-        })
-        saveFragment = null;
-
-    };
-
-    const buildContent = () => {
         const items = (Validator.isObservable(data)) ? data.val() : data;
         keyIds.clear();
         if(Array.isArray(items)) {
-            items.forEach((item, index) => keyIds.add(handleContentItem(item, index)));
+            for(let i = 0, length = items.length; i < length; i++) {
+                const keyId= handleContentItem(items[i], i);
+                keyIds.add(keyId);
+            }
         } else {
             for(const indexKey in items) {
-                keyIds.add(handleContentItem(items[indexKey], indexKey));
+                const keyId = handleContentItem(items[indexKey], indexKey);
+                keyIds.add(keyId);
             }
         }
 
-        cleanBlockByCache(cache, keyIds);
+        if(keyIds.size === 0) {
+            clear();
+            lastKeyOrder?.clear();
+            return;
+        }
 
-        batchDOMUpdates();
+        cleanCache(parent);
+        if(!lastKeyOrder || lastKeyOrder.size === 0) {
+            batchDOMUpdates(parent);
+        } else {
+            diffingDOMUpdates(parent);
+        }
+        lastKeyOrder?.clear();
+        lastKeyOrder = new Set([...keyIds]);
     };
 
     buildContent();

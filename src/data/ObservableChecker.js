@@ -7,32 +7,33 @@
 export default function ObservableChecker($observable, $checker) {
     this.observable = $observable;
     this.checker = $checker;
-    const $unSubscriptions = [];
-
-    this.subscribe = function(callback) {
-        const unSubscribe = $observable.subscribe((value) => {
-            callback && callback($checker(value));
-        });
-        $unSubscriptions.push(unSubscribe);
-
-        return unSubscribe;
-    };
-
-    this.val = function() {
-        return $checker && $checker($observable.val());
-    };
-    this.check = function(callback) {
-        return $observable.check(() => callback(this.val()));
-    };
-
-    this.set = function(value) {
-        return $observable.set(value);
-    };
-    this.trigger = function() {
-        return $observable.trigger();
-    };
-
-    this.cleanup = function() {
-        $unSubscriptions.forEach(unSubscription => unSubscription());
-    };
+    this.unSubscriptions = [];
 }
+
+ObservableChecker.prototype.subscribe = function(callback) {
+    const unSubscribe = this.observable.subscribe((value) => {
+        callback && callback(this.checker(value));
+    });
+    this.unSubscriptions.push(unSubscribe);
+    return unSubscribe;
+};
+
+ObservableChecker.prototype.check = function(callback) {
+    return this.observable.check(() => callback(this.val()));
+}
+
+ObservableChecker.prototype.val = function() {
+    return this.checker && this.checker(this.observable.val());
+}
+
+ObservableChecker.prototype.set = function(value) {
+    return this.observable.set(value);
+};
+
+ObservableChecker.prototype.trigger = function() {
+    return this.observable.trigger();
+};
+
+ObservableChecker.prototype.cleanup = function() {
+    return this.observable.cleanup();
+};

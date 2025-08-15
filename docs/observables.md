@@ -66,7 +66,7 @@ console.log(userProxy.name.val()); // "Alice"
 userProxy.name.set("Bob");
 
 // Get all values as plain object
-console.log(userProxy.$val()); // { name: "Bob", age: 25 }
+console.log(userProxy.$value); // { name: "Bob", age: 25 }
 console.log(Observable.value(userProxy)); // { name: "Bob", age: 25 }
 
 // Observable(object) creates a SINGLE observable containing the whole object
@@ -104,7 +104,7 @@ user.name.set("Bob");
 user.age.$value = 30; // Using proxy syntax
 
 // Get the complete object value
-console.log(user.$val()); // { name: "Bob", age: 30, email: "alice@example.com" }
+console.log(user.$value); // { name: "Bob", age: 30, email: "alice@example.com" }
 console.log(Observable.value(user)); // Same as above
 
 // Listen to individual property changes
@@ -164,9 +164,9 @@ const decrement = () => (count.$value--);
 
 // Reactive interface
 const app = Div({ class: "counter" }, [
-    Button("-").nd.on.click(decrement),
+    Button("-").nd.onClick(decrement),
     Span({ class: "count" }, count), // Automatic display
-    Button("+").nd.on.click(increment)
+    Button("+").nd.onClick(increment)
 ]);
 ```
 
@@ -356,8 +356,8 @@ const updateProfile = Observable.batch((profileData) => {
 // ✅ Correct: Single batch dependency
 const profileSummary = Observable.computed(() => {
     return {
-        user: user.$val(),
-        settings: settings.$val(),
+        user: user.$value,
+        settings: settings.$value,
         lastUpdated: Date.now()
     };
 }, updateProfile); // ← Single batch function
@@ -436,7 +436,7 @@ const levelUp = Observable.batch(() => {
 
 // Complex computed that should only run after complete transitions
 const gameStatusMessage = Observable.computed(() => {
-    const state = gameState.$val();
+    const state = gameState.$value;
     return `Level ${state.level}: ${state.score} points, ${state.lives} lives remaining`;
 }, levelUp); // ← Only updates when levelUp() is called
 ```
@@ -536,10 +536,11 @@ console.log(Observable.value(complexData)); // Plain object with extracted value
 
 Now that you understand NativeDocument's observable, explore these advanced topics:
 
-- **[Elements](docs/elements.md)** - Creating and composing UI
-- **[Conditional Rendering](docs/conditional-rendering.md)** - Dynamic content
-- **[Routing](docs/routing.md)** - Navigation and URL management
-- **[State Management](docs/state-management.md)** - Global state patterns
-- **[Lifecycle Events](docs/lifecycle-events.md)** - Lifecycle events
-- **[Memory Management](docs/memory-management.md)** - Memory management
-- **[Anchor](docs/anchor.md)** - Anchor
+- **[Elements](elements.md)** - Creating and composing UI
+- **[Conditional Rendering](conditional-rendering.md)** - Dynamic content
+- **[List Rendering](list-rendering.md)** - (ForEach | ForEachArray) and dynamic lists
+- **[Routing](routing.md)** - Navigation and URL management
+- **[State Management](state-management.md)** - Global state patterns
+- **[Lifecycle Events](lifecycle-events.md)** - Lifecycle events
+- **[Memory Management](memory-management.md)** - Memory management
+- **[Anchor](anchor.md)** - Anchor

@@ -172,20 +172,20 @@ Add new entries to browser history. **Specify router name** when using multiple 
 
 ```javascript
 const NavigationExample = Div([
-    Button('Go to About').nd.on.click(() => {
+    Button('Go to About').nd.onClick(() => {
         Router.push('/about'); // Uses default router
     }),
     
-    Button('Go to About (Main Router)').nd.on.click(() => {
+    Button('Go to About (Main Router)').nd.onClick(() => {
         Router.push('/about', 'main'); // Uses named router
     }),
     
-    Button('View User 123').nd.on.click(() => {
+    Button('View User 123').nd.onClick(() => {
         // Navigate in specific router
         Router.push('/users/123', 'app');
     }),
     
-    Button('Search Products').nd.on.click(() => {
+    Button('Search Products').nd.onClick(() => {
         Router.push('/search?term=laptop&category=electronics', 'main');
     })
 ]);
@@ -213,12 +213,12 @@ Navigate through browser history:
 
 ```javascript
 const HistoryControls = Div([
-    Button('Go Back').nd.on.click(() => Router.back()), // Default router
-    Button('Go Forward').nd.on.click(() => Router.forward()), // Default router
+    Button('Go Back').nd.onClick(() => Router.back()), // Default router
+    Button('Go Forward').nd.onClick(() => Router.forward()), // Default router
     
     // Navigate specific router's history
-    Button('Back in Main').nd.on.click(() => Router.back('main')),
-    Button('Forward in Admin').nd.on.click(() => Router.forward('admin'))
+    Button('Back in Main').nd.onClick(() => Router.back('main')),
+    Button('Forward in Admin').nd.onClick(() => Router.forward('admin'))
 ]);
 ```
 
@@ -245,18 +245,18 @@ const blogUrl = router.generateUrl('blog.post', { category: 'javascript', slug: 
 
 ```javascript
 const navigation = Div([
-    Button('Home').nd.on.click(() => 
+    Button('Home').nd.onClick(() => 
         Router.push({ name: 'home' }) // Uses router containing this route
     ),
     
-    Button('My Profile').nd.on.click(() => 
+    Button('My Profile').nd.onClick(() => 
         Router.push({ 
             name: 'user.profile', 
             params: { id: currentUser.id } 
         }, 'main') // Specify router if needed
     ),
     
-    Button('Latest Post').nd.on.click(() => 
+    Button('Latest Post').nd.onClick(() => 
         Router.push({
             name: 'blog.post',
             params: { category: 'news', slug: 'latest-update' },
@@ -467,11 +467,11 @@ const mainRouter = Router.routers.main;
 const adminRouter = Router.routers.admin;
 
 // Cross-router navigation
-Button('Go to Admin').nd.on.click(() => {
+Button('Go to Admin').nd.onClick(() => {
     Router.push('/admin/users', 'admin'); // Specify router name
 });
 
-Button('Back to Main').nd.on.click(() => {
+Button('Back to Main').nd.onClick(() => {
     Router.push('/', 'main'); // Navigate in main router
 });
 ```
@@ -707,7 +707,7 @@ const ProductDetail = ({ params, query }) => {
             P(p.description),
             
             // Add to cart with redirect to login if needed
-            Button('Add to Cart').nd.on.click(() => {
+            Button('Add to Cart').nd.onClick(() => {
                 if (!isAuthenticated()) {
                     Router.push({
                         name: 'login',
@@ -773,22 +773,22 @@ const FormNavigation = (currentStep, formData) => {
         // Navigation buttons
         Div({ class: 'nav-buttons' }, [
             ShowIf(Observable(currentIndex > 0), 
-                Button('Previous').nd.on.click(() => {
+                Button('Previous').nd.onClick(() => {
                     const prevStep = steps[currentIndex - 1];
                     Router.push({ name: `form.${prevStep}` });
                 })
             ),
             
             ShowIf(Observable(currentIndex < steps.length - 1),
-                Button('Next').nd.on.click(() => {
+                Button('Next').nd.onClick(() => {
                     const nextStep = steps[currentIndex + 1];
                     Router.push({ name: `form.${nextStep}` });
                 })
             ),
             
             ShowIf(Observable(currentIndex === steps.length - 1),
-                Button('Submit').nd.on.click(() => {
-                    submitForm(formData.$val());
+                Button('Submit').nd.onClick(() => {
+                    submitForm(formData.$value);
                 })
             )
         ])
@@ -811,7 +811,7 @@ const FormNavigation = (currentStep, formData) => {
 
 Explore these related topics to build complete applications:
 
-- **[State Management](docs/state-management.md)** - Global state patterns
-- **[Lifecycle Events](docs/lifecycle-events.md)** - Lifecycle events
-- **[Memory Management](docs/memory-management.md)** - Memory management
-- **[Anchor](docs/anchor.md)** - Anchor
+- **[State Management](state-management.md)** - Global state patterns
+- **[Lifecycle Events](lifecycle-events.md)** - Lifecycle events
+- **[Memory Management](memory-management.md)** - Memory management
+- **[Anchor](anchor.md)** - Anchor

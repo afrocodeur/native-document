@@ -98,8 +98,8 @@ document.body.appendChild(reusableComponent);
 
 Now that you understand lifecycle events, explore these related topics:
 
-- **[Memory Management](docs/memory-management.md)** - Memory management
-- **[Anchor](docs/anchor.md)** - Anchor
+- **[Memory Management](memory-management.md)** - Memory management
+- **[Anchor](anchor.md)** - Anchor
 
 
 

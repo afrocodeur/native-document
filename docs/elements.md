@@ -110,21 +110,21 @@ The `.nd` (NativeDocument) API provides a fluent interface for adding functional
 
 ```javascript
 const button = Button("Click me")
-  .nd.on.click(() => {
+  .nd.onClick(() => {
     console.log("Button clicked!");
   });
 
 // With attributes and events
 const styledButton = Button({ class: "btn" }, "Click me")
-  .nd.on.click(() => {
+  .nd.onClick(() => {
     console.log("Button clicked!");
   });
 
 // Multiple events
 const input = Input({ type: "text", placeholder: "Type here..." })
-  .nd.on.focus(() => console.log("Input focused"))
-  .nd.on.blur(() => console.log("Input blurred"))
-  .nd.on.input(event => console.log("Input value:", event.target.value));
+  .nd.onFocus(() => console.log("Input focused"))
+  .nd.onBlur(() => console.log("Input blurred"))
+  .nd.onInput(event => console.log("Input value:", event.target.value));
 
 // Or
 const input = Input({ type: "text", placeholder: "Type here..." })
@@ -136,7 +136,7 @@ const input = Input({ type: "text", placeholder: "Type here..." })
 
 // Prevent default behavior
 const form = Form()
-  .nd.on.prevent.submit(event => {
+  .nd.onPreventSubmit(event => {
     console.log("Form submitted without page reload");
     // Handle form submission
   });
@@ -225,7 +225,7 @@ const app = Div([
         .nd.ref(refs, "nameInput"), // Store reference as refs.nameInput
 
     Button("Focus Input")
-        .nd.on.click(() => {
+        .nd.onClick(() => {
         refs.nameInput.focus(); // Use the reference
     })
 ]);
@@ -240,7 +240,7 @@ const incrementButton = Button({
     class: "btn btn-primary",
     type: "button"
 }, "Increment")
-    .nd.on.click(() => {
+    .nd.onClick(() => {
         count.set(count.val() + 1);
     });
 
@@ -272,7 +272,7 @@ const errors = Observable.object({
 
 // Validation function
 const validateForm = () => {
-    const data = formData.$val();
+    const data = formData.$value;
     const newErrors = {};
 
     newErrors.name = data.name.length < 2 ? "Name must be at least 2 characters" : "";
@@ -292,7 +292,7 @@ const contactForm = Form({ class: "contact-form" }, [
             type: "text",
             value: formData.name,
             placeholder: "Enter your name"
-        }).nd.on.blur(validateForm),
+        }).nd.onBlur(validateForm),
 
         ShowIf(errors.name.check(err => err !== ""),
             Span({ class: "error" }, errors.name)
@@ -306,7 +306,7 @@ const contactForm = Form({ class: "contact-form" }, [
             type: "email",
             value: formData.email,
             placeholder: "Enter your email"
-        }).nd.on.blur(validateForm),
+        }).nd.onBlur(validateForm),
 
         ShowIf(errors.email.check(err => err !== ""),
             Span({ class: "error" }, errors.email)
@@ -320,7 +320,7 @@ const contactForm = Form({ class: "contact-form" }, [
             type: "number",
             value: formData.age,
             placeholder: "Enter your age"
-        }).nd.on.blur(validateForm),
+        }).nd.onBlur(validateForm),
 
         ShowIf(errors.age.check(err => err !== ""),
             Span({ class: "error" }, errors.age)
@@ -333,9 +333,9 @@ const contactForm = Form({ class: "contact-form" }, [
         class: "btn btn-primary"
     }, "Submit")
 ])
-    .nd.on.prevent.submit(() => {
+    .nd.onPreventSubmit(() => {
         if (validateForm()) {
-            console.log("Form is valid!", formData.$val());
+            console.log("Form is valid!", formData.$value);
             // Handle successful submission
         } else {
             console.log("Form has errors");
@@ -375,9 +375,10 @@ And many more following the same naming pattern!
 
 Now that you understand NativeDocument's elements, explore these advanced topics:
 
-- **[Conditional Rendering](docs/conditional-rendering.md)** - Dynamic content
-- **[Routing](docs/routing.md)** - Navigation and URL management
-- **[State Management](docs/state-management.md)** - Global state patterns
-- **[Lifecycle Events](docs/lifecycle-events.md)** - Lifecycle events
-- **[Memory Management](docs/memory-management.md)** - Memory management
-- **[Anchor](docs/anchor.md)** - Anchor
+- **[Conditional Rendering](conditional-rendering.md)** - Dynamic content
+- **[List Rendering](list-rendering.md)** - (ForEach | ForEachArray) and dynamic lists
+- **[Routing](routing.md)** - Navigation and URL management
+- **[State Management](state-management.md)** - Global state patterns
+- **[Lifecycle Events](lifecycle-events.md)** - Lifecycle events
+- **[Memory Management](memory-management.md)** - Memory management
+- **[Anchor](anchor.md)** - Anchor

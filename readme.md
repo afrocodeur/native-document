@@ -30,7 +30,7 @@ const count = Observable(0);
 const App = Div({ class: 'app' }, [
     Div([ 'Count ', count]),
     // OR Div(`Count ${count}`),
-    Button('Increment').nd.on.click(() => count.set(count.val() + 1))
+    Button('Increment').nd.onClick(() => count.set(count.val() + 1))
 ]);
 
 document.body.appendChild(App);
@@ -91,7 +91,7 @@ const TodoApp = Div({ class: 'todo-app' }, [
     Input({ placeholder: 'Add new task...', value: newTodo }),
 
     // Add button
-    Button('Add Todo').nd.on.click(() => {
+    Button('Add Todo').nd.onClick(() => {
         if (newTodo.val().trim()) {
             todos.push({ id: Date.now(), text: newTodo.val(), done: false })
             newTodo.set('')
@@ -103,7 +103,7 @@ const TodoApp = Div({ class: 'todo-app' }, [
         Div({ class: 'todo-item' }, [
             Input({ type: 'checkbox', checked: todo.done }),
             `${todo.text}`,
-            Button('Delete').nd.on.click(() => todos.splice(index.val(), 1))
+            Button('Delete').nd.onClick(() => todos.splice(index.val(), 1))
         ]), /*item key (string | callback) */(item) => item),
 
     // Empty state
@@ -158,7 +158,7 @@ const App  = function() {
             class: { 'hidden': isVisible.check(v => !v) },
             style: { opacity: isVisible.check(v => v ? 1 : 0.2) }
         }, 'Content'),
-        Button('Toggle').nd.on.click(() => isVisible.set(v => !v)),
+        Button('Toggle').nd.onClick(() => isVisible.set(v => !v)),
     ]);
 };
 
@@ -191,6 +191,7 @@ When(condition)
 - **[Observables](docs/observables.md)** - Reactive state management
 - **[Elements](docs/elements.md)** - Creating and composing UI
 - **[Conditional Rendering](docs/conditional-rendering.md)** - Dynamic content
+- **[List Rendering](docs/list-rendering.md)** - List Rendering
 - **[Routing](docs/routing.md)** - Navigation and URL management
 - **[State Management](docs/state-management.md)** - Global state patterns
 - **[Lifecycle Events](docs/lifecycle-events.md)** - Lifecycle events

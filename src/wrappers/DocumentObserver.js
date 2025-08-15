@@ -1,44 +1,73 @@
-import {throttle} from "../utils/helpers";
+import {debounce} from "../utils/helpers";
 
 const DocumentObserver = {
-    elements: new Map(),
+    mounted: new WeakMap(),
+    mountedSupposedSize: 0,
+    unmounted: new WeakMap(),
+    unmountedSupposedSize: 0,
     observer: null,
-    checkMutation: throttle(function() {
-        for(const [element, data] of DocumentObserver.elements.entries()) {
-            const isCurrentlyInDom = document.body.contains(element);
-            if(isCurrentlyInDom && !data.inDom) {
-                data.inDom = true;
-                data.mounted.forEach(callback => callback(element));
-            } else if(!isCurrentlyInDom && data.inDom) {
-                data.inDom = false;
-                data.unmounted.forEach(callback => callback(element));
+    checkMutation: debounce(function(mutationsList) {
+        let i = 0;
+        for(const mutation of mutationsList) {
+            if(DocumentObserver.mountedSupposedSize > 0 ) {
+                for(const node of mutation.addedNodes) {
+                    const data = DocumentObserver.mounted.get(node);
+                    if(!data) {
+                        continue;
+                    }
+                    data.inDom = true;
+                    data.mounted && data.mounted(node);
+                }
+            }
+
+            if(DocumentObserver.unmountedSupposedSize > 0 ) {
+                for(const node of mutation.removedNodes) {
+                    const data = DocumentObserver.unmounted.get(node);
+                    if(!data) {
+                        continue;
+                    }
+
+                    data.inDom = false;
+                    if(data.unmounted && data.unmounted(node) === true) {
+                        data.disconnect();
+                        node.nd?.remove();
+                    }
+                }
             }
         }
-    }, 10, { debounce: true }),
+    }, 16),
     /**
      *
      * @param {HTMLElement} element
+     * @param {boolean} inDom
      * @returns {{watch: (function(): Map<any, any>), disconnect: (function(): boolean), mounted: (function(*): Set<any>), unmounted: (function(*): Set<any>)}}
      */
-    watch: function(element) {
-        let data = {};
-        if(DocumentObserver.elements.has(element)) {
-            data = DocumentObserver.elements.get(element);
-        } else {
-            const inDom = document.body.contains(element);
-            data = {
-                inDom,
-                mounted: new Set(),
-                unmounted: new Set(),
-            };
-            DocumentObserver.elements.set(element, data);
-        }
+    watch: function(element, inDom = false) {
+        let data = {
+            inDom,
+            mounted: null,
+            unmounted: null,
+            disconnect: () => {
+                DocumentObserver.mounted.delete(element);
+                DocumentObserver.unmounted.delete(element);
+                DocumentObserver.mountedSupposedSize--;
+                DocumentObserver.unmountedSupposedSize--;
+                data = null;
+            }
+        };
 
         return {
-            watch: () => DocumentObserver.elements.set(element, data),
-            disconnect: () => DocumentObserver.elements.delete(element),
-            mounted: (callback) => data.mounted.add(callback),
-            unmounted: (callback) => data.unmounted.add(callback)
+            disconnect: data.disconnect,
+            mounted: (callback) => {
+                data.mounted = callback;
+                DocumentObserver.mounted.set(element, data);
+                DocumentObserver.mountedSupposedSize++;
+            },
+            unmounted: (callback) => {
+                data.unmounted = callback;
+                DocumentObserver.unmounted.set(element, data);
+                DocumentObserver.unmountedSupposedSize++;
+            }
         };
     }
 };

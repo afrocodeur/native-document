@@ -1,39 +1,27 @@
 import DebugManager from "../utils/debug-manager";
+import Validator from "../utils/validator";
 
 
 const MemoryManager = (function() {
 
-    let $nexObserverId = 0;
+    let $nextObserverId = 0;
     const $observables = new Map();
-    let $registry = null;
-    try {
-        $registry = new FinalizationRegistry((heldValue) => {
-            DebugManager.log('MemoryManager', '🧹 Auto-cleanup observable:', heldValue);
-            heldValue.listeners.splice(0);
-        });
-    } catch (e) {
-        DebugManager.warn('MemoryManager', 'FinalizationRegistry not supported, observables will not be cleaned automatically');
-    }
 
     return {
         /**
          * Register an observable and return an id.
          *
          * @param {ObservableItem} observable
-         * @param {Function[]} listeners
+         * @param {Function} getListeners
          * @returns {number}
          */
-        register(observable, listeners) {
-            const id = ++$nexObserverId;
-            const heldValue = {
-                id: id,
-                listeners
-            };
-            if($registry) {
-                $registry.register(observable, heldValue);
-            }
+        register(observable) {
+            const id = ++$nextObserverId;
             $observables.set(id, new WeakRef(observable));
             return id;
+        },
+        unregister(id) {
+            $observables.delete(id);
         },
         getObservableById(id) {
             return $observables.get(id)?.deref();

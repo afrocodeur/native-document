@@ -16,101 +16,180 @@ export default function ObservableItem(value) {
         throw new NativeDocumentError('ObservableItem cannot be an Observable');
     }
 
-    const $initialValue = (typeof value === 'object') ? JSON.parse(JSON.stringify(value)) : value;
+    this.$previousValue = value;
+    this.$currentValue = value;
+    this.$isCleanedUp = false;
 
-    let $previousValue = value;
-    let $currentValue = value;
-    let $isCleanedUp = false;
+    this.$listeners = null;
+    this.$watchers = null;
 
-    const $listeners = [];
+    this.$memoryId = MemoryManager.register(this);
+}
 
-    const $memoryId = MemoryManager.register(this, $listeners);
+Object.defineProperty(ObservableItem.prototype, '$value', {
+    get() {
+        return this.$currentValue;
+    },
+    set(value) {
+        this.set(value);
+    },
+    configurable: true,
+});
 
-    this.trigger = () => {
-        $listeners.forEach(listener => {
-            try {
-                listener($currentValue, $previousValue);
-            } catch (error) {
-                DebugManager.error('Listener Undefined', 'Error in observable listener:', error);
-                this.unsubscribe(listener);
+ObservableItem.prototype.triggerListeners = function(operations) {
+    const $listeners = this.$listeners;
+    const $previousValue = this.$previousValue;
+    const $currentValue = this.$currentValue;
+
+    operations = operations || {};
+    if($listeners?.length) {
+        for(let i = 0, length = $listeners.length; i < length; i++) {
+            $listeners[i]($currentValue, $previousValue, operations);
+        }
+    }
+};
+
+ObservableItem.prototype.triggerWatchers = function() {
+    if(!this.$watchers) {
+        return;
+    }
+
+    const $watchers = this.$watchers;
+    const $previousValue = this.$previousValue;
+    const $currentValue = this.$currentValue;
+
+    if($watchers.has($currentValue)) {
+        const watchValueList = $watchers.get($currentValue);
+        watchValueList.forEach(itemValue => {
+            if(itemValue.ifTrue.called) {
+                return;
             }
+            itemValue.ifTrue.callback();
+            itemValue.else.called = false;
+        })
+    }
+    if($watchers.has($previousValue)) {
+        const watchValueList = $watchers.get($previousValue);
+        watchValueList.forEach(itemValue => {
+            if(itemValue.else.called) {
+                return;
+            }
+            itemValue.else.callback();
+            itemValue.ifTrue.called = false;
         });
+    }
+};
 
-    };
+ObservableItem.prototype.trigger = function(operations) {
+    this.triggerListeners(operations);
+    this.triggerWatchers();
+}
 
-    this.originalValue = () => $initialValue;
+/**
+ * @param {*} data
+ */
+ObservableItem.prototype.set = function(data) {
+    const newValue = (typeof data === 'function') ? data(this.$currentValue) : data;
+    if(this.$currentValue === newValue) {
+        return;
+    }
+    this.$previousValue = this.$currentValue;
+    this.$currentValue = newValue;
+    this.trigger();
+};
 
-    /**
-     * @param {*} data
-     */
-    this.set = (data) => {
-        const newValue = (typeof data === 'function') ? data($currentValue) : data;
-        if($currentValue === newValue) {
-            return;
+ObservableItem.prototype.val = function() {
+    return this.$currentValue;
+};
+
+ObservableItem.prototype.disconnectAll = function() {
+    this.$listeners?.splice(0);
+    this.$previousValue = null;
+    this.$currentValue = null;
+    if(this.$watchers) {
+        for (const [_, watchValueList] of this.$watchers) {
+            for (const itemValue of watchValueList) {
+                itemValue.ifTrue.callback = null;
+                itemValue.else.callback = null;
+            }
+            watchValueList.clear();
         }
-        $previousValue = $currentValue;
-        $currentValue = newValue;
-        this.trigger();
+    }
+    this.$watchers?.clear();
+    this.$listeners = null;
+    this.$watchers = null;
+}
+ObservableItem.prototype.cleanup = function() {
+    MemoryManager.unregister(this.$memoryId);
+    this.disconnectAll();
+    this.$isCleanedUp = true;
+    delete this.$value;
+}
+
+/**
+ *
+ * @param {Function} callback
+ * @returns {(function(): void)}
+ */
+ObservableItem.prototype.subscribe = function(callback) {
+    this.$listeners = this.$listeners ?? [];
+    if (this.$isCleanedUp) {
+        DebugManager.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
+        return () => {};
+    }
+    if (typeof callback !== 'function') {
+        throw new NativeDocumentError('Callback must be a function');
+    }
+
+    this.$listeners.push(callback);
+    return () => this.unsubscribe(callback);
+};
+
+ObservableItem.prototype.on = function(value, callback, elseCallback) {
+    this.$watchers = this.$watchers ?? new Map();
+
+    let watchValueList = this.$watchers.get(value);
+    if(!watchValueList) {
+        watchValueList = new Set();
+        this.$watchers.set(value, watchValueList);
+    }
+
+    let itemValue = {
+        ifTrue: { callback, called: false },
+        else: { callback: elseCallback, called: false }
     };
-
-    this.val = () => $currentValue;
-
-    this.cleanup = function() {
-        $listeners.splice(0);
-        $isCleanedUp = true;
-    };
-
-    /**
-     *
-     * @param {Function} callback
-     * @returns {(function(): void)}
-     */
-    this.subscribe = (callback) => {
-        if ($isCleanedUp) {
-            DebugManager.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
-            return () => {};
+    watchValueList.add(itemValue);
+    return () => {
+        watchValueList?.delete(itemValue);
+        if(watchValueList.size === 0) {
+            this.$watchers?.delete(value);
         }
-        if (typeof callback !== 'function') {
-            throw new NativeDocumentError('Callback must be a function');
-        }
-
-        $listeners.push(callback);
-        return () => this.unsubscribe(callback);
+        watchValueList = null;
+        itemValue = null;
     };
+};
 
-    /**
-     * Unsubscribe from an observable.
-     * @param {Function} callback
-     */
-    this.unsubscribe = (callback) => {
-        const index = $listeners.indexOf(callback);
-        if (index > -1) {
-            $listeners.splice(index, 1);
-        }
-    };
+/**
+ * Unsubscribe from an observable.
+ * @param {Function} callback
+ */
+ObservableItem.prototype.unsubscribe = function(callback) {
+    const index = this.$listeners.indexOf(callback);
+    if (index > -1) {
+        this.$listeners.splice(index, 1);
+    }
+};
 
-    /**
-     * Create an Observable checker instance
-     * @param callback
-     * @returns {ObservableChecker}
-     */
-    this.check = function(callback) {
-        return new ObservableChecker(this, callback)
-    };
+/**
+ * Create an Observable checker instance
+ * @param callback
+ * @returns {ObservableChecker}
+ */
+ObservableItem.prototype.check = function(callback) {
+    return new ObservableChecker(this, callback)
+};
+ObservableItem.prototype.get = ObservableItem.prototype.check;
 
-    const $object = this;
-    Object.defineProperty($object, '$value', {
-        get() {
-            return $object.val();
-        },
-        set(value) {
-            $object.set(value);
-            return $object;
-        }
-    })
-
-    this.toString = function() {
-        return   '{{#ObItem::(' +$memoryId+ ')}}';
-    };
-
+    ObservableItem.prototype.toString = function() {
+    return '{{#ObItem::(' +this.$memoryId+ ')}}';
 }

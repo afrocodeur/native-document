@@ -33,6 +33,14 @@ export default function Anchor(name) {
         parent.insertBefore(getChildAsNode(child), target);
     };
 
+    element.appendElement = function(child, before = null) {
+        if(anchorEnd.parentNode === element) {
+            anchorEnd.parentNode.nativeInsertBefore(child, before || anchorEnd);
+            return;
+        }
+        anchorEnd.parentNode?.insertBefore(child, before || anchorEnd);
+    };
+
     element.appendChild = function(child, before = null) {
         const parent = anchorEnd.parentNode;
         if(!parent) {
@@ -41,28 +49,65 @@ export default function Anchor(name) {
         }
         before = before ?? anchorEnd;
         if(Validator.isArray(child)) {
-            child.forEach((element) => {
-                insertBefore(parent, element, before);
-            });
+            const fragment = document.createDocumentFragment();
+            for(let i = 0, length = child.length; i < length; i++) {
+                fragment.appendChild(getChildAsNode(child[i]));
+            }
+            insertBefore(parent, fragment, before);
             return element;
         }
         insertBefore(parent, child, before);
     };
 
-    element.remove = function(trueRemove) {
-        if(anchorEnd.parentNode === element) {
+    element.removeChildren = function() {
+        const parent = anchorEnd.parentNode;
+        if(parent === element) {
+            return;
+        }
+        if(parent.firstChild === anchorStart && parent.lastChild === anchorEnd) {
+            parent.replaceChildren(anchorStart, anchorEnd);
+            return;
+        }
+
+        let itemToRemove = anchorStart.nextSibling, tempItem;
+        const fragment = document.createDocumentFragment();
+        while(itemToRemove && itemToRemove !== anchorEnd) {
+            tempItem = itemToRemove.nextSibling;
+            fragment.append(itemToRemove);
+            itemToRemove =  tempItem;
+        }
+        fragment.replaceChildren();
+    }
+    element.remove = function() {
+        const parent = anchorEnd.parentNode;
+        if(parent === element) {
             return;
         }
         let itemToRemove = anchorStart.nextSibling, tempItem;
         while(itemToRemove !== anchorEnd) {
             tempItem = itemToRemove.nextSibling;
-            trueRemove ? itemToRemove.remove() : element.nativeAppendChild(itemToRemove);
+            element.nativeAppendChild(itemToRemove);
             itemToRemove = tempItem;
         }
-        if(trueRemove) {
-            anchorEnd.remove();
-            anchorStart.remove();
+    };
+
+    element.removeWithAnchors = function() {
+        element.removeChildren();
+        anchorStart.remove();
+        anchorEnd.remove();
+    };
+
+    element.replaceContent = function(child) {
+        const parent = anchorEnd.parentNode;
+        if(!parent) {
+            return;
         }
+        if(parent.firstChild === anchorStart && parent.lastChild === anchorEnd) {
+            parent.replaceChildren(anchorStart, child, anchorEnd);
+            return;
+        }
+        element.removeChildren();
+        parent.insertBefore(child, anchorEnd);
     };
 
     element.insertBefore = function(child, anchor = null) {

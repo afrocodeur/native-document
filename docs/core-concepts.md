@@ -145,15 +145,15 @@ const element = Div({
 const counter = Observable(0);
 
 const button = Button('Click me')
-    .nd.on.click(() => {
+    .nd.onClick(() => {
         counter.set(counter.val() + 1);
     });
 
 // Multiple events
 const input = Input()
-    .nd.on.focus(e => console.log('Focused'))
-    .nd.on.blur(e => console.log('Blurred'))
-    .nd.on.input(e => console.log('Value:', e.target.value));
+    .nd.onFocus(e => console.log('Focused'))
+    .nd.onBlur(e => console.log('Blurred'))
+    .nd.onInput(e => console.log('Value:', e.target.value));
 
 //Or
 const input = Input()
@@ -210,7 +210,7 @@ const items = Observable.array(['Apple', 'Banana']);
 const list = ForEach(items, (item) => 
     Div([
         item,
-        Button('Remove').nd.on.click(() => {
+        Button('Remove').nd.onClick(() => {
             // User action → State change → UI update
             const index = items.val().indexOf(item);
             items.splice(index, 1);
@@ -249,7 +249,7 @@ function UserCard(user) {
     return Div({ class: 'user-card' }, [
         Div({ class: 'name' }, user.name),
         Div({ class: 'email' }, user.email),
-        Button('Edit').nd.on.click(() => {
+        Button('Edit').nd.onClick(() => {
             // Handle edit
         })
     ]);
@@ -269,9 +269,9 @@ function Counter(initialValue = 0) {
     
     return Div({ class: 'counter' }, [
         Div(['Count: ', count]),
-        Button('-').nd.on.click(() => count.set(count.val() - 1)),
-        Button('+').nd.on.click(() => count.set(count.val() + 1)),
-        Button('Reset').nd.on.click(() => count.set(initialValue))
+        Button('-').nd.onClick(() => count.set(count.val() - 1)),
+        Button('+').nd.onClick(() => count.set(count.val() + 1)),
+        Button('Reset').nd.onClick(() => count.set(initialValue))
     ]);
 }
 
@@ -314,7 +314,7 @@ function TodoForm() {
     return Div([
         Input({ placeholder: 'Enter todo...', value: text }),
         Button('Add')
-            .nd.on.click(() => {
+            .nd.onClick(() => {
                 if (isValid.val()) {
                     // Add todo logic
                     text.set('');
@@ -353,7 +353,7 @@ function TodoList() {
     return ForEach(TodoStore.todos, (todo) => 
         Div([
             todo.text,
-            Button('Delete').nd.on.click(() => {
+            Button('Delete').nd.onClick(() => {
                 TodoStore.removeTodo(todo.id);
             })
         ])
@@ -503,11 +503,12 @@ const data = Observable('');
 
 Now that you understand NativeDocument's core concepts, explore these advanced topics:
 
-- **[Observables](docs/observables.md)** - Reactive state management
-- **[Elements](docs/elements.md)** - Creating and composing UI
-- **[Conditional Rendering](docs/conditional-rendering.md)** - Dynamic content
-- **[Routing](docs/routing.md)** - Navigation and URL management
-- **[State Management](docs/state-management.md)** - Global state patterns
-- **[Lifecycle Events](docs/lifecycle-events.md)** - Lifecycle events
-- **[Memory Management](docs/memory-management.md)** - Memory management
-- **[Anchor](docs/anchor.md)** - Anchor
+- **[Observables](observables.md)** - Reactive state management
+- **[Elements](elements.md)** - Creating and composing UI
+- **[Conditional Rendering](conditional-rendering.md)** - Dynamic content
+- **[List Rendering](list-rendering.md)** - (ForEach | ForEachArray) and dynamic lists
+- **[Routing](routing.md)** - Navigation and URL management
+- **[State Management](state-management.md)** - Global state patterns
+- **[Lifecycle Events](lifecycle-events.md)** - Lifecycle events
+- **[Memory Management](memory-management.md)** - Memory management
+- **[Anchor](anchor.md)** - Anchor
