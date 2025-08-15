@@ -9,7 +9,7 @@ export function Link(options, children){
     const target = to || href;
     if(Validator.isString(target)) {
         const router = Router.get();
-        return NativeLink({ ...attributes, href: target}, children).nd.on.prevent.click(() => {
+        return NativeLink({ ...attributes, href: target}, children).nd.onPreventClick(() => {
             router.push(target);
         });
     }
@@ -20,7 +20,7 @@ export function Link(options, children){
         throw new RouterError('Router not found "'+routerName+'" for link "'+target.name+'"');
     }
     const url = router.generateUrl(target.name, target.params, target.query);
-    return NativeLink({ ...attributes, href: url }, children).nd.on.prevent.click(() => {
+    return NativeLink({ ...attributes, href: url }, children).nd.onPreventClick(() => {
         router.push(url);
     });
 }

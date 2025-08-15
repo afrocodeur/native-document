@@ -1043,9 +1043,6 @@ var NativeDocument = (function (exports) {
                         };
                     }
                     if(property === 'ref') {
-                        if(ref) {
-                            return ref;
-                        }
                         return function(target, name) {
                             target[name] = element;
                             return element;
@@ -2210,7 +2207,7 @@ var NativeDocument = (function (exports) {
 
         el.submit = function(action) {
             if(typeof action === 'function') {
-                el.on.submit((e) => {
+                el.onSubmit((e) => {
                     e.preventDefault();
                     action(e);
                 });
@@ -3155,7 +3152,7 @@ var NativeDocument = (function (exports) {
         const target = to || href;
         if(Validator.isString(target)) {
             const router = Router.get();
-            return Link$1({ ...attributes, href: target}, children).nd.on.prevent.click(() => {
+            return Link$1({ ...attributes, href: target}, children).nd.onPreventClick(() => {
                 router.push(target);
             });
         }
@@ -3166,7 +3163,7 @@ var NativeDocument = (function (exports) {
             throw new RouterError('Router not found "'+routerName+'" for link "'+target.name+'"');
         }
         const url = router.generateUrl(target.name, target.params, target.query);
-        return Link$1({ ...attributes, href: url }, children).nd.on.prevent.click(() => {
+        return Link$1({ ...attributes, href: url }, children).nd.onPreventClick(() => {
             router.push(url);
         });
     }

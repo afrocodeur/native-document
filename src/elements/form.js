@@ -5,7 +5,7 @@ export const Form = HtmlElementWrapper('form', function(el) {
 
     el.submit = function(action) {
         if(typeof action === 'function') {
-            el.on.submit((e) => {
+            el.onSubmit((e) => {
                 e.preventDefault();
                 action(e);
             });

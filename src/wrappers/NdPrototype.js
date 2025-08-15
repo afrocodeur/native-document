@@ -46,9 +46,6 @@ Object.defineProperty(HTMLElement.prototype, 'nd', {
                     return fn;
                 }
                 if(property === 'ref') {
-                    if(ref) {
-                        return ref;
-                    }
                     return function(target, name) {
                         target[name] = element;
                         return element;
