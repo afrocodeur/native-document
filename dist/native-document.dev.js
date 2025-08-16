@@ -324,38 +324,6 @@ var NativeDocument = (function (exports) {
         return '{{#ObItem::(' +this.$memoryId+ ')}}';
     };
 
-    const invoke = function(fn, args, context) {
-        if(context) {
-            fn.apply(context, args);
-        } else {
-            fn(...args);
-        }
-    };
-    /**
-     *
-     * @param {Function} fn
-     * @param {number} delay
-     * @param {{leading?:Boolean, trailing?:Boolean, debounce?:Boolean, check: Function}}options
-     * @returns {(function(...[*]): void)|*}
-     */
-    const debounce = function(fn, delay, options = {}) {
-        let timer = null;
-        let lastArgs = null;
-
-        return  function(...args) {
-            const context = options.context === true ? this : null;
-            if(options.check) {
-                options.check(...args);
-            }
-            lastArgs = args;
-
-            // debounce mode: reset the timer for each call
-            clearTimeout(timer);
-            timer = setTimeout(() => invoke(fn, lastArgs, context), delay);
-        }
-    };
-
-
     /**
      *
      * @param {*} item
@@ -385,7 +353,7 @@ var NativeDocument = (function (exports) {
         unmounted: new WeakMap(),
         unmountedSupposedSize: 0,
         observer: null,
-        checkMutation: debounce(function(mutationsList) {
+        checkMutation: function(mutationsList) {
             for(const mutation of mutationsList) {
                 if(DocumentObserver.mountedSupposedSize > 0 ) {
                     for(const node of mutation.addedNodes) {
@@ -413,7 +381,7 @@ var NativeDocument = (function (exports) {
                     }
                 }
             }
-        }, 16),
+        },
         /**
          *
          * @param {HTMLElement} element

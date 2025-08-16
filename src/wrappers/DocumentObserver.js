@@ -6,7 +6,7 @@ const DocumentObserver = {
     unmounted: new WeakMap(),
     unmountedSupposedSize: 0,
     observer: null,
-    checkMutation: debounce(function(mutationsList) {
+    checkMutation: function(mutationsList) {
         let i = 0;
         for(const mutation of mutationsList) {
             if(DocumentObserver.mountedSupposedSize > 0 ) {
@@ -35,7 +35,7 @@ const DocumentObserver = {
                 }
             }
         }
-    }, 16),
+    },
     /**
      *
      * @param {HTMLElement} element
