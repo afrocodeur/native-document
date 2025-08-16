@@ -2,6 +2,7 @@ import ObservableItem from "../data/ObservableItem";
 import DebugManager from "./debug-manager";
 import NativeDocumentError from "../errors/NativeDocumentError";
 import ObservableChecker from "../data/ObservableChecker";
+import {NDElement} from "../wrappers/NDElement";
 
 const Validator = {
     isObservable(value) {
@@ -46,12 +47,15 @@ const Validator = {
     isStringOrObservable(value) {
         return this.isString(value) || this.isObservable(value);
     },
-
     isValidChild(child) {
         return child === null ||
             this.isElement(child) ||
             this.isObservable(child) ||
+            this.isNDElement(child) ||
             ['string', 'number', 'boolean'].includes(typeof child);
+    },
+    isNDElement(child) {
+        return child instanceof NDElement;
     },
     isValidChildren(children) {
         if (!Array.isArray(children)) {

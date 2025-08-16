@@ -1,6 +1,5 @@
 import NativeDocumentError from "../../errors/NativeDocumentError";
 import {Observable} from "../Observable";
-import ObservableItem from "../ObservableItem";
 
 
 const methods = ['push', 'pop', 'shift', 'unshift', 'reverse', 'sort', 'splice'];
@@ -30,6 +29,13 @@ Observable.array = function(target) {
         return true;
     };
 
+    observer.merge = function(values) {
+        observer.$value = [...observer.$value, ...values];
+    };
+
+    observer.populateAndRender = function(iteration, callback) {
+        observer.trigger({ action: 'populate', args: [observer.$value, iteration, callback] });
+    };
     observer.remove = function(index) {
         const deleted = observer.$value.splice(index, 1);
         if(deleted.length === 0) {

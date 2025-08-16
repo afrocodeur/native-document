@@ -1,17 +1,7 @@
 import Validator from "../utils/validator";
 import DebugManager from "../utils/debug-manager";
-import {createTextNode} from "../wrappers/HtmlElementWrapper";
+import {ElementCreator} from "../wrappers/ElementCreator";
 
-
-const getChildAsNode = (child) => {
-    if(Validator.isFunction(child)) {
-        return getChildAsNode(child());
-    }
-    if(Validator.isElement(child)) {
-        return child;
-    }
-    return createTextNode(child)
-}
 
 export default function Anchor(name) {
     const element = document.createDocumentFragment();
@@ -27,10 +17,10 @@ export default function Anchor(name) {
 
     const insertBefore = function(parent, child, target) {
         if(parent === element) {
-            parent.nativeInsertBefore(getChildAsNode(child), target);
+            parent.nativeInsertBefore(ElementCreator.getChild(child), target);
             return;
         }
-        parent.insertBefore(getChildAsNode(child), target);
+        parent.insertBefore(ElementCreator.getChild(child), target);
     };
 
     element.appendElement = function(child, before = null) {
@@ -51,7 +41,7 @@ export default function Anchor(name) {
         if(Validator.isArray(child)) {
             const fragment = document.createDocumentFragment();
             for(let i = 0, length = child.length; i < length; i++) {
-                fragment.appendChild(getChildAsNode(child[i]));
+                fragment.appendChild(ElementCreator.getChild(child[i]));
             }
             insertBefore(parent, fragment, before);
             return element;

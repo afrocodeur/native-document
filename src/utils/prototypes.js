@@ -33,7 +33,7 @@ String.prototype.use = function(args) {
 
 String.prototype.resolveObservableTemplate = function() {
     if(!Validator.containsObservableReference(this)) {
-        return this;
+        return this.valueOf();
     }
     return this.split(/(\{\{#ObItem::\([0-9]+\)\}\})/g).filter(Boolean).map((value) => {
         if(!Validator.containsObservableReference(value)) {

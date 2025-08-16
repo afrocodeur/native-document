@@ -1,8 +1,8 @@
 import { Observable } from "../../data/Observable";
-import {createTextNode} from "../../wrappers/HtmlElementWrapper";
 import Validator from "../../utils/validator";
 import DebugManager from "../../utils/debug-manager.js";
 import Anchor from "../anchor";
+import {ElementCreator} from "../../wrappers/ElementCreator";
 
 /**
  * Show the element if the condition is true
@@ -23,15 +23,7 @@ export const ShowIf = function(condition, child, comment = null) {
         if(childElement) {
             return childElement;
         }
-        if(typeof child === 'function') {
-            childElement = child();
-        }
-        else {
-            childElement = child;
-        }
-        if(Validator.isStringOrObservable(childElement)) {
-            childElement = createTextNode(childElement);
-        }
+        childElement = ElementCreator.getChild(child);
         return childElement;
     };
 

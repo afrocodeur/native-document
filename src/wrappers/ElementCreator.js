@@ -64,31 +64,41 @@ export const ElementCreator = {
         const childrenArray = Array.isArray(children) ? children : [children];
 
         for(let i = 0, length = childrenArray.length; i < length; i++) {
-            let child = childrenArray[i];
+            let child = this.getChild(childrenArray[i]);
             if (child === null) continue;
-            if(Validator.isString(child) && Validator.isFunction(child.resolveObservableTemplate)) {
-                child = child.resolveObservableTemplate();
-            }
-            if(Validator.isFunction(child)) {
-                this.processChildren(child(), parent);
-                continue;
-            }
-            if(Validator.isArray(child)) {
-                this.processChildren(child, parent);
-                continue;
-            }
-            if (Validator.isElement(child)) {
-                parent.appendChild(child);
-                continue;
-            }
-            if (Validator.isObservable(child)) {
-                ElementCreator.createObservableNode(parent, child);
-                continue;
-            }
-            if (child) {
-                ElementCreator.createStaticTextNode(parent, child);
-            }
+            parent.appendChild(child);
         }
+    },
+    getChild(child) {
+        if(child === null) {
+            return null;
+        }
+        if(Validator.isString(child) && Validator.isFunction(child.resolveObservableTemplate)) {
+            child = child.resolveObservableTemplate();
+        }
+        if(Validator.isString(child)) {
+            return ElementCreator.createStaticTextNode(null, child);
+        }
+        if (Validator.isObservable(child)) {
+            return ElementCreator.createObservableNode(null, child);
+        }
+        if(Validator.isArray(child)) {
+            const fragment = document.createDocumentFragment();
+            for(let i = 0, length = child.length; i < length; i++) {
+                fragment.appendChild(this.getChild(child[i]));
+            }
+            return fragment;
+        }
+        if(Validator.isFunction(child)) {
+            return this.getChild(child());
+        }
+        if (Validator.isElement(child)) {
+            return child;
+        }
+        if(Validator.isNDElement(child)) {
+            return child.$element;
+        }
+        return ElementCreator.createStaticTextNode(null, child);
     },
     /**
      *

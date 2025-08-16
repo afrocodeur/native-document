@@ -1,7 +1,7 @@
 import NativeDocumentError from "../../errors/NativeDocumentError";
-import {createTextNode} from "../../wrappers/HtmlElementWrapper";
 import Validator from "../../utils/validator";
 import Anchor from "../anchor";
+import {ElementCreator} from "../../wrappers/ElementCreator";
 
 
 
@@ -9,9 +9,10 @@ import Anchor from "../anchor";
  *
  * @param {ObservableItem|ObservableChecker} $condition
  * @param {{[key]: *}} values
+ * @param {Boolean} shouldKeepInCache
  * @returns {DocumentFragment}
  */
-export const Match = function($condition, values) {
+export const Match = function($condition, values, shouldKeepInCache = true) {
 
     if(!Validator.isObservable($condition)) {
         throw new NativeDocumentError("Toggle : condition must be an Observable");
@@ -21,17 +22,15 @@ export const Match = function($condition, values) {
     const cache = new Map();
 
     const getItem = function(key) {
-        if(cache.has(key)) {
+        if(shouldKeepInCache && cache.has(key)) {
             return cache.get(key);
         }
         let item = values[key];
         if(!item) {
             return null;
         }
-        if(Validator.isFunction(item)) {
-            item = item();
-        }
-        cache.set(key, item);
+        item = ElementCreator.getChild(item);
+        shouldKeepInCache && cache.set(key, item);
         return item;
     }
 

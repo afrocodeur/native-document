@@ -24,9 +24,9 @@ export const createTextNode = function(value) {
 export default function HtmlElementWrapper(name, customWrapper) {
     const $tagName = name.toLowerCase();
 
-    const builder = function(attributes, children = null) {
+    return function(attributes, children = null) {
         try {
-            if(Validator.isValidChildren(attributes)) {
+            if(!Validator.isJson(attributes)) {
                 const tempChildren = children;
                 children = attributes;
                 attributes = tempChildren;
@@ -42,9 +42,5 @@ export default function HtmlElementWrapper(name, customWrapper) {
             DebugManager.error('ElementCreation', `Error creating ${$tagName}`, error);
         }
     };
-
-    builder.hold = (children, attributes) => (() => builder(children, attributes));
-
-    return builder;
 }
 

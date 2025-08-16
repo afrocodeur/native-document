@@ -1,10 +1,10 @@
 import ObservableItem from "../../data/ObservableItem";
 import {Observable} from "../../data/Observable";
-import {createTextNode} from "../../wrappers/HtmlElementWrapper";
 import Validator from "../../utils/validator";
 import Anchor from "../anchor";
 import DebugManager from "../../utils/debug-manager";
 import {getKey} from "../../utils/helpers";
+import { ElementCreator } from "../../wrappers/ElementCreator";
 
 /**
  *
@@ -59,10 +59,7 @@ export function ForEach(data, callback, key) {
 
         try {
             const indexObserver = callback.length >= 2 ? Observable(indexKey) : null;
-            let child = callback(item, indexObserver);
-            if(Validator.isStringOrObservable(child)) {
-                child = createTextNode(child);
-            }
+            let child = ElementCreator.getChild(callback(item, indexObserver))
             cache.set(keyId, { keyId, isNew: true, child: new WeakRef(child), indexObserver});
         } catch (e) {
             DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);

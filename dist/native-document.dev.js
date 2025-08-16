@@ -324,6 +324,283 @@ var NativeDocument = (function (exports) {
         return '{{#ObItem::(' +this.$memoryId+ ')}}';
     };
 
+    const invoke = function(fn, args, context) {
+        if(context) {
+            fn.apply(context, args);
+        } else {
+            fn(...args);
+        }
+    };
+    /**
+     *
+     * @param {Function} fn
+     * @param {number} delay
+     * @param {{leading?:Boolean, trailing?:Boolean, debounce?:Boolean, check: Function}}options
+     * @returns {(function(...[*]): void)|*}
+     */
+    const debounce = function(fn, delay, options = {}) {
+        let timer = null;
+        let lastArgs = null;
+
+        return  function(...args) {
+            const context = options.context === true ? this : null;
+            if(options.check) {
+                options.check(...args);
+            }
+            lastArgs = args;
+
+            // debounce mode: reset the timer for each call
+            clearTimeout(timer);
+            timer = setTimeout(() => invoke(fn, lastArgs, context), delay);
+        }
+    };
+
+
+    /**
+     *
+     * @param {*} item
+     * @param {string|null} defaultKey
+     * @param {?Function} key
+     * @returns {*}
+     */
+    const getKey = (item, defaultKey, key) => {
+        if(Validator.isFunction(key)) return key(item, defaultKey);
+        if(Validator.isObservable(item)) {
+            const val = item.val();
+            return (val && key) ? val[key] : defaultKey;
+        }
+        if(!Validator.isObject(item)) {
+            return item;
+        }
+        return item[key] ?? defaultKey;
+    };
+
+    const trim = function(str, char) {
+        return str.replace(new RegExp(`^[${char}]+|[${char}]+$`, 'g'), '');
+    };
+
+    const DocumentObserver = {
+        mounted: new WeakMap(),
+        mountedSupposedSize: 0,
+        unmounted: new WeakMap(),
+        unmountedSupposedSize: 0,
+        observer: null,
+        checkMutation: debounce(function(mutationsList) {
+            for(const mutation of mutationsList) {
+                if(DocumentObserver.mountedSupposedSize > 0 ) {
+                    for(const node of mutation.addedNodes) {
+                        const data = DocumentObserver.mounted.get(node);
+                        if(!data) {
+                            continue;
+                        }
+                        data.inDom = true;
+                        data.mounted && data.mounted(node);
+                    }
+                }
+
+                if(DocumentObserver.unmountedSupposedSize > 0 ) {
+                    for(const node of mutation.removedNodes) {
+                        const data = DocumentObserver.unmounted.get(node);
+                        if(!data) {
+                            continue;
+                        }
+
+                        data.inDom = false;
+                        if(data.unmounted && data.unmounted(node) === true) {
+                            data.disconnect();
+                            node.nd?.remove();
+                        }
+                    }
+                }
+            }
+        }, 16),
+        /**
+         *
+         * @param {HTMLElement} element
+         * @param {boolean} inDom
+         * @returns {{watch: (function(): Map<any, any>), disconnect: (function(): boolean), mounted: (function(*): Set<any>), unmounted: (function(*): Set<any>)}}
+         */
+        watch: function(element, inDom = false) {
+            let data = {
+                inDom,
+                mounted: null,
+                unmounted: null,
+                disconnect: () => {
+                    DocumentObserver.mounted.delete(element);
+                    DocumentObserver.unmounted.delete(element);
+                    DocumentObserver.mountedSupposedSize--;
+                    DocumentObserver.unmountedSupposedSize--;
+                    data = null;
+                }
+            };
+
+            return {
+                disconnect: data.disconnect,
+                mounted: (callback) => {
+                    data.mounted = callback;
+                    DocumentObserver.mounted.set(element, data);
+                    DocumentObserver.mountedSupposedSize++;
+                },
+                unmounted: (callback) => {
+                    data.unmounted = callback;
+                    DocumentObserver.unmounted.set(element, data);
+                    DocumentObserver.unmountedSupposedSize++;
+                }
+            };
+        }
+    };
+
+    DocumentObserver.observer = new MutationObserver(DocumentObserver.checkMutation);
+    DocumentObserver.observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+    });
+
+    const EVENTS = [
+      "Click",
+      "DblClick",
+      "MouseDown",
+      "MouseEnter",
+      "MouseLeave",
+      "MouseMove",
+      "MouseOut",
+      "MouseOver",
+      "MouseUp",
+      "Wheel",
+      "KeyDown",
+      "KeyPress",
+      "KeyUp",
+      "Blur",
+      "Change",
+      "Focus",
+      "Input",
+      "Invalid",
+      "Reset",
+      "Search",
+      "Select",
+      "Submit",
+      "Drag",
+      "DragEnd",
+      "DragEnter",
+      "DragLeave",
+      "DragOver",
+      "DragStart",
+      "Drop",
+      "AfterPrint",
+      "BeforePrint",
+      "BeforeUnload",
+      "Error",
+      "HashChange",
+      "Load",
+      "Offline",
+      "Online",
+      "PageHide",
+      "PageShow",
+      "Resize",
+      "Scroll",
+      "Unload",
+      "Abort",
+      "CanPlay",
+      "CanPlayThrough",
+      "DurationChange",
+      "Emptied",
+      "Ended",
+      "LoadedData",
+      "LoadedMetadata",
+      "LoadStart",
+      "Pause",
+      "Play",
+      "Playing",
+      "Progress",
+      "RateChange",
+      "Seeked",
+      "Seeking",
+      "Stalled",
+      "Suspend",
+      "TimeUpdate",
+      "VolumeChange",
+      "Waiting"
+    ];
+
+    function NDElement(element) {
+        this.$element = element;
+        this.$observer = null;
+    }
+
+    for(const event of EVENTS) {
+        const eventName = event.toLowerCase();
+        NDElement.prototype['on'+event] = function(callback) {
+            this.$element.addEventListener(eventName, callback);
+            return this;
+        };
+        NDElement.prototype['onPrevent'+event] = function(callback) {
+            this.$element.addEventListener(eventName, function(event) {
+                event.preventDefault();
+                callback(event);
+            });
+            return this;
+        };
+        NDElement.prototype['onStop'+event] = function(callback) {
+            this.$element.addEventListener(eventName, function(event) {
+                event.stopPropagation();
+                callback(event);
+            });
+            return this;
+        };
+        NDElement.prototype['onPreventStop'+event] = function(callback) {
+            this.$element.addEventListener(eventName, function(event) {
+                event.stopPropagation();
+                event.preventDefault();
+                callback(event);
+            });
+            return this;
+        };
+    }
+
+    NDElement.prototype.ref = function(target, name) {
+        target[name] = element;
+        return this;
+    };
+
+    NDElement.prototype.unmountChildren = function() {
+        let element = this.$element;
+        for(let i = 0, length = element.children.length; i < length; i++) {
+            let elementchildren = element.children[i];
+            if(!elementchildren.$ndProx) {
+                elementchildren.nd?.remove();
+            }
+            elementchildren = null;
+        }
+        element = null;
+        return this;
+    };
+
+    NDElement.prototype.remove = function() {
+        let element = this.$element;
+        element.nd.unmountChildren();
+        element.$ndProx = null;
+        delete element.nd?.on?.prevent;
+        delete element.nd?.on;
+        delete element.nd;
+        element = null;
+        return this;
+    };
+
+    NDElement.prototype.lifecycle = function(states) {
+        this.$observer = this.$observer || DocumentObserver.watch(this.$element);
+
+        states.mounted && this.$observer.mounted(states.mounted);
+        states.unmounted && this.$observer.unmounted(states.unmounted);
+        return this;
+    };
+    NDElement.prototype.mounted = function(callback) {
+        return this.lifecycle({ mounted: callback });
+    };
+
+    NDElement.prototype.mounted = function(callback) {
+        return this.lifecycle({ unmounted: callback });
+    };
+
     const Validator = {
         isObservable(value) {
             return value instanceof ObservableItem || value instanceof ObservableChecker;
@@ -367,12 +644,15 @@ var NativeDocument = (function (exports) {
         isStringOrObservable(value) {
             return this.isString(value) || this.isObservable(value);
         },
-
         isValidChild(child) {
             return child === null ||
                 this.isElement(child) ||
                 this.isObservable(child) ||
+                this.isNDElement(child) ||
                 ['string', 'number', 'boolean'].includes(typeof child);
+        },
+        isNDElement(child) {
+            return child instanceof NDElement;
         },
         isValidChildren(children) {
             if (!Array.isArray(children)) {
@@ -439,16 +719,6 @@ var NativeDocument = (function (exports) {
         }
     };
 
-    const getChildAsNode = (child) => {
-        if(Validator.isFunction(child)) {
-            return getChildAsNode(child());
-        }
-        if(Validator.isElement(child)) {
-            return child;
-        }
-        return createTextNode(child)
-    };
-
     function Anchor(name) {
         const element = document.createDocumentFragment();
 
@@ -463,10 +733,10 @@ var NativeDocument = (function (exports) {
 
         const insertBefore = function(parent, child, target) {
             if(parent === element) {
-                parent.nativeInsertBefore(getChildAsNode(child), target);
+                parent.nativeInsertBefore(ElementCreator.getChild(child), target);
                 return;
             }
-            parent.insertBefore(getChildAsNode(child), target);
+            parent.insertBefore(ElementCreator.getChild(child), target);
         };
 
         element.appendElement = function(child, before = null) {
@@ -487,7 +757,7 @@ var NativeDocument = (function (exports) {
             if(Validator.isArray(child)) {
                 const fragment = document.createDocumentFragment();
                 for(let i = 0, length = child.length; i < length; i++) {
-                    fragment.appendChild(getChildAsNode(child[i]));
+                    fragment.appendChild(ElementCreator.getChild(child[i]));
                 }
                 insertBefore(parent, fragment, before);
                 return element;
@@ -565,61 +835,6 @@ var NativeDocument = (function (exports) {
     }
 
     const BOOLEAN_ATTRIBUTES = ['checked', 'selected', 'disabled', 'readonly', 'required', 'autofocus', 'multiple', 'autocomplete', 'hidden', 'contenteditable', 'spellcheck', 'translate', 'draggable', 'async', 'defer', 'autoplay', 'controls', 'loop', 'muted', 'download', 'reversed', 'open', 'default', 'formnovalidate', 'novalidate', 'scoped', 'itemscope', 'allowfullscreen', 'allowpaymentrequest', 'playsinline'];
-
-    const invoke = function(fn, args, context) {
-        if(context) {
-            fn.apply(context, args);
-        } else {
-            fn(...args);
-        }
-    };
-    /**
-     *
-     * @param {Function} fn
-     * @param {number} delay
-     * @param {{leading?:Boolean, trailing?:Boolean, debounce?:Boolean, check: Function}}options
-     * @returns {(function(...[*]): void)|*}
-     */
-    const debounce = function(fn, delay, options = {}) {
-        let timer = null;
-        let lastArgs = null;
-
-        return  function(...args) {
-            const context = options.context === true ? this : null;
-            if(options.check) {
-                options.check(...args);
-            }
-            lastArgs = args;
-
-            // debounce mode: reset the timer for each call
-            clearTimeout(timer);
-            timer = setTimeout(() => invoke(fn, lastArgs, context), delay);
-        }
-    };
-
-
-    /**
-     *
-     * @param {*} item
-     * @param {string|null} defaultKey
-     * @param {?Function} key
-     * @returns {*}
-     */
-    const getKey = (item, defaultKey, key) => {
-        if(Validator.isFunction(key)) return key(item, defaultKey);
-        if(Validator.isObservable(item)) {
-            const val = item.val();
-            return (val && key) ? val[key] : defaultKey;
-        }
-        if(!Validator.isObject(item)) {
-            return item;
-        }
-        return item[key] ?? defaultKey;
-    };
-
-    const trim = function(str, char) {
-        return str.replace(new RegExp(`^[${char}]+|[${char}]+$`, 'g'), '');
-    };
 
     /**
      *
@@ -872,31 +1087,41 @@ var NativeDocument = (function (exports) {
             const childrenArray = Array.isArray(children) ? children : [children];
 
             for(let i = 0, length = childrenArray.length; i < length; i++) {
-                let child = childrenArray[i];
+                let child = this.getChild(childrenArray[i]);
                 if (child === null) continue;
-                if(Validator.isString(child) && Validator.isFunction(child.resolveObservableTemplate)) {
-                    child = child.resolveObservableTemplate();
-                }
-                if(Validator.isFunction(child)) {
-                    this.processChildren(child(), parent);
-                    continue;
-                }
-                if(Validator.isArray(child)) {
-                    this.processChildren(child, parent);
-                    continue;
-                }
-                if (Validator.isElement(child)) {
-                    parent.appendChild(child);
-                    continue;
-                }
-                if (Validator.isObservable(child)) {
-                    ElementCreator.createObservableNode(parent, child);
-                    continue;
-                }
-                if (child) {
-                    ElementCreator.createStaticTextNode(parent, child);
-                }
+                parent.appendChild(child);
             }
+        },
+        getChild(child) {
+            if(child === null) {
+                return null;
+            }
+            if(Validator.isString(child) && Validator.isFunction(child.resolveObservableTemplate)) {
+                child = child.resolveObservableTemplate();
+            }
+            if(Validator.isString(child)) {
+                return ElementCreator.createStaticTextNode(null, child);
+            }
+            if (Validator.isObservable(child)) {
+                return ElementCreator.createObservableNode(null, child);
+            }
+            if(Validator.isArray(child)) {
+                const fragment = document.createDocumentFragment();
+                for(let i = 0, length = child.length; i < length; i++) {
+                    fragment.appendChild(this.getChild(child[i]));
+                }
+                return fragment;
+            }
+            if(Validator.isFunction(child)) {
+                return this.getChild(child());
+            }
+            if (Validator.isElement(child)) {
+                return child;
+            }
+            if(Validator.isNDElement(child)) {
+                return child.$element;
+            }
+            return ElementCreator.createStaticTextNode(null, child);
         },
         /**
          *
@@ -921,198 +1146,17 @@ var NativeDocument = (function (exports) {
         }
     };
 
-    const DocumentObserver = {
-        mounted: new WeakMap(),
-        mountedSupposedSize: 0,
-        unmounted: new WeakMap(),
-        unmountedSupposedSize: 0,
-        observer: null,
-        checkMutation: debounce(function(mutationsList) {
-            for(const mutation of mutationsList) {
-                if(DocumentObserver.mountedSupposedSize > 0 ) {
-                    for(const node of mutation.addedNodes) {
-                        const data = DocumentObserver.mounted.get(node);
-                        if(!data) {
-                            continue;
-                        }
-                        data.inDom = true;
-                        data.mounted && data.mounted(node);
-                    }
-                }
-
-                if(DocumentObserver.unmountedSupposedSize > 0 ) {
-                    for(const node of mutation.removedNodes) {
-                        const data = DocumentObserver.unmounted.get(node);
-                        if(!data) {
-                            continue;
-                        }
-
-                        data.inDom = false;
-                        if(data.unmounted && data.unmounted(node) === true) {
-                            data.disconnect();
-                            node.nd?.remove();
-                        }
-                    }
-                }
-            }
-        }, 16),
-        /**
-         *
-         * @param {HTMLElement} element
-         * @param {boolean} inDom
-         * @returns {{watch: (function(): Map<any, any>), disconnect: (function(): boolean), mounted: (function(*): Set<any>), unmounted: (function(*): Set<any>)}}
-         */
-        watch: function(element, inDom = false) {
-            let data = {
-                inDom,
-                mounted: null,
-                unmounted: null,
-                disconnect: () => {
-                    DocumentObserver.mounted.delete(element);
-                    DocumentObserver.unmounted.delete(element);
-                    DocumentObserver.mountedSupposedSize--;
-                    DocumentObserver.unmountedSupposedSize--;
-                    data = null;
-                }
-            };
-
-            return {
-                disconnect: data.disconnect,
-                mounted: (callback) => {
-                    data.mounted = callback;
-                    DocumentObserver.mounted.set(element, data);
-                    DocumentObserver.mountedSupposedSize++;
-                },
-                unmounted: (callback) => {
-                    data.unmounted = callback;
-                    DocumentObserver.unmounted.set(element, data);
-                    DocumentObserver.unmountedSupposedSize++;
-                }
-            };
-        }
-    };
-
-    DocumentObserver.observer = new MutationObserver(DocumentObserver.checkMutation);
-    DocumentObserver.observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-    });
-
     Object.defineProperty(HTMLElement.prototype, 'nd', {
         get() {
-            if(this.$ndProx) {
-                return this.$ndProx;
+            if(this.$nd) {
+                return this.$nd;
             }
-            let element = this;
-            let lifecycle = null;
 
-            this.$ndProx = new Proxy({}, {
-                get(target, property) {
-                    if(/^on[A-Z]/.test(property)) {
-                        const event = property.replace(/^on/, '').toLowerCase();
-                        const shouldPrevent = event.toLowerCase().startsWith('prevent');
-                        let eventName = event.replace(/^prevent/i, '');
-                        const shouldStop = event.toLowerCase().startsWith('stop');
-                        eventName = eventName.replace(/^stop/i, '');
-
-                        return function(callback) {
-                            if(shouldPrevent && !shouldStop) {
-                                element.addEventListener(eventName, function(event) {
-                                    event.preventDefault();
-                                    callback(event);
-                                });
-                                return element;
-                            }
-                            if(!shouldPrevent && shouldStop) {
-                                element.addEventListener(eventName, function(event) {
-                                    event.stopPropagation();
-                                    callback(event);
-                                });
-                                return element;
-                            }
-                            if(shouldPrevent && shouldStop) {
-                                element.addEventListener(eventName, function(event) {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    callback(event);
-                                });
-                                return element;
-                            }
-                            element.addEventListener(eventName, callback);
-                            return element;
-                        };
-                    }
-                    if(property === 'ref') {
-                        return function(target, name) {
-                            target[name] = element;
-                            return element;
-                        };
-                    }
-                    if(property === 'unmountChildren') {
-                        return () => {
-                            for(let i = 0, length = element.children.length; i < length; i++) {
-                                let elementchildren = element.children[i];
-                                if(!elementchildren.$ndProx) {
-                                    elementchildren.nd?.remove();
-                                }
-                                elementchildren = null;
-                            }
-                        };
-                    }
-                    if(property === 'remove') {
-                        return function() {
-                            element.nd.unmountChildren();
-                            lifecycle = null;
-                            element.$ndProx = null;
-                            delete element.nd?.on?.prevent;
-                            delete element.nd?.on;
-                            delete element.nd;
-                        };
-                    }
-                    if(property === 'hasLifecycle') {
-                        return lifecycle !== null;
-                    }
-                    if(property === 'lifecycle') {
-                        if(lifecycle) {
-                            return lifecycle;
-                        }
-                        let $observer = null;
-                        lifecycle = function(states) {
-                            $observer = $observer || DocumentObserver.watch(element);
-
-                            states.mounted && $observer.mounted(states.mounted);
-                            states.unmounted && $observer.unmounted(states.unmounted);
-                            return element;
-                        };
-                        return lifecycle;
-                    }
-                    if(property === 'mounted' || property === 'unmounted') {
-                        return function(callback) {
-                            element.nd.lifecycle({ [property]: callback});
-                            return element;
-                        };
-                    }
-                },
-                set(target, p, newValue, receiver) {
-
-                },
-                configurable: true
-            });
-            return this.$ndProx;
+            this.$nd = new NDElement(this);
+            this.$nd.nd = this.$nd;
+            return this.$nd;
         }
     });
-
-    /**
-     *
-     * @param {*} value
-     * @returns {Text}
-     */
-    const createTextNode = function(value) {
-        return (Validator.isObservable(value))
-            ? ElementCreator.createObservableNode(null, value)
-            : ElementCreator.createStaticTextNode(null, value);
-    };
-
 
     /**
      *
@@ -1123,9 +1167,9 @@ var NativeDocument = (function (exports) {
     function HtmlElementWrapper(name, customWrapper) {
         const $tagName = name.toLowerCase();
 
-        const builder = function(attributes, children = null) {
+        return function(attributes, children = null) {
             try {
-                if(Validator.isValidChildren(attributes)) {
+                if(!Validator.isJson(attributes)) {
                     const tempChildren = children;
                     children = attributes;
                     attributes = tempChildren;
@@ -1141,10 +1185,6 @@ var NativeDocument = (function (exports) {
                 DebugManager.error('ElementCreation', `Error creating ${$tagName}`, error);
             }
         };
-
-        builder.hold = (children, attributes) => (() => builder(children, attributes));
-
-        return builder;
     }
 
     class ArgTypesError extends Error {
@@ -1280,7 +1320,7 @@ var NativeDocument = (function (exports) {
 
     String.prototype.resolveObservableTemplate = function() {
         if(!Validator.containsObservableReference(this)) {
-            return this;
+            return this.valueOf();
         }
         return this.split(/(\{\{#ObItem::\([0-9]+\)\}\})/g).filter(Boolean).map((value) => {
             if(!Validator.containsObservableReference(value)) {
@@ -1318,6 +1358,13 @@ var NativeDocument = (function (exports) {
             return true;
         };
 
+        observer.merge = function(values) {
+            observer.$value = [...observer.$value, ...values];
+        };
+
+        observer.populateAndRender = function(iteration, callback) {
+            observer.trigger({ action: 'populate', args: [observer.$value, iteration, callback] });
+        };
         observer.remove = function(index) {
             const deleted = observer.$value.splice(index, 1);
             if(deleted.length === 0) {
@@ -1640,10 +1687,7 @@ var NativeDocument = (function (exports) {
 
             try {
                 const indexObserver = callback.length >= 2 ? Observable(indexKey) : null;
-                let child = callback(item, indexObserver);
-                if(Validator.isStringOrObservable(child)) {
-                    child = createTextNode(child);
-                }
+                let child = ElementCreator.getChild(callback(item, indexObserver));
                 cache.set(keyId, { keyId, isNew: true, child: new WeakRef(child), indexObserver});
             } catch (e) {
                 DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
@@ -1810,10 +1854,7 @@ var NativeDocument = (function (exports) {
 
             try {
                 const indexObserver = callback.length >= 2 ? Observable(indexKey) : null;
-                let child = callback(item, indexObserver);
-                if(Validator.isStringOrObservable(child)) {
-                    child = createTextNode(child);
-                }
+                let child = ElementCreator.getChild(callback(item, indexObserver));
                 cache.set(keyId, {
                     keyId,
                     isNew: true,
@@ -1901,14 +1942,27 @@ var NativeDocument = (function (exports) {
                 child = null;
             },
             clear,
+            merge(items) {
+                Actions.add(items, 0);
+            },
             push(items) {
                 let delay = 0;
                 if(configs.pushDelay) {
                     delay = configs.pushDelay(items) ?? 0;
-                } else {
-                    delay = (items.length >= 1000) ? 10 : 0;
                 }
+
                 Actions.add(items, delay);
+            },
+            populate([target, iteration, callback]) {
+                const fragment = document.createDocumentFragment();
+                for (let i = 0; i < iteration; i++) {
+                    const data = callback(i);
+                    target.push(data);
+                    fragment.append(buildItem(data, i));
+                    lastNumberOfItems++;
+                }
+                element.appendChild(fragment);
+                fragment.replaceChildren();
             },
             unshift(values){
                 element.insertBefore(Actions.toFragment(values), blockStart.nextSibling);
@@ -1974,23 +2028,30 @@ var NativeDocument = (function (exports) {
         };
 
         const buildContent = (items, _, operations) => {
-            if(operations.action === 'clear' || !items.length) {
-                if(lastNumberOfItems === 0) {
-                    return;
+            if(operations?.action === 'populate') {
+                Actions.populate(operations.args, operations.result);
+            } else  {
+                console.log(lastNumberOfItems);
+                if(operations.action === 'clear' || !items.length) {
+                    if(lastNumberOfItems === 0) {
+                        return;
+                    }
+                    clear();
                 }
-                clear();
+
+                if(!operations?.action) {
+                    if(lastNumberOfItems === 0) {
+                        Actions.add(items);
+                        return;
+                    }
+                    Actions.replace(items);
+                }
+                else if(Actions[operations.action]) {
+                    Actions[operations.action](operations.args, operations.result);
+                }
             }
 
-            if(!operations?.action) {
-                if(lastNumberOfItems === 0) {
-                    Actions.add(items);
-                    return;
-                }
-                Actions.replace(items);
-            }
-            else if(Actions[operations.action]) {
-                Actions[operations.action](operations.args, operations.result);
-            }
+            console.log(items);
             updateIndexObservers(items, 0);
         };
 
@@ -2021,15 +2082,7 @@ var NativeDocument = (function (exports) {
             if(childElement) {
                 return childElement;
             }
-            if(typeof child === 'function') {
-                childElement = child();
-            }
-            else {
-                childElement = child;
-            }
-            if(Validator.isStringOrObservable(childElement)) {
-                childElement = createTextNode(childElement);
-            }
+            childElement = ElementCreator.getChild(child);
             return childElement;
         };
 
@@ -2080,9 +2133,10 @@ var NativeDocument = (function (exports) {
      *
      * @param {ObservableItem|ObservableChecker} $condition
      * @param {{[key]: *}} values
+     * @param {Boolean} shouldKeepInCache
      * @returns {DocumentFragment}
      */
-    const Match = function($condition, values) {
+    const Match = function($condition, values, shouldKeepInCache = true) {
 
         if(!Validator.isObservable($condition)) {
             throw new NativeDocumentError("Toggle : condition must be an Observable");
@@ -2092,17 +2146,15 @@ var NativeDocument = (function (exports) {
         const cache = new Map();
 
         const getItem = function(key) {
-            if(cache.has(key)) {
+            if(shouldKeepInCache && cache.has(key)) {
                 return cache.get(key);
             }
             let item = values[key];
             if(!item) {
                 return null;
             }
-            if(Validator.isFunction(item)) {
-                item = item();
-            }
-            cache.set(key, item);
+            item = ElementCreator.getChild(item);
+            shouldKeepInCache && cache.set(key, item);
             return item;
         };
 

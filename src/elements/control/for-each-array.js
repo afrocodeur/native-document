@@ -1,9 +1,9 @@
 import Anchor from "../anchor";
 import {Observable} from "../../data/Observable";
 import Validator from "../../utils/validator";
-import {createTextNode} from "../../wrappers/HtmlElementWrapper";
 import DebugManager from "../../utils/debug-manager";
 import {getKey} from "../../utils/helpers";
+import { ElementCreator } from "../../wrappers/ElementCreator";
 
 export function ForEachArray(data, callback, key, configs = {}) {
     const element = new Anchor('ForEach Array');
@@ -87,10 +87,7 @@ export function ForEachArray(data, callback, key, configs = {}) {
 
         try {
             const indexObserver = callback.length >= 2 ? Observable(indexKey) : null;
-            let child = callback(item, indexObserver);
-            if(Validator.isStringOrObservable(child)) {
-                child = createTextNode(child);
-            }
+            let child = ElementCreator.getChild(callback(item, indexObserver));
             cache.set(keyId, {
                 keyId,
                 isNew: true,
@@ -178,14 +175,27 @@ export function ForEachArray(data, callback, key, configs = {}) {
             child = null;
         },
         clear,
+        merge(items) {
+            Actions.add(items, 0);
+        },
         push(items) {
             let delay = 0;
             if(configs.pushDelay) {
                 delay = configs.pushDelay(items) ?? 0;
-            } else {
-                delay = (items.length >= 1000) ? 10 : 0;
             }
+
             Actions.add(items, delay);
+        },
+        populate([target, iteration, callback]) {
+            const fragment = document.createDocumentFragment();
+            for (let i = 0; i < iteration; i++) {
+                const data = callback(i);
+                target.push(data);
+                fragment.append(buildItem(data, i));
+                lastNumberOfItems++;
+            }
+            element.appendChild(fragment);
+            fragment.replaceChildren();
         },
         unshift(values){
             element.insertBefore(Actions.toFragment(values), blockStart.nextSibling);
@@ -251,23 +261,30 @@ export function ForEachArray(data, callback, key, configs = {}) {
     };
 
     const buildContent = (items, _, operations) => {
-        if(operations.action === 'clear' || !items.length) {
-            if(lastNumberOfItems === 0) {
-                return;
+        if(operations?.action === 'populate') {
+            Actions.populate(operations.args, operations.result);
+        } else  {
+            console.log(lastNumberOfItems);
+            if(operations.action === 'clear' || !items.length) {
+                if(lastNumberOfItems === 0) {
+                    return;
+                }
+                clear();
             }
-            clear();
+
+            if(!operations?.action) {
+                if(lastNumberOfItems === 0) {
+                    Actions.add(items);
+                    return;
+                }
+                Actions.replace(items);
+            }
+            else if(Actions[operations.action]) {
+                Actions[operations.action](operations.args, operations.result);
+            }
         }
 
-        if(!operations?.action) {
-            if(lastNumberOfItems === 0) {
-                Actions.add(items);
-                return;
-            }
-            Actions.replace(items);
-        }
-        else if(Actions[operations.action]) {
-            Actions[operations.action](operations.args, operations.result);
-        }
+        console.log(items)
         updateIndexObservers(items, 0);
     };
 
