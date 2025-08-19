@@ -6,13 +6,13 @@ import {NDElement} from "../wrappers/NDElement";
 
 const Validator = {
     isObservable(value) {
-        return value instanceof ObservableItem || value instanceof ObservableChecker;
+        return value instanceof ObservableItem || value instanceof ObservableChecker || value?.__$isObservable;
     },
     isProxy(value) {
         return value?.__isProxy__
     },
     isObservableChecker(value) {
-        return value instanceof ObservableChecker;
+        return value instanceof ObservableChecker || value?.__$isObservableChecker;
     },
     isArray(value) {
         return Array.isArray(value);
@@ -55,7 +55,7 @@ const Validator = {
             ['string', 'number', 'boolean'].includes(typeof child);
     },
     isNDElement(child) {
-        return child instanceof NDElement;
+        return child instanceof NDElement || child?.constructor?.__$isNDElement;
     },
     isValidChildren(children) {
         if (!Array.isArray(children)) {

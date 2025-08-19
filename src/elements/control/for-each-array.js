@@ -264,7 +264,6 @@ export function ForEachArray(data, callback, key, configs = {}) {
         if(operations?.action === 'populate') {
             Actions.populate(operations.args, operations.result);
         } else  {
-            console.log(lastNumberOfItems);
             if(operations.action === 'clear' || !items.length) {
                 if(lastNumberOfItems === 0) {
                     return;
@@ -284,7 +283,6 @@ export function ForEachArray(data, callback, key, configs = {}) {
             }
         }
 
-        console.log(items)
         updateIndexObservers(items, 0);
     };
 

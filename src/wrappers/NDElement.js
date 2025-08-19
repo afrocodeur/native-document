@@ -2,6 +2,7 @@ import DocumentObserver from "./DocumentObserver";
 import { EVENTS } from "../utils/events";
 
 export function NDElement(element) {
+    this.__$isNDElement = true;
     this.$element = element;
     this.$observer = null;
 }
@@ -79,3 +80,9 @@ NDElement.prototype.mounted = function(callback) {
 NDElement.prototype.mounted = function(callback) {
     return this.lifecycle({ unmounted: callback });
 };
+
+NDElement.prototype.htmlElement = function() {
+    return this.$element;
+};
+
+NDElement.prototype.node = NDElement.prototype.htmlElement;

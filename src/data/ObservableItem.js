@@ -16,6 +16,7 @@ export default function ObservableItem(value) {
         throw new NativeDocumentError('ObservableItem cannot be an Observable');
     }
 
+    this.__$isObservable = true;
     this.$previousValue = value;
     this.$currentValue = value;
     this.$isCleanedUp = false;

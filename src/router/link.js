@@ -15,7 +15,6 @@ export function Link(options, children){
     }
     const routerName = target.router || DEFAULT_ROUTER_NAME;
     const router = Router.get(routerName);
-    console.log(routerName)
     if(!router) {
         throw new RouterError('Router not found "'+routerName+'" for link "'+target.name+'"');
     }

@@ -1,31 +1,43 @@
-const DebugManager = {
-    enabled: false,
+let DebugManager = {};
 
-    enable() {
-        this.enabled = true;
-        console.log('🔍 NativeDocument Debug Mode enabled');
-    },
+if(process.env.NODE_ENV === 'development') {
+    DebugManager = {
+        enabled: false,
 
-    disable() {
-        this.enabled = false;
-    },
+        enable() {
+            this.enabled = true;
+            console.log('🔍 NativeDocument Debug Mode enabled');
+        },
 
-    log(category, message, data) {
-        if (!this.enabled) return;
-        console.group(`🔍 [${category}] ${message}`);
-        if (data) console.log(data);
-        console.trace();
-        console.groupEnd();
-    },
+        disable() {
+            this.enabled = false;
+        },
 
-    warn(category, message, data) {
-        if (!this.enabled) return;
-        console.warn(`⚠️ [${category}] ${message}`, data);
-    },
+        log(category, message, data) {
+            if (!this.enabled) return;
+            console.group(`🔍 [${category}] ${message}`);
+            if (data) console.log(data);
+            console.trace();
+            console.groupEnd();
+        },
 
-    error(category, message, error) {
-        console.error(`❌ [${category}] ${message}`, error);
-    }
-};
+        warn(category, message, data) {
+            if (!this.enabled) return;
+            console.warn(`⚠️ [${category}] ${message}`, data);
+        },
 
+        error(category, message, error) {
+            console.error(`❌ [${category}] ${message}`, error);
+        }
+    };
+
+}
+if(process.env.NODE_ENV === 'production') {
+    DebugManager = {
+        log() {},
+        warn() {},
+        error() {},
+        disable() {}
+    };
+}
 export default DebugManager;

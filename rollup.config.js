@@ -1,5 +1,7 @@
 import terser from '@rollup/plugin-terser';
+import replace from '@rollup/plugin-replace';
 
+const isProduction = process.env.NODE_ENV === 'production';
 export default [
     {
         input: {
@@ -9,8 +11,15 @@ export default [
             dir: 'dist',
             entryFileNames: 'native-document.dev.js',
             format: 'iife',
-            name: 'NativeDocument'
+            name: 'NativeDocument',
+            sourcemap: true
         },
+        plugins: [
+            replace({
+                'process.env.NODE_ENV': JSON.stringify('development'),
+                preventAssignment: true,
+            })
+        ]
     },
     {
         input: {
@@ -23,6 +32,10 @@ export default [
             name: 'NativeDocument'
         },
         plugins: [
+            replace({
+                'process.env.NODE_ENV': JSON.stringify('production'),
+                preventAssignment: true,
+            }),
             terser()
         ]
     }

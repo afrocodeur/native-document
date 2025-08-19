@@ -1,6 +1,7 @@
 import { NDElement } from "./NDElement";
 
 Object.defineProperty(HTMLElement.prototype, 'nd', {
+    configurable: true,
     get() {
         if(this.$nd) {
             return this.$nd;

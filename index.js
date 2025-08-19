@@ -1,5 +1,6 @@
 export { default as HtmlElementWrapper } from './src/wrappers/HtmlElementWrapper'
 export { ElementCreator } from './src/wrappers/ElementCreator'
+export { NDElement } from './src/wrappers/NDElement'
 
 import './src/utils/prototypes.js';
 

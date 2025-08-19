@@ -5,6 +5,7 @@
  * @class ObservableChecker
  */
 export default function ObservableChecker($observable, $checker) {
+    this.__$isObservableChecker = true;
     this.observable = $observable;
     this.checker = $checker;
     this.unSubscriptions = [];

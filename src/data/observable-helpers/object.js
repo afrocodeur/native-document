@@ -77,9 +77,10 @@ Observable.value = function(data) {
     }
     if(Validator.isArray(data)) {
         const result = [];
-        data.forEach(item => {
+        for(let i = 0, length = data.length; i < length; i++) {
+            const item = data[i];
             result.push(Observable.value(item));
-        });
+        }
         return result;
     }
     return data;

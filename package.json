@@ -1,6 +1,6 @@
 {
   "name": "native-document",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -11,7 +11,7 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@rollup/plugin-replace": "^6.0.2",
     "@rollup/plugin-terser": "^0.4.4"
   }
 }
-git
