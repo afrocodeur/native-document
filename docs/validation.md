@@ -187,5 +187,7 @@ registerUser.args(
 
 ## Next Steps
 
-- **[Memory Management](memory-management.md)** - Debugging memory issues with validation
 - **[Lifecycle Events](lifecycle-events.md)** - Validate lifecycle callback arguments
+- **[NDElement](native-document-element.md)** - Native Document Element
+- **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
+- **[Memory Management](memory-management.md)** - Debugging memory issues with validation

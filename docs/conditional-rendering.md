@@ -625,5 +625,8 @@ Now that you understand conditional rendering, explore these related topics:
 - **[Routing](routing.md)** - Navigation and URL management
 - **[State Management](state-management.md)** - Global state patterns
 - **[Lifecycle Events](lifecycle-events.md)** - Lifecycle events
+- **[NDElement](native-document-element.md)** - Native Document Element
+- **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
+- **[Args Validation](validation.md)** - Function Argument Validation
 - **[Memory Management](memory-management.md)** - Memory management
 - **[Anchor](anchor.md)** - Anchor

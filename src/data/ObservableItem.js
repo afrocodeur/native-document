@@ -16,7 +16,6 @@ export default function ObservableItem(value) {
         throw new NativeDocumentError('ObservableItem cannot be an Observable');
     }
 
-    this.__$isObservable = true;
     this.$previousValue = value;
     this.$currentValue = value;
     this.$isCleanedUp = false;
@@ -36,6 +35,8 @@ Object.defineProperty(ObservableItem.prototype, '$value', {
     },
     configurable: true,
 });
+
+ObservableItem.prototype.__$isObservable = true;
 
 ObservableItem.prototype.triggerListeners = function(operations) {
     const $listeners = this.$listeners;

@@ -5,11 +5,12 @@
  * @class ObservableChecker
  */
 export default function ObservableChecker($observable, $checker) {
-    this.__$isObservableChecker = true;
     this.observable = $observable;
     this.checker = $checker;
     this.unSubscriptions = [];
 }
+
+ObservableChecker.prototype.__$isObservableChecker = true;
 
 ObservableChecker.prototype.subscribe = function(callback) {
     const unSubscribe = this.observable.subscribe((value) => {

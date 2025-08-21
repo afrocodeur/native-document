@@ -372,4 +372,7 @@ anchor.replaceContent(content2);
 - **[List Rendering](list-rendering.md)** - (ForEach | ForEachArray) and dynamic lists
 - **[Routing](routing.md)** - Navigation and URL management
 - **[State Management](state-management.md)** - Global state patterns
+- **[NDElement](native-document-element.md)** - Native Document Element
+- **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
+- **[Args Validation](validation.md)** - Function Argument Validation
 - **[Memory Management](memory-management.md)** - Memory management

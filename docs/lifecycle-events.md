@@ -98,6 +98,9 @@ document.body.appendChild(reusableComponent);
 
 Now that you understand lifecycle events, explore these related topics:
 
+- **[NDElement](native-document-element.md)** - Native Document Element
+- **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
+- **[Args Validation](validation.md)** - Function Argument Validation
 - **[Memory Management](memory-management.md)** - Memory management
 - **[Anchor](anchor.md)** - Anchor
 

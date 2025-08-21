@@ -60,7 +60,7 @@ document.body.appendChild(App);
 npx degit afrocodeur/native-document-vite my-app
 cd my-app
 npm install
-npm run dev
+npm run start
 ```
 
 ### Option 3: NPM/Yarn
@@ -195,29 +195,12 @@ When(condition)
 - **[Routing](docs/routing.md)** - Navigation and URL management
 - **[State Management](docs/state-management.md)** - Global state patterns
 - **[Lifecycle Events](docs/lifecycle-events.md)** - Lifecycle events
+- **[NDElement](docs/native-document-element.md)** - Native Document Element
+- **[Extending NDElement](docs/extending-native-document-element.md)** - Custom Methods Guide
+- **[Args Validation](docs/validation.md)** - Function Argument Validation
 - **[Memory Management](docs/memory-management.md)** - Memory management
 - **[Anchor](docs/anchor.md)** - Anchor
 
-## Examples
-
-### Todo App
-```bash
-# Complete todo application with local storage
-git clone https://github.com/afrocodeur/native-document-examples
-cd examples/todo-app
-```
-
-### SPA Router
-```bash
-# Single Page Application with routing
-cd examples/routing-spa
-```
-
-### Reusable Components
-```bash
-# Component library patterns
-cd examples/components
-```
 
 ## Key Features Deep Dive
 

@@ -2,10 +2,10 @@ import DocumentObserver from "./DocumentObserver";
 import { EVENTS } from "../utils/events";
 
 export function NDElement(element) {
-    this.__$isNDElement = true;
     this.$element = element;
     this.$observer = null;
 }
+NDElement.prototype.__$isNDElement = true;
 
 for(const event of EVENTS) {
     const eventName = event.toLowerCase();
@@ -38,18 +38,18 @@ for(const event of EVENTS) {
 }
 
 NDElement.prototype.ref = function(target, name) {
-    target[name] = element;
+    target[name] = this.$element;
     return this;
 };
 
 NDElement.prototype.unmountChildren = function() {
     let element = this.$element;
     for(let i = 0, length = element.children.length; i < length; i++) {
-        let elementchildren = element.children[i];
-        if(!elementchildren.$ndProx) {
-            elementchildren.nd?.remove();
+        let elementChildren = element.children[i];
+        if(!elementChildren.$ndProx) {
+            elementChildren.nd?.remove();
         }
-        elementchildren = null;
+        elementChildren = null;
     }
     element = null;
     return this;
@@ -77,7 +77,7 @@ NDElement.prototype.mounted = function(callback) {
     return this.lifecycle({ mounted: callback });
 };
 
-NDElement.prototype.mounted = function(callback) {
+NDElement.prototype.unmounted = function(callback) {
     return this.lifecycle({ unmounted: callback });
 };
 
