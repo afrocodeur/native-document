@@ -96,7 +96,7 @@ export const ElementCreator = {
             return child;
         }
         if(Validator.isNDElement(child)) {
-            return child.$element;
+            return child.$element ?? child.$build?.() ?? null;
         }
         return ElementCreator.createStaticTextNode(null, child);
     },

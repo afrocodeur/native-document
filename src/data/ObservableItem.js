@@ -9,13 +9,6 @@ import ObservableChecker from "./ObservableChecker";
  * @class ObservableItem
  */
 export default function ObservableItem(value) {
-    if (value === undefined) {
-        throw new NativeDocumentError('ObservableItem requires an initial value');
-    }
-    if(value instanceof ObservableItem) {
-        throw new NativeDocumentError('ObservableItem cannot be an Observable');
-    }
-
     this.$previousValue = value;
     this.$currentValue = value;
     this.$isCleanedUp = false;
@@ -23,7 +16,7 @@ export default function ObservableItem(value) {
     this.$listeners = null;
     this.$watchers = null;
 
-    this.$memoryId = MemoryManager.register(this);
+    this.$memoryId = null;
 }
 
 Object.defineProperty(ObservableItem.prototype, '$value', {
@@ -38,6 +31,7 @@ Object.defineProperty(ObservableItem.prototype, '$value', {
 
 ObservableItem.prototype.__$isObservable = true;
 
+const noneTrigger = function() {};
 ObservableItem.prototype.triggerListeners = function(operations) {
     const $listeners = this.$listeners;
     const $previousValue = this.$previousValue;
@@ -61,31 +55,38 @@ ObservableItem.prototype.triggerWatchers = function() {
     const $currentValue = this.$currentValue;
 
     if($watchers.has($currentValue)) {
-        const watchValueList = $watchers.get($currentValue);
-        watchValueList.forEach(itemValue => {
-            if(itemValue.ifTrue.called) {
-                return;
-            }
-            itemValue.ifTrue.callback();
-            itemValue.else.called = false;
-        })
+        $watchers.get($currentValue).forEach(callback => {
+            callback(true);
+        });
     }
     if($watchers.has($previousValue)) {
-        const watchValueList = $watchers.get($previousValue);
-        watchValueList.forEach(itemValue => {
-            if(itemValue.else.called) {
-                return;
-            }
-            itemValue.else.callback();
-            itemValue.ifTrue.called = false;
+        $watchers.get($previousValue).forEach(callback => {
+            callback(false);
         });
     }
 };
 
-ObservableItem.prototype.trigger = function(operations) {
+ObservableItem.prototype.triggerAll = function(operations) {
     this.triggerListeners(operations);
     this.triggerWatchers();
+};
+
+ObservableItem.prototype.assocTrigger = function() {
+    if(this.$watchers?.size && this.$listeners?.length) {
+        this.trigger = this.triggerAll;
+        return;
+    }
+    if(this.$listeners?.length) {
+        this.trigger = this.triggerListeners;
+        return;
+    }
+    if(this.$watchers?.size) {
+        this.trigger = this.triggerWatchers;
+        return;
+    }
+    this.trigger = noneTrigger;
 }
+ObservableItem.prototype.trigger = noneTrigger;
 
 /**
  * @param {*} data
@@ -110,16 +111,13 @@ ObservableItem.prototype.disconnectAll = function() {
     this.$currentValue = null;
     if(this.$watchers) {
         for (const [_, watchValueList] of this.$watchers) {
-            for (const itemValue of watchValueList) {
-                itemValue.ifTrue.callback = null;
-                itemValue.else.callback = null;
-            }
-            watchValueList.clear();
+            watchValueList.splice(0);
         }
     }
     this.$watchers?.clear();
     this.$listeners = null;
     this.$watchers = null;
+    this.trigger = noneTrigger;
 }
 ObservableItem.prototype.cleanup = function() {
     MemoryManager.unregister(this.$memoryId);
@@ -144,30 +142,32 @@ ObservableItem.prototype.subscribe = function(callback) {
     }
 
     this.$listeners.push(callback);
-    return () => this.unsubscribe(callback);
+    this.assocTrigger();
+    return () => {
+        this.unsubscribe(callback);
+        this.assocTrigger();
+    };
 };
 
-ObservableItem.prototype.on = function(value, callback, elseCallback) {
+ObservableItem.prototype.on = function(value, callback) {
     this.$watchers = this.$watchers ?? new Map();
 
     let watchValueList = this.$watchers.get(value);
     if(!watchValueList) {
-        watchValueList = new Set();
+        watchValueList = [];
         this.$watchers.set(value, watchValueList);
     }
 
-    let itemValue = {
-        ifTrue: { callback, called: false },
-        else: { callback: elseCallback, called: false }
-    };
-    watchValueList.add(itemValue);
+    watchValueList.push(callback);
+    this.assocTrigger();
     return () => {
-        watchValueList?.delete(itemValue);
+        const index = watchValueList.indexOf(callback);
+        watchValueList?.splice(index, 1);
         if(watchValueList.size === 0) {
             this.$watchers?.delete(value);
+            watchValueList = null;
         }
-        watchValueList = null;
-        itemValue = null;
+        this.assocTrigger();
     };
 };
 
@@ -180,6 +180,7 @@ ObservableItem.prototype.unsubscribe = function(callback) {
     if (index > -1) {
         this.$listeners.splice(index, 1);
     }
+    this.assocTrigger();
 };
 
 /**
@@ -192,6 +193,9 @@ ObservableItem.prototype.check = function(callback) {
 };
 ObservableItem.prototype.get = ObservableItem.prototype.check;
 
-    ObservableItem.prototype.toString = function() {
+ObservableItem.prototype.toString = function() {
+    if(!this.$memoryId) {
+        MemoryManager.register(this);
+    }
     return '{{#ObItem::(' +this.$memoryId+ ')}}';
 }

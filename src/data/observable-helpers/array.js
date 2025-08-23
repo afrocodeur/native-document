@@ -24,20 +24,20 @@ Observable.array = function(target) {
     });
 
     observer.clear = function() {
-        observer.$value.length = 0;
+        observer.val().length = 0;
         observer.trigger({ action: 'clear' });
         return true;
     };
 
     observer.merge = function(values) {
-        observer.$value = [...observer.$value, ...values];
+        observer.set([...observer.val(), ...values]);
     };
 
     observer.populateAndRender = function(iteration, callback) {
-        observer.trigger({ action: 'populate', args: [observer.$value, iteration, callback] });
+        observer.trigger({ action: 'populate', args: [observer.val(), iteration, callback] });
     };
     observer.remove = function(index) {
-        const deleted = observer.$value.splice(index, 1);
+        const deleted = observer.val().splice(index, 1);
         if(deleted.length === 0) {
             return [];
         }
@@ -46,7 +46,7 @@ Observable.array = function(target) {
     };
 
     observer.swap = function(indexA, indexB) {
-        const value = observer.$value;
+        const value = observer.val();
         const length = value.length;
         if(length < indexA || length < indexB) {
             return false;
@@ -66,7 +66,7 @@ Observable.array = function(target) {
     };
 
     observer.length = function() {
-        return observer.$value.length;
+        return observer.val().length;
     }
 
     const overrideMethods = ['map', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex', 'concat'];

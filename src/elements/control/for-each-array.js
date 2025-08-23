@@ -11,7 +11,6 @@ export function ForEachArray(data, callback, key, configs = {}) {
     const blockStart = element.startElement();
 
     let cache = new Map();
-    let nodeCacheByElement = new WeakMap();
     let lastNumberOfItems = 0;
 
     const keysCache = new WeakMap();
@@ -26,7 +25,10 @@ export function ForEachArray(data, callback, key, configs = {}) {
             return keysCache.get(item);
         }
         return getKey(item, indexKey, key);
-    }
+    };
+    const getItemChild = (item) => {
+        return getChildByKey(getItemKey(item));
+    };
 
     const updateIndexObservers = (items, startFrom = 0) => {
         if(callback.length < 2) {
@@ -47,13 +49,10 @@ export function ForEachArray(data, callback, key, configs = {}) {
         if(!cacheItem) {
             return;
         }
-        const child = cacheItem.child?.deref();
+        const child = cacheItem.child;
         cacheItem.indexObserver?.deref()?.cleanup();
         cacheItem.child = null;
         cacheItem.indexObserver = null;
-        nodeCacheByElement.delete(cacheItem.item);
-        keysCache.delete(cacheItem.item);
-        cacheItem.item = null;
         if(removeChild) {
             child?.remove();
             cache.delete(cacheItem.keyId);
@@ -77,8 +76,7 @@ export function ForEachArray(data, callback, key, configs = {}) {
         if(cache.has(keyId)) {
             const cacheItem = cache.get(keyId);
             cacheItem.indexObserver?.deref()?.set(indexKey);
-            cacheItem.isNew = false;
-            const child = cacheItem.child?.deref();
+            const child = cacheItem.child;
             if(child) {
                 return child;
             }
@@ -90,27 +88,22 @@ export function ForEachArray(data, callback, key, configs = {}) {
             let child = ElementCreator.getChild(callback(item, indexObserver));
             cache.set(keyId, {
                 keyId,
-                isNew: true,
-                item,
-                child: new WeakRef(child),
+                child: child,
                 indexObserver: (indexObserver ? new WeakRef(indexObserver) : null)
             });
             keysCache.set(item, keyId);
-            if(Validator.isObject(item)) {
-                nodeCacheByElement.set(item, child);
-            }
             return child;
         } catch (e) {
             DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
             throw e;
         }
     };
-    const getChildByKey = function(keyId, fragment) {
+    const getChildByKey = function(keyId) {
         const cacheItem = cache.get(keyId);
         if(!cacheItem) {
             return null;
         }
-        const child = cacheItem.child?.deref();
+        const child = cacheItem.child;
         if(!child) {
             removeCacheItem(cacheItem, false);
             return null;
@@ -123,7 +116,7 @@ export function ForEachArray(data, callback, key, configs = {}) {
         if(!cacheItem) {
             return null;
         }
-        const child = cacheItem.child?.deref();
+        const child = cacheItem.child;
         if(!child) {
             return null;
         }
@@ -157,7 +150,7 @@ export function ForEachArray(data, callback, key, configs = {}) {
             let child = null;
             const fragment = document.createDocumentFragment();
             for(const item of items) {
-                child = nodeCacheByElement.get(item);
+                child = getItemChild(item);
                 if(child) {
                     fragment.appendChild(child);
                 }
@@ -166,11 +159,9 @@ export function ForEachArray(data, callback, key, configs = {}) {
             element.appendElement(fragment, blockEnd);
         },
         removeOne(element, index) {
-            let child = nodeCacheByElement.get(element);
+            let child = getItemChild(element);
             if(child) {
-                child.remove();
-                nodeCacheByElement.delete(element);
-                removeCacheItemByKey(getItemKey(element, index));
+                removeCacheItemByKey(getItemKey(element, index), true);
             }
             child = null;
         },
@@ -246,8 +237,8 @@ export function ForEachArray(data, callback, key, configs = {}) {
         swap(args, elements) {
             const parent = blockEnd.parentNode;
 
-            let childA = nodeCacheByElement.get(elements[0]);
-            let childB = nodeCacheByElement.get(elements[1]);
+            let childA = getItemChild(elements[0]);
+            let childB = getItemChild(elements[1]);
             if(!childA || !childB) {
                 return;
             }
