@@ -36,6 +36,7 @@ console.log(name.val()); // "BOB"
 ```
 
 ## Listening to Changes
+The `.subscribe()` method allows you to listen to every change in an observable. The callback receives both the new value and the previous value.
 
 ```javascript
 const counter = Observable(0);
@@ -48,6 +49,72 @@ counter.subscribe(newValue => {
 // Function will be called on every change
 counter.set(1); // Logs: "Counter is now: 1"
 counter.set(2); // Logs: "Counter is now: 2"
+```
+
+## Value-Specific Watchers with .on()
+
+The `.on()` method allows you to watch for specific values in an observable. The callback is triggered twice: once with `true` when the value is reached, and once with `false` when the value changes to something else.
+
+```javascript
+const status = Observable("idle");
+
+// Watch for specific value - callback called twice:
+// - once with true when value is reached
+// - once with false when value changes away
+status.on("loading", (isActive) => {
+  console.log(`Loading state: ${isActive}`);
+});
+
+status.on("success", (isActive) => {
+  console.log(`Success state: ${isActive}`);
+});
+
+// Test the watchers
+status.set("loading"); // Logs: "Loading state: true"
+status.set("success"); // Logs: "Loading state: false", "Success state: true"
+status.set("idle");    // Logs: "Success state: false"
+```
+
+**Key Features:**
+- Works with all value types (string, number, boolean...)
+- Can use an observable as callback (will be set to true/false automatically)
+- Returns an unsubscribe function for cleanup
+- More efficient than `.subscribe()` when only watching specific values
+
+**Comparison with .subscribe():**
+- `.subscribe()`: called on EVERY change with old/new values
+- `.on()`: called when **entering** a specific value (true) and when **leaving** it (false)
+
+## .on() vs .subscribe() Comparison
+
+| Aspect | `.on(value, callback)` | `.subscribe(callback)` |
+|--------|------------------------|------------------------|
+| **When Called** | Only when entering/leaving specific values | On every value change |
+| **Callback Signature** | `(isActive: boolean) => void` | `(newValue, oldValue) => void` |
+| **Performance** | ✅ Efficient with many watchers | ❌ Slow with many subscribers |
+| **Use Case** | Watching specific states/values | General change detection |
+| **Example** | `status.on("loading", show => ...)` | `status.subscribe((new, old) => ...)` |
+
+### Performance Impact Example
+
+```javascript
+const status = Observable("idle");
+
+// Scenario: 1000 components, each watching different states
+
+// ❌ .subscribe() - ALL 1000 callbacks run on EVERY change
+for (let i = 0; i < 1000; i++) {
+  status.subscribe(value => {
+    if (value === `state-${i}`) updateComponent(i); // Only 1 cares, all 1000 run
+  });
+}
+
+// ✅ .on() - Only relevant callback runs
+for (let i = 0; i < 1000; i++) {
+  status.on(`state-${i}`, (isActive) => {
+    if (isActive) updateComponent(i); // Only this one runs
+  });
+}
 ```
 
 ## Observable Objects vs Simple Objects
