@@ -2,6 +2,7 @@ import DebugManager from "../utils/debug-manager";
 import MemoryManager from "./MemoryManager";
 import NativeDocumentError from "../errors/NativeDocumentError";
 import ObservableChecker from "./ObservableChecker";
+import Validator from "../utils/validator";
 
 /**
  *
@@ -56,12 +57,12 @@ ObservableItem.prototype.triggerWatchers = function() {
 
     if($watchers.has($currentValue)) {
         $watchers.get($currentValue).forEach(callback => {
-            callback(true);
+            callback.set ? callback.set(true) : callback(true);
         });
     }
     if($watchers.has($previousValue)) {
         $watchers.get($previousValue).forEach(callback => {
-            callback(false);
+            callback.set ? callback.set(false) : callback(false);
         });
     }
 };
