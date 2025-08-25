@@ -331,7 +331,7 @@ var NativeDocument = (function (exports) {
     };
     ObservableItem.prototype.get = ObservableItem.prototype.check;
 
-    ObservableItem.prototype.is = function(value) {
+    ObservableItem.prototype.when = function(value) {
         return {$target: value, $observer: this};
     };
 

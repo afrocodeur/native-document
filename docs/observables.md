@@ -116,6 +116,56 @@ for (let i = 0; i < 1000; i++) {
   });
 }
 ```
+## Observable .when() Method
+
+The `.when()` method creates a transitive object that passes the observable and target value without creating additional observables. It's memory-efficient for conditional operations like CSS class binding.
+
+## Syntax
+
+```javascript
+observable.when(targetValue)
+```
+
+Returns an object with `{$target: targetValue, $observer: observable}` that can be used with conditional operations.
+### Primary Use Case: CSS Class Binding
+
+```javascript
+const status = Observable("loading");
+
+// Memory-efficient conditional class binding
+const element = Div({
+  class: {
+    "spinner": status.when("loading"),
+    "success": status.when("success"), 
+    "error": status.when("error")
+  }
+});
+
+// The class binding system recognizes the .when() pattern:
+// - Checks if status.val() === "loading" 
+// - Toggles 'spinner' class accordingly
+// - Uses status.on("loading", callback) internally for efficiency
+```
+
+### Benefits
+
+- **Zero memory overhead**: No new observables created
+- **Optimized for class binding**: Works seamlessly with NativeDocument's class system
+- **Simple API**: Just pass the value to watch for
+
+### Implementation Note
+
+The `.when()` method simply returns a plain object that other parts of the framework (like class binding) can recognize and handle efficiently using the `.on()` method internally.
+
+## Method Comparison
+
+| Method | Memory Impact                         | Use Case | Return Value                |
+|--------|---------------------------------------|----------|-----------------------------|
+| `.when(value)` | ✅ Zero - transitive object            | CSS classes, conditional checks | `{$target, $observer}`      |
+| `.on(value, callback)` | ✅ Minimal - single listener per value | Specific value watching | Unsubscribe function        |
+| `.check(callback)` | ❌ Creates new Observable Checker      | Complex conditions | Observable Checker instance |
+| `.subscribe(callback)` | ❌ Creates listener for all changes    | General change detection | Unsubscribe function        |
+
 
 ## Observable Objects vs Simple Objects
 
