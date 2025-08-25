@@ -331,6 +331,10 @@ var NativeDocument = (function (exports) {
     };
     ObservableItem.prototype.get = ObservableItem.prototype.check;
 
+    ObservableItem.prototype.is = function(value) {
+        return {$target: value, $observer: this};
+    };
+
     ObservableItem.prototype.toString = function() {
         if(!this.$memoryId) {
             MemoryManager.register(this);
@@ -887,6 +891,13 @@ var NativeDocument = (function (exports) {
                 value.subscribe(newValue => element.classList.toggle(className, newValue));
                 continue;
             }
+            if(value.$observer) {
+                element.classList.toggle(className, value.$observer.val());
+                value.$observer.on(value.$target, function(isTargetValue) {
+                    element.classList.toggle(className, isTargetValue);
+                });
+                continue;
+            }
             element.classList.toggle(className, value);
         }
     }
@@ -983,8 +994,8 @@ var NativeDocument = (function (exports) {
         for(let key in attributes) {
             const attributeName = key.toLowerCase();
             let value = attributes[attributeName];
-            if(Validator.isString(value) && Validator.isFunction(value.resolveObservableTemplate)) {
-                value = value.resolveObservableTemplate();
+            if(Validator.isString(value)) {
+                value = value.resolveObservableTemplate ? value.resolveObservableTemplate() : value;
                 if(Validator.isString(value)) {
                     element.setAttribute(attributeName, value);
                     continue;
@@ -1087,14 +1098,20 @@ var NativeDocument = (function (exports) {
             if(child === null) {
                 return null;
             }
-            if(Validator.isString(child) && Validator.isFunction(child.resolveObservableTemplate)) {
-                child = child.resolveObservableTemplate();
-            }
             if(Validator.isString(child)) {
-                return ElementCreator.createStaticTextNode(null, child);
+                child = child.resolveObservableTemplate ? child.resolveObservableTemplate() : child;
+                if(Validator.isString(child)) {
+                    return ElementCreator.createStaticTextNode(null, child);
+                }
+            }
+            if (Validator.isElement(child)) {
+                return child;
             }
             if (Validator.isObservable(child)) {
                 return ElementCreator.createObservableNode(null, child);
+            }
+            if(Validator.isNDElement(child)) {
+                return child.$element ?? child.$build?.() ?? null;
             }
             if(Validator.isArray(child)) {
                 const fragment = document.createDocumentFragment();
@@ -1105,12 +1122,6 @@ var NativeDocument = (function (exports) {
             }
             if(Validator.isFunction(child)) {
                 return this.getChild(child());
-            }
-            if (Validator.isElement(child)) {
-                return child;
-            }
-            if(Validator.isNDElement(child)) {
-                return child.$element ?? child.$build?.() ?? null;
             }
             return ElementCreator.createStaticTextNode(null, child);
         },
@@ -1899,8 +1910,9 @@ var NativeDocument = (function (exports) {
                 return fragment;
             },
             add(items, delay = 0) {
+                const fragment = Actions.toFragment(items);
                 setTimeout(() => {
-                    element.appendElement(Actions.toFragment(items));
+                    element.appendElement(fragment);
                 }, delay);
             },
             replace(items) {
@@ -2013,26 +2025,23 @@ var NativeDocument = (function (exports) {
         };
 
         const buildContent = (items, _, operations) => {
-            if(operations?.action === 'populate') {
-                Actions.populate(operations.args, operations.result);
-            } else  {
-                if(operations.action === 'clear' || !items.length) {
-                    if(lastNumberOfItems === 0) {
-                        return;
-                    }
-                    clear();
+            if(operations.action === 'clear' || !items.length) {
+                if(lastNumberOfItems === 0) {
+                    return;
                 }
+                clear();
+                return;
+            }
 
-                if(!operations?.action) {
-                    if(lastNumberOfItems === 0) {
-                        Actions.add(items);
-                        return;
-                    }
-                    Actions.replace(items);
+            if(!operations?.action) {
+                if(lastNumberOfItems === 0) {
+                    Actions.add(items);
+                    return;
                 }
-                else if(Actions[operations.action]) {
-                    Actions[operations.action](operations.args, operations.result);
-                }
+                Actions.replace(items);
+            }
+            else if(Actions[operations.action]) {
+                Actions[operations.action](operations.args, operations.result);
             }
 
             updateIndexObservers(items, 0);
