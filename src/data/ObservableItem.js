@@ -194,7 +194,7 @@ ObservableItem.prototype.check = function(callback) {
 };
 ObservableItem.prototype.get = ObservableItem.prototype.check;
 
-ObservableItem.prototype.is = function(value) {
+ObservableItem.prototype.when = function(value) {
     return {$target: value, $observer: this};
 };
 
