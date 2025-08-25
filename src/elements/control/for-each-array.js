@@ -139,8 +139,9 @@ export function ForEachArray(data, callback, key, configs = {}) {
             return fragment;
         },
         add(items, delay = 0) {
+            const fragment = Actions.toFragment(items);
             setTimeout(() => {
-                element.appendElement(Actions.toFragment(items))
+                element.appendElement(fragment);
             }, delay);
         },
         replace(items) {
@@ -253,26 +254,23 @@ export function ForEachArray(data, callback, key, configs = {}) {
     };
 
     const buildContent = (items, _, operations) => {
-        if(operations?.action === 'populate') {
-            Actions.populate(operations.args, operations.result);
-        } else  {
-            if(operations.action === 'clear' || !items.length) {
-                if(lastNumberOfItems === 0) {
-                    return;
-                }
-                clear();
+        if(operations.action === 'clear' || !items.length) {
+            if(lastNumberOfItems === 0) {
+                return;
             }
+            clear();
+            return;
+        }
 
-            if(!operations?.action) {
-                if(lastNumberOfItems === 0) {
-                    Actions.add(items);
-                    return;
-                }
-                Actions.replace(items);
+        if(!operations?.action) {
+            if(lastNumberOfItems === 0) {
+                Actions.add(items);
+                return;
             }
-            else if(Actions[operations.action]) {
-                Actions[operations.action](operations.args, operations.result);
-            }
+            Actions.replace(items);
+        }
+        else if(Actions[operations.action]) {
+            Actions[operations.action](operations.args, operations.result);
         }
 
         updateIndexObservers(items, 0);
