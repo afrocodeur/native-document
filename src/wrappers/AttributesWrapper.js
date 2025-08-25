@@ -16,6 +16,13 @@ function bindClassAttribute(element, data) {
             value.subscribe(newValue => element.classList.toggle(className, newValue));
             continue;
         }
+        if(value.$observer) {
+            element.classList.toggle(className, value.$observer.val());
+            value.$observer.on(value.$target, function(isTargetValue) {
+                element.classList.toggle(className, isTargetValue)
+            });
+            continue;
+        }
         element.classList.toggle(className, value)
     }
 }
@@ -112,22 +119,16 @@ export default function AttributesWrapper(element, attributes) {
     for(let key in attributes) {
         const attributeName = key.toLowerCase();
         let value = attributes[attributeName];
-        if(Validator.isString(value) && Validator.isFunction(value.resolveObservableTemplate)) {
-            value = value.resolveObservableTemplate();
-            if(Validator.isArray(value)) {
-                const observables = value.filter(item => Validator.isObservable(item));
-                value = Observable.computed(() => {
-                    return value.map(item => Validator.isObservable(item) ? item.val() : item).join(' ') || ' ';
-                }, observables);
+        if(Validator.isString(value)) {
+            value = value.resolveObservableTemplate ? value.resolveObservableTemplate() : value;
+            if(Validator.isString(value)) {
+                element.setAttribute(attributeName, value);
+                continue;
             }
-        }
-        if(BOOLEAN_ATTRIBUTES.includes(attributeName)) {
-            bindBooleanAttribute(element, attributeName, value);
-            continue;
-        }
-        if(Validator.isObservable(value)) {
-            bindAttributeWithObservable(element, attributeName, value);
-            continue;
+            const observables = value.filter(item => Validator.isObservable(item));
+            value = Observable.computed(() => {
+                return value.map(item => Validator.isObservable(item) ? item.val() : item).join(' ') || ' ';
+            }, observables);
         }
         if(attributeName === 'class' && Validator.isJson(value)) {
             bindClassAttribute(element, value);
@@ -135,6 +136,14 @@ export default function AttributesWrapper(element, attributes) {
         }
         if(attributeName === 'style' && Validator.isJson(value)) {
             bindStyleAttribute(element, value);
+            continue;
+        }
+        if(BOOLEAN_ATTRIBUTES.includes(attributeName)) {
+            bindBooleanAttribute(element, attributeName, value);
+            continue;
+        }
+        if(Validator.isObservable(value)) {
+            bindAttributeWithObservable(element, attributeName, value);
             continue;
         }
         element.setAttribute(attributeName, value);

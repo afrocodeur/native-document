@@ -12,6 +12,7 @@ export function ForEachArray(data, callback, key, configs = {}) {
 
     let cache = new Map();
     let lastNumberOfItems = 0;
+    const isIndexRequired = callback.length >= 2;
 
     const keysCache = new WeakMap();
 
@@ -31,7 +32,7 @@ export function ForEachArray(data, callback, key, configs = {}) {
     };
 
     const updateIndexObservers = (items, startFrom = 0) => {
-        if(callback.length < 2) {
+        if(!isIndexRequired) {
             return;
         }
         let index = startFrom;
@@ -84,7 +85,7 @@ export function ForEachArray(data, callback, key, configs = {}) {
         }
 
         try {
-            const indexObserver = callback.length >= 2 ? Observable(indexKey) : null;
+            const indexObserver = isIndexRequired ? Observable(indexKey) : null;
             let child = ElementCreator.getChild(callback(item, indexObserver));
             cache.set(keyId, {
                 keyId,

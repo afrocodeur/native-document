@@ -194,6 +194,10 @@ ObservableItem.prototype.check = function(callback) {
 };
 ObservableItem.prototype.get = ObservableItem.prototype.check;
 
+ObservableItem.prototype.is = function(value) {
+    return {$target: value, $observer: this};
+};
+
 ObservableItem.prototype.toString = function() {
     if(!this.$memoryId) {
         MemoryManager.register(this);

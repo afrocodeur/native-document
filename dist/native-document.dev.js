@@ -985,20 +985,14 @@ var NativeDocument = (function (exports) {
             let value = attributes[attributeName];
             if(Validator.isString(value) && Validator.isFunction(value.resolveObservableTemplate)) {
                 value = value.resolveObservableTemplate();
-                if(Validator.isArray(value)) {
-                    const observables = value.filter(item => Validator.isObservable(item));
-                    value = Observable.computed(() => {
-                        return value.map(item => Validator.isObservable(item) ? item.val() : item).join(' ') || ' ';
-                    }, observables);
+                if(Validator.isString(value)) {
+                    element.setAttribute(attributeName, value);
+                    continue;
                 }
-            }
-            if(BOOLEAN_ATTRIBUTES.includes(attributeName)) {
-                bindBooleanAttribute(element, attributeName, value);
-                continue;
-            }
-            if(Validator.isObservable(value)) {
-                bindAttributeWithObservable(element, attributeName, value);
-                continue;
+                const observables = value.filter(item => Validator.isObservable(item));
+                value = Observable.computed(() => {
+                    return value.map(item => Validator.isObservable(item) ? item.val() : item).join(' ') || ' ';
+                }, observables);
             }
             if(attributeName === 'class' && Validator.isJson(value)) {
                 bindClassAttribute(element, value);
@@ -1006,6 +1000,14 @@ var NativeDocument = (function (exports) {
             }
             if(attributeName === 'style' && Validator.isJson(value)) {
                 bindStyleAttribute(element, value);
+                continue;
+            }
+            if(BOOLEAN_ATTRIBUTES.includes(attributeName)) {
+                bindBooleanAttribute(element, attributeName, value);
+                continue;
+            }
+            if(Validator.isObservable(value)) {
+                bindAttributeWithObservable(element, attributeName, value);
                 continue;
             }
             element.setAttribute(attributeName, value);
@@ -1770,6 +1772,7 @@ var NativeDocument = (function (exports) {
 
         let cache = new Map();
         let lastNumberOfItems = 0;
+        const isIndexRequired = callback.length >= 2;
 
         const keysCache = new WeakMap();
 
@@ -1789,7 +1792,7 @@ var NativeDocument = (function (exports) {
         };
 
         const updateIndexObservers = (items, startFrom = 0) => {
-            if(callback.length < 2) {
+            if(!isIndexRequired) {
                 return;
             }
             let index = startFrom;
@@ -1842,7 +1845,7 @@ var NativeDocument = (function (exports) {
             }
 
             try {
-                const indexObserver = callback.length >= 2 ? Observable(indexKey) : null;
+                const indexObserver = isIndexRequired ? Observable(indexKey) : null;
                 let child = ElementCreator.getChild(callback(item, indexObserver));
                 cache.set(keyId, {
                     keyId,

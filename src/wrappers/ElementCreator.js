@@ -73,14 +73,20 @@ export const ElementCreator = {
         if(child === null) {
             return null;
         }
-        if(Validator.isString(child) && Validator.isFunction(child.resolveObservableTemplate)) {
-            child = child.resolveObservableTemplate();
-        }
         if(Validator.isString(child)) {
-            return ElementCreator.createStaticTextNode(null, child);
+            child = child.resolveObservableTemplate ? child.resolveObservableTemplate() : child;
+            if(Validator.isString(child)) {
+                return ElementCreator.createStaticTextNode(null, child);
+            }
+        }
+        if (Validator.isElement(child)) {
+            return child;
         }
         if (Validator.isObservable(child)) {
             return ElementCreator.createObservableNode(null, child);
+        }
+        if(Validator.isNDElement(child)) {
+            return child.$element ?? child.$build?.() ?? null;
         }
         if(Validator.isArray(child)) {
             const fragment = document.createDocumentFragment();
@@ -91,12 +97,6 @@ export const ElementCreator = {
         }
         if(Validator.isFunction(child)) {
             return this.getChild(child());
-        }
-        if (Validator.isElement(child)) {
-            return child;
-        }
-        if(Validator.isNDElement(child)) {
-            return child.$element ?? child.$build?.() ?? null;
         }
         return ElementCreator.createStaticTextNode(null, child);
     },
