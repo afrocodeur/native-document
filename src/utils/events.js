@@ -61,5 +61,20 @@ export const EVENTS = [
   "Suspend",
   "TimeUpdate",
   "VolumeChange",
-  "Waiting"
+  "Waiting",
+
+  "TouchCancel",
+  "TouchEnd",
+  "TouchMove",
+  "TouchStart",
+  "AnimationEnd",
+  "AnimationIteration",
+  "AnimationStart",
+  "TransitionEnd",
+  "Copy",
+  "Cut",
+  "Paste",
+  "FocusIn",
+  "FocusOut",
+  "ContextMenu"
 ];

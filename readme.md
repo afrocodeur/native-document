@@ -18,7 +18,7 @@ NativeDocument combines the familiarity of vanilla JavaScript with the power of 
 
 ### **Familiar API**
 ```javascript
-import { Div, Button, Observable } from 'native-document/src/elements';
+import { Div, Button } from 'native-document/src/elements';
 import { Observable } from 'native-document';
 
 // CDN
@@ -50,7 +50,8 @@ document.body.appendChild(App);
 ```html
 <script src="https://cdn.jsdelivr.net/gh/afrocodeur/native-document@latest/dist/native-document.min.js"></script>
 <script>
-  const { Div, Observable } = NativeDocument.elements
+  const { Div } = NativeDocument.elements
+  const { Observable } = NativeDocument
   // Your code here
 </script>
 ```

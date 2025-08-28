@@ -505,7 +505,22 @@ var NativeDocument = (function (exports) {
       "Suspend",
       "TimeUpdate",
       "VolumeChange",
-      "Waiting"
+      "Waiting",
+
+      "TouchCancel",
+      "TouchEnd",
+      "TouchMove",
+      "TouchStart",
+      "AnimationEnd",
+      "AnimationIteration",
+      "AnimationStart",
+      "TransitionEnd",
+      "Copy",
+      "Cut",
+      "Paste",
+      "FocusIn",
+      "FocusOut",
+      "ContextMenu"
     ];
 
     function NDElement(element) {
@@ -523,14 +538,14 @@ var NativeDocument = (function (exports) {
         NDElement.prototype['onPrevent'+event] = function(callback) {
             this.$element.addEventListener(eventName, function(event) {
                 event.preventDefault();
-                callback(event);
+                callback && callback(event);
             });
             return this;
         };
         NDElement.prototype['onStop'+event] = function(callback) {
             this.$element.addEventListener(eventName, function(event) {
                 event.stopPropagation();
-                callback(event);
+                callback && callback(event);
             });
             return this;
         };
@@ -538,7 +553,7 @@ var NativeDocument = (function (exports) {
             this.$element.addEventListener(eventName, function(event) {
                 event.stopPropagation();
                 event.preventDefault();
-                callback(event);
+                callback && callback(event);
             });
             return this;
         };

@@ -16,14 +16,14 @@ for(const event of EVENTS) {
     NDElement.prototype['onPrevent'+event] = function(callback) {
         this.$element.addEventListener(eventName, function(event) {
             event.preventDefault();
-            callback(event);
+            callback && callback(event);
         });
         return this;
     };
     NDElement.prototype['onStop'+event] = function(callback) {
         this.$element.addEventListener(eventName, function(event) {
             event.stopPropagation();
-            callback(event);
+            callback && callback(event);
         });
         return this;
     };
@@ -31,7 +31,7 @@ for(const event of EVENTS) {
         this.$element.addEventListener(eventName, function(event) {
             event.stopPropagation();
             event.preventDefault();
-            callback(event);
+            callback && callback(event);
         });
         return this;
     };
