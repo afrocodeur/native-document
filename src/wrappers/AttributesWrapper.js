@@ -17,7 +17,7 @@ function bindClassAttribute(element, data) {
             continue;
         }
         if(value.$observer) {
-            element.classList.toggle(className, value.$observer.val());
+            element.classList.toggle(className, value.$observer.val() === value.$target);
             value.$observer.on(value.$target, function(isTargetValue) {
                 element.classList.toggle(className, isTargetValue)
             });
