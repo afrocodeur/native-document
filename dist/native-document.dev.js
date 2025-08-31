@@ -1392,6 +1392,15 @@ var NativeDocument = (function (exports) {
         };
     };
 
+    const normalizeComponentArgs = function(props, children) {
+        if(!Validator.isJson(children)) {
+            const temp = props;
+            props = children;
+            children = temp;
+        }
+        return { props, children };
+    };
+
     Function.prototype.args = function(...args) {
         return withValidation(this, args);
     };
@@ -1431,6 +1440,48 @@ var NativeDocument = (function (exports) {
             const [_, id] = value.match(/\{\{#ObItem::\(([0-9]+)\)\}\}/);
             return Observable.getById(id);
         });
+    };
+
+    const cssPropertyAccumulator = function(initialValue = {}) {
+        let data = Validator.isString(initialValue) ? initialValue.split(';').filter(Boolean) : initialValue;
+        const isArray = Validator.isArray(data);
+
+        return {
+            add(key, value) {
+                if(isArray) {
+                    data.push(key+' :  '+value);
+                    return;
+                }
+                data[key] = value;
+            },
+            value() {
+                if(isArray) {
+                    return data.join(';').concat(';');
+                }
+                return { ...data };
+            },
+        };
+    };
+
+    const classPropertyAccumulator = function(initialValue = []) {
+        let data = Validator.isString(initialValue) ? initialValue.split(" ").filter(Boolean) : initialValue;
+        const isArray = Validator.isArray(data);
+
+        return {
+            add(key, value = true) {
+                if(isArray) {
+                    data.push(key);
+                    return;
+                }
+                data[key] = value;
+            },
+            value() {
+                if(isArray) {
+                    return data.join(' ');
+                }
+                return { ...data };
+            },
+        };
     };
 
     const methods = ['push', 'pop', 'shift', 'unshift', 'reverse', 'sort', 'splice'];
@@ -3331,7 +3382,10 @@ var NativeDocument = (function (exports) {
     exports.NDElement = NDElement;
     exports.Observable = Observable;
     exports.Store = Store;
+    exports.classPropertyAccumulator = classPropertyAccumulator;
+    exports.cssPropertyAccumulator = cssPropertyAccumulator;
     exports.elements = elements;
+    exports.normalizeComponentArgs = normalizeComponentArgs;
     exports.router = router;
     exports.withValidation = withValidation;
 

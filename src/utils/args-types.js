@@ -98,3 +98,12 @@ export const withValidation = (fn, argSchema, fnName = 'Function') => {
         return fn.apply(this, args);
     };
 };
+
+export const normalizeComponentArgs = function(props, children) {
+    if(!Validator.isJson(children)) {
+        const temp = props;
+        props = children;
+        children = temp;
+    }
+    return { props, children };
+}

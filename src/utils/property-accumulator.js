@@ -1,7 +1,7 @@
 import Validator from "./validator";
 
-export const CssPropertyAccumulator = function(initialValue) {
-    let data = Validator.isString(initialValue) ? initialValue.split(';') : initialValue;
+export const cssPropertyAccumulator = function(initialValue = {}) {
+    let data = Validator.isString(initialValue) ? initialValue.split(';').filter(Boolean) : initialValue;
     const isArray = Validator.isArray(data);
 
     return {
@@ -14,19 +14,19 @@ export const CssPropertyAccumulator = function(initialValue) {
         },
         value() {
             if(isArray) {
-                return data.join(';');
+                return data.join(';').concat(';');
             }
             return { ...data };
         },
     };
 }
 
-export const ClassPropertyAccumulator = function(initialValue = []) {
-    let data = Validator.isString(initialValue) ? initialValue.split(" ") : initialValue;
+export const classPropertyAccumulator = function(initialValue = []) {
+    let data = Validator.isString(initialValue) ? initialValue.split(" ").filter(Boolean) : initialValue;
     const isArray = Validator.isArray(data);
 
     return {
-        push(key, value = true) {
+        add(key, value = true) {
             if(isArray) {
                 data.push(key);
                 return;

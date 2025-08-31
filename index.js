@@ -4,6 +4,7 @@ export { NDElement } from './src/wrappers/NDElement'
 
 import './src/utils/prototypes.js';
 
+export * from './src/utils/property-accumulator';
 export * from './src/utils/plugins-manager';
 export * from './src/utils/args-types';
 export * from './src/utils/validator'
