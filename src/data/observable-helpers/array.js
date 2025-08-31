@@ -1,5 +1,6 @@
 import NativeDocumentError from "../../errors/NativeDocumentError";
 import {Observable} from "../Observable";
+import PluginsManager from "../../utils/plugins-manager";
 
 
 const methods = ['push', 'pop', 'shift', 'unshift', 'reverse', 'sort', 'splice'];
@@ -14,6 +15,8 @@ Observable.array = function(target) {
         throw new NativeDocumentError('Observable.array : target must be an array');
     }
     const observer = Observable(target);
+
+    PluginsManager.emit('CreateObservableArray', observer);
 
     methods.forEach((method) => {
         observer[method] = function(...values) {

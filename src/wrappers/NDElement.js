@@ -1,9 +1,11 @@
 import DocumentObserver from "./DocumentObserver";
 import { EVENTS } from "../utils/events";
+import PluginsManager from "../utils/plugins-manager";
 
 export function NDElement(element) {
     this.$element = element;
     this.$observer = null;
+    PluginsManager.emit('NDElementCreated', element, this);
 }
 NDElement.prototype.__$isNDElement = true;
 

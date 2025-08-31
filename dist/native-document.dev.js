@@ -141,6 +141,76 @@ var NativeDocument = (function (exports) {
         return this.observable.cleanup();
     };
 
+    const PluginsManager = (function() {
+
+        const $plugins = new Map();
+        const $pluginByEvents = new Map();
+
+        return {
+            list() {
+                return $pluginByEvents;
+            },
+            add(name, plugin){
+                if (!plugin || typeof plugin !== 'object') {
+                    throw new Error(`Plugin ${name} must be an object`);
+                }
+                if($plugins.has(name)) {
+                    return;
+                }
+
+                plugin.$name = name;
+                $plugins.set(name ,plugin);
+                if(typeof plugin?.init === 'function') {
+                    plugin.init();
+                }
+                for(const methodName in plugin) {
+                    if(/^on[A-Z]/.test(methodName)) {
+                        if(!$pluginByEvents.has(methodName)) {
+                            $pluginByEvents.set(methodName, new Set());
+                        }
+                        $pluginByEvents.get(methodName).add(plugin);
+                    }
+                }
+            },
+            remove(pluginName){
+                if(!$plugins.has(pluginName)) {
+                    return;
+                }
+                const plugin = $plugins.get(pluginName);
+                if(typeof plugin.cleanup === 'function') {
+                    plugin.cleanup();
+                }
+                for(const [name, sets] of $pluginByEvents.entries() ) {
+                    if(sets.has(plugin)) {
+                        sets.delete(plugin);
+                    }
+                    if(sets.size === 0) {
+                        $pluginByEvents.delete(name);
+                    }
+                }
+                $plugins.delete(pluginName);
+            },
+            emit(event, ...data) {
+                const eventMethodName = 'on'+event;
+                if(!$pluginByEvents.has(eventMethodName)) {
+                    return;
+                }
+                const plugins = $pluginByEvents.get(eventMethodName);
+
+                for(const plugin of plugins) {
+                    const callback = plugin[eventMethodName];
+                    if(typeof callback === 'function') {
+                        try{
+                            callback.call(plugin, ...data);
+                        } catch (error) {
+                            DebugManager$1.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventMethodName}`, error);
+                        }
+                    }
+                }
+            }
+        };
+    }());
+
     /**
      *
      * @param {*} value
@@ -155,6 +225,7 @@ var NativeDocument = (function (exports) {
         this.$watchers = null;
 
         this.$memoryId = null;
+        PluginsManager.emit('CreateObservable', this);
     }
 
     Object.defineProperty(ObservableItem.prototype, '$value', {
@@ -236,7 +307,9 @@ var NativeDocument = (function (exports) {
         }
         this.$previousValue = this.$currentValue;
         this.$currentValue = newValue;
+        PluginsManager.emit('ObservableBeforeChange', this);
         this.trigger();
+        PluginsManager.emit('ObservableAfterChange', this);
     };
 
     ObservableItem.prototype.val = function() {
@@ -257,6 +330,7 @@ var NativeDocument = (function (exports) {
         this.$watchers = null;
         this.trigger = noneTrigger;
     };
+
     ObservableItem.prototype.cleanup = function() {
         MemoryManager.unregister(this.$memoryId);
         this.disconnectAll();
@@ -267,9 +341,10 @@ var NativeDocument = (function (exports) {
     /**
      *
      * @param {Function} callback
+     * @param {any} target
      * @returns {(function(): void)}
      */
-    ObservableItem.prototype.subscribe = function(callback) {
+    ObservableItem.prototype.subscribe = function(callback, target = null) {
         this.$listeners = this.$listeners ?? [];
         if (this.$isCleanedUp) {
             DebugManager$1.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
@@ -281,9 +356,11 @@ var NativeDocument = (function (exports) {
 
         this.$listeners.push(callback);
         this.assocTrigger();
+        PluginsManager.emit('ObservableSubscribe', this, target);
         return () => {
             this.unsubscribe(callback);
             this.assocTrigger();
+            PluginsManager.emit('ObservableUnsubscribe', this);
         };
     };
 
@@ -526,6 +603,7 @@ var NativeDocument = (function (exports) {
     function NDElement(element) {
         this.$element = element;
         this.$observer = null;
+        PluginsManager.emit('NDElementCreated', element, this);
     }
     NDElement.prototype.__$isNDElement = true;
 
@@ -907,7 +985,7 @@ var NativeDocument = (function (exports) {
                 continue;
             }
             if(value.$observer) {
-                element.classList.toggle(className, value.$observer.val());
+                element.classList.toggle(className, value.$observer.val() === value.$target);
                 value.$observer.on(value.$target, function(isTargetValue) {
                     element.classList.toggle(className, isTargetValue);
                 });
@@ -1103,11 +1181,15 @@ var NativeDocument = (function (exports) {
             if(children === null) return;
             const childrenArray = Array.isArray(children) ? children : [children];
 
+            PluginsManager.emit('BeforeProcessChildren', parent);
+
             for(let i = 0, length = childrenArray.length; i < length; i++) {
                 let child = this.getChild(childrenArray[i]);
                 if (child === null) continue;
                 parent.appendChild(child);
             }
+
+            PluginsManager.emit('AfterProcessChildren', parent);
         },
         getChild(child) {
             if(child === null) {
@@ -1136,6 +1218,7 @@ var NativeDocument = (function (exports) {
                 return fragment;
             }
             if(Validator.isFunction(child)) {
+                PluginsManager.emit('BeforeProcessComponent', child);
                 return this.getChild(child());
             }
             return ElementCreator.createStaticTextNode(null, child);
@@ -1159,6 +1242,7 @@ var NativeDocument = (function (exports) {
          * @returns {HTMLElement|DocumentFragment}
          */
         setup(element, attributes, customWrapper) {
+            PluginsManager.emit('Setup', element, attributes, customWrapper);
             return element;
         }
     };
@@ -1361,6 +1445,8 @@ var NativeDocument = (function (exports) {
             throw new NativeDocumentError('Observable.array : target must be an array');
         }
         const observer = Observable(target);
+
+        PluginsManager.emit('CreateObservableArray', observer);
 
         methods.forEach((method) => {
             observer[method] = function(...values) {
@@ -1566,6 +1652,8 @@ var NativeDocument = (function (exports) {
         const initialValue = callback();
         const observable = new ObservableItem(initialValue);
         const updatedValue = () => observable.set(callback());
+
+        PluginsManager.emit('CreateObservableComputed', observable, dependencies);
 
         if(Validator.isFunction(dependencies)) {
             if(!Validator.isObservable(dependencies.$observer)) {

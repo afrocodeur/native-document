@@ -1,6 +1,7 @@
 import Anchor from "../elements/anchor";
 import Validator from "../utils/validator";
 import AttributesWrapper from "./AttributesWrapper";
+import PluginsManager from "../utils/plugins-manager";
 
 const $nodeCache = new Map();
 let $textNodeCache = null;
@@ -63,11 +64,15 @@ export const ElementCreator = {
         if(children === null) return;
         const childrenArray = Array.isArray(children) ? children : [children];
 
+        PluginsManager.emit('BeforeProcessChildren', parent);
+
         for(let i = 0, length = childrenArray.length; i < length; i++) {
             let child = this.getChild(childrenArray[i]);
             if (child === null) continue;
             parent.appendChild(child);
         }
+
+        PluginsManager.emit('AfterProcessChildren', parent);
     },
     getChild(child) {
         if(child === null) {
@@ -96,6 +101,7 @@ export const ElementCreator = {
             return fragment;
         }
         if(Validator.isFunction(child)) {
+            PluginsManager.emit('BeforeProcessComponent', child);
             return this.getChild(child());
         }
         return ElementCreator.createStaticTextNode(null, child);
@@ -119,6 +125,7 @@ export const ElementCreator = {
      * @returns {HTMLElement|DocumentFragment}
      */
     setup(element, attributes, customWrapper) {
+        PluginsManager.emit('Setup', element, attributes, customWrapper);
         return element;
     }
 };

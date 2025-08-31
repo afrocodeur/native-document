@@ -1,6 +1,6 @@
 {
   "name": "native-document",
-  "version": "1.0.28",
+  "version": "1.0.29",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -14,7 +14,6 @@
   "devDependencies": {
     "@rollup/plugin-replace": "^6.0.2",
     "@rollup/plugin-terser": "^0.4.4",
-    "eslint": "^9.33.0",
-    "rollup-plugin-gzip": "^4.1.1"
+    "eslint": "^9.33.0"
   }
 }

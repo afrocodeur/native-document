@@ -2,7 +2,7 @@ import DebugManager from "../utils/debug-manager";
 import MemoryManager from "./MemoryManager";
 import NativeDocumentError from "../errors/NativeDocumentError";
 import ObservableChecker from "./ObservableChecker";
-import Validator from "../utils/validator";
+import PluginsManager from "../utils/plugins-manager";
 
 /**
  *
@@ -18,6 +18,7 @@ export default function ObservableItem(value) {
     this.$watchers = null;
 
     this.$memoryId = null;
+    PluginsManager.emit('CreateObservable', this);
 }
 
 Object.defineProperty(ObservableItem.prototype, '$value', {
@@ -86,7 +87,7 @@ ObservableItem.prototype.assocTrigger = function() {
         return;
     }
     this.trigger = noneTrigger;
-}
+};
 ObservableItem.prototype.trigger = noneTrigger;
 
 /**
@@ -99,7 +100,9 @@ ObservableItem.prototype.set = function(data) {
     }
     this.$previousValue = this.$currentValue;
     this.$currentValue = newValue;
+    PluginsManager.emit('ObservableBeforeChange', this);
     this.trigger();
+    PluginsManager.emit('ObservableAfterChange', this);
 };
 
 ObservableItem.prototype.val = function() {
@@ -119,20 +122,22 @@ ObservableItem.prototype.disconnectAll = function() {
     this.$listeners = null;
     this.$watchers = null;
     this.trigger = noneTrigger;
-}
+};
+
 ObservableItem.prototype.cleanup = function() {
     MemoryManager.unregister(this.$memoryId);
     this.disconnectAll();
     this.$isCleanedUp = true;
     delete this.$value;
-}
+};
 
 /**
  *
  * @param {Function} callback
+ * @param {any} target
  * @returns {(function(): void)}
  */
-ObservableItem.prototype.subscribe = function(callback) {
+ObservableItem.prototype.subscribe = function(callback, target = null) {
     this.$listeners = this.$listeners ?? [];
     if (this.$isCleanedUp) {
         DebugManager.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
@@ -144,9 +149,11 @@ ObservableItem.prototype.subscribe = function(callback) {
 
     this.$listeners.push(callback);
     this.assocTrigger();
+    PluginsManager.emit('ObservableSubscribe', this, target);
     return () => {
         this.unsubscribe(callback);
         this.assocTrigger();
+        PluginsManager.emit('ObservableUnsubscribe', this);
     };
 };
 
@@ -203,4 +210,4 @@ ObservableItem.prototype.toString = function() {
         MemoryManager.register(this);
     }
     return '{{#ObItem::(' +this.$memoryId+ ')}}';
-}
+};

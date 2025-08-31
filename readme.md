@@ -13,7 +13,7 @@ NativeDocument combines the familiarity of vanilla JavaScript with the power of 
 
 ### **Instant Start**
 ```html
-<script src="https://cdn.jsdelivr.net/gh/afrocodeur/native-document@latest/dist/native-document.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/afrocodeur/native-document/dist/native-document.min.js"></script>
 ```
 
 ### **Familiar API**
@@ -48,7 +48,7 @@ document.body.appendChild(App);
 
 ### Option 1: CDN (Instant Start)
 ```html
-<script src="https://cdn.jsdelivr.net/gh/afrocodeur/native-document@latest/dist/native-document.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/afrocodeur/native-document/dist/native-document.min.js"></script>
 <script>
   const { Div } = NativeDocument.elements
   const { Observable } = NativeDocument

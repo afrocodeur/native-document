@@ -6,6 +6,7 @@ export * from './types/images';
 export * from './types/control-flow';
 export * from './types/router';
 export * from './types/store';
+export * from './types/plugins-manager';
 
 // Main static exports
 import { ObservableStatic } from './types/observable';
