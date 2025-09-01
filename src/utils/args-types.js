@@ -99,11 +99,11 @@ export const withValidation = (fn, argSchema, fnName = 'Function') => {
     };
 };
 
-export const normalizeComponentArgs = function(props, children) {
-    if(!Validator.isJson(children)) {
-        const temp = props;
-        props = children;
-        children = temp;
+export const normalizeComponentArgs = function(props, children = null) {
+    if(!Validator.isJson(props)) {
+        const temp = children;
+        children = props;
+        props = temp;
     }
     return { props, children };
 }

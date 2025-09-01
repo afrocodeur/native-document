@@ -2,6 +2,7 @@ import Validator from "../utils/validator";
 import DebugManager from "../utils/debug-manager";
 import {ElementCreator} from "./ElementCreator";
 import './NdPrototype';
+import {normalizeComponentArgs} from "../utils/args-types";
 
 /**
  *
@@ -24,13 +25,9 @@ export const createTextNode = function(value) {
 export default function HtmlElementWrapper(name, customWrapper) {
     const $tagName = name.toLowerCase();
 
-    return function(attributes, children = null) {
+    return function(_attributes, _children = null) {
         try {
-            if(!Validator.isJson(attributes)) {
-                const tempChildren = children;
-                children = attributes;
-                attributes = tempChildren;
-            }
+            const { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
             const element = ElementCreator.createElement($tagName);
             const finalElement = (typeof customWrapper === 'function') ? customWrapper(element) : element;
 

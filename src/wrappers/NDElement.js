@@ -39,6 +39,10 @@ for(const event of EVENTS) {
     };
 }
 
+NDElement.prototype.valueOf = function() {
+    return this.$element;
+};
+
 NDElement.prototype.ref = function(target, name) {
     target[name] = this.$element;
     return this;

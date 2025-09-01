@@ -637,6 +637,10 @@ var NativeDocument = (function (exports) {
         };
     }
 
+    NDElement.prototype.valueOf = function() {
+        return this.$element;
+    };
+
     NDElement.prototype.ref = function(target, name) {
         target[name] = this.$element;
         return this;
@@ -1260,35 +1264,6 @@ var NativeDocument = (function (exports) {
         }
     });
 
-    /**
-     *
-     * @param {string} name
-     * @param {?Function} customWrapper
-     * @returns {Function}
-     */
-    function HtmlElementWrapper(name, customWrapper) {
-        const $tagName = name.toLowerCase();
-
-        return function(attributes, children = null) {
-            try {
-                if(!Validator.isJson(attributes)) {
-                    const tempChildren = children;
-                    children = attributes;
-                    attributes = tempChildren;
-                }
-                const element = ElementCreator.createElement($tagName);
-                const finalElement = (typeof customWrapper === 'function') ? customWrapper(element) : element;
-
-                ElementCreator.processAttributes(finalElement, attributes);
-                ElementCreator.processChildren(children, finalElement);
-
-                return ElementCreator.setup(finalElement, attributes, customWrapper);
-            } catch (error) {
-                DebugManager$1.error('ElementCreation', `Error creating ${$tagName}`, error);
-            }
-        };
-    }
-
     class ArgTypesError extends Error {
         constructor(message, errors) {
             super(`${message}\n\n${errors.join("\n")}\n\n`);
@@ -1392,14 +1367,39 @@ var NativeDocument = (function (exports) {
         };
     };
 
-    const normalizeComponentArgs = function(props, children) {
-        if(!Validator.isJson(children)) {
-            const temp = props;
-            props = children;
-            children = temp;
+    const normalizeComponentArgs = function(props, children = null) {
+        if(!Validator.isJson(props)) {
+            const temp = children;
+            children = props;
+            props = temp;
         }
         return { props, children };
     };
+
+    /**
+     *
+     * @param {string} name
+     * @param {?Function} customWrapper
+     * @returns {Function}
+     */
+    function HtmlElementWrapper(name, customWrapper) {
+        const $tagName = name.toLowerCase();
+
+        return function(_attributes, _children = null) {
+            try {
+                const { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
+                const element = ElementCreator.createElement($tagName);
+                const finalElement = (typeof customWrapper === 'function') ? customWrapper(element) : element;
+
+                ElementCreator.processAttributes(finalElement, attributes);
+                ElementCreator.processChildren(children, finalElement);
+
+                return ElementCreator.setup(finalElement, attributes, customWrapper);
+            } catch (error) {
+                DebugManager$1.error('ElementCreation', `Error creating ${$tagName}`, error);
+            }
+        };
+    }
 
     Function.prototype.args = function(...args) {
         return withValidation(this, args);
