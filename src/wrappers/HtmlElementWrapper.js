@@ -1,5 +1,4 @@
 import Validator from "../utils/validator";
-import DebugManager from "../utils/debug-manager";
 import {ElementCreator} from "./ElementCreator";
 import './NdPrototype';
 import {normalizeComponentArgs} from "../utils/args-types";
@@ -16,6 +15,17 @@ export const createTextNode = function(value) {
 };
 
 
+function createHtmlElement($tagName, _attributes, _children = null, customWrapper) {
+    const { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
+    const element = ElementCreator.createElement($tagName);
+    const finalElement = (typeof customWrapper === 'function') ? customWrapper(element) : element;
+
+    ElementCreator.processAttributes(finalElement, attributes);
+    ElementCreator.processChildren(children, finalElement);
+
+    return ElementCreator.setup(finalElement, attributes, customWrapper);
+}
+
 /**
  *
  * @param {string} name
@@ -23,21 +33,6 @@ export const createTextNode = function(value) {
  * @returns {Function}
  */
 export default function HtmlElementWrapper(name, customWrapper) {
-    const $tagName = name.toLowerCase();
-
-    return function(_attributes, _children = null) {
-        try {
-            const { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
-            const element = ElementCreator.createElement($tagName);
-            const finalElement = (typeof customWrapper === 'function') ? customWrapper(element) : element;
-
-            ElementCreator.processAttributes(finalElement, attributes);
-            ElementCreator.processChildren(children, finalElement);
-
-            return ElementCreator.setup(finalElement, attributes, customWrapper);
-        } catch (error) {
-            DebugManager.error('ElementCreation', `Error creating ${$tagName}`, error);
-        }
-    };
-}
+    return (_attributes, _children = null) => createHtmlElement(name.toLowerCase(), _attributes, _children, customWrapper);
+};
 

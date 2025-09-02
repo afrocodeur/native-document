@@ -1,5 +1,6 @@
 import terser from '@rollup/plugin-terser';
 import replace from '@rollup/plugin-replace';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 const isProduction = process.env.NODE_ENV === 'production';
 export default [

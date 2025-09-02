@@ -102,6 +102,7 @@ ObservableItem.prototype.set = function(data) {
     this.$currentValue = newValue;
     PluginsManager.emit('ObservableBeforeChange', this);
     this.trigger();
+    this.$previousValue = null;
     PluginsManager.emit('ObservableAfterChange', this);
 };
 

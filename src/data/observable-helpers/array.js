@@ -33,7 +33,8 @@ Observable.array = function(target) {
     };
 
     observer.merge = function(values) {
-        observer.set([...observer.val(), ...values]);
+        observer.$value.push(...values);
+        observer.trigger({ action: 'merge',  args: values });
     };
 
     observer.populateAndRender = function(iteration, callback) {

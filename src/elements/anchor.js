@@ -3,7 +3,7 @@ import DebugManager from "../utils/debug-manager";
 import {ElementCreator} from "../wrappers/ElementCreator";
 
 
-export default function Anchor(name) {
+export default function Anchor(name, isUniqueChild = false) {
     const element = document.createDocumentFragment();
 
     const anchorStart = document.createComment('Anchor Start : '+name);
@@ -16,14 +16,25 @@ export default function Anchor(name) {
     element.nativeAppendChild = element.appendChild;
 
     const insertBefore = function(parent, child, target) {
+        const element = Validator.isElement(child) ? child : ElementCreator.getChild(child);
         if(parent === element) {
-            parent.nativeInsertBefore(ElementCreator.getChild(child), target);
+            parent.nativeInsertBefore(element, target);
             return;
         }
-        parent.insertBefore(ElementCreator.getChild(child), target);
+        if(isUniqueChild || target === anchorEnd) {
+            parent.append(element,  target);
+            return;
+        }
+        parent.insertBefore(element, target);
     };
 
     element.appendElement = function(child, before = null) {
+        if(isUniqueChild) {
+            (before && before !== anchorEnd)
+                ? anchorEnd.parentNode.insertBefore(child, anchorEnd)
+                : anchorEnd.parentNode.append(child, anchorEnd);
+            return;
+        }
         if(anchorEnd.parentNode === element) {
             anchorEnd.parentNode.nativeInsertBefore(child, before || anchorEnd);
             return;
@@ -38,14 +49,6 @@ export default function Anchor(name) {
             return;
         }
         before = before ?? anchorEnd;
-        if(Validator.isArray(child)) {
-            const fragment = document.createDocumentFragment();
-            for(let i = 0, length = child.length; i < length; i++) {
-                fragment.appendChild(ElementCreator.getChild(child[i]));
-            }
-            insertBefore(parent, fragment, before);
-            return element;
-        }
         insertBefore(parent, child, before);
     };
 
@@ -54,7 +57,7 @@ export default function Anchor(name) {
         if(parent === element) {
             return;
         }
-        if(parent.firstChild === anchorStart && parent.lastChild === anchorEnd) {
+        if(isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd)) {
             parent.replaceChildren(anchorStart, anchorEnd);
             return;
         }
@@ -71,6 +74,10 @@ export default function Anchor(name) {
     element.remove = function() {
         const parent = anchorEnd.parentNode;
         if(parent === element) {
+            return;
+        }
+        if(isUniqueChild) {
+            parent.replaceChildren(anchorEnd, anchorEnd);
             return;
         }
         let itemToRemove = anchorStart.nextSibling, tempItem;
@@ -92,7 +99,7 @@ export default function Anchor(name) {
         if(!parent) {
             return;
         }
-        if(parent.firstChild === anchorStart && parent.lastChild === anchorEnd) {
+        if(isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd)) {
             parent.replaceChildren(anchorStart, child, anchorEnd);
             return;
         }

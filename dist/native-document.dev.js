@@ -309,6 +309,7 @@ var NativeDocument = (function (exports) {
         this.$currentValue = newValue;
         PluginsManager.emit('ObservableBeforeChange', this);
         this.trigger();
+        this.$previousValue = null;
         PluginsManager.emit('ObservableAfterChange', this);
     };
 
@@ -809,7 +810,7 @@ var NativeDocument = (function (exports) {
         }
     };
 
-    function Anchor(name) {
+    function Anchor(name, isUniqueChild = false) {
         const element = document.createDocumentFragment();
 
         const anchorStart = document.createComment('Anchor Start : '+name);
@@ -822,14 +823,25 @@ var NativeDocument = (function (exports) {
         element.nativeAppendChild = element.appendChild;
 
         const insertBefore = function(parent, child, target) {
+            const element = Validator.isElement(child) ? child : ElementCreator.getChild(child);
             if(parent === element) {
-                parent.nativeInsertBefore(ElementCreator.getChild(child), target);
+                parent.nativeInsertBefore(element, target);
                 return;
             }
-            parent.insertBefore(ElementCreator.getChild(child), target);
+            if(isUniqueChild || target === anchorEnd) {
+                parent.append(element,  target);
+                return;
+            }
+            parent.insertBefore(element, target);
         };
 
         element.appendElement = function(child, before = null) {
+            if(isUniqueChild) {
+                (before && before !== anchorEnd)
+                    ? anchorEnd.parentNode.insertBefore(child, anchorEnd)
+                    : anchorEnd.parentNode.append(child, anchorEnd);
+                return;
+            }
             if(anchorEnd.parentNode === element) {
                 anchorEnd.parentNode.nativeInsertBefore(child, before || anchorEnd);
                 return;
@@ -844,14 +856,6 @@ var NativeDocument = (function (exports) {
                 return;
             }
             before = before ?? anchorEnd;
-            if(Validator.isArray(child)) {
-                const fragment = document.createDocumentFragment();
-                for(let i = 0, length = child.length; i < length; i++) {
-                    fragment.appendChild(ElementCreator.getChild(child[i]));
-                }
-                insertBefore(parent, fragment, before);
-                return element;
-            }
             insertBefore(parent, child, before);
         };
 
@@ -860,7 +864,7 @@ var NativeDocument = (function (exports) {
             if(parent === element) {
                 return;
             }
-            if(parent.firstChild === anchorStart && parent.lastChild === anchorEnd) {
+            if(isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd)) {
                 parent.replaceChildren(anchorStart, anchorEnd);
                 return;
             }
@@ -877,6 +881,10 @@ var NativeDocument = (function (exports) {
         element.remove = function() {
             const parent = anchorEnd.parentNode;
             if(parent === element) {
+                return;
+            }
+            if(isUniqueChild) {
+                parent.replaceChildren(anchorEnd, anchorEnd);
                 return;
             }
             let itemToRemove = anchorStart.nextSibling, tempItem;
@@ -898,7 +906,7 @@ var NativeDocument = (function (exports) {
             if(!parent) {
                 return;
             }
-            if(parent.firstChild === anchorStart && parent.lastChild === anchorEnd) {
+            if(isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd)) {
                 parent.replaceChildren(anchorStart, child, anchorEnd);
                 return;
             }
@@ -1142,7 +1150,7 @@ var NativeDocument = (function (exports) {
          */
         createObservableNode(parent, observable) {
             const text = ElementCreator.createTextNode();
-            observable.subscribe(value => text.nodeValue = String(value));
+            observable.subscribe(value => text.nodeValue = value);
             text.nodeValue = observable.val();
             parent && parent.appendChild(text);
             return text;
@@ -1156,7 +1164,7 @@ var NativeDocument = (function (exports) {
          */
         createStaticTextNode(parent, value) {
             let text = ElementCreator.createTextNode();
-            text.nodeValue = String(value);
+            text.nodeValue = value;
             parent && parent.appendChild(text);
             return text;
         },
@@ -1270,6 +1278,9 @@ var NativeDocument = (function (exports) {
         }
     }
 
+    exports.withValidation = (fn) => fn;
+    exports.ArgTypes = {};
+
     /**
      *
      * @type {{string: (function(*): {name: *, type: string, validate: function(*): boolean}),
@@ -1287,85 +1298,90 @@ var NativeDocument = (function (exports) {
      *      validate: function(*): boolean})
      * }}
      */
-    const ArgTypes = {
-        string: (name) => ({ name, type: 'string', validate: (v) => Validator.isString(v) }),
-        number: (name) => ({ name, type: 'number', validate: (v) => Validator.isNumber(v) }),
-        boolean: (name) => ({ name, type: 'boolean', validate: (v) => Validator.isBoolean(v) }),
-        observable: (name) => ({ name, type: 'observable', validate: (v) => Validator.isObservable(v) }),
-        element: (name) => ({ name, type: 'element', validate: (v) => Validator.isElement(v) }),
-        function: (name) => ({ name, type: 'function', validate: (v) => Validator.isFunction(v) }),
-        object: (name) => ({ name, type: 'object', validate: (v) => (Validator.isObject(v)) }),
-        objectNotNull: (name) => ({ name, type: 'object', validate: (v) => (Validator.isObject(v) && v !== null) }),
-        children: (name) => ({ name, type: 'children', validate: (v) => Validator.validateChildren(v) }),
-        attributes: (name) => ({ name, type: 'attributes', validate: (v) => Validator.validateAttributes(v) }),
+    {
+        exports.ArgTypes = {
+            string: (name) => ({ name, type: 'string', validate: (v) => Validator.isString(v) }),
+            number: (name) => ({ name, type: 'number', validate: (v) => Validator.isNumber(v) }),
+            boolean: (name) => ({ name, type: 'boolean', validate: (v) => Validator.isBoolean(v) }),
+            observable: (name) => ({ name, type: 'observable', validate: (v) => Validator.isObservable(v) }),
+            element: (name) => ({ name, type: 'element', validate: (v) => Validator.isElement(v) }),
+            function: (name) => ({ name, type: 'function', validate: (v) => Validator.isFunction(v) }),
+            object: (name) => ({ name, type: 'object', validate: (v) => (Validator.isObject(v)) }),
+            objectNotNull: (name) => ({ name, type: 'object', validate: (v) => (Validator.isObject(v) && v !== null) }),
+            children: (name) => ({ name, type: 'children', validate: (v) => Validator.validateChildren(v) }),
+            attributes: (name) => ({ name, type: 'attributes', validate: (v) => Validator.validateAttributes(v) }),
 
-        // Optional arguments
-        optional: (argType) => ({ ...argType, optional: true }),
+            // Optional arguments
+            optional: (argType) => ({ ...argType, optional: true }),
 
-        // Union types
-        oneOf: (name, ...argTypes) => ({
-            name,
-            type: 'oneOf',
-            types: argTypes,
-            validate: (v) => argTypes.some(type => type.validate(v))
-        })
-    };
-
-    /**
-     *
-     * @param {Array} args
-     * @param {Array} argSchema
-     * @param {string} fnName
-     */
-    const validateArgs = (args, argSchema, fnName = 'Function') => {
-        if (!argSchema) return;
-
-        const errors = [];
-
-        // Check the number of arguments
-        const requiredCount = argSchema.filter(arg => !arg.optional).length;
-        if (args.length < requiredCount) {
-            errors.push(`${fnName}: Expected at least ${requiredCount} arguments, got ${args.length}`);
-        }
-
-        // Validate each argument
-        argSchema.forEach((schema, index) => {
-            const position = index + 1;
-            const value = args[index];
-
-            if (value === undefined) {
-                if (!schema.optional) {
-                    errors.push(`${fnName}: Missing required argument '${schema.name}' at position ${position}`);
-                }
-                return;
-            }
-
-            if (!schema.validate(value)) {
-                const valueTypeOf = value?.constructor?.name || typeof value;
-                errors.push(`${fnName}: Invalid argument '${schema.name}' at position ${position}, expected ${schema.type}, got ${valueTypeOf}`);
-            }
-        });
-
-        if (errors.length > 0) {
-            throw new ArgTypesError(`Argument validation failed`, errors);
-        }
-    };
-
-    /**
-     * @param {Function} fn
-     * @param {Array} argSchema
-     * @param {string} fnName
-     * @returns {Function}
-     */
-    const withValidation = (fn, argSchema, fnName = 'Function') => {
-        if(!Validator.isArray(argSchema)) {
-            throw new NativeDocumentError('withValidation : argSchema must be an array');
-        }
-        return function(...args) {
-            validateArgs(args, argSchema, fn.name || fnName);
-            return fn.apply(this, args);
+            // Union types
+            oneOf: (name, ...argTypes) => ({
+                name,
+                type: 'oneOf',
+                types: argTypes,
+                validate: (v) => argTypes.some(type => type.validate(v))
+            })
         };
-    };
+
+
+        /**
+         *
+         * @param {Array} args
+         * @param {Array} argSchema
+         * @param {string} fnName
+         */
+        const validateArgs = (args, argSchema, fnName = 'Function') => {
+            if (!argSchema) return;
+
+            const errors = [];
+
+            // Check the number of arguments
+            const requiredCount = argSchema.filter(arg => !arg.optional).length;
+            if (args.length < requiredCount) {
+                errors.push(`${fnName}: Expected at least ${requiredCount} arguments, got ${args.length}`);
+            }
+
+            // Validate each argument
+            argSchema.forEach((schema, index) => {
+                const position = index + 1;
+                const value = args[index];
+
+                if (value === undefined) {
+                    if (!schema.optional) {
+                        errors.push(`${fnName}: Missing required argument '${schema.name}' at position ${position}`);
+                    }
+                    return;
+                }
+
+                if (!schema.validate(value)) {
+                    const valueTypeOf = value?.constructor?.name || typeof value;
+                    errors.push(`${fnName}: Invalid argument '${schema.name}' at position ${position}, expected ${schema.type}, got ${valueTypeOf}`);
+                }
+            });
+
+            if (errors.length > 0) {
+                throw new ArgTypesError(`Argument validation failed`, errors);
+            }
+        };
+
+
+
+        /**
+         * @param {Function} fn
+         * @param {Array} argSchema
+         * @param {string} fnName
+         * @returns {Function}
+         */
+        exports.withValidation = (fn, argSchema, fnName = 'Function') => {
+            if(!Validator.isArray(argSchema)) {
+                throw new NativeDocumentError('withValidation : argSchema must be an array');
+            }
+            return function(...args) {
+                validateArgs(args, argSchema, fn.name || fnName);
+                return fn.apply(this, args);
+            };
+        };
+    }
 
     const normalizeComponentArgs = function(props, children = null) {
         if(!Validator.isJson(props)) {
@@ -1376,6 +1392,17 @@ var NativeDocument = (function (exports) {
         return { props, children };
     };
 
+    function createHtmlElement($tagName, _attributes, _children = null, customWrapper) {
+        const { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
+        const element = ElementCreator.createElement($tagName);
+        const finalElement = (typeof customWrapper === 'function') ? customWrapper(element) : element;
+
+        ElementCreator.processAttributes(finalElement, attributes);
+        ElementCreator.processChildren(children, finalElement);
+
+        return ElementCreator.setup(finalElement, attributes, customWrapper);
+    }
+
     /**
      *
      * @param {string} name
@@ -1383,26 +1410,27 @@ var NativeDocument = (function (exports) {
      * @returns {Function}
      */
     function HtmlElementWrapper(name, customWrapper) {
-        const $tagName = name.toLowerCase();
-
-        return function(_attributes, _children = null) {
-            try {
-                const { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
-                const element = ElementCreator.createElement($tagName);
-                const finalElement = (typeof customWrapper === 'function') ? customWrapper(element) : element;
-
-                ElementCreator.processAttributes(finalElement, attributes);
-                ElementCreator.processChildren(children, finalElement);
-
-                return ElementCreator.setup(finalElement, attributes, customWrapper);
-            } catch (error) {
-                DebugManager$1.error('ElementCreation', `Error creating ${$tagName}`, error);
-            }
-        };
+        return (_attributes, _children = null) => createHtmlElement(name.toLowerCase(), _attributes, _children, customWrapper);
     }
 
     Function.prototype.args = function(...args) {
-        return withValidation(this, args);
+        return exports.withValidation(this, args);
+    };
+
+    Function.prototype.cached = function(...args) {
+        let $cache = null;
+        let  getCache = function(){ return $cache; };
+        return () => {
+            if(!$cache) {
+                $cache = this.apply(this, args);
+                if($cache.cloneNode) {
+                    getCache = function() { return $cache.cloneNode(true); };
+                } else if($cache.$element) {
+                    getCache = function() { return new NDElement($cache.$element.cloneNode(true)); };
+                }
+            }
+            return getCache();
+        };
     };
 
     Function.prototype.errorBoundary = function(callback) {
@@ -1514,7 +1542,8 @@ var NativeDocument = (function (exports) {
         };
 
         observer.merge = function(values) {
-            observer.set([...observer.val(), ...values]);
+            observer.$value.push(...values);
+            observer.trigger({ action: 'merge',  args: values });
         };
 
         observer.populateAndRender = function(iteration, callback) {
@@ -2009,20 +2038,15 @@ var NativeDocument = (function (exports) {
                 cache.delete(keyId);
             }
 
-            try {
-                const indexObserver = isIndexRequired ? Observable(indexKey) : null;
-                let child = ElementCreator.getChild(callback(item, indexObserver));
-                cache.set(keyId, {
-                    keyId,
-                    child: child,
-                    indexObserver: (indexObserver ? new WeakRef(indexObserver) : null)
-                });
-                keysCache.set(item, keyId);
-                return child;
-            } catch (e) {
-                DebugManager$1.error('ForEach', `Error creating element for key ${keyId}` , e);
-                throw e;
-            }
+            const indexObserver = isIndexRequired ? Observable(indexKey) : null;
+            let child = ElementCreator.getChild(callback(item, indexObserver));
+            cache.set(keyId, {
+                keyId,
+                child: child,
+                indexObserver: (indexObserver ? new WeakRef(indexObserver) : null)
+            });
+            keysCache.set(item, keyId);
+            return child;
         };
         const getChildByKey = function(keyId) {
             const cacheItem = cache.get(keyId);
@@ -2086,10 +2110,7 @@ var NativeDocument = (function (exports) {
                 element.appendElement(fragment, blockEnd);
             },
             removeOne(element, index) {
-                let child = getItemChild(element);
-                if(child) {
-                    removeCacheItemByKey(getItemKey(element, index), true);
-                }
+                removeCacheItemByKey(getItemKey(element, index), true);
                 child = null;
             },
             clear,
@@ -3376,7 +3397,6 @@ var NativeDocument = (function (exports) {
         Router: Router
     });
 
-    exports.ArgTypes = ArgTypes;
     exports.ElementCreator = ElementCreator;
     exports.HtmlElementWrapper = HtmlElementWrapper;
     exports.NDElement = NDElement;
@@ -3387,7 +3407,6 @@ var NativeDocument = (function (exports) {
     exports.elements = elements;
     exports.normalizeComponentArgs = normalizeComponentArgs;
     exports.router = router;
-    exports.withValidation = withValidation;
 
     return exports;
 

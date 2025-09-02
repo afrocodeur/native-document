@@ -1,10 +1,27 @@
 import {withValidation} from "./args-types.js";
 import {Observable} from "../data/Observable";
 import Validator from "./validator";
+import {NDElement} from "../wrappers/NDElement";
 
 
 Function.prototype.args = function(...args) {
     return withValidation(this, args);
+};
+
+Function.prototype.cached = function(...args) {
+    let $cache = null;
+    let  getCache = function(){ return $cache; };
+    return () => {
+        if(!$cache) {
+            $cache = this.apply(this, args);
+            if($cache.cloneNode) {
+                getCache = function() { return $cache.cloneNode(true); };
+            } else if($cache.$element) {
+                getCache = function() { return new NDElement($cache.$element.cloneNode(true)); };
+            }
+        }
+        return getCache();
+    };
 };
 
 Function.prototype.errorBoundary = function(callback) {

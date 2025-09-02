@@ -21,7 +21,7 @@ export const ElementCreator = {
      */
     createObservableNode(parent, observable) {
         const text = ElementCreator.createTextNode();
-        observable.subscribe(value => text.nodeValue = String(value));
+        observable.subscribe(value => text.nodeValue = value);
         text.nodeValue = observable.val();
         parent && parent.appendChild(text);
         return text;
@@ -35,7 +35,7 @@ export const ElementCreator = {
      */
     createStaticTextNode(parent, value) {
         let text = ElementCreator.createTextNode();
-        text.nodeValue = String(value);
+        text.nodeValue = value;
         parent && parent.appendChild(text);
         return text;
     },

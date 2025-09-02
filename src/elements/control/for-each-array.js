@@ -84,20 +84,15 @@ export function ForEachArray(data, callback, key, configs = {}) {
             cache.delete(keyId);
         }
 
-        try {
-            const indexObserver = isIndexRequired ? Observable(indexKey) : null;
-            let child = ElementCreator.getChild(callback(item, indexObserver));
-            cache.set(keyId, {
-                keyId,
-                child: child,
-                indexObserver: (indexObserver ? new WeakRef(indexObserver) : null)
-            });
-            keysCache.set(item, keyId);
-            return child;
-        } catch (e) {
-            DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
-            throw e;
-        }
+        const indexObserver = isIndexRequired ? Observable(indexKey) : null;
+        let child = ElementCreator.getChild(callback(item, indexObserver));
+        cache.set(keyId, {
+            keyId,
+            child: child,
+            indexObserver: (indexObserver ? new WeakRef(indexObserver) : null)
+        });
+        keysCache.set(item, keyId);
+        return child;
     };
     const getChildByKey = function(keyId) {
         const cacheItem = cache.get(keyId);
@@ -161,10 +156,7 @@ export function ForEachArray(data, callback, key, configs = {}) {
             element.appendElement(fragment, blockEnd);
         },
         removeOne(element, index) {
-            let child = getItemChild(element);
-            if(child) {
-                removeCacheItemByKey(getItemKey(element, index), true);
-            }
+            removeCacheItemByKey(getItemKey(element, index), true);
             child = null;
         },
         clear,
