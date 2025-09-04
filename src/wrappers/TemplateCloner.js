@@ -1,5 +1,6 @@
 import {ElementCreator} from "./ElementCreator";
 import {createTextNode} from "./HtmlElementWrapper";
+import PluginsManager from "../utils/plugins-manager";
 
 const cloneBindingsDataCache = new WeakMap();
 
@@ -76,7 +77,9 @@ export function TemplateCloner($fn) {
         if(!$node) {
             $node = $fn(this);
         }
-        return clone($node, data);
+        const cloneNode =  clone($node, data);
+        PluginsManager.emit('NodeTemplateInstanceCreated', cloneNode);
+        return cloneNode;
     };
 
     const createBinding = (hydrateFunction, target) => {
@@ -118,10 +121,12 @@ export function TemplateCloner($fn) {
 
 export function useCache(fn) {
     let $cache = null;
+    PluginsManager.emit('NodeTemplateStored', fn);
 
     return function(...args) {
         if(!$cache) {
             $cache = new TemplateCloner(fn);
+            PluginsManager.emit('NodeTemplateCreated', $cache);
         }
 
         return $cache.clone(args);

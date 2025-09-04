@@ -15,21 +15,26 @@ export default function Anchor(name, isUniqueChild = false) {
     element.nativeInsertBefore = element.insertBefore;
     element.nativeAppendChild = element.appendChild;
 
+    const isParentUniqueChild = (parent) => {
+        console.log('on passwr ici ', isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd))
+        return isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd);
+    };
+
     const insertBefore = function(parent, child, target) {
         const element = Validator.isElement(child) ? child : ElementCreator.getChild(child);
         if(parent === element) {
             parent.nativeInsertBefore(element, target);
             return;
         }
-        if(isUniqueChild || target === anchorEnd) {
-            parent.append(element,  target);
+        if(isParentUniqueChild(parent)) {
+            parent.append(element,  anchorEnd);
             return;
         }
         parent.insertBefore(element, target);
     };
 
     element.appendElement = function(child, before = null) {
-        if(isUniqueChild) {
+        if(isParentUniqueChild(anchorEnd.parentNode)) {
             (before && before !== anchorEnd)
                 ? anchorEnd.parentNode.insertBefore(child, anchorEnd)
                 : anchorEnd.parentNode.append(child, anchorEnd);
@@ -57,7 +62,7 @@ export default function Anchor(name, isUniqueChild = false) {
         if(parent === element) {
             return;
         }
-        if(isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd)) {
+        if(isParentUniqueChild(parent)) {
             parent.replaceChildren(anchorStart, anchorEnd);
             return;
         }
@@ -76,7 +81,7 @@ export default function Anchor(name, isUniqueChild = false) {
         if(parent === element) {
             return;
         }
-        if(isUniqueChild) {
+        if(isParentUniqueChild(parent)) {
             parent.replaceChildren(anchorEnd, anchorEnd);
             return;
         }
@@ -99,7 +104,7 @@ export default function Anchor(name, isUniqueChild = false) {
         if(!parent) {
             return;
         }
-        if(isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd)) {
+        if(isParentUniqueChild(parent)) {
             parent.replaceChildren(anchorStart, child, anchorEnd);
             return;
         }

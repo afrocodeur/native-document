@@ -852,21 +852,26 @@ var NativeDocument = (function (exports) {
         element.nativeInsertBefore = element.insertBefore;
         element.nativeAppendChild = element.appendChild;
 
+        const isParentUniqueChild = (parent) => {
+            console.log('on passwr ici ', isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd));
+            return isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd);
+        };
+
         const insertBefore = function(parent, child, target) {
             const element = Validator.isElement(child) ? child : ElementCreator.getChild(child);
             if(parent === element) {
                 parent.nativeInsertBefore(element, target);
                 return;
             }
-            if(isUniqueChild || target === anchorEnd) {
-                parent.append(element,  target);
+            if(isParentUniqueChild(parent)) {
+                parent.append(element,  anchorEnd);
                 return;
             }
             parent.insertBefore(element, target);
         };
 
         element.appendElement = function(child, before = null) {
-            if(isUniqueChild) {
+            if(isParentUniqueChild(anchorEnd.parentNode)) {
                 (before && before !== anchorEnd)
                     ? anchorEnd.parentNode.insertBefore(child, anchorEnd)
                     : anchorEnd.parentNode.append(child, anchorEnd);
@@ -894,7 +899,7 @@ var NativeDocument = (function (exports) {
             if(parent === element) {
                 return;
             }
-            if(isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd)) {
+            if(isParentUniqueChild(parent)) {
                 parent.replaceChildren(anchorStart, anchorEnd);
                 return;
             }
@@ -913,7 +918,7 @@ var NativeDocument = (function (exports) {
             if(parent === element) {
                 return;
             }
-            if(isUniqueChild) {
+            if(isParentUniqueChild(parent)) {
                 parent.replaceChildren(anchorEnd, anchorEnd);
                 return;
             }
@@ -936,7 +941,7 @@ var NativeDocument = (function (exports) {
             if(!parent) {
                 return;
             }
-            if(isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd)) {
+            if(isParentUniqueChild(parent)) {
                 parent.replaceChildren(anchorStart, child, anchorEnd);
                 return;
             }
@@ -1548,7 +1553,9 @@ var NativeDocument = (function (exports) {
             if(!$node) {
                 $node = $fn(this);
             }
-            return clone($node, data);
+            const cloneNode =  clone($node, data);
+            PluginsManager.emit('NodeTemplateInstanceCreated', cloneNode);
+            return cloneNode;
         };
 
         const createBinding = (hydrateFunction, target) => {
@@ -1590,10 +1597,12 @@ var NativeDocument = (function (exports) {
 
     function useCache(fn) {
         let $cache = null;
+        PluginsManager.emit('NodeTemplateStored', fn);
 
         return function(...args) {
             if(!$cache) {
                 $cache = new TemplateCloner(fn);
+                PluginsManager.emit('NodeTemplateCreated', $cache);
             }
 
             return $cache.clone(args);
