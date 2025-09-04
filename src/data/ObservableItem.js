@@ -59,9 +59,12 @@ ObservableItem.prototype.triggerWatchers = function() {
 
     if($watchers.has($currentValue)) {
         const $currentValueCallbacks = $watchers.get($currentValue);
-        if(!Validator.isArray($currentValueCallbacks)) {
-            $currentValueCallbacks.set ? $currentValueCallbacks.set(true) : $currentValueCallbacks(true);
-        } else {
+        if(typeof $currentValueCallbacks === "function") {
+            $currentValueCallbacks(true);
+        } else if ($currentValueCallbacks.set) {
+            $currentValueCallbacks.set(true)
+        }
+        else {
             $currentValueCallbacks.forEach(callback => {
                 callback.set ? callback.set(true) : callback(true);
             });
@@ -70,7 +73,9 @@ ObservableItem.prototype.triggerWatchers = function() {
     if($watchers.has($previousValue)) {
         const $previousValueCallbacks = $watchers.get($previousValue);
         if(typeof $previousValueCallbacks === "function") {
-            $previousValueCallbacks.set ? $previousValueCallbacks.set(false) : $previousValueCallbacks(false);
+            $previousValueCallbacks(false);
+        } else if($previousValueCallbacks.set) {
+            $previousValueCallbacks.set(false)
         } else {
             $previousValueCallbacks.forEach(callback => {
                 callback.set ? callback.set(false) : callback(false);
