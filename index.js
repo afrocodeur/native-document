@@ -1,6 +1,7 @@
-export { default as HtmlElementWrapper } from './src/wrappers/HtmlElementWrapper'
+export { default as HtmlElementWrapper, createTextNode } from './src/wrappers/HtmlElementWrapper'
 export { ElementCreator } from './src/wrappers/ElementCreator'
 export { NDElement } from './src/wrappers/NDElement'
+export { TemplateCloner, useCache } from './src/wrappers/TemplateCloner'
 
 import './src/utils/prototypes.js';
 

@@ -26,6 +26,17 @@ export const ElementCreator = {
         parent && parent.appendChild(text);
         return text;
     },
+    /**
+     *
+     * @param {HTMLElement|DocumentFragment} parent
+     * @param {{$hydrate: Function}} item
+     * @returns {Text}
+     */
+    createHydratableNode(parent, item) {
+        const text = ElementCreator.createTextNode();
+        item.$hydrate(text);
+        return text;
+    },
 
     /**
      *
@@ -103,6 +114,9 @@ export const ElementCreator = {
         if(Validator.isFunction(child)) {
             PluginsManager.emit('BeforeProcessComponent', child);
             return this.getChild(child());
+        }
+        if(child?.$hydrate) {
+            return ElementCreator.createHydratableNode(null, child);
         }
         return ElementCreator.createStaticTextNode(null, child);
     },

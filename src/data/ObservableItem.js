@@ -3,6 +3,7 @@ import MemoryManager from "./MemoryManager";
 import NativeDocumentError from "../errors/NativeDocumentError";
 import ObservableChecker from "./ObservableChecker";
 import PluginsManager from "../utils/plugins-manager";
+import Validator from "../utils/validator";
 
 /**
  *
@@ -57,14 +58,24 @@ ObservableItem.prototype.triggerWatchers = function() {
     const $currentValue = this.$currentValue;
 
     if($watchers.has($currentValue)) {
-        $watchers.get($currentValue).forEach(callback => {
-            callback.set ? callback.set(true) : callback(true);
-        });
+        const $currentValueCallbacks = $watchers.get($currentValue);
+        if(!Validator.isArray($currentValueCallbacks)) {
+            $currentValueCallbacks.set ? $currentValueCallbacks.set(true) : $currentValueCallbacks(true);
+        } else {
+            $currentValueCallbacks.forEach(callback => {
+                callback.set ? callback.set(true) : callback(true);
+            });
+        }
     }
     if($watchers.has($previousValue)) {
-        $watchers.get($previousValue).forEach(callback => {
-            callback.set ? callback.set(false) : callback(false);
-        });
+        const $previousValueCallbacks = $watchers.get($previousValue);
+        if(typeof $previousValueCallbacks === "function") {
+            $previousValueCallbacks.set ? $previousValueCallbacks.set(false) : $previousValueCallbacks(false);
+        } else {
+            $previousValueCallbacks.forEach(callback => {
+                callback.set ? callback.set(false) : callback(false);
+            });
+        }
     }
 };
 
@@ -116,7 +127,9 @@ ObservableItem.prototype.disconnectAll = function() {
     this.$currentValue = null;
     if(this.$watchers) {
         for (const [_, watchValueList] of this.$watchers) {
-            watchValueList.splice(0);
+            if(Validator.isArray(watchValueList)) {
+                watchValueList.splice(0);
+            }
         }
     }
     this.$watchers?.clear();
@@ -162,17 +175,25 @@ ObservableItem.prototype.on = function(value, callback) {
     this.$watchers = this.$watchers ?? new Map();
 
     let watchValueList = this.$watchers.get(value);
+
     if(!watchValueList) {
-        watchValueList = [];
+        this.$watchers.set(value, callback);
+    } else if(!Validator.isArray(watchValueList)) {
+        watchValueList = [watchValueList];
         this.$watchers.set(value, watchValueList);
+        return;
+    } else {
+        watchValueList.push(callback);
     }
 
-    watchValueList.push(callback);
     this.assocTrigger();
     return () => {
         const index = watchValueList.indexOf(callback);
         watchValueList?.splice(index, 1);
-        if(watchValueList.size === 0) {
+        if(watchValueList.size === 1) {
+            this.$watchers.set(value, watchValueList[0]);
+        }
+        else if(watchValueList.size === 0) {
             this.$watchers?.delete(value);
             watchValueList = null;
         }

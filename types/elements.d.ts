@@ -1,5 +1,6 @@
 // DOM elements and components type definitions - Version complète
 import { ObservableItem } from './observable';
+import {BindingHydrator} from "./template-cloner";
 
 export interface NDElement {
     readonly __$isNDElement: true;
@@ -16,6 +17,7 @@ export interface NDElement {
 
     htmlElement(): HTMLElement;
     node(): HTMLElement;
+    attach(methodeName: string, bindingHydrator: BindingHydrator): HTMLElement;
 
     // Mouse Events
     onClick(callback: (event: MouseEvent) => void): this;

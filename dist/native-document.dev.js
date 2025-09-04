@@ -264,14 +264,24 @@ var NativeDocument = (function (exports) {
         const $currentValue = this.$currentValue;
 
         if($watchers.has($currentValue)) {
-            $watchers.get($currentValue).forEach(callback => {
-                callback.set ? callback.set(true) : callback(true);
-            });
+            const $currentValueCallbacks = $watchers.get($currentValue);
+            if(!Validator.isArray($currentValueCallbacks)) {
+                $currentValueCallbacks.set ? $currentValueCallbacks.set(true) : $currentValueCallbacks(true);
+            } else {
+                $currentValueCallbacks.forEach(callback => {
+                    callback.set ? callback.set(true) : callback(true);
+                });
+            }
         }
         if($watchers.has($previousValue)) {
-            $watchers.get($previousValue).forEach(callback => {
-                callback.set ? callback.set(false) : callback(false);
-            });
+            const $previousValueCallbacks = $watchers.get($previousValue);
+            if(typeof $previousValueCallbacks === "function") {
+                $previousValueCallbacks.set ? $previousValueCallbacks.set(false) : $previousValueCallbacks(false);
+            } else {
+                $previousValueCallbacks.forEach(callback => {
+                    callback.set ? callback.set(false) : callback(false);
+                });
+            }
         }
     };
 
@@ -323,7 +333,9 @@ var NativeDocument = (function (exports) {
         this.$currentValue = null;
         if(this.$watchers) {
             for (const [_, watchValueList] of this.$watchers) {
-                watchValueList.splice(0);
+                if(Validator.isArray(watchValueList)) {
+                    watchValueList.splice(0);
+                }
             }
         }
         this.$watchers?.clear();
@@ -369,17 +381,25 @@ var NativeDocument = (function (exports) {
         this.$watchers = this.$watchers ?? new Map();
 
         let watchValueList = this.$watchers.get(value);
+
         if(!watchValueList) {
-            watchValueList = [];
+            this.$watchers.set(value, callback);
+        } else if(!Validator.isArray(watchValueList)) {
+            watchValueList = [watchValueList];
             this.$watchers.set(value, watchValueList);
+            return;
+        } else {
+            watchValueList.push(callback);
         }
 
-        watchValueList.push(callback);
         this.assocTrigger();
         return () => {
             const index = watchValueList.indexOf(callback);
             watchValueList?.splice(index, 1);
-            if(watchValueList.size === 0) {
+            if(watchValueList.size === 1) {
+                this.$watchers.set(value, watchValueList[0]);
+            }
+            else if(watchValueList.size === 0) {
                 this.$watchers?.delete(value);
                 watchValueList = null;
             }
@@ -692,6 +712,11 @@ var NativeDocument = (function (exports) {
 
     NDElement.prototype.node = NDElement.prototype.htmlElement;
 
+    NDElement.prototype.attach = function(methodName, bindingHydrator) {
+        bindingHydrator.$hydrate(this.$element, methodName);
+        return this.$element;
+    };
+
     const Validator = {
         isObservable(value) {
             return value instanceof ObservableItem || value instanceof ObservableChecker || value?.__$isObservable;
@@ -1003,6 +1028,10 @@ var NativeDocument = (function (exports) {
                 });
                 continue;
             }
+            if(value.$hydrate) {
+                value.$hydrate(element, className);
+                continue;
+            }
             element.classList.toggle(className, value);
         }
     }
@@ -1155,6 +1184,17 @@ var NativeDocument = (function (exports) {
             parent && parent.appendChild(text);
             return text;
         },
+        /**
+         *
+         * @param {HTMLElement|DocumentFragment} parent
+         * @param {{$hydrate: Function}} item
+         * @returns {Text}
+         */
+        createHydratableNode(parent, item) {
+            const text = ElementCreator.createTextNode();
+            item.$hydrate(text);
+            return text;
+        },
 
         /**
          *
@@ -1232,6 +1272,9 @@ var NativeDocument = (function (exports) {
             if(Validator.isFunction(child)) {
                 PluginsManager.emit('BeforeProcessComponent', child);
                 return this.getChild(child());
+            }
+            if(child?.$hydrate) {
+                return ElementCreator.createHydratableNode(null, child);
             }
             return ElementCreator.createStaticTextNode(null, child);
         },
@@ -1384,13 +1427,25 @@ var NativeDocument = (function (exports) {
     }
 
     const normalizeComponentArgs = function(props, children = null) {
-        if(!Validator.isJson(props)) {
+        if(!Validator.isJson(props) || props?.$hydrate) {
             const temp = children;
             children = props;
             props = temp;
         }
         return { props, children };
     };
+
+    /**
+     *
+     * @param {*} value
+     * @returns {Text}
+     */
+    const createTextNode = function(value) {
+        return (Validator.isObservable(value))
+            ? ElementCreator.createObservableNode(null, value)
+            : ElementCreator.createStaticTextNode(null, value);
+    };
+
 
     function createHtmlElement($tagName, _attributes, _children = null, customWrapper) {
         const { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
@@ -1411,6 +1466,133 @@ var NativeDocument = (function (exports) {
      */
     function HtmlElementWrapper(name, customWrapper) {
         return (_attributes, _children = null) => createHtmlElement(name.toLowerCase(), _attributes, _children, customWrapper);
+    }
+
+    const cloneBindingsDataCache = new WeakMap();
+
+
+    const bindAttributes = (node, bindDingData, data) => {
+        if(!bindDingData) {
+            return null;
+        }
+        const attributes = { };
+        if(bindDingData.attributes) {
+            for (const attr in bindDingData.attributes) {
+                attributes[attr] = bindDingData.attributes[attr](...data);
+            }
+        }
+
+        if(bindDingData.classes) {
+            attributes.class = {};
+            for (const className in bindDingData.classes) {
+                attributes.class[className] = bindDingData.classes[className](...data);
+            }
+        }
+
+        if(bindDingData.styles) {
+            attributes.style = {};
+            for (const property in bindDingData.styles) {
+                attributes.style[property] = bindDingData.styles[property](...data);
+            }
+        }
+
+        if(Object.keys(attributes)) {
+            ElementCreator.processAttributes(node, attributes);
+            return attributes;
+        }
+
+        return null;
+    };
+
+
+    const bindAttachesMethods = function(node, bindDingData, data) {
+        if(!bindDingData?.attaches) {
+            return null;
+        }
+        for(const methodName in bindDingData.attaches) {
+            node.nd[methodName](function(...args) {
+                bindDingData.attaches[methodName].call(this, ...[...args, ...data]);
+            });
+        }
+    };
+
+    function TemplateCloner($fn) {
+        let $node = null;
+
+        const clone = (node, data) => {
+            const bindDingData = cloneBindingsDataCache.get(node);
+            if(node instanceof Text) {
+                if(bindDingData?.value) {
+                    return bindDingData.value(data);
+                }
+                return node.cloneNode(true);
+            }
+            const nodeCloned = node.cloneNode();
+            bindAttributes(nodeCloned, bindDingData, data);
+            bindAttachesMethods(nodeCloned, bindDingData, data);
+
+            for(let i = 0, length = node.childNodes.length; i < length; i++) {
+                const childNode = node.childNodes[i];
+                const childNodeCloned = clone(childNode, data);
+                nodeCloned.appendChild(childNodeCloned);
+            }
+            return nodeCloned;
+        };
+
+        this.clone = (data) => {
+            if(!$node) {
+                $node = $fn(this);
+            }
+            return clone($node, data);
+        };
+
+        const createBinding = (hydrateFunction, target) => {
+            return {
+                $hydrate : function(element, property) {
+                    if(!cloneBindingsDataCache.has(element)) {
+                        // { classes, styles, attributes, value, attaches }
+                        cloneBindingsDataCache.set(element, {});
+                    }
+                    const hydrationState = cloneBindingsDataCache.get(element);
+                    if(target === 'value') {
+                        hydrationState.value = hydrateFunction;
+                        return;
+                    }
+                    hydrationState[target] = hydrationState[target] || {};
+                    hydrationState[target][property] = hydrateFunction;
+                }
+            }
+        };
+
+        this.style = (fn) => {
+            return createBinding(fn, 'styles');
+        };
+        this.class = (fn) => {
+            return createBinding(fn, 'classes');
+        };
+        this.value = (fn) => {
+            return createBinding(function(data) {
+                return createTextNode(fn(...data));
+            }, 'value');
+        };
+        this.attr = (fn) => {
+            return createBinding(fn, 'attributes');
+        };
+        this.attach = (fn) => {
+            return createBinding(fn, 'attaches');
+        };
+    }
+
+    function useCache(fn) {
+        let $cache = null;
+
+        return function(...args) {
+            if(!$cache) {
+                $cache = new TemplateCloner(fn);
+            }
+
+            return $cache.clone(args);
+        };
     }
 
     Function.prototype.args = function(...args) {
@@ -2111,7 +2293,6 @@ var NativeDocument = (function (exports) {
             },
             removeOne(element, index) {
                 removeCacheItemByKey(getItemKey(element, index), true);
-                child = null;
             },
             clear,
             merge(items) {
@@ -3402,11 +3583,14 @@ var NativeDocument = (function (exports) {
     exports.NDElement = NDElement;
     exports.Observable = Observable;
     exports.Store = Store;
+    exports.TemplateCloner = TemplateCloner;
     exports.classPropertyAccumulator = classPropertyAccumulator;
+    exports.createTextNode = createTextNode;
     exports.cssPropertyAccumulator = cssPropertyAccumulator;
     exports.elements = elements;
     exports.normalizeComponentArgs = normalizeComponentArgs;
     exports.router = router;
+    exports.useCache = useCache;
 
     return exports;
 

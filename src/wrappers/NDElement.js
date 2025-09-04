@@ -92,3 +92,8 @@ NDElement.prototype.htmlElement = function() {
 };
 
 NDElement.prototype.node = NDElement.prototype.htmlElement;
+
+NDElement.prototype.attach = function(methodName, bindingHydrator) {
+    bindingHydrator.$hydrate(this.$element, methodName);
+    return this.$element;
+};

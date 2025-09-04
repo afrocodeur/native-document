@@ -128,7 +128,7 @@ if(process.env.NODE_ENV === 'production') {
 }
 
 export const normalizeComponentArgs = function(props, children = null) {
-    if(!Validator.isJson(props)) {
+    if(!Validator.isJson(props) || props?.$hydrate) {
         const temp = children;
         children = props;
         props = temp;

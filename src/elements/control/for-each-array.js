@@ -157,7 +157,6 @@ export function ForEachArray(data, callback, key, configs = {}) {
         },
         removeOne(element, index) {
             removeCacheItemByKey(getItemKey(element, index), true);
-            child = null;
         },
         clear,
         merge(items) {

@@ -23,6 +23,10 @@ function bindClassAttribute(element, data) {
             });
             continue;
         }
+        if(value.$hydrate) {
+            value.$hydrate(element, className);
+            continue;
+        }
         element.classList.toggle(className, value)
     }
 }
