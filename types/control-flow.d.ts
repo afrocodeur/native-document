@@ -30,14 +30,15 @@ export interface WhenFunction {
 export interface ForEachFunction {
     <T>(data: T[] | Record<string, T> | ObservableItem<T[]> | ObservableItem<Record<string, T>>,
         callback: (item: T, index?: ObservableItem<number>) => ValidChild,
-        key?: string | ((item: T, defaultKey: string | number) => string)): DocumentFragment;
+        key?: string | ((item: T, defaultKey: string | number) => string),
+        configs?: { shouldKeepItemsInCache: boolean, isParentUniqueChild: boolean }): DocumentFragment,
 }
 
 export interface ForEachArrayFunction {
     <T>(data: ObservableArray<T>,
         callback: (item: T, index?: ObservableItem<number>) => ValidChild,
         key?: string | ((item: T, defaultKey: number) => string),
-        configs?: { pushDelay?: (items: T[]) => number }): DocumentFragment;
+        configs?: { pushDelay?: (items: T[]) => number, isParentUniqueChild: boolean }): DocumentFragment;
 }
 
 // Control Flow Components

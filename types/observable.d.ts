@@ -81,6 +81,7 @@ export interface BatchFunction<TArgs extends any[] = any[], TReturn = any> {
     readonly $observer: ObservableItem<number>;
 }
 
+export type ValidComputedDependencies = Array<ObservableItem | ObservableArray<any> | ObservableChecker | ObservableProxy<any>>;
 export interface ObservableStatic {
     <T>(value: T): ObservableItem<T>;
     array<T>(target: T[]): ObservableArray<T>;
@@ -88,7 +89,7 @@ export interface ObservableStatic {
     object<T extends Record<string, any>>(value: T): ObservableProxy<T>;
     json<T extends Record<string, any>>(value: T): ObservableProxy<T>;
 
-    computed<T>(callback: () => T, dependencies?: ObservableItem[]): ObservableItem<T>;
+    computed<T>(callback: () => T, dependencies?: ValidComputedDependencies): ObservableItem<T>;
     computed<T>(callback: () => T, batchFunction?: BatchFunction): ObservableItem<T>;
 
     batch(callback: Function): BatchFunction;

@@ -4,15 +4,23 @@ import NativeDocumentError from "../errors/NativeDocumentError";
 import ObservableChecker from "../data/ObservableChecker";
 import {NDElement} from "../wrappers/NDElement";
 
+const COMMON_NODE_TYPES = {
+    ELEMENT: 1,
+    TEXT: 3,
+    COMMENT: 8,
+    DOCUMENT: 9,
+    DOCUMENT_FRAGMENT: 11
+};
+
 const Validator = {
     isObservable(value) {
-        return value instanceof ObservableItem || value instanceof ObservableChecker || value?.__$isObservable;
+        return  value?.__$isObservable || value instanceof ObservableItem || value instanceof ObservableChecker;
     },
     isProxy(value) {
         return value?.__isProxy__
     },
     isObservableChecker(value) {
-        return value instanceof ObservableChecker || value?.__$isObservableChecker;
+        return value?.__$isObservableChecker || value instanceof ObservableChecker;
     },
     isArray(value) {
         return Array.isArray(value);
@@ -36,13 +44,17 @@ const Validator = {
         return typeof value === 'object';
     },
     isJson(value) {
-        return typeof value === 'object' && value !== null && value.constructor.name === 'Object' && !Array.isArray(value);
+        return typeof value === 'object' && value !== null && !Array.isArray(value) && value.constructor.name === 'Object';
     },
     isElement(value) {
-        return value instanceof HTMLElement || value instanceof DocumentFragment  || value instanceof Text;
+        return value && (
+            value.nodeType === COMMON_NODE_TYPES.ELEMENT ||
+            value.nodeType === COMMON_NODE_TYPES.TEXT ||
+            value.nodeType === COMMON_NODE_TYPES.DOCUMENT_FRAGMENT
+        );
     },
     isFragment(value) {
-        return value instanceof DocumentFragment;
+        return value?.nodeType === COMMON_NODE_TYPES.DOCUMENT_FRAGMENT;
     },
     isStringOrObservable(value) {
         return this.isString(value) || this.isObservable(value);
@@ -55,7 +67,7 @@ const Validator = {
             ['string', 'number', 'boolean'].includes(typeof child);
     },
     isNDElement(child) {
-        return child instanceof NDElement || child?.constructor?.__$isNDElement;
+        return child?.__$isNDElement || child instanceof NDElement;
     },
     isValidChildren(children) {
         if (!Array.isArray(children)) {
@@ -100,7 +112,16 @@ const Validator = {
         }
         return /\{\{#ObItem::\([0-9]+\)\}\}/.test(data);
     },
-    validateAttributes(attributes) {
+    validateAttributes(attributes) {},
+
+    validateEventCallback(callback) {
+        if (typeof callback !== 'function') {
+            throw new NativeDocumentError('Event callback must be a function');
+        }
+    }
+};
+if(process.env.NODE_ENV === 'development') {
+    Validator.validateAttributes = function(attributes) {
         if (!attributes || typeof attributes !== 'object') {
             return attributes;
         }
@@ -113,13 +134,7 @@ const Validator = {
         }
 
         return attributes;
-    },
-
-    validateEventCallback(callback) {
-        if (typeof callback !== 'function') {
-            throw new NativeDocumentError('Event callback must be a function');
-        }
-    }
-};
+    };
+}
 
 export default Validator;

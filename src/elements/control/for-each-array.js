@@ -1,9 +1,9 @@
 import Anchor from "../anchor";
 import {Observable} from "../../data/Observable";
 import Validator from "../../utils/validator";
-import DebugManager from "../../utils/debug-manager";
 import {getKey} from "../../utils/helpers";
 import { ElementCreator } from "../../wrappers/ElementCreator";
+import NativeDocumentError from "../../errors/NativeDocumentError";
 
 export function ForEachArray(data, callback, key, configs = {}) {
     const element = new Anchor('ForEach Array');
@@ -50,14 +50,12 @@ export function ForEachArray(data, callback, key, configs = {}) {
         if(!cacheItem) {
             return;
         }
-        const child = cacheItem.child;
-        cacheItem.indexObserver?.deref()?.cleanup();
-        cacheItem.child = null;
-        cacheItem.indexObserver = null;
         if(removeChild) {
+            const child = cacheItem.child;
             child?.remove();
             cache.delete(cacheItem.keyId);
         }
+        cacheItem.indexObserver?.deref()?.cleanup();
     }
 
     const removeCacheItemByKey = (keyId, removeChild = true) => {
@@ -65,6 +63,13 @@ export function ForEachArray(data, callback, key, configs = {}) {
     };
 
     const cleanCache = () => {
+        if(configs.shouldKeepItemsInCache) {
+            return;
+        }
+        if(!isIndexRequired) {
+            cache.clear();
+            return;
+        }
         for (const [keyId, cacheItem] of cache.entries()) {
             removeCacheItem(cacheItem, false);
         }
@@ -86,6 +91,9 @@ export function ForEachArray(data, callback, key, configs = {}) {
 
         const indexObserver = isIndexRequired ? Observable(indexKey) : null;
         let child = ElementCreator.getChild(callback(item, indexObserver));
+        if(!child || Validator.isFragment(child)) {
+            throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
+        }
         cache.set(keyId, {
             keyId,
             child: child,
@@ -128,12 +136,12 @@ export function ForEachArray(data, callback, key, configs = {}) {
         toFragment(items, startIndexFrom = 0){
             const fragment = document.createDocumentFragment();
             for(let i = 0, length = items.length; i < length; i++) {
-                fragment.append(buildItem(items[i], lastNumberOfItems));
+                fragment.appendChild(buildItem(items[i], lastNumberOfItems));
                 lastNumberOfItems++;
             }
             return fragment;
         },
-        add(items, delay = 0) {
+        add(items, delay = 2) {
             const fragment = Actions.toFragment(items);
             setTimeout(() => {
                 element.appendElement(fragment);
@@ -160,7 +168,7 @@ export function ForEachArray(data, callback, key, configs = {}) {
         },
         clear,
         merge(items) {
-            Actions.add(items, 0);
+            Actions.add(items);
         },
         push(items) {
             let delay = 0;
@@ -267,7 +275,9 @@ export function ForEachArray(data, callback, key, configs = {}) {
         updateIndexObservers(items, 0);
     };
 
-    buildContent(data.val(), null, {action: null});
+    if(data.val().length) {
+        buildContent(data.val(), null, {action: null});
+    }
     if(Validator.isObservable(data)) {
         data.subscribe(buildContent);
     }

@@ -1,22 +1,20 @@
 import {ElementCreator} from "./ElementCreator";
 import {createTextNode} from "./HtmlElementWrapper";
-import PluginsManager from "../utils/plugins-manager";
 
 const cloneBindingsDataCache = new WeakMap();
 
 
 const bindAttributes = (node, bindDingData, data) => {
-    if(!bindDingData) {
-        return null;
-    }
-    const attributes = { };
+    let attributes = null;
     if(bindDingData.attributes) {
+        attributes = attributes || {};
         for (const attr in bindDingData.attributes) {
             attributes[attr] = bindDingData.attributes[attr](...data);
         }
     }
 
     if(bindDingData.classes) {
+        attributes = attributes || {};
         attributes.class = {};
         for (const className in bindDingData.classes) {
             attributes.class[className] = bindDingData.classes[className](...data);
@@ -24,49 +22,48 @@ const bindAttributes = (node, bindDingData, data) => {
     }
 
     if(bindDingData.styles) {
+        attributes = attributes || {};
         attributes.style = {};
         for (const property in bindDingData.styles) {
             attributes.style[property] = bindDingData.styles[property](...data);
         }
     }
 
-    if(Object.keys(attributes)) {
+    if(attributes) {
         ElementCreator.processAttributes(node, attributes);
-        return attributes;
+        return true;
     }
 
     return null;
 };
 
 
-const bindAttachesMethods = function(node, bindDingData, data) {
-    if(!bindDingData?.attaches) {
+const bindAttachMethods = function(node, bindDingData, data) {
+    if(!bindDingData.attach) {
         return null;
     }
-    for(const methodName in bindDingData.attaches) {
-        node.nd[methodName](function(...args) {
-            bindDingData.attaches[methodName].call(this, ...[...args, ...data]);
-        });
-    }
-}
+    bindDingData.attach(node, ...data);
+};
 
 export function TemplateCloner($fn) {
     let $node = null;
 
     const clone = (node, data) => {
         const bindDingData = cloneBindingsDataCache.get(node);
-        if(node instanceof Text) {
-            if(bindDingData?.value) {
+        if(node.nodeType === 3) {
+            if(bindDingData && bindDingData.value) {
                 return bindDingData.value(data);
             }
             return node.cloneNode(true);
         }
         const nodeCloned = node.cloneNode();
-        bindAttributes(nodeCloned, bindDingData, data);
-        bindAttachesMethods(nodeCloned, bindDingData, data);
-
-        for(let i = 0, length = node.childNodes.length; i < length; i++) {
-            const childNode = node.childNodes[i];
+        if(bindDingData) {
+            bindAttributes(nodeCloned, bindDingData, data);
+            bindAttachMethods(nodeCloned, bindDingData, data);
+        }
+        const childNodes = node.childNodes;
+        for(let i = 0, length = childNodes.length; i < length; i++) {
+            const childNode = childNodes[i];
             const childNodeCloned = clone(childNode, data);
             nodeCloned.appendChild(childNodeCloned);
         }
@@ -77,26 +74,30 @@ export function TemplateCloner($fn) {
         if(!$node) {
             $node = $fn(this);
         }
-        const cloneNode =  clone($node, data);
-        PluginsManager.emit('NodeTemplateInstanceCreated', cloneNode);
-        return cloneNode;
+        return clone($node, data);
     };
+
+    const $hydrateFn = function(hydrateFunction, target, element, property) {
+        if(!cloneBindingsDataCache.has(element)) {
+            // { classes, styles, attributes, value, attach }
+            cloneBindingsDataCache.set(element, {});
+        }
+        const hydrationState = cloneBindingsDataCache.get(element);
+        if(target === 'value') {
+            hydrationState.value = hydrateFunction;
+            return;
+        }
+        if(target === 'attach') {
+            hydrationState.attach = hydrateFunction;
+            return;
+        }
+        hydrationState[target] = hydrationState[target] || {};
+        hydrationState[target][property] = hydrateFunction;
+    }
 
     const createBinding = (hydrateFunction, target) => {
         return {
-            $hydrate : function(element, property) {
-                if(!cloneBindingsDataCache.has(element)) {
-                    // { classes, styles, attributes, value, attaches }
-                    cloneBindingsDataCache.set(element, {});
-                }
-                const hydrationState = cloneBindingsDataCache.get(element);
-                if(target === 'value') {
-                    hydrationState.value = hydrateFunction;
-                    return;
-                }
-                hydrationState[target] = hydrationState[target] || {};
-                hydrationState[target][property] = hydrateFunction;
-            }
+            $hydrate : (element, property) => $hydrateFn(hydrateFunction, target, element, property),
         }
     };
 
@@ -106,29 +107,44 @@ export function TemplateCloner($fn) {
     this.class = (fn) => {
         return createBinding(fn, 'classes');
     };
-    this.value = (fn) => {
+    this.property = (propertyName) => {
+        return this.value(propertyName);
+    }
+    this.value = (callbackOrProperty) => {
+        if(typeof callbackOrProperty !== 'function') {
+            return createBinding(function(data) {
+                const firstArgument = data[0];
+                return createTextNode(firstArgument[callbackOrProperty]);
+            }, 'value');
+        }
         return createBinding(function(data) {
-            return createTextNode(fn(...data));
+            return createTextNode(callbackOrProperty(...data));
         }, 'value');
     };
     this.attr = (fn) => {
         return createBinding(fn, 'attributes');
     };
     this.attach = (fn) => {
-        return createBinding(fn, 'attaches');
+        return createBinding(fn, 'attach');
     };
 }
 
 export function useCache(fn) {
     let $cache = null;
-    PluginsManager.emit('NodeTemplateStored', fn);
 
-    return function(...args) {
+    const wrapper = function(args) {
         if(!$cache) {
             $cache = new TemplateCloner(fn);
-            PluginsManager.emit('NodeTemplateCreated', $cache);
         }
-
         return $cache.clone(args);
+    };
+
+    if(fn.length < 2) {
+        return function(...args) {
+            return wrapper(args);
+        };
+    }
+    return function(_, __, ...args) {
+        return wrapper([_, __, ...args]);
     };
 }

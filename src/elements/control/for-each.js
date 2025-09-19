@@ -1,19 +1,20 @@
-import ObservableItem from "../../data/ObservableItem";
 import {Observable} from "../../data/Observable";
 import Validator from "../../utils/validator";
 import Anchor from "../anchor";
 import DebugManager from "../../utils/debug-manager";
 import {getKey} from "../../utils/helpers";
 import { ElementCreator } from "../../wrappers/ElementCreator";
+import NativeDocumentError from "../../errors/NativeDocumentError";
 
 /**
  *
  * @param {Array|Object|ObservableItem} data
  * @param {Function} callback
- * @param {?Function} key
+ * @param {?Function|?string} key
+ * @param {{shouldKeepItemsInCache: boolean}?} configs
  * @returns {DocumentFragment}
  */
-export function ForEach(data, callback, key) {
+export function ForEach(data, callback, key, { shouldKeepItemsInCache = false } = {}) {
     const element = new Anchor('ForEach');
     const blockEnd = element.endElement();
     const blockStart = element.startElement();
@@ -28,6 +29,9 @@ export function ForEach(data, callback, key) {
     };
 
     const cleanCache = (parent) => {
+        if(shouldKeepItemsInCache) {
+            return;
+        }
         for(const [keyId, cacheItem] of cache.entries()) {
             if(keyIds.has(keyId)) {
                 continue;
@@ -59,7 +63,10 @@ export function ForEach(data, callback, key) {
 
         try {
             const indexObserver = callback.length >= 2 ? Observable(indexKey) : null;
-            let child = ElementCreator.getChild(callback(item, indexObserver))
+            let child = ElementCreator.getChild(callback(item, indexObserver));
+            if(!child || Validator.isFragment(child)) {
+                throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
+            }
             cache.set(keyId, { keyId, isNew: true, child: new WeakRef(child), indexObserver});
         } catch (e) {
             DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
@@ -114,7 +121,7 @@ export function ForEach(data, callback, key) {
         keyIds.clear();
         if(Array.isArray(items)) {
             for(let i = 0, length = items.length; i < length; i++) {
-                const keyId= handleContentItem(items[i], i);
+                const keyId = handleContentItem(items[i], i);
                 keyIds.add(keyId);
             }
         } else {

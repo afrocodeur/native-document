@@ -73,9 +73,9 @@ Observable.array = function(target) {
         return observer.val().length;
     }
 
-    const overrideMethods = ['map', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex', 'concat'];
+    const overrideMethods = ['map', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex', 'concat', 'includes', 'indexOf'];
     overrideMethods.forEach((method) => {
-        observer[method] = function(...args) {
+        observer[method] = (...args) => {
             return observer.val()[method](...args);
         };
     })

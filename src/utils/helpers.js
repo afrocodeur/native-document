@@ -52,7 +52,7 @@ export const getKey = (item, defaultKey, key) => {
     if(!Validator.isObject(item)) {
         return item;
     }
-    return item[key] ?? defaultKey;
+    return item[key]?.val?.() ??  item[key] ?? defaultKey;
 };
 
 export const trim = function(str, char) {

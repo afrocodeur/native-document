@@ -24,10 +24,11 @@ const PluginsManager = (function() {
             }
             for(const methodName in plugin) {
                 if(/^on[A-Z]/.test(methodName)) {
-                    if(!$pluginByEvents.has(methodName)) {
-                        $pluginByEvents.set(methodName, new Set());
+                    const eventName = methodName.replace(/^on/, '');
+                    if(!$pluginByEvents.has(eventName)) {
+                        $pluginByEvents.set(eventName, new Set());
                     }
-                    $pluginByEvents.get(methodName).add(plugin);
+                    $pluginByEvents.get(eventName).add(plugin);
                 }
             }
         },
@@ -49,20 +50,19 @@ const PluginsManager = (function() {
             }
             $plugins.delete(pluginName);
         },
-        emit(event, ...data) {
-            const eventMethodName = 'on'+event
-            if(!$pluginByEvents.has(eventMethodName)) {
+        emit(eventName, ...data) {
+            if(!$pluginByEvents.has(eventName)) {
                 return;
             }
-            const plugins = $pluginByEvents.get(eventMethodName);
+            const plugins = $pluginByEvents.get(eventName);
 
             for(const plugin of plugins) {
-                const callback = plugin[eventMethodName];
+                const callback = plugin[eventName];
                 if(typeof callback === 'function') {
                     try{
                         callback.call(plugin, ...data);
                     } catch (error) {
-                        DebugManager.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventMethodName}`, error);
+                        DebugManager.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
                     }
                 }
             }

@@ -9,10 +9,10 @@ import {ElementCreator} from "../../wrappers/ElementCreator";
  *
  * @param {ObservableItem|ObservableChecker} condition
  * @param {*} child
- * @param {string|null} comment
+ * @param {{comment?: string|null, shouldKeepInCache?: Boolean}} comment
  * @returns {DocumentFragment}
  */
-export const ShowIf = function(condition, child, comment = null) {
+export const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
     if(!(Validator.isObservable(condition))) {
         return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
     }
@@ -20,10 +20,13 @@ export const ShowIf = function(condition, child, comment = null) {
 
     let childElement = null;
     const getChildElement = () => {
-        if(childElement) {
+        if(childElement && shouldKeepInCache) {
             return childElement;
         }
         childElement = ElementCreator.getChild(child);
+        if(Validator.isFragment(childElement)) {
+            childElement = Array.from(childElement.children);
+        }
         return childElement;
     };
 

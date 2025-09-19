@@ -30,6 +30,9 @@ export const Match = function($condition, values, shouldKeepInCache = true) {
             return null;
         }
         item = ElementCreator.getChild(item);
+        if(Validator.isFragment(item)) {
+            item = Array.from(item.children);
+        }
         shouldKeepInCache && cache.set(key, item);
         return item;
     }

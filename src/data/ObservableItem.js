@@ -11,7 +11,7 @@ import Validator from "../utils/validator";
  * @class ObservableItem
  */
 export default function ObservableItem(value) {
-    this.$previousValue = value;
+    this.$previousValue = null;
     this.$currentValue = value;
     this.$isCleanedUp = false;
 
@@ -35,19 +35,33 @@ Object.defineProperty(ObservableItem.prototype, '$value', {
 ObservableItem.prototype.__$isObservable = true;
 
 const noneTrigger = function() {};
+ObservableItem.prototype.triggerFirstListener = function(operations) {
+    this.$listeners[0](this.$currentValue, this.$previousValue, operations || {});
+}
 ObservableItem.prototype.triggerListeners = function(operations) {
     const $listeners = this.$listeners;
     const $previousValue = this.$previousValue;
     const $currentValue = this.$currentValue;
 
-    operations = operations || {};
-    if($listeners?.length) {
-        for(let i = 0, length = $listeners.length; i < length; i++) {
-            $listeners[i]($currentValue, $previousValue, operations);
-        }
+    operations = operations || DEFAULT_OPERATIONS;
+    for(let i = 0, length = $listeners.length; i < length; i++) {
+        $listeners[i]($currentValue, $previousValue, operations);
     }
 };
 
+const handleWatcherCallback = function(callbacks, value) {
+    if(typeof callbacks === "function") {
+        callbacks(value);
+        return;
+    }
+    if (callbacks.set) {
+        callbacks.set(value);
+        return;
+    }
+    callbacks.forEach(callback => {
+        callback.set ? callback.set(value) : callback(value);
+    });
+}
 ObservableItem.prototype.triggerWatchers = function() {
     if(!this.$watchers) {
         return;
@@ -59,28 +73,11 @@ ObservableItem.prototype.triggerWatchers = function() {
 
     if($watchers.has($currentValue)) {
         const $currentValueCallbacks = $watchers.get($currentValue);
-        if(typeof $currentValueCallbacks === "function") {
-            $currentValueCallbacks(true);
-        } else if ($currentValueCallbacks.set) {
-            $currentValueCallbacks.set(true)
-        }
-        else {
-            $currentValueCallbacks.forEach(callback => {
-                callback.set ? callback.set(true) : callback(true);
-            });
-        }
+        handleWatcherCallback($currentValueCallbacks, true);
     }
     if($watchers.has($previousValue)) {
         const $previousValueCallbacks = $watchers.get($previousValue);
-        if(typeof $previousValueCallbacks === "function") {
-            $previousValueCallbacks(false);
-        } else if($previousValueCallbacks.set) {
-            $previousValueCallbacks.set(false)
-        } else {
-            $previousValueCallbacks.forEach(callback => {
-                callback.set ? callback.set(false) : callback(false);
-            });
-        }
+        handleWatcherCallback($previousValueCallbacks, false);
     }
 };
 
@@ -89,13 +86,18 @@ ObservableItem.prototype.triggerAll = function(operations) {
     this.triggerWatchers();
 };
 
+ObservableItem.prototype.triggerWatchersAndFirstListener = function(operations) {
+    this.triggerListeners(operations);
+    this.triggerWatchers();
+};
+
 ObservableItem.prototype.assocTrigger = function() {
     if(this.$watchers?.size && this.$listeners?.length) {
-        this.trigger = this.triggerAll;
+        this.trigger = (this.$listeners.length === 1) ? this.triggerWatchersAndFirstListener : this.triggerAll;
         return;
     }
     if(this.$listeners?.length) {
-        this.trigger = this.triggerListeners;
+        this.trigger = (this.$listeners.length === 1) ? this.triggerFirstListener : this.triggerListeners;
         return;
     }
     if(this.$watchers?.size) {

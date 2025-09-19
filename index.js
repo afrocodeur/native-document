@@ -4,6 +4,7 @@ export { NDElement } from './src/wrappers/NDElement'
 export { TemplateCloner, useCache } from './src/wrappers/TemplateCloner'
 
 import './src/utils/prototypes.js';
+import './src/wrappers/NDElementEventPrototypes';
 
 export * from './src/utils/property-accumulator';
 export * from './src/utils/plugins-manager';

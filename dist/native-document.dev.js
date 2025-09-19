@@ -165,10 +165,11 @@ var NativeDocument = (function (exports) {
                 }
                 for(const methodName in plugin) {
                     if(/^on[A-Z]/.test(methodName)) {
-                        if(!$pluginByEvents.has(methodName)) {
-                            $pluginByEvents.set(methodName, new Set());
+                        const eventName = methodName.replace(/^on/, '');
+                        if(!$pluginByEvents.has(eventName)) {
+                            $pluginByEvents.set(eventName, new Set());
                         }
-                        $pluginByEvents.get(methodName).add(plugin);
+                        $pluginByEvents.get(eventName).add(plugin);
                     }
                 }
             },
@@ -190,20 +191,19 @@ var NativeDocument = (function (exports) {
                 }
                 $plugins.delete(pluginName);
             },
-            emit(event, ...data) {
-                const eventMethodName = 'on'+event;
-                if(!$pluginByEvents.has(eventMethodName)) {
+            emit(eventName, ...data) {
+                if(!$pluginByEvents.has(eventName)) {
                     return;
                 }
-                const plugins = $pluginByEvents.get(eventMethodName);
+                const plugins = $pluginByEvents.get(eventName);
 
                 for(const plugin of plugins) {
-                    const callback = plugin[eventMethodName];
+                    const callback = plugin[eventName];
                     if(typeof callback === 'function') {
                         try{
                             callback.call(plugin, ...data);
                         } catch (error) {
-                            DebugManager$1.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventMethodName}`, error);
+                            DebugManager$1.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
                         }
                     }
                 }
@@ -217,7 +217,7 @@ var NativeDocument = (function (exports) {
      * @class ObservableItem
      */
     function ObservableItem(value) {
-        this.$previousValue = value;
+        this.$previousValue = null;
         this.$currentValue = value;
         this.$isCleanedUp = false;
 
@@ -241,19 +241,33 @@ var NativeDocument = (function (exports) {
     ObservableItem.prototype.__$isObservable = true;
 
     const noneTrigger = function() {};
+    ObservableItem.prototype.triggerFirstListener = function(operations) {
+        this.$listeners[0](this.$currentValue, this.$previousValue, operations || {});
+    };
     ObservableItem.prototype.triggerListeners = function(operations) {
         const $listeners = this.$listeners;
         const $previousValue = this.$previousValue;
         const $currentValue = this.$currentValue;
 
-        operations = operations || {};
-        if($listeners?.length) {
-            for(let i = 0, length = $listeners.length; i < length; i++) {
-                $listeners[i]($currentValue, $previousValue, operations);
-            }
+        operations = operations || DEFAULT_OPERATIONS;
+        for(let i = 0, length = $listeners.length; i < length; i++) {
+            $listeners[i]($currentValue, $previousValue, operations);
         }
     };
 
+    const handleWatcherCallback = function(callbacks, value) {
+        if(typeof callbacks === "function") {
+            callbacks(value);
+            return;
+        }
+        if (callbacks.set) {
+            callbacks.set(value);
+            return;
+        }
+        callbacks.forEach(callback => {
+            callback.set ? callback.set(value) : callback(value);
+        });
+    };
     ObservableItem.prototype.triggerWatchers = function() {
         if(!this.$watchers) {
             return;
@@ -265,28 +279,11 @@ var NativeDocument = (function (exports) {
 
         if($watchers.has($currentValue)) {
             const $currentValueCallbacks = $watchers.get($currentValue);
-            if(typeof $currentValueCallbacks === "function") {
-                $currentValueCallbacks(true);
-            } else if ($currentValueCallbacks.set) {
-                $currentValueCallbacks.set(true);
-            }
-            else {
-                $currentValueCallbacks.forEach(callback => {
-                    callback.set ? callback.set(true) : callback(true);
-                });
-            }
+            handleWatcherCallback($currentValueCallbacks, true);
         }
         if($watchers.has($previousValue)) {
             const $previousValueCallbacks = $watchers.get($previousValue);
-            if(typeof $previousValueCallbacks === "function") {
-                $previousValueCallbacks(false);
-            } else if($previousValueCallbacks.set) {
-                $previousValueCallbacks.set(false);
-            } else {
-                $previousValueCallbacks.forEach(callback => {
-                    callback.set ? callback.set(false) : callback(false);
-                });
-            }
+            handleWatcherCallback($previousValueCallbacks, false);
         }
     };
 
@@ -295,13 +292,18 @@ var NativeDocument = (function (exports) {
         this.triggerWatchers();
     };
 
+    ObservableItem.prototype.triggerWatchersAndFirstListener = function(operations) {
+        this.triggerListeners(operations);
+        this.triggerWatchers();
+    };
+
     ObservableItem.prototype.assocTrigger = function() {
         if(this.$watchers?.size && this.$listeners?.length) {
-            this.trigger = this.triggerAll;
+            this.trigger = (this.$listeners.length === 1) ? this.triggerWatchersAndFirstListener : this.triggerAll;
             return;
         }
         if(this.$listeners?.length) {
-            this.trigger = this.triggerListeners;
+            this.trigger = (this.$listeners.length === 1) ? this.triggerFirstListener : this.triggerListeners;
             return;
         }
         if(this.$watchers?.size) {
@@ -461,7 +463,7 @@ var NativeDocument = (function (exports) {
         if(!Validator.isObject(item)) {
             return item;
         }
-        return item[key] ?? defaultKey;
+        return item[key]?.val?.() ??  item[key] ?? defaultKey;
     };
 
     const trim = function(str, char) {
@@ -633,35 +635,7 @@ var NativeDocument = (function (exports) {
     }
     NDElement.prototype.__$isNDElement = true;
 
-    for(const event of EVENTS) {
-        const eventName = event.toLowerCase();
-        NDElement.prototype['on'+event] = function(callback) {
-            this.$element.addEventListener(eventName, callback);
-            return this;
-        };
-        NDElement.prototype['onPrevent'+event] = function(callback) {
-            this.$element.addEventListener(eventName, function(event) {
-                event.preventDefault();
-                callback && callback(event);
-            });
-            return this;
-        };
-        NDElement.prototype['onStop'+event] = function(callback) {
-            this.$element.addEventListener(eventName, function(event) {
-                event.stopPropagation();
-                callback && callback(event);
-            });
-            return this;
-        };
-        NDElement.prototype['onPreventStop'+event] = function(callback) {
-            this.$element.addEventListener(eventName, function(event) {
-                event.stopPropagation();
-                event.preventDefault();
-                callback && callback(event);
-            });
-            return this;
-        };
-    }
+
 
     NDElement.prototype.valueOf = function() {
         return this.$element;
@@ -717,20 +691,26 @@ var NativeDocument = (function (exports) {
 
     NDElement.prototype.node = NDElement.prototype.htmlElement;
 
-    NDElement.prototype.attach = function(methodName, bindingHydrator) {
-        bindingHydrator.$hydrate(this.$element, methodName);
+    NDElement.prototype.attach = function(bindingHydrator) {
+        bindingHydrator.$hydrate(this.$element);
         return this.$element;
+    };
+
+    const COMMON_NODE_TYPES = {
+        ELEMENT: 1,
+        TEXT: 3,
+        DOCUMENT_FRAGMENT: 11
     };
 
     const Validator = {
         isObservable(value) {
-            return value instanceof ObservableItem || value instanceof ObservableChecker || value?.__$isObservable;
+            return  value?.__$isObservable || value instanceof ObservableItem || value instanceof ObservableChecker;
         },
         isProxy(value) {
             return value?.__isProxy__
         },
         isObservableChecker(value) {
-            return value instanceof ObservableChecker || value?.__$isObservableChecker;
+            return value?.__$isObservableChecker || value instanceof ObservableChecker;
         },
         isArray(value) {
             return Array.isArray(value);
@@ -754,13 +734,17 @@ var NativeDocument = (function (exports) {
             return typeof value === 'object';
         },
         isJson(value) {
-            return typeof value === 'object' && value !== null && value.constructor.name === 'Object' && !Array.isArray(value);
+            return typeof value === 'object' && value !== null && !Array.isArray(value) && value.constructor.name === 'Object';
         },
         isElement(value) {
-            return value instanceof HTMLElement || value instanceof DocumentFragment  || value instanceof Text;
+            return value && (
+                value.nodeType === COMMON_NODE_TYPES.ELEMENT ||
+                value.nodeType === COMMON_NODE_TYPES.TEXT ||
+                value.nodeType === COMMON_NODE_TYPES.DOCUMENT_FRAGMENT
+            );
         },
         isFragment(value) {
-            return value instanceof DocumentFragment;
+            return value?.nodeType === COMMON_NODE_TYPES.DOCUMENT_FRAGMENT;
         },
         isStringOrObservable(value) {
             return this.isString(value) || this.isObservable(value);
@@ -773,7 +757,7 @@ var NativeDocument = (function (exports) {
                 ['string', 'number', 'boolean'].includes(typeof child);
         },
         isNDElement(child) {
-            return child instanceof NDElement || child?.constructor?.__$isNDElement;
+            return child?.__$isNDElement || child instanceof NDElement;
         },
         isValidChildren(children) {
             if (!Array.isArray(children)) {
@@ -818,7 +802,16 @@ var NativeDocument = (function (exports) {
             }
             return /\{\{#ObItem::\([0-9]+\)\}\}/.test(data);
         },
-        validateAttributes(attributes) {
+        validateAttributes(attributes) {},
+
+        validateEventCallback(callback) {
+            if (typeof callback !== 'function') {
+                throw new NativeDocumentError('Event callback must be a function');
+            }
+        }
+    };
+    {
+        Validator.validateAttributes = function(attributes) {
             if (!attributes || typeof attributes !== 'object') {
                 return attributes;
             }
@@ -831,14 +824,8 @@ var NativeDocument = (function (exports) {
             }
 
             return attributes;
-        },
-
-        validateEventCallback(callback) {
-            if (typeof callback !== 'function') {
-                throw new NativeDocumentError('Event callback must be a function');
-            }
-        }
-    };
+        };
+    }
 
     function Anchor(name, isUniqueChild = false) {
         const element = document.createDocumentFragment();
@@ -852,10 +839,7 @@ var NativeDocument = (function (exports) {
         element.nativeInsertBefore = element.insertBefore;
         element.nativeAppendChild = element.appendChild;
 
-        const isParentUniqueChild = (parent) => {
-            console.log('on passwr ici ', isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd));
-            return isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd);
-        };
+        const isParentUniqueChild = (parent) => (isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd));
 
         const insertBefore = function(parent, child, target) {
             const element = Validator.isElement(child) ? child : ElementCreator.getChild(child);
@@ -863,25 +847,21 @@ var NativeDocument = (function (exports) {
                 parent.nativeInsertBefore(element, target);
                 return;
             }
-            if(isParentUniqueChild(parent)) {
-                parent.append(element,  anchorEnd);
+            if(isParentUniqueChild(parent) || target === anchorEnd) {
+                parent.append(element,  target);
                 return;
             }
             parent.insertBefore(element, target);
         };
 
         element.appendElement = function(child, before = null) {
-            if(isParentUniqueChild(anchorEnd.parentNode)) {
-                (before && before !== anchorEnd)
-                    ? anchorEnd.parentNode.insertBefore(child, anchorEnd)
-                    : anchorEnd.parentNode.append(child, anchorEnd);
+            const parentNode = anchorStart.parentNode;
+            const targetBefore = before || anchorEnd;
+            if(parentNode === element) {
+                parentNode.nativeInsertBefore(child, targetBefore);
                 return;
             }
-            if(anchorEnd.parentNode === element) {
-                anchorEnd.parentNode.nativeInsertBefore(child, before || anchorEnd);
-                return;
-            }
-            anchorEnd.parentNode?.insertBefore(child, before || anchorEnd);
+            parentNode?.insertBefore(child, targetBefore);
         };
 
         element.appendChild = function(child, before = null) {
@@ -960,8 +940,20 @@ var NativeDocument = (function (exports) {
         element.endElement = function() {
             return anchorEnd;
         };
+
         element.startElement = function() {
             return anchorStart;
+        };
+
+        element.getByIndex = function(index) {
+            let currentNode = anchorStart;
+            for(let i = 0; i <= index; i++) {
+                if(!currentNode.nextSibling) {
+                    return null;
+                }
+                currentNode = currentNode.nextSibling;
+            }
+            return currentNode !== anchorStart ? currentNode : null;
         };
 
         return element;
@@ -1018,6 +1010,26 @@ var NativeDocument = (function (exports) {
         setInterval(() => MemoryManager.cleanObservables(threshold), interval);
     };
 
+    function toggleElementClass(element, className, shouldAdd) {
+        element.classes.toggle(className, shouldAdd);
+    }
+    function toggleElementStyle(element, styleName, newValue) {
+        element.style[styleName] = newValue;
+    }
+    function updateInputFromObserver(element, attributeName, newValue) {
+        if(Validator.isBoolean(newValue)) {
+            element[attributeName] = newValue;
+            return;
+        }
+        element[attributeName] = newValue === element.value;
+    }
+    function updateObserverFromInput(element, attributeName, defaultValue, value) {
+        if(Validator.isBoolean(defaultValue)) {
+            value.set(element[attributeName]);
+            return;
+        }
+        value.set(element.value);
+    }
     /**
      *
      * @param {HTMLElement} element
@@ -1027,23 +1039,22 @@ var NativeDocument = (function (exports) {
         for(let className in data) {
             const value = data[className];
             if(Validator.isObservable(value)) {
-                element.classList.toggle(className, value.val());
-                value.subscribe(newValue => element.classList.toggle(className, newValue));
+                element.classes.toggle(className, value.val());
+                value.subscribe(toggleElementClass.bind(null, element, className));
                 continue;
             }
             if(value.$observer) {
-                element.classList.toggle(className, value.$observer.val() === value.$target);
-                value.$observer.on(value.$target, function(isTargetValue) {
-                    element.classList.toggle(className, isTargetValue);
-                });
+                element.classes.toggle(className, value.$observer.val() === value.$target);
+                value.$observer.on(value.$target, toggleElementClass.bind(null, element, className));
                 continue;
             }
             if(value.$hydrate) {
                 value.$hydrate(element, className);
                 continue;
             }
-            element.classList.toggle(className, value);
+            element.classes.toggle(className, value);
         }
+        data = null;
     }
 
     /**
@@ -1056,9 +1067,7 @@ var NativeDocument = (function (exports) {
             const value = data[styleName];
             if(Validator.isObservable(value)) {
                 element.style[styleName] = value.val();
-                value.subscribe(newValue => {
-                    element.style[styleName] = newValue;
-                });
+                value.subscribe(toggleElementStyle.bind(null, element, styleName));
                 continue;
             }
             element.style[styleName] = value;
@@ -1081,21 +1090,9 @@ var NativeDocument = (function (exports) {
         }
         if(Validator.isObservable(value)) {
             if(['checked'].includes(attributeName)) {
-                element.addEventListener('input', () => {
-                    if(Validator.isBoolean(defaultValue)) {
-                        value.set(element[attributeName]);
-                        return;
-                    }
-                    value.set(element.value);
-                });
+                element.addEventListener('input', updateObserverFromInput.bind(null, element, attributeName, defaultValue));
             }
-            value.subscribe(newValue => {
-                if(Validator.isBoolean(newValue)) {
-                    element[attributeName] = newValue;
-                    return;
-                }
-                element[attributeName] = newValue === element.value;
-            });
+            value.subscribe(updateInputFromObserver.bind(null, element, attributeName));
         }
     }
 
@@ -1149,11 +1146,11 @@ var NativeDocument = (function (exports) {
                     return value.map(item => Validator.isObservable(item) ? item.val() : item).join(' ') || ' ';
                 }, observables);
             }
-            if(attributeName === 'class' && Validator.isJson(value)) {
+            if(attributeName === 'class' && Validator.isObject(value)) {
                 bindClassAttribute(element, value);
                 continue;
             }
-            if(attributeName === 'style' && Validator.isJson(value)) {
+            if(attributeName === 'style' && Validator.isObject(value)) {
                 bindStyleAttribute(element, value);
                 continue;
             }
@@ -1163,6 +1160,10 @@ var NativeDocument = (function (exports) {
             }
             if(Validator.isObservable(value)) {
                 bindAttributeWithObservable(element, attributeName, value);
+                continue;
+            }
+            if(value.$hydrate) {
+                value.$hydrate(element, attributeName);
                 continue;
             }
             element.setAttribute(attributeName, value);
@@ -1241,14 +1242,19 @@ var NativeDocument = (function (exports) {
          */
         processChildren(children, parent) {
             if(children === null) return;
-            const childrenArray = Array.isArray(children) ? children : [children];
-
             PluginsManager.emit('BeforeProcessChildren', parent);
-
-            for(let i = 0, length = childrenArray.length; i < length; i++) {
-                let child = this.getChild(childrenArray[i]);
-                if (child === null) continue;
-                parent.appendChild(child);
+            if(!Array.isArray(children)) {
+                let child = this.getChild(children);
+                if(child) {
+                    parent.appendChild(child);
+                }
+            }
+            else {
+                for(let i = 0, length = children.length; i < length; i++) {
+                    let child = this.getChild(children[i]);
+                    if (child === null) continue;
+                    parent.appendChild(child);
+                }
             }
 
             PluginsManager.emit('AfterProcessChildren', parent);
@@ -1315,13 +1321,60 @@ var NativeDocument = (function (exports) {
     Object.defineProperty(HTMLElement.prototype, 'nd', {
         configurable: true,
         get() {
-            if(this.$nd) {
-                return this.$nd;
-            }
+            return new NDElement(this);
+        }
+    });
 
-            this.$nd = new NDElement(this);
-            this.$nd.nd = this.$nd;
-            return this.$nd;
+    const classListMethods = {
+        getClasses() {
+            return this.$element.className?.split(' ').filter(Boolean);
+        },
+        add(value) {
+            const classes = this.getClasses();
+            if(classes.indexOf(value) >= 0) {
+                return;
+            }
+            classes.push(value);
+            this.$element.className = classes.join(' ');
+        },
+        remove(value) {
+            const classes = this.getClasses();
+            const index = classes.indexOf(value);
+            if(index < 0) {
+                return;
+            }
+            classes.splice(index, 1);
+            this.$element.className = classes.join(' ');
+        },
+        toggle(value, force = undefined) {
+            const classes = this.getClasses();
+            const index = classes.indexOf(value);
+            if(index >= 0) {
+                if(force === true) {
+                    return;
+                }
+                classes.splice(index, 1);
+            }
+            else {
+                if(force === false) {
+                    return;
+                }
+                classes.push(value);
+            }
+            this.$element.className = classes.join(' ');
+        },
+        contains(value) {
+            return this.getClasses().indexOf(value) >= 0;
+        }
+    };
+
+    Object.defineProperty(HTMLElement.prototype, 'classes', {
+        configurable: true,
+        get() {
+            return {
+                $element: this,
+                ...classListMethods
+            };
         }
     });
 
@@ -1457,13 +1510,17 @@ var NativeDocument = (function (exports) {
     };
 
 
-    function createHtmlElement($tagName, _attributes, _children = null, customWrapper) {
-        const { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
-        const element = ElementCreator.createElement($tagName);
-        const finalElement = (typeof customWrapper === 'function') ? customWrapper(element) : element;
+    function createHtmlElement($tagName, customWrapper, _attributes, _children = null) {
+        let { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
+        let element = ElementCreator.createElement($tagName);
+        let finalElement = (customWrapper && typeof customWrapper === 'function') ? customWrapper(element) : element;
 
-        ElementCreator.processAttributes(finalElement, attributes);
-        ElementCreator.processChildren(children, finalElement);
+        if(attributes) {
+            ElementCreator.processAttributes(finalElement, attributes);
+        }
+        if(children) {
+            ElementCreator.processChildren(children, finalElement);
+        }
 
         return ElementCreator.setup(finalElement, attributes, customWrapper);
     }
@@ -1475,24 +1532,23 @@ var NativeDocument = (function (exports) {
      * @returns {Function}
      */
     function HtmlElementWrapper(name, customWrapper) {
-        return (_attributes, _children = null) => createHtmlElement(name.toLowerCase(), _attributes, _children, customWrapper);
+        return createHtmlElement.bind(null, name.toLowerCase(), customWrapper);
     }
 
     const cloneBindingsDataCache = new WeakMap();
 
 
     const bindAttributes = (node, bindDingData, data) => {
-        if(!bindDingData) {
-            return null;
-        }
-        const attributes = { };
+        let attributes = null;
         if(bindDingData.attributes) {
+            attributes = attributes || {};
             for (const attr in bindDingData.attributes) {
                 attributes[attr] = bindDingData.attributes[attr](...data);
             }
         }
 
         if(bindDingData.classes) {
+            attributes = attributes || {};
             attributes.class = {};
             for (const className in bindDingData.classes) {
                 attributes.class[className] = bindDingData.classes[className](...data);
@@ -1500,30 +1556,27 @@ var NativeDocument = (function (exports) {
         }
 
         if(bindDingData.styles) {
+            attributes = attributes || {};
             attributes.style = {};
             for (const property in bindDingData.styles) {
                 attributes.style[property] = bindDingData.styles[property](...data);
             }
         }
 
-        if(Object.keys(attributes)) {
+        if(attributes) {
             ElementCreator.processAttributes(node, attributes);
-            return attributes;
+            return true;
         }
 
         return null;
     };
 
 
-    const bindAttachesMethods = function(node, bindDingData, data) {
-        if(!bindDingData?.attaches) {
+    const bindAttachMethods = function(node, bindDingData, data) {
+        if(!bindDingData.attach) {
             return null;
         }
-        for(const methodName in bindDingData.attaches) {
-            node.nd[methodName](function(...args) {
-                bindDingData.attaches[methodName].call(this, ...[...args, ...data]);
-            });
-        }
+        bindDingData.attach(node, ...data);
     };
 
     function TemplateCloner($fn) {
@@ -1531,18 +1584,20 @@ var NativeDocument = (function (exports) {
 
         const clone = (node, data) => {
             const bindDingData = cloneBindingsDataCache.get(node);
-            if(node instanceof Text) {
-                if(bindDingData?.value) {
+            if(node.nodeType === 3) {
+                if(bindDingData && bindDingData.value) {
                     return bindDingData.value(data);
                 }
                 return node.cloneNode(true);
             }
             const nodeCloned = node.cloneNode();
-            bindAttributes(nodeCloned, bindDingData, data);
-            bindAttachesMethods(nodeCloned, bindDingData, data);
-
-            for(let i = 0, length = node.childNodes.length; i < length; i++) {
-                const childNode = node.childNodes[i];
+            if(bindDingData) {
+                bindAttributes(nodeCloned, bindDingData, data);
+                bindAttachMethods(nodeCloned, bindDingData, data);
+            }
+            const childNodes = node.childNodes;
+            for(let i = 0, length = childNodes.length; i < length; i++) {
+                const childNode = childNodes[i];
                 const childNodeCloned = clone(childNode, data);
                 nodeCloned.appendChild(childNodeCloned);
             }
@@ -1553,26 +1608,30 @@ var NativeDocument = (function (exports) {
             if(!$node) {
                 $node = $fn(this);
             }
-            const cloneNode =  clone($node, data);
-            PluginsManager.emit('NodeTemplateInstanceCreated', cloneNode);
-            return cloneNode;
+            return clone($node, data);
+        };
+
+        const $hydrateFn = function(hydrateFunction, target, element, property) {
+            if(!cloneBindingsDataCache.has(element)) {
+                // { classes, styles, attributes, value, attach }
+                cloneBindingsDataCache.set(element, {});
+            }
+            const hydrationState = cloneBindingsDataCache.get(element);
+            if(target === 'value') {
+                hydrationState.value = hydrateFunction;
+                return;
+            }
+            if(target === 'attach') {
+                hydrationState.attach = hydrateFunction;
+                return;
+            }
+            hydrationState[target] = hydrationState[target] || {};
+            hydrationState[target][property] = hydrateFunction;
         };
 
         const createBinding = (hydrateFunction, target) => {
             return {
-                $hydrate : function(element, property) {
-                    if(!cloneBindingsDataCache.has(element)) {
-                        // { classes, styles, attributes, value, attaches }
-                        cloneBindingsDataCache.set(element, {});
-                    }
-                    const hydrationState = cloneBindingsDataCache.get(element);
-                    if(target === 'value') {
-                        hydrationState.value = hydrateFunction;
-                        return;
-                    }
-                    hydrationState[target] = hydrationState[target] || {};
-                    hydrationState[target][property] = hydrateFunction;
-                }
+                $hydrate : (element, property) => $hydrateFn(hydrateFunction, target, element, property),
             }
         };
 
@@ -1582,30 +1641,45 @@ var NativeDocument = (function (exports) {
         this.class = (fn) => {
             return createBinding(fn, 'classes');
         };
-        this.value = (fn) => {
+        this.property = (propertyName) => {
+            return this.value(propertyName);
+        };
+        this.value = (callbackOrProperty) => {
+            if(typeof callbackOrProperty !== 'function') {
+                return createBinding(function(data) {
+                    const firstArgument = data[0];
+                    return createTextNode(firstArgument[callbackOrProperty]);
+                }, 'value');
+            }
             return createBinding(function(data) {
-                return createTextNode(fn(...data));
+                return createTextNode(callbackOrProperty(...data));
             }, 'value');
         };
         this.attr = (fn) => {
             return createBinding(fn, 'attributes');
         };
         this.attach = (fn) => {
-            return createBinding(fn, 'attaches');
+            return createBinding(fn, 'attach');
         };
     }
 
     function useCache(fn) {
         let $cache = null;
-        PluginsManager.emit('NodeTemplateStored', fn);
 
-        return function(...args) {
+        const wrapper = function(args) {
             if(!$cache) {
                 $cache = new TemplateCloner(fn);
-                PluginsManager.emit('NodeTemplateCreated', $cache);
             }
-
             return $cache.clone(args);
+        };
+
+        if(fn.length < 2) {
+            return function(...args) {
+                return wrapper(args);
+            };
+        }
+        return function(_, __, ...args) {
+            return wrapper([_, __, ...args]);
         };
     }
 
@@ -1665,6 +1739,118 @@ var NativeDocument = (function (exports) {
             return Observable.getById(id);
         });
     };
+
+    (function() {
+        const DelegatedEventsCallbackStore = {};
+
+        const addCallbackToCallbacksStore = function(element, eventName, callback) {
+            if(!element) return;
+            if(!DelegatedEventsCallbackStore[eventName]) {
+                const eventStore = new WeakMap();
+                DelegatedEventsCallbackStore[eventName] = eventStore;
+                eventStore.set(element, callback);
+                return;
+            }
+            const eventStore = DelegatedEventsCallbackStore[eventName];
+
+            if(!eventStore.has(element)) {
+                eventStore.set(element, callback);
+                return;
+            }
+            const existingCallbacks = eventStore.get(element);
+            if(!Validator.isArray(existingCallbacks)) {
+                eventStore.set(element, [store[eventName], callback]);
+                return;
+            }
+            existingCallbacks.push(callback);
+        };
+
+        const handleDelegatedCallbacks = function(container, eventName) {
+            container.addEventListener(eventName, (event) => {
+                const eventStore = DelegatedEventsCallbackStore[eventName];
+                if(!eventStore) {
+                    return;
+                }
+                let target = event.target;
+                while(target && target !== container) {
+                    const callback = eventStore.get(target);
+                    if(!callback) {
+                        target = target.parentElement;
+                        continue;
+                    }
+
+                    if(Validator.isFunction(callback)) {
+                        callback.call(target, event);
+                    }
+                    else {
+                        for(let i = 0; i < callback.length; i++) {
+                            callback[i].call(target, event);
+                        }
+                    }
+                    return;
+                }
+            });
+        };
+
+
+        const preventDefaultWrapper = function(element, eventName, callback) {
+            element.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                callback && callback.call(element, event);
+            });
+            return this;
+        };
+        const stopPropagationWrapper = function(element, eventName, callback) {
+            element.addEventListener(eventName, (event) => {
+                event.stopPropagation();
+                callback && callback.call(element, event);
+            });
+            return this;
+        };
+        const preventDefaultAndStopPropagationWrapper = function(element, eventName, callback) {
+            element.addEventListener(eventName, (event) => {
+                event.stopPropagation();
+                event.preventDefault();
+                callback && callback.call(element, event);
+            });
+            return this;
+        };
+        const captureEventWrapper = function(element, eventName, directHandler) {
+            if(directHandler) {
+                element.addEventListener(eventName, directHandler);
+                return this;
+            }
+            handleDelegatedCallbacks(element, eventName);
+            return this;
+        };
+
+        for(const event of EVENTS) {
+            const eventName = event.toLowerCase();
+            NDElement.prototype['on'+event] = function(callback) {
+                this.$element.addEventListener(eventName, callback);
+                return this;
+            };
+            NDElement.prototype['onPrevent'+event] = function(callback) {
+                return preventDefaultWrapper(this.$element, eventName, callback);
+            };
+            NDElement.prototype['onStop'+event] = function(callback) {
+                return stopPropagationWrapper(this.$element, eventName, callback);
+            };
+            NDElement.prototype['onPreventStop'+event] = function(callback) {
+                return preventDefaultAndStopPropagationWrapper(this.$element, eventName, callback);
+            };
+
+            NDElement.prototype['when'+event] = function(callback) {
+                addCallbackToCallbacksStore(this.$element, eventName, callback);
+                return this;
+            };
+
+            NDElement.prototype['capture'+event] = function(directHandler) {
+                captureEventWrapper(this.$element, eventName, directHandler);
+                return this;
+            };
+        }
+    }());
 
     const cssPropertyAccumulator = function(initialValue = {}) {
         let data = Validator.isString(initialValue) ? initialValue.split(';').filter(Boolean) : initialValue;
@@ -1778,9 +1964,9 @@ var NativeDocument = (function (exports) {
             return observer.val().length;
         };
 
-        const overrideMethods = ['map', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex', 'concat'];
+        const overrideMethods = ['map', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex', 'concat', 'includes', 'indexOf'];
         overrideMethods.forEach((method) => {
-            observer[method] = function(...args) {
+            observer[method] = (...args) => {
                 return observer.val()[method](...args);
             };
         });
@@ -1810,13 +1996,13 @@ var NativeDocument = (function (exports) {
 
     /**
      *
-     * @param {Object} value
+     * @param {Object} initialValue
      * @returns {Proxy}
      */
-    Observable.init = function(value) {
+    Observable.init = function(initialValue) {
         const data = {};
-        for(const key in value) {
-            const itemValue = value[key];
+        for(const key in initialValue) {
+            const itemValue = initialValue[key];
             if(Validator.isJson(itemValue)) {
                 data[key] = Observable.init(itemValue);
                 continue;
@@ -1845,8 +2031,11 @@ var NativeDocument = (function (exports) {
         const $clone = function() {
 
         };
+        const $updateWith = function(values) {
+            Observable.update(proxy, values);
+        };
 
-        return new Proxy(data, {
+        const proxy = new Proxy(data, {
             get(target, property) {
                 if(property === '__isProxy__') {
                     return true;
@@ -1857,6 +2046,12 @@ var NativeDocument = (function (exports) {
                 if(property === '$clone') {
                     return $clone;
                 }
+                if(property === '$observables') {
+                    return Object.values(target);
+                }
+                if(property === '$updateWith') {
+                    return $updateWith;
+                }
                 if(target[property] !== undefined) {
                     return target[property];
                 }
@@ -1864,10 +2059,25 @@ var NativeDocument = (function (exports) {
             },
             set(target, prop, newValue) {
                 if(target[prop] !== undefined) {
-                    target[prop].set(newValue);
+                    Validator.isObservable(newValue)
+                        ? target[prop].set(newValue.val())
+                        : target[prop].set(newValue);
+                    return true;
                 }
+                return true;
             }
-        })
+        });
+
+        return proxy;
+    };
+
+    /**
+     *
+     * @param {any[]} data
+     * @return Proxy[]
+     */
+    Observable.arrayOfObject = function(data) {
+        return data.map(item => Observable.object(item));
     };
 
     /**
@@ -1895,13 +2105,16 @@ var NativeDocument = (function (exports) {
 
 
     Observable.update = function($target, data) {
+        if(Validator.isProxy(data)) {
+            data = data.$value;
+        }
         for(const key in data) {
             const targetItem = $target[key];
             const newValue = data[key];
 
             if(Validator.isObservable(targetItem)) {
                 if(Validator.isArray(newValue)) {
-                    Observable.update(targetItem, newValue);
+                    targetItem.set([...newValue]);
                     continue;
                 }
                 targetItem.set(newValue);
@@ -1939,7 +2152,15 @@ var NativeDocument = (function (exports) {
             return observable;
         }
 
-        dependencies.forEach(dependency => dependency.subscribe(updatedValue));
+        dependencies.forEach(dependency => {
+            if(Validator.isProxy(dependency)) {
+                dependency.$observables.forEach((observable) => {
+                    observable.subscribe(updatedValue);
+                });
+                return;
+            }
+            dependency.subscribe(updatedValue);
+        });
 
         return observable;
     };
@@ -2021,10 +2242,11 @@ var NativeDocument = (function (exports) {
      *
      * @param {Array|Object|ObservableItem} data
      * @param {Function} callback
-     * @param {?Function} key
+     * @param {?Function|?string} key
+     * @param {{shouldKeepItemsInCache: boolean}?} configs
      * @returns {DocumentFragment}
      */
-    function ForEach(data, callback, key) {
+    function ForEach(data, callback, key, { shouldKeepItemsInCache = false } = {}) {
         const element = new Anchor('ForEach');
         const blockEnd = element.endElement();
         element.startElement();
@@ -2039,6 +2261,9 @@ var NativeDocument = (function (exports) {
         };
 
         const cleanCache = (parent) => {
+            if(shouldKeepItemsInCache) {
+                return;
+            }
             for(const [keyId, cacheItem] of cache.entries()) {
                 if(keyIds.has(keyId)) {
                     continue;
@@ -2071,6 +2296,9 @@ var NativeDocument = (function (exports) {
             try {
                 const indexObserver = callback.length >= 2 ? Observable(indexKey) : null;
                 let child = ElementCreator.getChild(callback(item, indexObserver));
+                if(!child || Validator.isFragment(child)) {
+                    throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
+                }
                 cache.set(keyId, { keyId, isNew: true, child: new WeakRef(child), indexObserver});
             } catch (e) {
                 DebugManager$1.error('ForEach', `Error creating element for key ${keyId}` , e);
@@ -2122,7 +2350,7 @@ var NativeDocument = (function (exports) {
             keyIds.clear();
             if(Array.isArray(items)) {
                 for(let i = 0, length = items.length; i < length; i++) {
-                    const keyId= handleContentItem(items[i], i);
+                    const keyId = handleContentItem(items[i], i);
                     keyIds.add(keyId);
                 }
             } else {
@@ -2200,14 +2428,12 @@ var NativeDocument = (function (exports) {
             if(!cacheItem) {
                 return;
             }
-            const child = cacheItem.child;
-            cacheItem.indexObserver?.deref()?.cleanup();
-            cacheItem.child = null;
-            cacheItem.indexObserver = null;
             if(removeChild) {
+                const child = cacheItem.child;
                 child?.remove();
                 cache.delete(cacheItem.keyId);
             }
+            cacheItem.indexObserver?.deref()?.cleanup();
         };
 
         const removeCacheItemByKey = (keyId, removeChild = true) => {
@@ -2215,6 +2441,13 @@ var NativeDocument = (function (exports) {
         };
 
         const cleanCache = () => {
+            if(configs.shouldKeepItemsInCache) {
+                return;
+            }
+            if(!isIndexRequired) {
+                cache.clear();
+                return;
+            }
             for (const [keyId, cacheItem] of cache.entries()) {
                 removeCacheItem(cacheItem, false);
             }
@@ -2236,6 +2469,9 @@ var NativeDocument = (function (exports) {
 
             const indexObserver = isIndexRequired ? Observable(indexKey) : null;
             let child = ElementCreator.getChild(callback(item, indexObserver));
+            if(!child || Validator.isFragment(child)) {
+                throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
+            }
             cache.set(keyId, {
                 keyId,
                 child: child,
@@ -2278,12 +2514,12 @@ var NativeDocument = (function (exports) {
             toFragment(items, startIndexFrom = 0){
                 const fragment = document.createDocumentFragment();
                 for(let i = 0, length = items.length; i < length; i++) {
-                    fragment.append(buildItem(items[i], lastNumberOfItems));
+                    fragment.appendChild(buildItem(items[i], lastNumberOfItems));
                     lastNumberOfItems++;
                 }
                 return fragment;
             },
-            add(items, delay = 0) {
+            add(items, delay = 2) {
                 const fragment = Actions.toFragment(items);
                 setTimeout(() => {
                     element.appendElement(fragment);
@@ -2310,7 +2546,7 @@ var NativeDocument = (function (exports) {
             },
             clear,
             merge(items) {
-                Actions.add(items, 0);
+                Actions.add(items);
             },
             push(items) {
                 let delay = 0;
@@ -2417,7 +2653,9 @@ var NativeDocument = (function (exports) {
             updateIndexObservers(items, 0);
         };
 
-        buildContent(data.val(), null, {action: null});
+        if(data.val().length) {
+            buildContent(data.val(), null, {action: null});
+        }
         if(Validator.isObservable(data)) {
             data.subscribe(buildContent);
         }
@@ -2430,10 +2668,10 @@ var NativeDocument = (function (exports) {
      *
      * @param {ObservableItem|ObservableChecker} condition
      * @param {*} child
-     * @param {string|null} comment
+     * @param {{comment?: string|null, shouldKeepInCache?: Boolean}} comment
      * @returns {DocumentFragment}
      */
-    const ShowIf = function(condition, child, comment = null) {
+    const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
         if(!(Validator.isObservable(condition))) {
             return DebugManager$1.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
         }
@@ -2441,10 +2679,13 @@ var NativeDocument = (function (exports) {
 
         let childElement = null;
         const getChildElement = () => {
-            if(childElement) {
+            if(childElement && shouldKeepInCache) {
                 return childElement;
             }
             childElement = ElementCreator.getChild(child);
+            if(Validator.isFragment(childElement)) {
+                childElement = Array.from(childElement.children);
+            }
             return childElement;
         };
 
@@ -2516,6 +2757,9 @@ var NativeDocument = (function (exports) {
                 return null;
             }
             item = ElementCreator.getChild(item);
+            if(Validator.isFragment(item)) {
+                item = Array.from(item.children);
+            }
             shouldKeepInCache && cache.set(key, item);
             return item;
         };

@@ -15,10 +15,7 @@ export default function Anchor(name, isUniqueChild = false) {
     element.nativeInsertBefore = element.insertBefore;
     element.nativeAppendChild = element.appendChild;
 
-    const isParentUniqueChild = (parent) => {
-        console.log('on passwr ici ', isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd))
-        return isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd);
-    };
+    const isParentUniqueChild = (parent) => (isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd))
 
     const insertBefore = function(parent, child, target) {
         const element = Validator.isElement(child) ? child : ElementCreator.getChild(child);
@@ -26,25 +23,21 @@ export default function Anchor(name, isUniqueChild = false) {
             parent.nativeInsertBefore(element, target);
             return;
         }
-        if(isParentUniqueChild(parent)) {
-            parent.append(element,  anchorEnd);
+        if(isParentUniqueChild(parent) || target === anchorEnd) {
+            parent.append(element,  target);
             return;
         }
         parent.insertBefore(element, target);
     };
 
     element.appendElement = function(child, before = null) {
-        if(isParentUniqueChild(anchorEnd.parentNode)) {
-            (before && before !== anchorEnd)
-                ? anchorEnd.parentNode.insertBefore(child, anchorEnd)
-                : anchorEnd.parentNode.append(child, anchorEnd);
+        const parentNode = anchorStart.parentNode;
+        const targetBefore = before || anchorEnd;
+        if(parentNode === element) {
+            parentNode.nativeInsertBefore(child, targetBefore);
             return;
         }
-        if(anchorEnd.parentNode === element) {
-            anchorEnd.parentNode.nativeInsertBefore(child, before || anchorEnd);
-            return;
-        }
-        anchorEnd.parentNode?.insertBefore(child, before || anchorEnd);
+        parentNode?.insertBefore(child, targetBefore);
     };
 
     element.appendChild = function(child, before = null) {
@@ -123,8 +116,20 @@ export default function Anchor(name, isUniqueChild = false) {
     element.endElement = function() {
         return anchorEnd;
     };
+
     element.startElement = function() {
         return anchorStart;
+    };
+
+    element.getByIndex = function(index) {
+        let currentNode = anchorStart;
+        for(let i = 0; i <= index; i++) {
+            if(!currentNode.nextSibling) {
+                return null;
+            }
+            currentNode = currentNode.nextSibling;
+        }
+        return currentNode !== anchorStart ? currentNode : null;
     };
 
     return element;

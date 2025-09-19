@@ -15,13 +15,17 @@ export const createTextNode = function(value) {
 };
 
 
-function createHtmlElement($tagName, _attributes, _children = null, customWrapper) {
-    const { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
-    const element = ElementCreator.createElement($tagName);
-    const finalElement = (typeof customWrapper === 'function') ? customWrapper(element) : element;
+function createHtmlElement($tagName, customWrapper, _attributes, _children = null) {
+    let { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
+    let element = ElementCreator.createElement($tagName);
+    let finalElement = (customWrapper && typeof customWrapper === 'function') ? customWrapper(element) : element;
 
-    ElementCreator.processAttributes(finalElement, attributes);
-    ElementCreator.processChildren(children, finalElement);
+    if(attributes) {
+        ElementCreator.processAttributes(finalElement, attributes);
+    }
+    if(children) {
+        ElementCreator.processChildren(children, finalElement);
+    }
 
     return ElementCreator.setup(finalElement, attributes, customWrapper);
 }
@@ -33,6 +37,6 @@ function createHtmlElement($tagName, _attributes, _children = null, customWrappe
  * @returns {Function}
  */
 export default function HtmlElementWrapper(name, customWrapper) {
-    return (_attributes, _children = null) => createHtmlElement(name.toLowerCase(), _attributes, _children, customWrapper);
+    return createHtmlElement.bind(null, name.toLowerCase(), customWrapper);
 };
 

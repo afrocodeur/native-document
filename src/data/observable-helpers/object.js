@@ -3,13 +3,13 @@ import {Observable} from "../Observable";
 
 /**
  *
- * @param {Object} value
+ * @param {Object} initialValue
  * @returns {Proxy}
  */
-Observable.init = function(value) {
+Observable.init = function(initialValue) {
     const data = {};
-    for(const key in value) {
-        const itemValue = value[key];
+    for(const key in initialValue) {
+        const itemValue = initialValue[key];
         if(Validator.isJson(itemValue)) {
             data[key] = Observable.init(itemValue);
             continue;
@@ -38,8 +38,11 @@ Observable.init = function(value) {
     const $clone = function() {
 
     };
+    const $updateWith = function(values) {
+        Observable.update(proxy, values);
+    };
 
-    return new Proxy(data, {
+    const proxy = new Proxy(data, {
         get(target, property) {
             if(property === '__isProxy__') {
                 return true;
@@ -50,6 +53,12 @@ Observable.init = function(value) {
             if(property === '$clone') {
                 return $clone;
             }
+            if(property === '$observables') {
+                return Object.values(target);
+            }
+            if(property === '$updateWith') {
+                return $updateWith;
+            }
             if(target[property] !== undefined) {
                 return target[property];
             }
@@ -57,11 +66,26 @@ Observable.init = function(value) {
         },
         set(target, prop, newValue) {
             if(target[prop] !== undefined) {
-                target[prop].set(newValue);
+                Validator.isObservable(newValue)
+                    ? target[prop].set(newValue.val())
+                    : target[prop].set(newValue);
+                return true;
             }
+            return true;
         }
-    })
+    });
+
+    return proxy;
 };
+
+/**
+ *
+ * @param {any[]} data
+ * @return Proxy[]
+ */
+Observable.arrayOfObject = function(data) {
+    return data.map(item => Observable.object(item));
+}
 
 /**
  * Get the value of an observable or an object of observables.
@@ -88,13 +112,16 @@ Observable.value = function(data) {
 
 
 Observable.update = function($target, data) {
+    if(Validator.isProxy(data)) {
+        data = data.$value;
+    }
     for(const key in data) {
         const targetItem = $target[key];
         const newValue = data[key];
 
         if(Validator.isObservable(targetItem)) {
             if(Validator.isArray(newValue)) {
-                Observable.update(targetItem, newValue);
+                targetItem.set([...newValue]);
                 continue;
             }
             targetItem.set(newValue);

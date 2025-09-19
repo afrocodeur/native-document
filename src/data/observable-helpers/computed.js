@@ -25,7 +25,15 @@ Observable.computed = function(callback, dependencies = []) {
         return observable;
     }
 
-    dependencies.forEach(dependency => dependency.subscribe(updatedValue));
+    dependencies.forEach(dependency => {
+        if(Validator.isProxy(dependency)) {
+            dependency.$observables.forEach((observable) => {
+                observable.subscribe(updatedValue);
+            });
+            return;
+        }
+        dependency.subscribe(updatedValue);
+    });
 
     return observable;
 };

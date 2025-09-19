@@ -9,35 +9,7 @@ export function NDElement(element) {
 }
 NDElement.prototype.__$isNDElement = true;
 
-for(const event of EVENTS) {
-    const eventName = event.toLowerCase();
-    NDElement.prototype['on'+event] = function(callback) {
-        this.$element.addEventListener(eventName, callback);
-        return this;
-    };
-    NDElement.prototype['onPrevent'+event] = function(callback) {
-        this.$element.addEventListener(eventName, function(event) {
-            event.preventDefault();
-            callback && callback(event);
-        });
-        return this;
-    };
-    NDElement.prototype['onStop'+event] = function(callback) {
-        this.$element.addEventListener(eventName, function(event) {
-            event.stopPropagation();
-            callback && callback(event);
-        });
-        return this;
-    };
-    NDElement.prototype['onPreventStop'+event] = function(callback) {
-        this.$element.addEventListener(eventName, function(event) {
-            event.stopPropagation();
-            event.preventDefault();
-            callback && callback(event);
-        });
-        return this;
-    };
-}
+
 
 NDElement.prototype.valueOf = function() {
     return this.$element;
@@ -93,7 +65,7 @@ NDElement.prototype.htmlElement = function() {
 
 NDElement.prototype.node = NDElement.prototype.htmlElement;
 
-NDElement.prototype.attach = function(methodName, bindingHydrator) {
-    bindingHydrator.$hydrate(this.$element, methodName);
+NDElement.prototype.attach = function(bindingHydrator) {
+    bindingHydrator.$hydrate(this.$element);
     return this.$element;
 };

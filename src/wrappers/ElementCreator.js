@@ -73,14 +73,19 @@ export const ElementCreator = {
      */
     processChildren(children, parent) {
         if(children === null) return;
-        const childrenArray = Array.isArray(children) ? children : [children];
-
         PluginsManager.emit('BeforeProcessChildren', parent);
-
-        for(let i = 0, length = childrenArray.length; i < length; i++) {
-            let child = this.getChild(childrenArray[i]);
-            if (child === null) continue;
-            parent.appendChild(child);
+        if(!Array.isArray(children)) {
+            let child = this.getChild(children);
+            if(child) {
+                parent.appendChild(child);
+            }
+        }
+        else {
+            for(let i = 0, length = children.length; i < length; i++) {
+                let child = this.getChild(children[i]);
+                if (child === null) continue;
+                parent.appendChild(child);
+            }
         }
 
         PluginsManager.emit('AfterProcessChildren', parent);
