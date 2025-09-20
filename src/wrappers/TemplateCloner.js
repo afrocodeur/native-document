@@ -37,6 +37,23 @@ const bindAttributes = (node, bindDingData, data) => {
     return null;
 };
 
+const $hydrateFn = function(hydrateFunction, target, element, property) {
+    if(!cloneBindingsDataCache.has(element)) {
+        // { classes, styles, attributes, value, attach }
+        cloneBindingsDataCache.set(element, {});
+    }
+    const hydrationState = cloneBindingsDataCache.get(element);
+    if(target === 'value') {
+        hydrationState.value = hydrateFunction;
+        return;
+    }
+    if(target === 'attach') {
+        hydrationState.attach = hydrateFunction;
+        return;
+    }
+    hydrationState[target] = hydrationState[target] || {};
+    hydrationState[target][property] = hydrateFunction;
+}
 
 const bindAttachMethods = function(node, bindDingData, data) {
     if(!bindDingData.attach) {
@@ -47,6 +64,7 @@ const bindAttachMethods = function(node, bindDingData, data) {
 
 export function TemplateCloner($fn) {
     let $node = null;
+    let $hasBindingData = false;
 
     const clone = (node, data) => {
         const bindDingData = cloneBindingsDataCache.get(node);
@@ -56,10 +74,13 @@ export function TemplateCloner($fn) {
             }
             return node.cloneNode(true);
         }
-        const nodeCloned = node.cloneNode();
+        const nodeCloned = node.cloneNode(node.fullCloneNode);
         if(bindDingData) {
             bindAttributes(nodeCloned, bindDingData, data);
             bindAttachMethods(nodeCloned, bindDingData, data);
+        }
+        if(node.fullCloneNode) {
+            return nodeCloned;
         }
         const childNodes = node.childNodes;
         for(let i = 0, length = childNodes.length; i < length; i++) {
@@ -73,31 +94,25 @@ export function TemplateCloner($fn) {
     this.clone = (data) => {
         if(!$node) {
             $node = $fn(this);
+            if(!$hasBindingData) {
+                const nodeCloned = $node.cloneNode(true);
+                nodeCloned.fullCloneNode = true;
+                return nodeCloned;
+            }
+        }
+        if(!$hasBindingData) {
+            return $node.cloneNode(true);
         }
         return clone($node, data);
     };
 
-    const $hydrateFn = function(hydrateFunction, target, element, property) {
-        if(!cloneBindingsDataCache.has(element)) {
-            // { classes, styles, attributes, value, attach }
-            cloneBindingsDataCache.set(element, {});
-        }
-        const hydrationState = cloneBindingsDataCache.get(element);
-        if(target === 'value') {
-            hydrationState.value = hydrateFunction;
-            return;
-        }
-        if(target === 'attach') {
-            hydrationState.attach = hydrateFunction;
-            return;
-        }
-        hydrationState[target] = hydrationState[target] || {};
-        hydrationState[target][property] = hydrateFunction;
-    }
 
     const createBinding = (hydrateFunction, target) => {
         return {
-            $hydrate : (element, property) => $hydrateFn(hydrateFunction, target, element, property),
+            $hydrate : (element, property) => {
+                $hasBindingData = true;
+                $hydrateFn(hydrateFunction, target, element, property)
+            },
         }
     };
 
