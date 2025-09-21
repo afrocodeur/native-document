@@ -4,6 +4,9 @@ export interface ObservableItem<T = any> {
     readonly $previousValue: T;
     readonly $isCleanedUp: boolean;
 
+    $value: T;
+    $memoryId: number | null;
+
     val(): T;
     set(value: T | ((prev: T) => T)): void;
     trigger(operations?: ObservableOperation): void;
@@ -68,6 +71,7 @@ export type ObservableProxy<T extends Record<string, any>> = {
     readonly __isProxy__: true;
     readonly $value: T;
     $clone(): ObservableProxy<T>;
+    $updateWith(values: Partial<T>): void;
 } & {
     [K in keyof T]: T[K] extends (infer U)[]
         ? ObservableArray<U>
@@ -82,24 +86,6 @@ export interface BatchFunction<TArgs extends any[] = any[], TReturn = any> {
 }
 
 export type ValidComputedDependencies = Array<ObservableItem | ObservableArray<any> | ObservableChecker | ObservableProxy<any>>;
-export interface ObservableStatic {
-    <T>(value: T): ObservableItem<T>;
-    array<T>(target: T[]): ObservableArray<T>;
-    init<T extends Record<string, any>>(value: T): ObservableProxy<T>;
-    object<T extends Record<string, any>>(value: T): ObservableProxy<T>;
-    json<T extends Record<string, any>>(value: T): ObservableProxy<T>;
-
-    computed<T>(callback: () => T, dependencies?: ValidComputedDependencies): ObservableItem<T>;
-    computed<T>(callback: () => T, batchFunction?: BatchFunction): ObservableItem<T>;
-
-    batch(callback: Function): BatchFunction;
-    value(data: any): any;
-    update(target: any, data: any): void;
-
-    getById(id: number): ObservableItem | null;
-    cleanup(observable: ObservableItem): void;
-    autoCleanup(enable?: boolean, options?: { interval?: number; threshold?: number }): void;
-}
 
 export interface AutoCleanupOptions {
     interval?: number;
@@ -114,7 +100,7 @@ export interface ObservableStatic {
     object<T extends Record<string, any>>(value: T): ObservableProxy<T>;
     json<T extends Record<string, any>>(value: T): ObservableProxy<T>;
 
-    computed<T>(callback: () => T, dependencies?: ObservableItem[]): ObservableItem<T>;
+    computed<T>(callback: () => T, dependencies?: ValidComputedDependencies | BatchFunction): ObservableItem<T>;
     computed<T>(callback: () => T, batchFunction?: BatchFunction): ObservableItem<T>;
 
     batch<TArgs extends any[], TReturn>(
@@ -127,4 +113,5 @@ export interface ObservableStatic {
     getById(id: number): ObservableItem | null;
     cleanup(observable: ObservableItem): void;
     autoCleanup(enable?: boolean, options?: AutoCleanupOptions): void;
+    arrayOfObject<T extends Record<string, any>>(data: T[]): ObservableProxy<T>[];
 }

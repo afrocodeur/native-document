@@ -4,11 +4,11 @@ import { ValidChild } from './elements';
 
 // Control Flow Functions
 export interface ShowIfFunction {
-    (condition: ObservableItem<boolean> | ObservableChecker<boolean>, child: ValidChild, comment?: string): DocumentFragment;
+    (condition: ObservableItem<boolean> | ObservableChecker<boolean>, child: ValidChild, options?: { comment?: string | null; shouldKeepInCache?: boolean }): DocumentFragment;
 }
 
 export interface HideIfFunction {
-    (condition: ObservableItem<boolean> | ObservableChecker<boolean>, child: ValidChild, comment?: string): DocumentFragment;
+    (condition: ObservableItem<boolean> | ObservableChecker<boolean>, child: ValidChild, options?: { comment?: string | null; shouldKeepInCache?: boolean }): DocumentFragment;
 }
 
 export interface MatchFunction {
@@ -31,14 +31,18 @@ export interface ForEachFunction {
     <T>(data: T[] | Record<string, T> | ObservableItem<T[]> | ObservableItem<Record<string, T>>,
         callback: (item: T, index?: ObservableItem<number>) => ValidChild,
         key?: string | ((item: T, defaultKey: string | number) => string),
-        configs?: { shouldKeepItemsInCache: boolean, isParentUniqueChild: boolean }): DocumentFragment,
+        configs?: { shouldKeepItemsInCache: boolean, isParentUniqueChild: boolean,  }): DocumentFragment,
 }
 
 export interface ForEachArrayFunction {
     <T>(data: ObservableArray<T>,
         callback: (item: T, index?: ObservableItem<number>) => ValidChild,
         key?: string | ((item: T, defaultKey: number) => string),
-        configs?: { pushDelay?: (items: T[]) => number, isParentUniqueChild: boolean }): DocumentFragment;
+        configs?: { pushDelay?: (items: T[]) => number, isParentUniqueChild: boolean, shouldKeepItemsInCache?: boolean }): DocumentFragment;
+}
+
+export interface HideIfNotFunction {
+    (condition: ObservableItem<boolean> | ObservableChecker<boolean>, child: ValidChild, options?: { comment?: string | null; shouldKeepInCache?: boolean }): DocumentFragment;
 }
 
 // Control Flow Components

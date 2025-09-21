@@ -4,7 +4,7 @@ interface BindingData {
     classes?: Record<string, (...data: any[]) => any>;
     styles?: Record<string, (...data: any[]) => any>;
     value?: (...data: any[]) => any;
-    events?: Record<string, (this: Element, event: Event, ...data: any[]) => void>;
+    attach?: (element: Element, ...data: any[]) => void;
 }
 
 interface ProcessedAttributes {
@@ -28,9 +28,14 @@ export declare class TemplateCloner {
 
     style(fn: (...data: any[]) => any): BindingHydrator;
     class(fn: (...data: any[]) => any): BindingHydrator;
-    value(fn: (...data: any[]) => any): BindingHydrator;
+    value(callbackOrProperty: string | ((...data: any[]) => any)): BindingHydrator;
     attr(fn: (...data: any[]) => any): BindingHydrator;
     event(fn: (event: Event, ...data: any[]) => void): BindingHydrator;
+
+    property(propertyName: string): BindingHydrator;
+    property(fn: (...data: any[]) => any): BindingHydrator;
+
+    attach(fn: (element: Element, ...data: any[]) => void): BindingHydrator;
 }
 
 export declare function useCache(fn: TemplateBuilder): CachedTemplateFunction;

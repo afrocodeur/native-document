@@ -29,6 +29,22 @@ export declare const TimeInput: (attributes?: Attributes) => HTMLInputElement & 
 export declare const RangeInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
 export declare const ColorInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
 
+export declare const ReadonlyInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
+export declare const DateTimeInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
+export declare const WeekInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
+export declare const MonthInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
+export declare const SearchInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
+export declare const TelInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
+export declare const UrlInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
+
+export declare const TextInput: ElementFunction;
+export declare const FieldSet: ElementFunction;
+export declare const Legend: ElementFunction;
+export declare const Datalist: ElementFunction;
+export declare const Output: ElementFunction;
+export declare const Progress: ElementFunction;
+export declare const Meter: ElementFunction;
+
 // Specialized Button Types
 export declare const SimpleButton: (child: ValidChild, attributes?: Attributes) => HTMLButtonElement & { nd: NDElement };
 export declare const SubmitButton: (child: ValidChild, attributes?: Attributes) => HTMLButtonElement & { nd: NDElement };
