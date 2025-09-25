@@ -1,13 +1,12 @@
 export { default as HtmlElementWrapper, createTextNode } from './src/wrappers/HtmlElementWrapper'
-export { ElementCreator } from './src/wrappers/ElementCreator'
-export { NDElement } from './src/wrappers/NDElement'
-export { TemplateCloner, useCache } from './src/wrappers/TemplateCloner'
+export { ElementCreator } from './src/wrappers/ElementCreator';
+export { NDElement } from './src/wrappers/NDElement';
+export { TemplateCloner, useCache } from './src/wrappers/TemplateCloner';
+export { default as PluginsManager } from './src/utils/plugins-manager';
 
 import './src/utils/prototypes.js';
-import './src/wrappers/NDElementEventPrototypes';
 
 export * from './src/utils/property-accumulator';
-export * from './src/utils/plugins-manager';
 export * from './src/utils/args-types';
 export * from './src/utils/validator'
 export * from './src/data/Observable';

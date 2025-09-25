@@ -1,6 +1,6 @@
 {
   "name": "native-document",
-  "version": "1.0.37",
+  "version": "1.0.38",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -12,6 +12,7 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@rollup/plugin-alias": "^5.1.1",
     "@rollup/plugin-replace": "^6.0.2",
     "@rollup/plugin-terser": "^0.4.4",
     "eslint": "^9.33.0"

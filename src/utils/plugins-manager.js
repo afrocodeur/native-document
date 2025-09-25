@@ -9,9 +9,13 @@ const PluginsManager = (function() {
         list() {
             return $pluginByEvents;
         },
-        add(name, plugin){
+        add(plugin, name){
             if (!plugin || typeof plugin !== 'object') {
                 throw new Error(`Plugin ${name} must be an object`);
+            }
+            name = name || plugin.name;
+            if (!name || typeof name !== 'string') {
+                throw new Error(`Please, provide a valid plugin name`);
             }
             if($plugins.has(name)) {
                 return;
@@ -57,7 +61,7 @@ const PluginsManager = (function() {
             const plugins = $pluginByEvents.get(eventName);
 
             for(const plugin of plugins) {
-                const callback = plugin[eventName];
+                const callback = plugin['on'+eventName];
                 if(typeof callback === 'function') {
                     try{
                         callback.call(plugin, ...data);
