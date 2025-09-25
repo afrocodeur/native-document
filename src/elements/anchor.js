@@ -23,7 +23,7 @@ export default function Anchor(name, isUniqueChild = false) {
             parent.nativeInsertBefore(element, target);
             return;
         }
-        if(isParentUniqueChild(parent) || target === anchorEnd) {
+        if(isParentUniqueChild(parent) && target === anchorEnd) {
             parent.append(element,  target);
             return;
         }
@@ -75,11 +75,11 @@ export default function Anchor(name, isUniqueChild = false) {
             return;
         }
         if(isParentUniqueChild(parent)) {
-            parent.replaceChildren(anchorEnd, anchorEnd);
+            parent.replaceChildren(anchorStart, anchorEnd);
             return;
         }
         let itemToRemove = anchorStart.nextSibling, tempItem;
-        while(itemToRemove !== anchorEnd) {
+        while(itemToRemove && itemToRemove !== anchorEnd) {
             tempItem = itemToRemove.nextSibling;
             element.nativeAppendChild(itemToRemove);
             itemToRemove = tempItem;

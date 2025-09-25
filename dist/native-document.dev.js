@@ -243,7 +243,7 @@ var NativeDocument = (function (exports) {
     });
 
     ObservableItem.prototype.__$isObservable = true;
-
+    const DEFAULT_OPERATIONS = {};
     const noneTrigger = function() {};
     ObservableItem.prototype.triggerFirstListener = function(operations) {
         this.$listeners[0](this.$currentValue, this.$previousValue, operations || {});
@@ -993,7 +993,7 @@ var NativeDocument = (function (exports) {
                 parent.nativeInsertBefore(element, target);
                 return;
             }
-            if(isParentUniqueChild(parent) || target === anchorEnd) {
+            if(isParentUniqueChild(parent) && target === anchorEnd) {
                 parent.append(element,  target);
                 return;
             }
@@ -1045,11 +1045,11 @@ var NativeDocument = (function (exports) {
                 return;
             }
             if(isParentUniqueChild(parent)) {
-                parent.replaceChildren(anchorEnd, anchorEnd);
+                parent.replaceChildren(anchorStart, anchorEnd);
                 return;
             }
             let itemToRemove = anchorStart.nextSibling, tempItem;
-            while(itemToRemove !== anchorEnd) {
+            while(itemToRemove && itemToRemove !== anchorEnd) {
                 tempItem = itemToRemove.nextSibling;
                 element.nativeAppendChild(itemToRemove);
                 itemToRemove = tempItem;

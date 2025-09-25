@@ -33,7 +33,7 @@ Object.defineProperty(ObservableItem.prototype, '$value', {
 });
 
 ObservableItem.prototype.__$isObservable = true;
-
+const DEFAULT_OPERATIONS = {};
 const noneTrigger = function() {};
 ObservableItem.prototype.triggerFirstListener = function(operations) {
     this.$listeners[0](this.$currentValue, this.$previousValue, operations || {});
