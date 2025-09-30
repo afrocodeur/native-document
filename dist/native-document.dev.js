@@ -973,6 +973,11 @@ var NativeDocument = (function (exports) {
         };
     }
 
+    var validator = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        default: Validator
+    });
+
     function Anchor(name, isUniqueChild = false) {
         const element = document.createDocumentFragment();
 
@@ -1281,6 +1286,9 @@ var NativeDocument = (function (exports) {
         for(let key in attributes) {
             const attributeName = key.toLowerCase();
             let value = attributes[attributeName];
+            if(value === null || value === undefined) {
+                continue;
+            }
             if(Validator.isString(value)) {
                 value = value.resolveObservableTemplate ? value.resolveObservableTemplate() : value;
                 if(Validator.isString(value)) {
@@ -2052,14 +2060,6 @@ var NativeDocument = (function (exports) {
         const data = {};
         for(const key in initialValue) {
             const itemValue = initialValue[key];
-            if(Validator.isJson(itemValue)) {
-                data[key] = Observable.init(itemValue);
-                continue;
-            }
-            else if(Validator.isArray(itemValue)) {
-                data[key] = Observable.array(itemValue);
-                continue;
-            }
             data[key] = Observable(itemValue);
         }
 
@@ -2078,7 +2078,7 @@ var NativeDocument = (function (exports) {
             return result;
         };
         const $clone = function() {
-
+            return Observable.init($val());
         };
         const $updateWith = function(values) {
             Observable.update(proxy, values);
@@ -3892,6 +3892,7 @@ var NativeDocument = (function (exports) {
     exports.PluginsManager = PluginsManager;
     exports.Store = Store;
     exports.TemplateCloner = TemplateCloner;
+    exports.Validator = validator;
     exports.classPropertyAccumulator = classPropertyAccumulator;
     exports.createTextNode = createTextNode;
     exports.cssPropertyAccumulator = cssPropertyAccumulator;

@@ -129,6 +129,9 @@ export default function AttributesWrapper(element, attributes) {
     for(let key in attributes) {
         const attributeName = key.toLowerCase();
         let value = attributes[attributeName];
+        if(value === null || value === undefined) {
+            continue;
+        }
         if(Validator.isString(value)) {
             value = value.resolveObservableTemplate ? value.resolveObservableTemplate() : value;
             if(Validator.isString(value)) {

@@ -1,5 +1,6 @@
 import Validator from "../../utils/validator";
 import {Observable} from "../Observable";
+import ObservableItem from "../ObservableItem";
 
 /**
  *
@@ -10,14 +11,6 @@ Observable.init = function(initialValue) {
     const data = {};
     for(const key in initialValue) {
         const itemValue = initialValue[key];
-        if(Validator.isJson(itemValue)) {
-            data[key] = Observable.init(itemValue);
-            continue;
-        }
-        else if(Validator.isArray(itemValue)) {
-            data[key] = Observable.array(itemValue);
-            continue;
-        }
         data[key] = Observable(itemValue);
     }
 
@@ -36,7 +29,7 @@ Observable.init = function(initialValue) {
         return result;
     };
     const $clone = function() {
-
+        return Observable.init($val());
     };
     const $updateWith = function(values) {
         Observable.update(proxy, values);
