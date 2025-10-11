@@ -11,6 +11,10 @@ Observable.init = function(initialValue) {
     const data = {};
     for(const key in initialValue) {
         const itemValue = initialValue[key];
+        if(Array.isArray(itemValue)) {
+            data[key] = Observable.array(itemValue);
+            continue;
+        }
         data[key] = Observable(itemValue);
     }
 

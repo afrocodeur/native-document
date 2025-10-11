@@ -19,6 +19,9 @@ const Validator = {
     isProxy(value) {
         return value?.__isProxy__
     },
+    isAnchor(value) {
+        return value?.__Anchor__
+    },
     isObservableChecker(value) {
         return value?.__$isObservableChecker || value instanceof ObservableChecker;
     },
@@ -50,7 +53,8 @@ const Validator = {
         return value && (
             value.nodeType === COMMON_NODE_TYPES.ELEMENT ||
             value.nodeType === COMMON_NODE_TYPES.TEXT ||
-            value.nodeType === COMMON_NODE_TYPES.DOCUMENT_FRAGMENT
+            value.nodeType === COMMON_NODE_TYPES.DOCUMENT_FRAGMENT ||
+            value.nodeType === COMMON_NODE_TYPES.COMMENT
         );
     },
     isFragment(value) {

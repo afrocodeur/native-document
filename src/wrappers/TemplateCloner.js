@@ -1,5 +1,6 @@
 import {ElementCreator} from "./ElementCreator";
 import {createTextNode} from "./HtmlElementWrapper";
+import Anchor from "../elements/anchor";
 
 const cloneBindingsDataCache = new WeakMap();
 
@@ -142,6 +143,7 @@ export function TemplateCloner($fn) {
     this.attach = (fn) => {
         return createBinding(fn, 'attach');
     };
+
 }
 
 export function useCache(fn) {

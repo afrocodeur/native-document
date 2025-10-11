@@ -240,3 +240,13 @@ ObservableItem.prototype.toString = function() {
     }
     return '{{#ObItem::(' +this.$memoryId+ ')}}';
 };
+ObservableItem.prototype.equals = function(other) {
+    if(Validator.isObservable(other)) {
+        return this.$currentValue === other.$currentValue;
+    }
+    return this.$currentValue === other;
+};
+
+ObservableItem.prototype.toggle = function() {
+    this.set(!this.$currentValue);
+};

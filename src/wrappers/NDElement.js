@@ -10,8 +10,6 @@ export function NDElement(element) {
 }
 NDElement.prototype.__$isNDElement = true;
 
-
-
 NDElement.prototype.valueOf = function() {
     return this.$element;
 };

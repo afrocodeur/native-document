@@ -40,6 +40,12 @@ Observable.array = function(target) {
     observer.populateAndRender = function(iteration, callback) {
         observer.trigger({ action: 'populate', args: [observer.val(), iteration, callback] });
     };
+
+    observer.removeItem = function(item) {
+        const indexOfItem = observer.val().indexOf(item);
+        return observer.remove(indexOfItem);
+    };
+
     observer.remove = function(index) {
         const deleted = observer.val().splice(index, 1);
         if(deleted.length === 0) {
@@ -71,14 +77,32 @@ Observable.array = function(target) {
 
     observer.length = function() {
         return observer.val().length;
-    }
+    };
+
+    /**
+     *
+     * @param {Function} condition
+     * @returns {number}
+     */
+    observer.count = (condition) => {
+        let count = 0;
+        observer.val().forEach((item, index) => {
+            if(condition(item, index)) {
+                count++;
+            }
+        });
+        return count;
+    };
+    observer.isEmpty = function() {
+        return observer.val().length === 0;
+    };
 
     const overrideMethods = ['map', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex', 'concat', 'includes', 'indexOf'];
     overrideMethods.forEach((method) => {
         observer[method] = (...args) => {
             return observer.val()[method](...args);
         };
-    })
+    });
 
     return observer;
 };

@@ -9,7 +9,7 @@ import {ElementCreator} from "../../wrappers/ElementCreator";
  *
  * @param {ObservableItem|ObservableChecker} condition
  * @param {*} child
- * @param {{comment?: string|null, shouldKeepInCache?: Boolean}} comment
+ * @param {{comment?: string|null, shouldKeepInCache?: Boolean}} configs
  * @returns {DocumentFragment}
  */
 export const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
@@ -25,7 +25,7 @@ export const ShowIf = function(condition, child, { comment = null, shouldKeepInC
         }
         childElement = ElementCreator.getChild(child);
         if(Validator.isFragment(childElement)) {
-            childElement = Array.from(childElement.children);
+            childElement = Array.from(childElement.childNodes);
         }
         return childElement;
     };
@@ -50,15 +50,14 @@ export const ShowIf = function(condition, child, { comment = null, shouldKeepInC
  * Hide the element if the condition is true
  * @param {ObservableItem|ObservableChecker} condition
  * @param child
- * @param comment
+ * @param {{comment?: string|null, shouldKeepInCache?: Boolean}} configs
  * @returns {DocumentFragment}
  */
-export const HideIf = function(condition, child, comment) {
-
+export const HideIf = function(condition, child, configs) {
     const hideCondition = Observable(!condition.val());
     condition.subscribe(value => hideCondition.set(!value));
 
-    return ShowIf(hideCondition, child, comment);
+    return ShowIf(hideCondition, child, configs);
 }
 
 /**
@@ -66,9 +65,9 @@ export const HideIf = function(condition, child, comment) {
  *
  * @param {ObservableItem|ObservableChecker} condition
  * @param {*} child
- * @param {string|null} comment
+ * @param {{comment?: string|null, shouldKeepInCache?: Boolean}} configs
  * @returns {DocumentFragment}
  */
-export const HideIfNot = function(condition, child, comment) {
-    return ShowIf(condition, child, comment);
+export const HideIfNot = function(condition, child, configs) {
+    return ShowIf(condition, child, configs);
 }

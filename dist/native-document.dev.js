@@ -450,6 +450,16 @@ var NativeDocument = (function (exports) {
         }
         return '{{#ObItem::(' +this.$memoryId+ ')}}';
     };
+    ObservableItem.prototype.equals = function(other) {
+        if(Validator.isObservable(other)) {
+            return this.$currentValue === other.$currentValue;
+        }
+        return this.$currentValue === other;
+    };
+
+    ObservableItem.prototype.toggle = function() {
+        this.set(!this.$currentValue);
+    };
 
     /**
      *
@@ -638,8 +648,6 @@ var NativeDocument = (function (exports) {
         PluginsManager.emit('NDElementCreated', element, this);
     }
     NDElement.prototype.__$isNDElement = true;
-
-
 
     NDElement.prototype.valueOf = function() {
         return this.$element;
@@ -845,6 +853,7 @@ var NativeDocument = (function (exports) {
     const COMMON_NODE_TYPES = {
         ELEMENT: 1,
         TEXT: 3,
+        COMMENT: 8,
         DOCUMENT_FRAGMENT: 11
     };
 
@@ -854,6 +863,9 @@ var NativeDocument = (function (exports) {
         },
         isProxy(value) {
             return value?.__isProxy__
+        },
+        isAnchor(value) {
+            return value?.__Anchor__
         },
         isObservableChecker(value) {
             return value?.__$isObservableChecker || value instanceof ObservableChecker;
@@ -886,7 +898,8 @@ var NativeDocument = (function (exports) {
             return value && (
                 value.nodeType === COMMON_NODE_TYPES.ELEMENT ||
                 value.nodeType === COMMON_NODE_TYPES.TEXT ||
-                value.nodeType === COMMON_NODE_TYPES.DOCUMENT_FRAGMENT
+                value.nodeType === COMMON_NODE_TYPES.DOCUMENT_FRAGMENT ||
+                value.nodeType === COMMON_NODE_TYPES.COMMENT
             );
         },
         isFragment(value) {
@@ -980,6 +993,7 @@ var NativeDocument = (function (exports) {
 
     function Anchor(name, isUniqueChild = false) {
         const element = document.createDocumentFragment();
+        element.__Anchor__ = true;
 
         const anchorStart = document.createComment('Anchor Start : '+name);
         const anchorEnd = document.createComment('/ Anchor End '+name);
@@ -993,16 +1007,16 @@ var NativeDocument = (function (exports) {
         const isParentUniqueChild = (parent) => (isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd));
 
         const insertBefore = function(parent, child, target) {
-            const element = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+            const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
             if(parent === element) {
-                parent.nativeInsertBefore(element, target);
+                parent.nativeInsertBefore(childElement, target);
                 return;
             }
             if(isParentUniqueChild(parent) && target === anchorEnd) {
-                parent.append(element,  target);
+                parent.append(childElement,  target);
                 return;
             }
-            parent.insertBefore(element, target);
+            parent.insertBefore(childElement, target);
         };
 
         element.appendElement = function(child, before = null) {
@@ -1023,6 +1037,9 @@ var NativeDocument = (function (exports) {
             }
             before = before ?? anchorEnd;
             insertBefore(parent, child, before);
+        };
+        element.append = function(...args ) {
+            return element.appendChild(args);
         };
 
         element.removeChildren = function() {
@@ -1047,10 +1064,6 @@ var NativeDocument = (function (exports) {
         element.remove = function() {
             const parent = anchorEnd.parentNode;
             if(parent === element) {
-                return;
-            }
-            if(isParentUniqueChild(parent)) {
-                parent.replaceChildren(anchorStart, anchorEnd);
                 return;
             }
             let itemToRemove = anchorStart.nextSibling, tempItem;
@@ -1084,9 +1097,6 @@ var NativeDocument = (function (exports) {
             element.appendChild(child, anchor);
         };
 
-        element.clear = function() {
-            element.remove();
-        };
 
         element.endElement = function() {
             return anchorEnd;
@@ -1095,6 +1105,11 @@ var NativeDocument = (function (exports) {
         element.startElement = function() {
             return anchorStart;
         };
+        element.restore = function() {
+            element.appendChild(element);
+        };
+        element.clear = element.remove;
+        element.detach = element.remove;
 
         element.getByIndex = function(index) {
             let currentNode = anchorStart;
@@ -1108,6 +1123,19 @@ var NativeDocument = (function (exports) {
         };
 
         return element;
+    }
+    /**
+     *
+     * @param {HTMLElement|DocumentFragment|Text|String|Array} children
+     * @param {{ parent?: HTMLElement, name?: String}} configs
+     * @returns {DocumentFragment}
+     */
+    function createPortal(children, { parent, name = 'unnamed' } = {}) {
+        const anchor = Anchor('Portal '+name);
+        anchor.appendChild(ElementCreator.getChild(children));
+
+        (parent || document.body).appendChild(anchor);
+        return anchor;
     }
 
     const BOOLEAN_ATTRIBUTES = ['checked', 'selected', 'disabled', 'readonly', 'required', 'autofocus', 'multiple', 'autocomplete', 'hidden', 'contenteditable', 'spellcheck', 'translate', 'draggable', 'async', 'defer', 'autoplay', 'controls', 'loop', 'muted', 'download', 'reversed', 'open', 'default', 'formnovalidate', 'novalidate', 'scoped', 'itemscope', 'allowfullscreen', 'allowpaymentrequest', 'playsinline'];
@@ -1830,6 +1858,7 @@ var NativeDocument = (function (exports) {
         this.attach = (fn) => {
             return createBinding(fn, 'attach');
         };
+
     }
 
     function useCache(fn) {
@@ -1849,6 +1878,52 @@ var NativeDocument = (function (exports) {
         }
         return function(_, __, ...args) {
             return wrapper([_, __, ...args]);
+        };
+    }
+
+    function SingletonView($viewCreator) {
+        let $cacheNode = null;
+        let $components = null;
+
+        this.render = (data) => {
+            if(!$cacheNode) {
+                $cacheNode = $viewCreator(this);
+            }
+            if(!$components) {
+                return $cacheNode;
+            }
+            for(const index in $components) {
+                const updater = $components[index];
+                updater(...data);
+            }
+            return $cacheNode;
+        };
+
+        this.createSection = (name, fn) => {
+            $components = $components || {};
+            const anchor = new Anchor('Component '+name);
+
+            $components[name] = function(...args) {
+                anchor.removeChildren();
+                if(!fn) {
+                    anchor.append(args);
+                    return;
+                }
+                anchor.appendChild(fn(...args));
+            };
+            return anchor;
+        };
+    }
+
+
+    function useSingleton(fn) {
+        let $cache = null;
+
+        return function(...args) {
+            if(!$cache) {
+                $cache = new SingletonView(fn);
+            }
+            return $cache.render(args);
         };
     }
 
@@ -1988,6 +2063,12 @@ var NativeDocument = (function (exports) {
         observer.populateAndRender = function(iteration, callback) {
             observer.trigger({ action: 'populate', args: [observer.val(), iteration, callback] });
         };
+
+        observer.removeItem = function(item) {
+            const indexOfItem = observer.val().indexOf(item);
+            return observer.remove(indexOfItem);
+        };
+
         observer.remove = function(index) {
             const deleted = observer.val().splice(index, 1);
             if(deleted.length === 0) {
@@ -2019,6 +2100,24 @@ var NativeDocument = (function (exports) {
 
         observer.length = function() {
             return observer.val().length;
+        };
+
+        /**
+         *
+         * @param {Function} condition
+         * @returns {number}
+         */
+        observer.count = (condition) => {
+            let count = 0;
+            observer.val().forEach((item, index) => {
+                if(condition(item, index)) {
+                    count++;
+                }
+            });
+            return count;
+        };
+        observer.isEmpty = function() {
+            return observer.val().length === 0;
         };
 
         const overrideMethods = ['map', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex', 'concat', 'includes', 'indexOf'];
@@ -2060,6 +2159,10 @@ var NativeDocument = (function (exports) {
         const data = {};
         for(const key in initialValue) {
             const itemValue = initialValue[key];
+            if(Array.isArray(itemValue)) {
+                data[key] = Observable.array(itemValue);
+                continue;
+            }
             data[key] = Observable(itemValue);
         }
 
@@ -2717,7 +2820,7 @@ var NativeDocument = (function (exports) {
      *
      * @param {ObservableItem|ObservableChecker} condition
      * @param {*} child
-     * @param {{comment?: string|null, shouldKeepInCache?: Boolean}} comment
+     * @param {{comment?: string|null, shouldKeepInCache?: Boolean}} configs
      * @returns {DocumentFragment}
      */
     const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
@@ -2733,7 +2836,7 @@ var NativeDocument = (function (exports) {
             }
             childElement = ElementCreator.getChild(child);
             if(Validator.isFragment(childElement)) {
-                childElement = Array.from(childElement.children);
+                childElement = Array.from(childElement.childNodes);
             }
             return childElement;
         };
@@ -2758,15 +2861,14 @@ var NativeDocument = (function (exports) {
      * Hide the element if the condition is true
      * @param {ObservableItem|ObservableChecker} condition
      * @param child
-     * @param comment
+     * @param {{comment?: string|null, shouldKeepInCache?: Boolean}} configs
      * @returns {DocumentFragment}
      */
-    const HideIf = function(condition, child, comment) {
-
+    const HideIf = function(condition, child, configs) {
         const hideCondition = Observable(!condition.val());
         condition.subscribe(value => hideCondition.set(!value));
 
-        return ShowIf(hideCondition, child, comment);
+        return ShowIf(hideCondition, child, configs);
     };
 
     /**
@@ -2774,11 +2876,11 @@ var NativeDocument = (function (exports) {
      *
      * @param {ObservableItem|ObservableChecker} condition
      * @param {*} child
-     * @param {string|null} comment
+     * @param {{comment?: string|null, shouldKeepInCache?: Boolean}} configs
      * @returns {DocumentFragment}
      */
-    const HideIfNot = function(condition, child, comment) {
-        return ShowIf(condition, child, comment);
+    const HideIfNot = function(condition, child, configs) {
+        return ShowIf(condition, child, configs);
     };
 
     /**
@@ -2794,7 +2896,7 @@ var NativeDocument = (function (exports) {
             throw new NativeDocumentError("Toggle : condition must be an Observable");
         }
 
-        const anchor = new Anchor();
+        const anchor = new Anchor('Match');
         const cache = new Map();
 
         const getItem = function(key) {
@@ -2839,7 +2941,6 @@ var NativeDocument = (function (exports) {
      * @returns {DocumentFragment}
      */
     const Switch = function ($condition, onTrue, onFalse) {
-
         if(!Validator.isObservable($condition)) {
             throw new NativeDocumentError("Toggle : condition must be an Observable");
         }
@@ -3198,7 +3299,8 @@ var NativeDocument = (function (exports) {
         Video: Video,
         Wbr: Wbr,
         WeekInput: WeekInput,
-        When: When
+        When: When,
+        createPortal: createPortal
     });
 
     const RouteParamPatterns = {
@@ -3222,6 +3324,7 @@ var NativeDocument = (function (exports) {
         const $middlewares = $options.middlewares || [];
         const $shouldRebuild = $options.shouldRebuild || false;
         const $paramsValidators = $options.with || {};
+        const $layout = $options.layout  || null;
 
         const $params = {};
         const $paramsNames = [];
@@ -3266,6 +3369,7 @@ var NativeDocument = (function (exports) {
         this.middlewares = () => $middlewares;
         this.shouldRebuild = () => $shouldRebuild;
         this.path = () => $path;
+        this.layout = () => $layout;
 
         /**
          *
@@ -3358,6 +3462,9 @@ var NativeDocument = (function (exports) {
             });
             name && fullName.push(name);
             return fullName.join('.');
+        },
+        layout: ($groupTree) => {
+            return $groupTree[$groupTree.length-1]?.options?.layout || null;
         }
     };
 
@@ -3587,8 +3694,13 @@ var NativeDocument = (function (exports) {
 
         const $cache = new Map();
 
-        const updateContainer = function(node) {
+        const updateContainer = function(node, route) {
             container.innerHTML = '';
+            const layout = route.layout();
+            if(layout) {
+                container.appendChild(layout(node));
+                return;
+            }
             container.appendChild(node);
         };
 
@@ -3599,13 +3711,13 @@ var NativeDocument = (function (exports) {
             const { route, params, query, path } = state;
             if($cache.has(path)) {
                 const cacheNode = $cache.get(path);
-                updateContainer(cacheNode);
+                updateContainer(cacheNode, route);
                 return;
             }
             const Component = route.component();
             const node = Component({ params, query });
             $cache.set(path, node);
-            updateContainer(node);
+            updateContainer(node, route);
         };
 
         router.subscribe(handleCurrentRouterState);
@@ -3659,7 +3771,7 @@ var NativeDocument = (function (exports) {
          *
          * @param {string} path
          * @param {Function} component
-         * @param {{name:?string, middlewares:Function[], shouldRebuild:Boolean, with: Object }} options
+         * @param {{name:?string, middlewares:Function[], shouldRebuild:Boolean, with: Object, layout: Function }} options
          * @returns {this}
          */
         this.add = function(path, component, options) {
@@ -3667,6 +3779,7 @@ var NativeDocument = (function (exports) {
                 ...options,
                 middlewares: RouteGroupHelper.fullMiddlewares($groupTree, options?.middlewares || []),
                 name: options?.name ? RouteGroupHelper.fullName($groupTree, options.name) : null,
+                layout: options?.layout || RouteGroupHelper.layout($groupTree)
             });
             $routes.push(route);
             if(route.name()) {
@@ -3890,6 +4003,7 @@ var NativeDocument = (function (exports) {
     exports.NDElement = NDElement;
     exports.Observable = Observable;
     exports.PluginsManager = PluginsManager;
+    exports.SingletonView = SingletonView;
     exports.Store = Store;
     exports.TemplateCloner = TemplateCloner;
     exports.Validator = validator;
@@ -3900,6 +4014,7 @@ var NativeDocument = (function (exports) {
     exports.normalizeComponentArgs = normalizeComponentArgs;
     exports.router = router;
     exports.useCache = useCache;
+    exports.useSingleton = useSingleton;
 
     return exports;
 

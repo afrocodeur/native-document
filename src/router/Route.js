@@ -21,6 +21,7 @@ export function Route($path, $component, $options = {}) {
     const $middlewares = $options.middlewares || [];
     const $shouldRebuild = $options.shouldRebuild || false;
     const $paramsValidators = $options.with || {};
+    const $layout = $options.layout  || null;
 
     const $params = {};
     const $paramsNames = [];
@@ -65,6 +66,7 @@ export function Route($path, $component, $options = {}) {
     this.middlewares = () => $middlewares;
     this.shouldRebuild = () => $shouldRebuild;
     this.path = () => $path;
+    this.layout = () => $layout;
 
     /**
      *

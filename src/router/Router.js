@@ -54,7 +54,7 @@ export default function Router($options = {}) {
      *
      * @param {string} path
      * @param {Function} component
-     * @param {{name:?string, middlewares:Function[], shouldRebuild:Boolean, with: Object }} options
+     * @param {{name:?string, middlewares:Function[], shouldRebuild:Boolean, with: Object, layout: Function }} options
      * @returns {this}
      */
     this.add = function(path, component, options) {
@@ -62,6 +62,7 @@ export default function Router($options = {}) {
             ...options,
             middlewares: RouteGroupHelper.fullMiddlewares($groupTree, options?.middlewares || []),
             name: options?.name ? RouteGroupHelper.fullName($groupTree, options.name) : null,
+            layout: options?.layout || RouteGroupHelper.layout($groupTree)
         });
         $routes.push(route);
         if(route.name()) {

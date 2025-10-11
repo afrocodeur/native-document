@@ -18,6 +18,7 @@ export type ValidChild =
     | ValidChild[]
     | ((...args: any[]) => ValidChild);
 
+
 export type Attributes = Record<string, any> & {
     class?: string | Record<string, boolean | ObservableItem<boolean>>;
     style?: string | Record<string, string | ObservableItem<string>>;
@@ -122,5 +123,13 @@ export declare const TBodyCell: ElementFunction;
 export declare const Fragment: ElementFunction;
 export declare const NativeDocumentFragment: typeof Anchor;
 
+
+export declare type AnchorDocumentFragment = DocumentFragment & {
+    detach: ()  => void;
+    restore: ()  => void;
+    removeChildren: ()  => void;
+    appendElement: (child: ValidChild, before: HTMLElement) => void;
+};
+
 // Anchor
-export declare function Anchor(name?: string, isUniqueChild?: boolean): DocumentFragment;
+export declare function Anchor(name?: string, isUniqueChild?: boolean): AnchorDocumentFragment;

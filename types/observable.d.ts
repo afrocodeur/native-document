@@ -50,11 +50,14 @@ export interface ObservableArray<T> extends ObservableItem<T[]> {
     sort(compareFn?: (a: T, b: T) => number): T[];
     splice(start: number, deleteCount?: number, ...items: T[]): T[];
 
+    isEmpty(): boolean;
     clear(): boolean;
     merge(values: T[]): void;
+    removeItem(item: T): T[];
     remove(index: number): T[];
     swap(indexA: number, indexB: number): boolean;
     length(): number;
+    count(condition: (item:T, index?:number) => boolean): number;
     populateAndRender(iteration: number, callback: (index: number) => T): void;
 
     map<U>(callback: (value: T, index: number, array: T[]) => U): U[];

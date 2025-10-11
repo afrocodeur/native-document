@@ -1,5 +1,6 @@
 // Router system type definitions
-import { ValidChild, NDElement } from './elements';
+import { ValidChild } from './elements';
+import { NDElement } from './nd-element';
 
 export interface RouteParams {
     [key: string]: string;
@@ -42,7 +43,7 @@ export interface Router {
         with?: Record<string, string>;
     }): this;
 
-    group(suffix: string, options: { middlewares?: Function[]; name?: string }, callback: () => void): this;
+    group(suffix: string, options: { middlewares?: Function[]; name?: string, layout?: Function }, callback: () => void): this;
 
     generateUrl(name: string, params?: RouteParams, query?: QueryParams): string;
     resolve(target: string | { name: string; params?: RouteParams; query?: QueryParams }): {

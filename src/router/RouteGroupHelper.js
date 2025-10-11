@@ -48,5 +48,8 @@ export const RouteGroupHelper = {
         });
         name && fullName.push(name);
         return fullName.join('.');
+    },
+    layout: ($groupTree) => {
+        return $groupTree[$groupTree.length-1]?.options?.layout || null;
     }
 };

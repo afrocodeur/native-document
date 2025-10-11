@@ -2,6 +2,7 @@ export { default as HtmlElementWrapper, createTextNode } from './src/wrappers/Ht
 export { ElementCreator } from './src/wrappers/ElementCreator';
 export { NDElement } from './src/wrappers/NDElement';
 export { TemplateCloner, useCache } from './src/wrappers/TemplateCloner';
+export { SingletonView, useSingleton } from './src/wrappers/SingletonView';
 export { default as PluginsManager } from './src/utils/plugins-manager';
 
 import './src/utils/prototypes.js';

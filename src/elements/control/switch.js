@@ -18,7 +18,7 @@ export const Match = function($condition, values, shouldKeepInCache = true) {
         throw new NativeDocumentError("Toggle : condition must be an Observable");
     }
 
-    const anchor = new Anchor();
+    const anchor = new Anchor('Match');
     const cache = new Map();
 
     const getItem = function(key) {
@@ -63,7 +63,6 @@ export const Match = function($condition, values, shouldKeepInCache = true) {
  * @returns {DocumentFragment}
  */
 export const Switch = function ($condition, onTrue, onFalse) {
-
     if(!Validator.isObservable($condition)) {
         throw new NativeDocumentError("Toggle : condition must be an Observable");
     }

@@ -5,6 +5,7 @@ import {ElementCreator} from "../wrappers/ElementCreator";
 
 export default function Anchor(name, isUniqueChild = false) {
     const element = document.createDocumentFragment();
+    element.__Anchor__ = true;
 
     const anchorStart = document.createComment('Anchor Start : '+name);
     const anchorEnd = document.createComment('/ Anchor End '+name);
@@ -18,16 +19,16 @@ export default function Anchor(name, isUniqueChild = false) {
     const isParentUniqueChild = (parent) => (isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd))
 
     const insertBefore = function(parent, child, target) {
-        const element = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+        const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
         if(parent === element) {
-            parent.nativeInsertBefore(element, target);
+            parent.nativeInsertBefore(childElement, target);
             return;
         }
         if(isParentUniqueChild(parent) && target === anchorEnd) {
-            parent.append(element,  target);
+            parent.append(childElement,  target);
             return;
         }
-        parent.insertBefore(element, target);
+        parent.insertBefore(childElement, target);
     };
 
     element.appendElement = function(child, before = null) {
@@ -49,6 +50,9 @@ export default function Anchor(name, isUniqueChild = false) {
         before = before ?? anchorEnd;
         insertBefore(parent, child, before);
     };
+    element.append = function(...args ) {
+        return element.appendChild(args);
+    }
 
     element.removeChildren = function() {
         const parent = anchorEnd.parentNode;
@@ -72,10 +76,6 @@ export default function Anchor(name, isUniqueChild = false) {
     element.remove = function() {
         const parent = anchorEnd.parentNode;
         if(parent === element) {
-            return;
-        }
-        if(isParentUniqueChild(parent)) {
-            parent.replaceChildren(anchorStart, anchorEnd);
             return;
         }
         let itemToRemove = anchorStart.nextSibling, tempItem;
@@ -109,9 +109,6 @@ export default function Anchor(name, isUniqueChild = false) {
         element.appendChild(child, anchor);
     };
 
-    element.clear = function() {
-        element.remove();
-    };
 
     element.endElement = function() {
         return anchorEnd;
@@ -120,6 +117,11 @@ export default function Anchor(name, isUniqueChild = false) {
     element.startElement = function() {
         return anchorStart;
     };
+    element.restore = function() {
+        element.appendChild(element);
+    };
+    element.clear = element.remove;
+    element.detach = element.remove;
 
     element.getByIndex = function(index) {
         let currentNode = anchorStart;
@@ -134,3 +136,17 @@ export default function Anchor(name, isUniqueChild = false) {
 
     return element;
 };
+
+/**
+ *
+ * @param {HTMLElement|DocumentFragment|Text|String|Array} children
+ * @param {{ parent?: HTMLElement, name?: String}} configs
+ * @returns {DocumentFragment}
+ */
+export function createPortal(children, { parent, name = 'unnamed' } = {}) {
+    const anchor = Anchor('Portal '+name);
+    anchor.appendChild(ElementCreator.getChild(children));
+
+    (parent || document.body).appendChild(anchor);
+    return anchor;
+}
