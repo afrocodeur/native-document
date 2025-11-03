@@ -247,6 +247,10 @@ ObservableItem.prototype.equals = function(other) {
     return this.$currentValue === other;
 };
 
+ObservableItem.prototype.toBool = function() {
+    return !!this.$currentValue;
+};
+
 ObservableItem.prototype.toggle = function() {
     this.set(!this.$currentValue);
 };

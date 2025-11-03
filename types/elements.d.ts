@@ -127,8 +127,15 @@ export declare const NativeDocumentFragment: typeof Anchor;
 export declare type AnchorDocumentFragment = DocumentFragment & {
     detach: ()  => void;
     restore: ()  => void;
+    clear: ()  => void;
+    remove: ()  => void;
     removeChildren: ()  => void;
+    insertBefore: (child: ValidChild, before: HTMLElement|Comment)  => void;
+    replaceContent: (child: ValidChild)  => void;
     appendElement: (child: ValidChild, before: HTMLElement) => void;
+    getByIndex: (index: number) => HTMLElement;
+    endElement: () => Comment;
+    startElement: () => Comment;
 };
 
 // Anchor

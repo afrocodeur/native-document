@@ -13,7 +13,7 @@ export const RouteParamPatterns = {
  */
 export function Route($path, $component, $options = {}) {
 
-    $path = '/'+trim($path, '/');
+    $path = '/'+trim($path, '/').replace(/\/+/, '/');
 
     let $pattern = null;
     let $name = $options.name || null;

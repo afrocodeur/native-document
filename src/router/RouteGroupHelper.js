@@ -50,6 +50,11 @@ export const RouteGroupHelper = {
         return fullName.join('.');
     },
     layout: ($groupTree) => {
-        return $groupTree[$groupTree.length-1]?.options?.layout || null;
+        for(let i = $groupTree.length - 1; i >= 0; i--) {
+            if($groupTree[i]?.options?.layout) {
+                return $groupTree[i].options.layout;
+            }
+        }
+        return null;
     }
 };

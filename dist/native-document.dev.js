@@ -457,6 +457,10 @@ var NativeDocument = (function (exports) {
         return this.$currentValue === other;
     };
 
+    ObservableItem.prototype.toBool = function() {
+        return !!this.$currentValue;
+    };
+
     ObservableItem.prototype.toggle = function() {
         this.set(!this.$currentValue);
     };
@@ -3104,11 +3108,13 @@ var NativeDocument = (function (exports) {
      * @returns {Image}
      */
     const AsyncImg = function(src, defaultImage, attributes, callback) {
-        const image = Img(defaultImage || src, attributes);
+        const defaultSrc = Validator.isObservable(src) ? src.val() : src;
+        const image = Img(defaultImage || defaultSrc, attributes);
         const img = new Image();
+
         img.onload = () => {
             Validator.isFunction(callback) && callback(null, image);
-            image.src = src;
+            image.src = Validator.isObservable(src) ? src.val() : src;
         };
         img.onerror = () => {
             Validator.isFunction(callback) && callback(new NativeDocumentError('Image not found'));
@@ -3118,7 +3124,7 @@ var NativeDocument = (function (exports) {
                 img.src = newSrc;
             });
         }
-        img.src = src;
+        img.src = defaultSrc;
         return image;
     };
 
@@ -3316,7 +3322,7 @@ var NativeDocument = (function (exports) {
      */
     function Route($path, $component, $options = {}) {
 
-        $path = '/'+trim($path, '/');
+        $path = '/'+trim($path, '/').replace(/\/+/, '/');
 
         let $pattern = null;
         let $name = $options.name || null;
@@ -3464,7 +3470,12 @@ var NativeDocument = (function (exports) {
             return fullName.join('.');
         },
         layout: ($groupTree) => {
-            return $groupTree[$groupTree.length-1]?.options?.layout || null;
+            for(let i = $groupTree.length - 1; i >= 0; i--) {
+                if($groupTree[i]?.options?.layout) {
+                    return $groupTree[i].options.layout;
+                }
+            }
+            return null;
         }
     };
 

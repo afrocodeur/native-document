@@ -16,11 +16,13 @@ export const Img = function(src, attributes) {
  * @returns {Image}
  */
 export const AsyncImg = function(src, defaultImage, attributes, callback) {
-    const image = Img(defaultImage || src, attributes);
+    const defaultSrc = Validator.isObservable(src) ? src.val() : src;
+    const image = Img(defaultImage || defaultSrc, attributes);
     const img = new Image();
+
     img.onload = () => {
         Validator.isFunction(callback) && callback(null, image);
-        image.src = src;
+        image.src = Validator.isObservable(src) ? src.val() : src;
     };
     img.onerror = () => {
         Validator.isFunction(callback) && callback(new NativeDocumentError('Image not found'));
@@ -30,7 +32,7 @@ export const AsyncImg = function(src, defaultImage, attributes, callback) {
             img.src = newSrc;
         });
     }
-    img.src = src;
+    img.src = defaultSrc;
     return image;
 };
 
