@@ -4,6 +4,7 @@ import NativeDocumentError from "../errors/NativeDocumentError";
 import ObservableChecker from "./ObservableChecker";
 import PluginsManager from "../utils/plugins-manager";
 import Validator from "../utils/validator";
+import {ObservableWhen} from "./ObservableWhen";
 
 /**
  *
@@ -35,6 +36,7 @@ Object.defineProperty(ObservableItem.prototype, '$value', {
 ObservableItem.prototype.__$isObservable = true;
 const DEFAULT_OPERATIONS = {};
 const noneTrigger = function() {};
+
 ObservableItem.prototype.triggerFirstListener = function(operations) {
     this.$listeners[0](this.$currentValue, this.$previousValue, operations || {});
 }
@@ -228,10 +230,14 @@ ObservableItem.prototype.unsubscribe = function(callback) {
 ObservableItem.prototype.check = function(callback) {
     return new ObservableChecker(this, callback)
 };
-ObservableItem.prototype.get = ObservableItem.prototype.check;
+
+ObservableItem.prototype.get = function(key) {
+    const item = this.$currentValue[key];
+    return Validator.isObservable(item) ? item.val() : item;
+};
 
 ObservableItem.prototype.when = function(value) {
-    return {$target: value, $observer: this};
+    return new ObservableWhen(this, value);
 };
 
 ObservableItem.prototype.toString = function() {

@@ -1,3 +1,5 @@
+export type Unsubscribe = () => void;
+
 // Observable system type definitions
 export interface ObservableItem<T = any> {
     readonly $currentValue: T;
@@ -12,7 +14,7 @@ export interface ObservableItem<T = any> {
     trigger(operations?: ObservableOperation): void;
     cleanup(): void;
 
-    subscribe(callback: (current: T, previous: T, operations?: ObservableOperation) => void): () => void;
+    subscribe(callback: (current: T, previous: T, operations?: ObservableOperation) => void): Unsubscribe;
     unsubscribe(callback: Function): void;
     on(value: T, callback: ObservableItem<boolean> | ((isActive: boolean) => void)): () => void;
 
@@ -21,6 +23,19 @@ export interface ObservableItem<T = any> {
     when(value: T): { $target: T; $observer: ObservableItem<T> };
 
     toString(): string;
+}
+
+export class ObservableWhen<T = any> {
+    readonly __$isObservableWhen: true;
+    private $target: T;
+    private $observer: ObservableItem<T>;
+
+    constructor(observer: ObservableItem<T>, value: T);
+
+    subscribe(callback: (value: boolean) => void): Unsubscribe;
+    val(): boolean;
+    isMath(): boolean;
+    isActive(): boolean;
 }
 
 export interface ObservableOperation {
@@ -32,7 +47,7 @@ export interface ObservableOperation {
 export interface ObservableChecker<T = any> {
     readonly __$isObservableChecker: true;
 
-    subscribe(callback: (value: T) => void): () => void;
+    subscribe(callback: (value: T) => void): Unsubscribe;
     check<U>(callback: (value: T) => U): ObservableChecker<U>;
     val(): T;
 
@@ -73,8 +88,11 @@ export interface ObservableArray<T> extends ObservableItem<T[]> {
 export type ObservableProxy<T extends Record<string, any>> = {
     readonly __isProxy__: true;
     readonly $value: T;
+    $val(): T;
+    $get(key: string): any;
     $clone(): ObservableProxy<T>;
     $updateWith(values: Partial<T>): void;
+    $set(values: Partial<T>): void;
 } & {
     [K in keyof T]: T[K] extends (infer U)[]
         ? ObservableArray<U>

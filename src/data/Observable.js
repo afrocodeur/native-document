@@ -14,6 +14,23 @@ export function Observable(value) {
 
 /**
  *
+ * @param {string} propertyName
+ */
+Observable.useValueProperty = function(propertyName = 'value') {
+    Object.defineProperty(ObservableItem.prototype, propertyName, {
+        get() {
+            return this.$currentValue;
+        },
+        set(value) {
+            this.set(value);
+        },
+        configurable: true,
+    });
+};
+
+
+/**
+ *
  * @param id
  * @returns {ObservableItem|null}
  */

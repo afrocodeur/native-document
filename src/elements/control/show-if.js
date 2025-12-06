@@ -13,7 +13,7 @@ import {ElementCreator} from "../../wrappers/ElementCreator";
  * @returns {DocumentFragment}
  */
 export const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
-    if(!(Validator.isObservable(condition))) {
+    if(!(Validator.isObservable(condition)) && !Validator.isObservableWhenResult(condition)) {
         return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
     }
     const element = new Anchor('Show if : '+(comment || ''));

@@ -2,6 +2,7 @@ import Anchor from "../elements/anchor";
 import Validator from "../utils/validator";
 import AttributesWrapper from "./AttributesWrapper";
 import PluginsManager from "../utils/plugins-manager";
+import validator from "../utils/validator";
 
 const $nodeCache = new Map();
 let $textNodeCache = null;
@@ -108,6 +109,9 @@ export const ElementCreator = {
         }
         if(Validator.isNDElement(child)) {
             return child.$element ?? child.$build?.() ?? null;
+        }
+        if(validator.$element) {
+            return validator.$element;
         }
         if(Validator.isArray(child)) {
             const fragment = document.createDocumentFragment();

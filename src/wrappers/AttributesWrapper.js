@@ -37,9 +37,9 @@ function bindClassAttribute(element, data) {
             value.subscribe(toggleElementClass.bind(null, element, className));
             continue;
         }
-        if(value.$observer) {
-            element.classes.toggle(className, value.$observer.val() === value.$target);
-            value.$observer.on(value.$target, toggleElementClass.bind(null, element, className));
+        if(Validator.isObservableWhenResult(value)) {
+            element.classes.toggle(className, value.isMath());
+            value.subscribe(toggleElementClass.bind(null, element, className));
             continue;
         }
         if(value.$hydrate) {
@@ -84,7 +84,7 @@ function bindBooleanAttribute(element, attributeName, value) {
     }
     if(Validator.isObservable(value)) {
         if(['checked'].includes(attributeName)) {
-            element.addEventListener('input', updateObserverFromInput.bind(null, element, attributeName, defaultValue));
+            element.addEventListener('input', updateObserverFromInput.bind(null, element, attributeName, defaultValue, value));
         }
         value.subscribe(updateInputFromObserver.bind(null, element, attributeName));
     }

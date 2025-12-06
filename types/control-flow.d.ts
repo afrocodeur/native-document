@@ -1,10 +1,10 @@
 // Control flow components type definitions
-import { ObservableItem, ObservableChecker, ObservableArray } from './observable';
+import {ObservableItem, ObservableChecker, ObservableArray, ObservableWhen} from './observable';
 import { ValidChild } from './elements';
 
 // Control Flow Functions
 export interface ShowIfFunction {
-    (condition: ObservableItem<boolean> | ObservableChecker<boolean>, child: ValidChild, options?: { comment?: string | null; shouldKeepInCache?: boolean }): DocumentFragment;
+    (condition: ObservableItem<boolean> | ObservableChecker<boolean> | ObservableWhen, child: ValidChild, options?: { comment?: string | null; shouldKeepInCache?: boolean }): DocumentFragment;
 }
 
 export interface HideIfFunction {
@@ -42,8 +42,12 @@ export interface ForEachArrayFunction {
 }
 
 export interface HideIfNotFunction {
-    (condition: ObservableItem<boolean> | ObservableChecker<boolean>, child: ValidChild, options?: { comment?: string | null; shouldKeepInCache?: boolean }): DocumentFragment;
+    (condition: ObservableItem<boolean> | ObservableChecker<boolean> | ObservableWhen, child: ValidChild, options?: { comment?: string | null; shouldKeepInCache?: boolean }): DocumentFragment;
 }
+
+
+export function ShowWhen(observer: ObservableWhen, target: any): ReturnType<typeof ShowIf>;
+export function ShowWhen(observer: ObservableWhen, target: any, view: any): ReturnType<typeof ShowIf>;
 
 // Control Flow Components
 export declare const ShowIf: ShowIfFunction;

@@ -9,15 +9,15 @@ Function.prototype.args = function(...args) {
 };
 
 Function.prototype.cached = function(...args) {
-    let $cache = null;
-    let  getCache = function(){ return $cache; };
+    let $cache;
+    let  getCache = () => $cache;
     return () => {
         if(!$cache) {
             $cache = this.apply(this, args);
             if($cache.cloneNode) {
-                getCache = function() { return $cache.cloneNode(true); };
+                getCache = () => $cache.cloneNode(true);
             } else if($cache.$element) {
-                getCache = function() { return new NDElement($cache.$element.cloneNode(true)); };
+                getCache = () => new NDElement($cache.$element.cloneNode(true));
             }
         }
         return getCache();

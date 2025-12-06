@@ -16,6 +16,12 @@ const Validator = {
     isObservable(value) {
         return  value?.__$isObservable || value instanceof ObservableItem || value instanceof ObservableChecker;
     },
+    isObservableWhenResult(value) {
+        return value && (value.__$isObservableWhen || (typeof value === 'object' && '$target' in value && '$observer' in value));
+    },
+    isArrayObservable(value) {
+        return  value?.__$isObservableArray;
+    },
     isProxy(value) {
         return value?.__isProxy__
     },
