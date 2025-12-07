@@ -11,10 +11,11 @@ const ObservableArray = function (target, { propagation = false, deep = false } 
         throw new NativeDocumentError('Observable.array : target must be an array');
     }
 
-    ObservableItem.apply(this, [target]);
+    ObservableItem.call(this, target);
     PluginsManager.emit('CreateObservableArray', this);
 };
 
+ObservableArray.prototype = Object.create(ObservableItem.prototype);
 ObservableArray.prototype.__$isObservableArray = true;
 
 mutationMethods.forEach((method) => {
