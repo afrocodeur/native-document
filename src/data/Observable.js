@@ -12,6 +12,9 @@ export function Observable(value) {
     return new ObservableItem(value);
 }
 
+export const $ = Observable;
+export const obs = Observable;
+
 /**
  *
  * @param {string} propertyName

@@ -15,5 +15,7 @@ import { RouterStatic } from './types/router';
 import { StoreStatic } from './types/store';
 
 export declare const Observable: ObservableStatic;
+export declare const $: ObservableStatic;
+export declare const obs: ObservableStatic;
 export declare const Store: StoreStatic;
 export declare const Router: RouterStatic;
