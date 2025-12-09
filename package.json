@@ -1,6 +1,6 @@
 {
   "name": "native-document",
-  "version": "1.0.50",
+  "version": "1.0.51",
   "main": "index.js",
   "type": "module",
   "scripts": {

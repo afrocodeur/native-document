@@ -11,7 +11,6 @@ import './src/utils/prototypes.js';
 export * from './src/utils/property-accumulator';
 export * from './src/utils/args-types';
 export * from './src/utils/memoize';
-export * from './src/utils/service';
 export * from './src/data/Observable';
 export * from './src/data/observable-helpers/array';
 export * from './src/data/observable-helpers/batch';
