@@ -15,6 +15,13 @@ export default function NativeFetch($baseUrl) {
     };
 
     this.fetch = async function(method, endpoint, params = {}, options = {}) {
+        if(options.formData) {
+            const formData = new FormData();
+            for(const key in params) {
+                formData.append(key, params[key]);
+            }
+            params = formData;
+        }
         if(!endpoint.startsWith('http')) {
             endpoint = ($baseUrl.endsWith('/') ? $baseUrl : $baseUrl+'/') + endpoint;
         }

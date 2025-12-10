@@ -9,6 +9,7 @@ interface FetchConfig {
 
 interface FetchOptions {
     headers?: Record<string, string>;
+    formData?: boolean;
 }
 
 type RequestInterceptor = (

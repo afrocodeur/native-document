@@ -1,10 +1,10 @@
 var NativeDocument = (function (exports) {
     'use strict';
 
-    let DebugManager$1 = {};
+    let DebugManager = {};
 
     {
-        DebugManager$1 = {
+        DebugManager = {
             enabled: false,
 
             enable() {
@@ -35,7 +35,7 @@ var NativeDocument = (function (exports) {
         };
 
     }
-    var DebugManager = DebugManager$1;
+    var DebugManager$1 = DebugManager;
 
     const MemoryManager = (function() {
 
@@ -84,7 +84,7 @@ var NativeDocument = (function (exports) {
                     }
                 }
                 if (cleanedCount > 0) {
-                    DebugManager.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
+                    DebugManager$1.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
                 }
             }
         };
@@ -207,7 +207,7 @@ var NativeDocument = (function (exports) {
                         try{
                             callback.call(plugin, ...data);
                         } catch (error) {
-                            DebugManager.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
+                            DebugManager$1.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
                         }
                     }
                 }
@@ -395,7 +395,7 @@ var NativeDocument = (function (exports) {
     ObservableItem.prototype.subscribe = function(callback, target = null) {
         this.$listeners = this.$listeners ?? [];
         if (this.$isCleanedUp) {
-            DebugManager.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
+            DebugManager$1.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
             return () => {};
         }
         if (typeof callback !== 'function') {
@@ -1017,7 +1017,7 @@ var NativeDocument = (function (exports) {
             const foundReserved = Object.keys(attributes).filter(key => reserved.includes(key));
 
             if (foundReserved.length > 0) {
-                DebugManager.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
+                DebugManager$1.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
             }
 
             return attributes;
@@ -1065,7 +1065,7 @@ var NativeDocument = (function (exports) {
         element.appendChild = function(child, before = null) {
             const parent = anchorEnd.parentNode;
             if(!parent) {
-                DebugManager.error('Anchor', 'Anchor : parent not found', child);
+                DebugManager$1.error('Anchor', 'Anchor : parent not found', child);
                 return;
             }
             before = before ?? anchorEnd;
@@ -2134,11 +2134,6 @@ var NativeDocument = (function (exports) {
         });
     };
 
-    const Service = {
-        once: fn => autoOnce(fn),
-        memoize: fn => autoMemoize(fn)
-    };
-
     const mutationMethods = ['push', 'pop', 'shift', 'unshift', 'reverse', 'sort', 'splice'];
     const noMutationMethods = ['map', 'forEach', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex', 'concat', 'includes', 'indexOf'];
 
@@ -2642,7 +2637,7 @@ var NativeDocument = (function (exports) {
                 }
                 cache.set(keyId, { keyId, isNew: true, child: new WeakRef(child), indexObserver});
             } catch (e) {
-                DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
+                DebugManager$1.error('ForEach', `Error creating element for key ${keyId}` , e);
                 throw e;
             }
             return keyId;
@@ -3014,7 +3009,7 @@ var NativeDocument = (function (exports) {
      */
     const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
         if(!(Validator.isObservable(condition)) && !Validator.isObservableWhenResult(condition)) {
-            return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
+            return DebugManager$1.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
         }
         const element = new Anchor('Show if : '+(comment || ''));
 
@@ -3790,7 +3785,7 @@ var NativeDocument = (function (exports) {
                 window.history.pushState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, query, path);
             } catch (e) {
-                DebugManager.error('HistoryRouter', 'Error in pushState', e);
+                DebugManager$1.error('HistoryRouter', 'Error in pushState', e);
             }
         };
         /**
@@ -3803,7 +3798,7 @@ var NativeDocument = (function (exports) {
                 window.history.replaceState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, {}, path);
             } catch(e) {
-                DebugManager.error('HistoryRouter', 'Error in replaceState', e);
+                DebugManager$1.error('HistoryRouter', 'Error in replaceState', e);
             }
         };
         this.forward = function() {
@@ -3830,7 +3825,7 @@ var NativeDocument = (function (exports) {
                     }
                     this.handleRouteChange(route, params, query, path);
                 } catch(e) {
-                    DebugManager.error('HistoryRouter', 'Error in popstate event', e);
+                    DebugManager$1.error('HistoryRouter', 'Error in popstate event', e);
                 }
             });
             const { route, params, query, path } = this.resolve(defaultPath || (window.location.pathname+window.location.search));
@@ -3984,7 +3979,7 @@ var NativeDocument = (function (exports) {
                     listener(request);
                     next && next(request);
                 } catch (e) {
-                    DebugManager.warn('Route Listener', 'Error in listener:', e);
+                    DebugManager$1.warn('Route Listener', 'Error in listener:', e);
                 }
             }
         };
@@ -4143,7 +4138,7 @@ var NativeDocument = (function (exports) {
      */
     Router.create = function(options, callback) {
         if(!Validator.isFunction(callback)) {
-            DebugManager.error('Router', 'Callback must be a function', e);
+            DebugManager$1.error('Router', 'Callback must be a function', e);
             throw new RouterError('Callback must be a function');
         }
         const router = new Router(options);
@@ -4229,7 +4224,6 @@ var NativeDocument = (function (exports) {
     exports.NDElement = NDElement;
     exports.Observable = Observable;
     exports.PluginsManager = PluginsManager;
-    exports.Service = Service;
     exports.SingletonView = SingletonView;
     exports.Store = Store;
     exports.TemplateCloner = TemplateCloner;
