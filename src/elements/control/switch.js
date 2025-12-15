@@ -49,9 +49,20 @@ export const Match = function($condition, values, shouldKeepInCache = true) {
         if(content) {
             anchor.appendChild(content);
         }
-    })
+    });
 
-    return anchor;
+    return anchor.nd.with({
+        add(key, view, shouldFocusOn = false) {
+            values[key] = view;
+            if(shouldFocusOn) {
+                $condition.set(key);
+            }
+        },
+        remove(key) {
+            shouldKeepInCache && cache.delete(key);
+            delete values[key];
+        }
+    });
 }
 
 

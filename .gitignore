@@ -12,6 +12,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 *.local
+.npmrc
 
 # Editor directories and files
 .vscode/*

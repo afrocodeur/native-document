@@ -20,5 +20,6 @@ export * from './src/data/Store';
 
 import * as elements from './elements';
 import * as router from './router';
+import * as utils from './utils';
 
-export { elements, router, };
+export { elements, router, utils };

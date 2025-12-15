@@ -58,3 +58,35 @@ export const getKey = (item, defaultKey, key) => {
 export const trim = function(str, char) {
     return str.replace(new RegExp(`^[${char}]+|[${char}]+$`, 'g'), '');
 }
+
+export const deepClone = (value, onObservableFound) => {
+    // Primitives
+    if (value === null || typeof value !== 'object') {
+        return value;
+    }
+
+    // Dates
+    if (value instanceof Date) {
+        return new Date(value.getTime());
+    }
+
+    // Arrays
+    if (Array.isArray(value)) {
+        return value.map(item => deepClone(item));
+    }
+
+    // Observables - keep the référence
+    if (Validator.isObservable(value)) {
+        onObservableFound && onObservableFound(value);
+        return value;
+    }
+
+    // Objects
+    const cloned = {};
+    for (const key in value) {
+        if (value.hasOwnProperty(key)) {
+            cloned[key] = deepClone(value[key]);
+        }
+    }
+    return cloned;
+};

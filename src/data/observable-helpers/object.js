@@ -1,8 +1,5 @@
 import Validator from "../../utils/validator";
 import {Observable} from "../Observable";
-import ObservableItem from "../ObservableItem";
-
-
 
 const ObservableObjectValue = function(data) {
     const result = {};
@@ -45,40 +42,47 @@ const ObservableGet = function(target, property) {
 /**
  *
  * @param {Object} initialValue
- * @param {{propagation: boolean, deep: boolean}} configs
+ * @param {{propagation: boolean, deep: boolean, reset: boolean}|null} configs
  * @returns {Proxy}
  */
-Observable.init = function(initialValue, { propagation= false, deep = true } = {}) {
+Observable.init = function(initialValue, configs = null) {
     const data = {};
     for(const key in initialValue) {
         const itemValue = initialValue[key];
         if(Array.isArray(itemValue)) {
-            if(deep) {
+            if(configs?.deep !== false) {
                 const mappedItemValue = itemValue.map(item => {
                     if(Validator.isJson(item)) {
-                        return Observable.json(item, { propagation, deep });
+                        return Observable.json(item, configs);
                     }
                     if(Validator.isArray(item)) {
-                        return Observable.array(item, { propagation, deep });
+                        return Observable.array(item, configs);
                     }
-                    return Observable(item);
+                    return Observable(item, configs);
                 });
-                data[key] = Observable.array(mappedItemValue, { propagation });
+                data[key] = Observable.array(mappedItemValue, configs);
                 continue;
             }
-            data[key] = Observable.array(itemValue, { propagation });
+            data[key] = Observable.array(itemValue, configs);
             continue;
         }
         if(Validator.isObservable(itemValue) || Validator.isProxy(itemValue)) {
             data[key] = itemValue;
             continue;
         }
-        data[key] = Observable(itemValue);
+        data[key] = Observable(itemValue, configs);
+    }
+
+    const $reset = () => {
+        for(const key in data) {
+            const item = data[key];
+            item.reset();
+        }
     }
 
     const $val = () => ObservableObjectValue(data);
 
-    const $clone = () => Observable.init($val(), { propagation, deep });
+    const $clone = () => Observable.init($val(), configs);
 
     const $updateWith = (values) => {
         Observable.update(proxy, values);
@@ -88,34 +92,17 @@ Observable.init = function(initialValue, { propagation= false, deep = true } = {
 
     const proxy = new Proxy(data, {
         get(target, property) {
-            if(property === '__isProxy__') {
-                return true;
-            }
-            if(property === '$value') {
-                return $val();
-            }
-            if(property === '$clone') {
-                return $clone;
-            }
-            if(property === '$keys') {
-                return Object.keys(initialValue);
-            }
-            if(property === '$observables') {
-                return Object.values(target);
-            }
-            if(property === '$set' || property === '$updateWith') {
-                return $updateWith;
-            }
-            if(property === '$get') {
-                return $get;
-            }
-            if(property === '$val') {
-                return $val;
-            }
-            if(target[property] !== undefined) {
-                return target[property];
-            }
-            return undefined;
+            if(property === '__isProxy__') { return true; }
+            if(property === '$value') { return $val() }
+            if(property === 'get' || property === '$get') { return $get; }
+            if(property === 'val' || property === '$val') { return $val; }
+            if(property === 'set' || property === '$set' || property === '$updateWith') { return $updateWith; }
+            if(property === 'observables' || property === '$observables') { return Object.values(target); }
+            if(property === 'keys'|| property === '$keys') { return Object.keys(initialValue); }
+            if(property === 'clone' || property === '$clone') { return $clone; }
+            if(property === 'reset') { return $reset; }
+            if(property === 'configs') { return configs; }
+            return target[property];
         },
         set(target, prop, newValue) {
             if(target[prop] !== undefined) {
@@ -166,6 +153,7 @@ Observable.value = function(data) {
 
 Observable.update = function($target, newData) {
     const data = Validator.isProxy(newData) ? newData.$value : newData;
+    const configs = $target.configs;
 
     for(const key in data) {
         const targetItem = $target[key];
@@ -178,9 +166,9 @@ Observable.update = function($target, newData) {
                 if(Validator.isObservable(firstElementFromOriginalValue) || Validator.isProxy(firstElementFromOriginalValue)) {
                     const newValues = newValue.map(item => {
                         if(Validator.isProxy(firstElementFromOriginalValue)) {
-                            return Observable.init(item);
+                            return Observable.init(item, configs);
                         }
-                        return Observable(item);
+                        return Observable(item, configs);
                     });
                     targetItem.set(newValues);
                     continue;

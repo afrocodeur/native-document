@@ -5,13 +5,15 @@ import ObservableChecker from "./ObservableChecker";
 import PluginsManager from "../utils/plugins-manager";
 import Validator from "../utils/validator";
 import {ObservableWhen} from "./ObservableWhen";
+import {deepClone} from "../utils/helpers.js";
 
 /**
  *
  * @param {*} value
+ * @param {{ propagation: boolean, reset: boolean} | null} configs
  * @class ObservableItem
  */
-export default function ObservableItem(value) {
+export default function ObservableItem(value, configs = null) {
     this.$previousValue = null;
     this.$currentValue = value;
     this.$isCleanedUp = false;
@@ -20,6 +22,14 @@ export default function ObservableItem(value) {
     this.$watchers = null;
 
     this.$memoryId = null;
+
+    if(configs) {
+        this.configs = configs;
+        if(configs.reset) {
+            this.$initialValue = Validator.isObject(value) ? deepClone(value) : value;
+        }
+    }
+
     PluginsManager.emit('CreateObservable', this);
 }
 
@@ -259,4 +269,16 @@ ObservableItem.prototype.toBool = function() {
 
 ObservableItem.prototype.toggle = function() {
     this.set(!this.$currentValue);
+};
+
+ObservableItem.prototype.reset = function() {
+    if(!this.configs?.reset) {
+        return;
+    }
+    const resetValue = (Validator.isObject(this.$initialValue))
+        ? deepClone(this.$initialValue, (observable) => {
+            observable.reset();
+        })
+        : this.$initialValue;
+    this.set(resetValue)
 };

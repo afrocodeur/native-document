@@ -6,12 +6,18 @@ const mutationMethods = ['push', 'pop', 'shift', 'unshift', 'reverse', 'sort', '
 const noMutationMethods = ['map', 'forEach', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex', 'concat', 'includes', 'indexOf'];
 
 
-const ObservableArray = function (target, { propagation = false, deep = false } = {}) {
+/**
+ *
+ * @param target
+ * @param {{propagation: boolean, deep: boolean, reset: boolean}|null} configs
+ * @constructor
+ */
+const ObservableArray = function (target, configs) {
     if(!Array.isArray(target)) {
         throw new NativeDocumentError('Observable.array : target must be an array');
     }
 
-    ObservableItem.call(this, target);
+    ObservableItem.call(this, target, configs);
     PluginsManager.emit('CreateObservableArray', this);
 };
 

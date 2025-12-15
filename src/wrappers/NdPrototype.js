@@ -1,9 +1,19 @@
 import { NDElement } from "./NDElement";
 
-Object.defineProperty(HTMLElement.prototype, 'nd', {
+const property = {
     configurable: true,
     get() {
-        return new NDElement(this);
+        return  new NDElement(this);
+    }
+};
+
+Object.defineProperty(HTMLElement.prototype, 'nd', property);
+
+Object.defineProperty(DocumentFragment.prototype, 'nd', property);
+Object.defineProperty(NDElement.prototype, 'nd', {
+    configurable: true,
+    get: function() {
+        return this;
     }
 });
 

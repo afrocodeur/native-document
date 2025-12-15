@@ -50,7 +50,7 @@ const Validator = {
         return typeof value === 'function' && value.constructor.name === 'AsyncFunction';
     },
     isObject(value) {
-        return typeof value === 'object';
+        return typeof value === 'object' && value !== null;
     },
     isJson(value) {
         return typeof value === 'object' && value !== null && !Array.isArray(value) && value.constructor.name === 'Object';

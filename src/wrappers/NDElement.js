@@ -1,6 +1,9 @@
 import DocumentObserver from "./DocumentObserver";
 import PluginsManager from "../utils/plugins-manager";
 import Validator from "../utils/validator";
+import NativeDocumentError from "../errors/NativeDocumentError.js";
+import DebugManager from "../utils/debug-manager.js";
+
 import {EVENTS} from "../utils/events";
 
 export function NDElement(element) {
@@ -16,6 +19,11 @@ NDElement.prototype.valueOf = function() {
 
 NDElement.prototype.ref = function(target, name) {
     target[name] = this.$element;
+    return this;
+};
+
+NDElement.prototype.refSelf = function(target, name) {
+    target[name] = this;
     return this;
 };
 
@@ -210,3 +218,77 @@ for(const event of EVENTS) {
         return this;
     };
 }
+
+NDElement.prototype.with = function(methods) {
+    if (!methods || typeof methods !== 'object') {
+        throw new NativeDocumentError('extend() requires an object of methods');
+    }
+    if(process.env.NODE_ENV === 'development') {
+        if (!this.$localExtensions) {
+            this.$localExtensions = new Map();
+        }
+    }
+
+    for (const name in methods) {
+        const method = methods[name];
+
+        if (typeof method !== 'function') {
+            console.warn(`⚠️ extends(): "${name}" is not a function, skipping`);
+            continue;
+        }
+        if(process.env.NODE_ENV === 'development') {
+            if (this[name] && !this.$localExtensions.has(name)) {
+                DebugManager.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
+            }
+            this.$localExtensions.set(name, method);
+        }
+
+        this[name] = method.bind(this);
+    }
+
+    return this;
+}
+
+NDElement.extend = function(methods) {
+    if (!methods || typeof methods !== 'object') {
+        throw new NativeDocumentError('NDElement.extend() requires an object of methods');
+    }
+
+    if (Array.isArray(methods)) {
+        throw new NativeDocumentError('NDElement.extend() requires an object, not an array');
+    }
+
+    const protectedMethods = new Set([
+        'constructor', 'valueOf', '$element', '$observer',
+        'ref', 'remove', 'cleanup', 'with', 'extend', 'attach',
+        'lifecycle', 'mounted', 'unmounted', 'unmountChildren'
+    ]);
+
+    for (const name in methods) {
+        if (!methods.hasOwnProperty(name)) {
+            continue;
+        }
+
+        const method = methods[name];
+
+        if (typeof method !== 'function') {
+            DebugManager.warn('NDElement.extend', `"${name}" is not a function, skipping`);
+            continue;
+        }
+
+        if (protectedMethods.has(name)) {
+            DebugManager.error('NDElement.extend', `Cannot override protected method "${name}"`);
+            throw new NativeDocumentError(`Cannot override protected method "${name}"`);
+        }
+
+        if (NDElement.prototype[name]) {
+            DebugManager.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
+        }
+
+        NDElement.prototype[name] = method;
+    }
+
+    PluginsManager.emit('NDElementExtended', methods);
+
+    return NDElement;
+};

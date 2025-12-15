@@ -1,10 +1,10 @@
 var NativeDocument = (function (exports) {
     'use strict';
 
-    let DebugManager = {};
+    let DebugManager$1 = {};
 
     {
-        DebugManager = {
+        DebugManager$1 = {
             enabled: false,
 
             enable() {
@@ -35,7 +35,7 @@ var NativeDocument = (function (exports) {
         };
 
     }
-    var DebugManager$1 = DebugManager;
+    var DebugManager = DebugManager$1;
 
     const MemoryManager = (function() {
 
@@ -84,7 +84,7 @@ var NativeDocument = (function (exports) {
                     }
                 }
                 if (cleanedCount > 0) {
-                    DebugManager$1.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
+                    DebugManager.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
                 }
             }
         };
@@ -207,7 +207,7 @@ var NativeDocument = (function (exports) {
                         try{
                             callback.call(plugin, ...data);
                         } catch (error) {
-                            DebugManager$1.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
+                            DebugManager.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
                         }
                     }
                 }
@@ -240,10 +240,66 @@ var NativeDocument = (function (exports) {
 
     /**
      *
+     * @param {*} item
+     * @param {string|null} defaultKey
+     * @param {?Function} key
+     * @returns {*}
+     */
+    const getKey = (item, defaultKey, key) => {
+        if(Validator.isFunction(key)) return key(item, defaultKey);
+        if(Validator.isObservable(item)) {
+            const val = item.val();
+            return (val && key) ? val[key] : defaultKey;
+        }
+        if(!Validator.isObject(item)) {
+            return item;
+        }
+        return item[key]?.val?.() ??  item[key] ?? defaultKey;
+    };
+
+    const trim = function(str, char) {
+        return str.replace(new RegExp(`^[${char}]+|[${char}]+$`, 'g'), '');
+    };
+
+    const deepClone = (value, onObservableFound) => {
+        // Primitives
+        if (value === null || typeof value !== 'object') {
+            return value;
+        }
+
+        // Dates
+        if (value instanceof Date) {
+            return new Date(value.getTime());
+        }
+
+        // Arrays
+        if (Array.isArray(value)) {
+            return value.map(item => deepClone(item));
+        }
+
+        // Observables - keep the référence
+        if (Validator.isObservable(value)) {
+            onObservableFound && onObservableFound(value);
+            return value;
+        }
+
+        // Objects
+        const cloned = {};
+        for (const key in value) {
+            if (value.hasOwnProperty(key)) {
+                cloned[key] = deepClone(value[key]);
+            }
+        }
+        return cloned;
+    };
+
+    /**
+     *
      * @param {*} value
+     * @param {{ propagation: boolean, reset: boolean} | null} configs
      * @class ObservableItem
      */
-    function ObservableItem(value) {
+    function ObservableItem(value, configs = null) {
         this.$previousValue = null;
         this.$currentValue = value;
         this.$isCleanedUp = false;
@@ -252,6 +308,14 @@ var NativeDocument = (function (exports) {
         this.$watchers = null;
 
         this.$memoryId = null;
+
+        if(configs) {
+            this.configs = configs;
+            if(configs.reset) {
+                this.$initialValue = Validator.isObject(value) ? deepClone(value) : value;
+            }
+        }
+
         PluginsManager.emit('CreateObservable', this);
     }
 
@@ -395,7 +459,7 @@ var NativeDocument = (function (exports) {
     ObservableItem.prototype.subscribe = function(callback, target = null) {
         this.$listeners = this.$listeners ?? [];
         if (this.$isCleanedUp) {
-            DebugManager$1.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
+            DebugManager.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
             return () => {};
         }
         if (typeof callback !== 'function') {
@@ -493,27 +557,16 @@ var NativeDocument = (function (exports) {
         this.set(!this.$currentValue);
     };
 
-    /**
-     *
-     * @param {*} item
-     * @param {string|null} defaultKey
-     * @param {?Function} key
-     * @returns {*}
-     */
-    const getKey = (item, defaultKey, key) => {
-        if(Validator.isFunction(key)) return key(item, defaultKey);
-        if(Validator.isObservable(item)) {
-            const val = item.val();
-            return (val && key) ? val[key] : defaultKey;
+    ObservableItem.prototype.reset = function() {
+        if(!this.configs?.reset) {
+            return;
         }
-        if(!Validator.isObject(item)) {
-            return item;
-        }
-        return item[key]?.val?.() ??  item[key] ?? defaultKey;
-    };
-
-    const trim = function(str, char) {
-        return str.replace(new RegExp(`^[${char}]+|[${char}]+$`, 'g'), '');
+        const resetValue = (Validator.isObject(this.$initialValue))
+            ? deepClone(this.$initialValue, (observable) => {
+                observable.reset();
+            })
+            : this.$initialValue;
+        this.set(resetValue);
     };
 
     const DocumentObserver = {
@@ -687,6 +740,11 @@ var NativeDocument = (function (exports) {
 
     NDElement.prototype.ref = function(target, name) {
         target[name] = this.$element;
+        return this;
+    };
+
+    NDElement.prototype.refSelf = function(target, name) {
+        target[name] = this;
         return this;
     };
 
@@ -882,6 +940,80 @@ var NativeDocument = (function (exports) {
         };
     }
 
+    NDElement.prototype.with = function(methods) {
+        if (!methods || typeof methods !== 'object') {
+            throw new NativeDocumentError('extend() requires an object of methods');
+        }
+        {
+            if (!this.$localExtensions) {
+                this.$localExtensions = new Map();
+            }
+        }
+
+        for (const name in methods) {
+            const method = methods[name];
+
+            if (typeof method !== 'function') {
+                console.warn(`⚠️ extends(): "${name}" is not a function, skipping`);
+                continue;
+            }
+            {
+                if (this[name] && !this.$localExtensions.has(name)) {
+                    DebugManager.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
+                }
+                this.$localExtensions.set(name, method);
+            }
+
+            this[name] = method.bind(this);
+        }
+
+        return this;
+    };
+
+    NDElement.extend = function(methods) {
+        if (!methods || typeof methods !== 'object') {
+            throw new NativeDocumentError('NDElement.extend() requires an object of methods');
+        }
+
+        if (Array.isArray(methods)) {
+            throw new NativeDocumentError('NDElement.extend() requires an object, not an array');
+        }
+
+        const protectedMethods = new Set([
+            'constructor', 'valueOf', '$element', '$observer',
+            'ref', 'remove', 'cleanup', 'with', 'extend', 'attach',
+            'lifecycle', 'mounted', 'unmounted', 'unmountChildren'
+        ]);
+
+        for (const name in methods) {
+            if (!methods.hasOwnProperty(name)) {
+                continue;
+            }
+
+            const method = methods[name];
+
+            if (typeof method !== 'function') {
+                DebugManager.warn('NDElement.extend', `"${name}" is not a function, skipping`);
+                continue;
+            }
+
+            if (protectedMethods.has(name)) {
+                DebugManager.error('NDElement.extend', `Cannot override protected method "${name}"`);
+                throw new NativeDocumentError(`Cannot override protected method "${name}"`);
+            }
+
+            if (NDElement.prototype[name]) {
+                DebugManager.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
+            }
+
+            NDElement.prototype[name] = method;
+        }
+
+        PluginsManager.emit('NDElementExtended', methods);
+
+        return NDElement;
+    };
+
     const COMMON_NODE_TYPES = {
         ELEMENT: 1,
         TEXT: 3,
@@ -927,7 +1059,7 @@ var NativeDocument = (function (exports) {
             return typeof value === 'function' && value.constructor.name === 'AsyncFunction';
         },
         isObject(value) {
-            return typeof value === 'object';
+            return typeof value === 'object' && value !== null;
         },
         isJson(value) {
             return typeof value === 'object' && value !== null && !Array.isArray(value) && value.constructor.name === 'Object';
@@ -1017,7 +1149,7 @@ var NativeDocument = (function (exports) {
             const foundReserved = Object.keys(attributes).filter(key => reserved.includes(key));
 
             if (foundReserved.length > 0) {
-                DebugManager$1.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
+                DebugManager.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
             }
 
             return attributes;
@@ -1065,7 +1197,7 @@ var NativeDocument = (function (exports) {
         element.appendChild = function(child, before = null) {
             const parent = anchorEnd.parentNode;
             if(!parent) {
-                DebugManager$1.error('Anchor', 'Anchor : parent not found', child);
+                DebugManager.error('Anchor', 'Anchor : parent not found', child);
                 return;
             }
             before = before ?? anchorEnd;
@@ -1176,11 +1308,12 @@ var NativeDocument = (function (exports) {
     /**
      *
      * @param {*} value
+     * @param {{ propagation: boolean, reset: boolean} | null} configs
      * @returns {ObservableItem}
      * @constructor
      */
-    function Observable(value) {
-        return new ObservableItem(value);
+    function Observable(value, configs = null) {
+        return new ObservableItem(value, configs);
     }
 
     const $ = Observable;
@@ -1556,10 +1689,20 @@ var NativeDocument = (function (exports) {
         }
     };
 
-    Object.defineProperty(HTMLElement.prototype, 'nd', {
+    const property = {
         configurable: true,
         get() {
-            return new NDElement(this);
+            return  new NDElement(this);
+        }
+    };
+
+    Object.defineProperty(HTMLElement.prototype, 'nd', property);
+
+    Object.defineProperty(DocumentFragment.prototype, 'nd', property);
+    Object.defineProperty(NDElement.prototype, 'nd', {
+        configurable: true,
+        get: function() {
+            return this;
         }
     });
 
@@ -2138,12 +2281,18 @@ var NativeDocument = (function (exports) {
     const noMutationMethods = ['map', 'forEach', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex', 'concat', 'includes', 'indexOf'];
 
 
-    const ObservableArray = function (target, { propagation = false, deep = false } = {}) {
+    /**
+     *
+     * @param target
+     * @param {{propagation: boolean, deep: boolean, reset: boolean}|null} configs
+     * @constructor
+     */
+    const ObservableArray = function (target, configs) {
         if(!Array.isArray(target)) {
             throw new NativeDocumentError('Observable.array : target must be an array');
         }
 
-        ObservableItem.call(this, target);
+        ObservableItem.call(this, target, configs);
         PluginsManager.emit('CreateObservableArray', this);
     };
 
@@ -2243,10 +2392,11 @@ var NativeDocument = (function (exports) {
     /**
      *
      * @param {Array} target
+     * @param {{propagation: boolean, deep: boolean, reset: boolean}|null} configs
      * @returns {ObservableArray}
      */
-    Observable.array = function(target) {
-        return new ObservableArray(target);
+    Observable.array = function(target, configs = null) {
+        return new ObservableArray(target, configs);
     };
 
     /**
@@ -2310,40 +2460,47 @@ var NativeDocument = (function (exports) {
     /**
      *
      * @param {Object} initialValue
-     * @param {{propagation: boolean, deep: boolean}} configs
+     * @param {{propagation: boolean, deep: boolean, reset: boolean}|null} configs
      * @returns {Proxy}
      */
-    Observable.init = function(initialValue, { propagation= false, deep = true } = {}) {
+    Observable.init = function(initialValue, configs = null) {
         const data = {};
         for(const key in initialValue) {
             const itemValue = initialValue[key];
             if(Array.isArray(itemValue)) {
-                if(deep) {
+                if(configs?.deep !== false) {
                     const mappedItemValue = itemValue.map(item => {
                         if(Validator.isJson(item)) {
-                            return Observable.json(item, { propagation, deep });
+                            return Observable.json(item, configs);
                         }
                         if(Validator.isArray(item)) {
-                            return Observable.array(item, { propagation, deep });
+                            return Observable.array(item, configs);
                         }
-                        return Observable(item);
+                        return Observable(item, configs);
                     });
-                    data[key] = Observable.array(mappedItemValue, { propagation });
+                    data[key] = Observable.array(mappedItemValue, configs);
                     continue;
                 }
-                data[key] = Observable.array(itemValue, { propagation });
+                data[key] = Observable.array(itemValue, configs);
                 continue;
             }
             if(Validator.isObservable(itemValue) || Validator.isProxy(itemValue)) {
                 data[key] = itemValue;
                 continue;
             }
-            data[key] = Observable(itemValue);
+            data[key] = Observable(itemValue, configs);
         }
+
+        const $reset = () => {
+            for(const key in data) {
+                const item = data[key];
+                item.reset();
+            }
+        };
 
         const $val = () => ObservableObjectValue(data);
 
-        const $clone = () => Observable.init($val(), { propagation, deep });
+        const $clone = () => Observable.init($val(), configs);
 
         const $updateWith = (values) => {
             Observable.update(proxy, values);
@@ -2353,34 +2510,17 @@ var NativeDocument = (function (exports) {
 
         const proxy = new Proxy(data, {
             get(target, property) {
-                if(property === '__isProxy__') {
-                    return true;
-                }
-                if(property === '$value') {
-                    return $val();
-                }
-                if(property === '$clone') {
-                    return $clone;
-                }
-                if(property === '$keys') {
-                    return Object.keys(initialValue);
-                }
-                if(property === '$observables') {
-                    return Object.values(target);
-                }
-                if(property === '$set' || property === '$updateWith') {
-                    return $updateWith;
-                }
-                if(property === '$get') {
-                    return $get;
-                }
-                if(property === '$val') {
-                    return $val;
-                }
-                if(target[property] !== undefined) {
-                    return target[property];
-                }
-                return undefined;
+                if(property === '__isProxy__') { return true; }
+                if(property === '$value') { return $val() }
+                if(property === 'get' || property === '$get') { return $get; }
+                if(property === 'val' || property === '$val') { return $val; }
+                if(property === 'set' || property === '$set' || property === '$updateWith') { return $updateWith; }
+                if(property === 'observables' || property === '$observables') { return Object.values(target); }
+                if(property === 'keys'|| property === '$keys') { return Object.keys(initialValue); }
+                if(property === 'clone' || property === '$clone') { return $clone; }
+                if(property === 'reset') { return $reset; }
+                if(property === 'configs') { return configs; }
+                return target[property];
             },
             set(target, prop, newValue) {
                 if(target[prop] !== undefined) {
@@ -2431,6 +2571,7 @@ var NativeDocument = (function (exports) {
 
     Observable.update = function($target, newData) {
         const data = Validator.isProxy(newData) ? newData.$value : newData;
+        const configs = $target.configs;
 
         for(const key in data) {
             const targetItem = $target[key];
@@ -2443,9 +2584,9 @@ var NativeDocument = (function (exports) {
                     if(Validator.isObservable(firstElementFromOriginalValue) || Validator.isProxy(firstElementFromOriginalValue)) {
                         const newValues = newValue.map(item => {
                             if(Validator.isProxy(firstElementFromOriginalValue)) {
-                                return Observable.init(item);
+                                return Observable.init(item, configs);
                             }
-                            return Observable(item);
+                            return Observable(item, configs);
                         });
                         targetItem.set(newValues);
                         continue;
@@ -2637,7 +2778,7 @@ var NativeDocument = (function (exports) {
                 }
                 cache.set(keyId, { keyId, isNew: true, child: new WeakRef(child), indexObserver});
             } catch (e) {
-                DebugManager$1.error('ForEach', `Error creating element for key ${keyId}` , e);
+                DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
                 throw e;
             }
             return keyId;
@@ -3009,7 +3150,7 @@ var NativeDocument = (function (exports) {
      */
     const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
         if(!(Validator.isObservable(condition)) && !Validator.isObservableWhenResult(condition)) {
-            return DebugManager$1.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
+            return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
         }
         const element = new Anchor('Show if : '+(comment || ''));
 
@@ -3141,7 +3282,18 @@ var NativeDocument = (function (exports) {
             }
         });
 
-        return anchor;
+        return anchor.nd.with({
+            add(key, view, shouldFocusOn = false) {
+                values[key] = view;
+                if(shouldFocusOn) {
+                    $condition.set(key);
+                }
+            },
+            remove(key) {
+                shouldKeepInCache && cache.delete(key);
+                delete values[key];
+            }
+        });
     };
 
 
@@ -3785,7 +3937,7 @@ var NativeDocument = (function (exports) {
                 window.history.pushState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, query, path);
             } catch (e) {
-                DebugManager$1.error('HistoryRouter', 'Error in pushState', e);
+                DebugManager.error('HistoryRouter', 'Error in pushState', e);
             }
         };
         /**
@@ -3798,7 +3950,7 @@ var NativeDocument = (function (exports) {
                 window.history.replaceState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, {}, path);
             } catch(e) {
-                DebugManager$1.error('HistoryRouter', 'Error in replaceState', e);
+                DebugManager.error('HistoryRouter', 'Error in replaceState', e);
             }
         };
         this.forward = function() {
@@ -3825,7 +3977,7 @@ var NativeDocument = (function (exports) {
                     }
                     this.handleRouteChange(route, params, query, path);
                 } catch(e) {
-                    DebugManager$1.error('HistoryRouter', 'Error in popstate event', e);
+                    DebugManager.error('HistoryRouter', 'Error in popstate event', e);
                 }
             });
             const { route, params, query, path } = this.resolve(defaultPath || (window.location.pathname+window.location.search));
@@ -3979,7 +4131,7 @@ var NativeDocument = (function (exports) {
                     listener(request);
                     next && next(request);
                 } catch (e) {
-                    DebugManager$1.warn('Route Listener', 'Error in listener:', e);
+                    DebugManager.warn('Route Listener', 'Error in listener:', e);
                 }
             }
         };
@@ -4138,7 +4290,7 @@ var NativeDocument = (function (exports) {
      */
     Router.create = function(options, callback) {
         if(!Validator.isFunction(callback)) {
-            DebugManager$1.error('Router', 'Callback must be a function', e);
+            DebugManager.error('Router', 'Callback must be a function', e);
             throw new RouterError('Callback must be a function');
         }
         const router = new Router(options);
@@ -4218,6 +4370,104 @@ var NativeDocument = (function (exports) {
         Router: Router
     });
 
+    function NativeFetch($baseUrl) {
+
+        const $interceptors = {
+            request: [],
+            response: []
+        };
+
+        this.interceptors = {
+            response: (callback) => {
+                $interceptors.response.push(callback);
+            },
+            request: (callback) => {
+                $interceptors.request.push(callback);
+            }
+        };
+
+        this.fetch = async function(method, endpoint, params = {}, options = {}) {
+            if(options.formData) {
+                const formData = new FormData();
+                for(const key in params) {
+                    formData.append(key, params[key]);
+                }
+                params = formData;
+            }
+            if(!endpoint.startsWith('http')) {
+                endpoint = ($baseUrl.endsWith('/') ? $baseUrl : $baseUrl+'/') + endpoint;
+            }
+            let configs = {
+                method,
+                headers: {
+                    ...(options.headers || {})
+                },
+            };
+            if(params) {
+                if(params instanceof FormData) {
+                    configs.body = params;
+                }
+                else {
+                    configs.headers['Content-Type'] = 'application/json';
+                    if(method !== 'GET') {
+                        configs.body = JSON.stringify(params);
+                    } else {
+                        configs.params = params;
+                    }
+                }
+            }
+
+            for(const interceptor of $interceptors.request) {
+                configs = (await interceptor(configs, endpoint)) || configs;
+            }
+
+            let response = await fetch(endpoint, configs);
+
+            for(const interceptor of $interceptors.response) {
+                response = (await interceptor(response, endpoint)) || response;
+            }
+
+            const contentType = response.headers.get('content-type') || '';
+            const data = contentType.includes('application/json')
+                ? await response.json()
+                : await response.text();
+
+            if(!response.ok) {
+                const error = new Error(data?.message || response.statusText);
+                error.status = response.status;
+                error.data = data;
+                throw error;
+            }
+
+            return data;
+        };
+
+
+        this.post = function (endpoint, params = {}, options = {}) {
+            return this.fetch('POST', endpoint, params, options);
+        };
+        this.put = function (endpoint, params = {}, options = {}) {
+            return this.fetch('PUT', endpoint, params, options);
+        };
+        this.delete = function (endpoint, params = {}, options = {}) {
+            return this.fetch('DELETE', endpoint, params, options);
+        };
+        this.get = function (endpoint, params = {}, options = {}) {
+            return this.fetch('GET', endpoint, params, options);
+        };
+    }
+
+    const Service = {
+        once: fn => autoOnce(fn),
+        memoize: fn => autoMemoize(fn)
+    };
+
+    var utils = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        NativeFetch: NativeFetch,
+        Service: Service
+    });
+
     exports.$ = $;
     exports.ElementCreator = ElementCreator;
     exports.HtmlElementWrapper = HtmlElementWrapper;
@@ -4241,6 +4491,7 @@ var NativeDocument = (function (exports) {
     exports.router = router;
     exports.useCache = useCache;
     exports.useSingleton = useSingleton;
+    exports.utils = utils;
 
     return exports;
 

@@ -5,11 +5,12 @@ import NativeDocumentError from "../errors/NativeDocumentError";
 /**
  *
  * @param {*} value
+ * @param {{ propagation: boolean, reset: boolean} | null} configs
  * @returns {ObservableItem}
  * @constructor
  */
-export function Observable(value) {
-    return new ObservableItem(value);
+export function Observable(value, configs = null) {
+    return new ObservableItem(value, configs);
 }
 
 export const $ = Observable;

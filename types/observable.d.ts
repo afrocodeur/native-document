@@ -4,6 +4,7 @@ export type Unsubscribe = () => void;
 export interface ObservableItem<T = any> {
     readonly $currentValue: T;
     readonly $previousValue: T;
+    readonly $initialValue: T | null;
     readonly $isCleanedUp: boolean;
 
     $value: T;
@@ -23,6 +24,10 @@ export interface ObservableItem<T = any> {
     when(value: T): { $target: T; $observer: ObservableItem<T> };
 
     toString(): string;
+    equals(value: any): boolean;
+    toBool(): boolean;
+    toggle(): void;
+    reset(): void;
 }
 
 export class ObservableWhen<T = any> {
@@ -81,6 +86,7 @@ export interface ObservableArray<T> extends ObservableItem<T[]> {
     some(callback: (value: T, index: number, array: T[]) => boolean): boolean;
     every(callback: (value: T, index: number, array: T[]) => boolean): boolean;
     find(callback: (value: T, index: number, array: T[]) => boolean): T | undefined;
+    at(index: number): T | undefined;
     findIndex(callback: (value: T, index: number, array: T[]) => boolean): number;
     concat(...items: (T | T[])[]): T[];
 }
@@ -88,11 +94,18 @@ export interface ObservableArray<T> extends ObservableItem<T[]> {
 export type ObservableProxy<T extends Record<string, any>> = {
     readonly __isProxy__: true;
     readonly $value: T;
+    readonly configs: ObservableConfig | null;
     $val(): T;
+    val(): T;
     $get(key: string): any;
+    get(key: string): any;
     $clone(): ObservableProxy<T>;
+    clone(): ObservableProxy<T>;
     $updateWith(values: Partial<T>): void;
     $set(values: Partial<T>): void;
+    set(values: Partial<T>): void;
+    reset(): void;
+    keys(): string[];
 } & {
     [K in keyof T]: T[K] extends (infer U)[]
         ? ObservableArray<U>
@@ -113,13 +126,19 @@ export interface AutoCleanupOptions {
     threshold?: number;
 }
 
-export interface ObservableStatic {
-    <T>(value: T): ObservableItem<T>;
-    array<T>(target: T[]): ObservableArray<T>;
+export interface ObservableConfig {
+    deep?: boolean;
+    reset?: boolean;
+    propagation?: boolean;
+}
 
-    init<T extends Record<string, any>>(value: T): ObservableProxy<T>;
-    object<T extends Record<string, any>>(value: T): ObservableProxy<T>;
-    json<T extends Record<string, any>>(value: T): ObservableProxy<T>;
+export interface ObservableStatic {
+    <T>(value: T, configs?: ObservableConfig | null): ObservableItem<T>;
+    array<T>(target: T[], configs?: ObservableConfig | null): ObservableArray<T>;
+
+    init<T extends Record<string, any>>(value: T, configs?: ObservableConfig | null): ObservableProxy<T>;
+    object<T extends Record<string, any>>(value: T, configs?: ObservableConfig | null): ObservableProxy<T>;
+    json<T extends Record<string, any>>(value: T, configs?: ObservableConfig | null): ObservableProxy<T>;
 
     computed<T>(callback: () => T, dependencies?: ValidComputedDependencies | BatchFunction): ObservableItem<T>;
     computed<T>(callback: () => T, batchFunction?: BatchFunction): ObservableItem<T>;
