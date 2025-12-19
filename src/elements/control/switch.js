@@ -18,7 +18,7 @@ export const Match = function($condition, values, shouldKeepInCache = true) {
         throw new NativeDocumentError("Toggle : condition must be an Observable");
     }
 
-    const anchor = new Anchor('Match');
+    const anchor = Anchor('Match');
     const cache = new Map();
 
     const getItem = function(key) {

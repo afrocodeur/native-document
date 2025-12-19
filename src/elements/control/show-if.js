@@ -16,7 +16,7 @@ export const ShowIf = function(condition, child, { comment = null, shouldKeepInC
     if(!(Validator.isObservable(condition)) && !Validator.isObservableWhenResult(condition)) {
         return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
     }
-    const element = new Anchor('Show if : '+(comment || ''));
+    const element = Anchor('Show if : '+(comment || ''));
 
     let childElement = null;
     const getChildElement = () => {

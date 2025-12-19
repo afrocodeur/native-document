@@ -1,6 +1,6 @@
 {
   "name": "native-document",
-  "version": "1.0.54",
+  "version": "1.0.61",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -12,10 +12,13 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@babel/parser": "^7.28.5",
+    "@babel/traverse": "^7.28.5",
     "@rollup/plugin-alias": "^5.1.1",
     "@rollup/plugin-replace": "^6.0.2",
     "@rollup/plugin-terser": "^0.4.4",
     "eslint": "^9.33.0",
+    "magic-string": "^0.30.21",
     "rollup": "^4.53.3"
   }
 }

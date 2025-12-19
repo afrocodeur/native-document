@@ -1,10 +1,10 @@
 var NativeDocument = (function (exports) {
     'use strict';
 
-    let DebugManager$1 = {};
+    let DebugManager = {};
 
     {
-        DebugManager$1 = {
+        DebugManager = {
             enabled: false,
 
             enable() {
@@ -35,7 +35,7 @@ var NativeDocument = (function (exports) {
         };
 
     }
-    var DebugManager = DebugManager$1;
+    var DebugManager$1 = DebugManager;
 
     const MemoryManager = (function() {
 
@@ -84,7 +84,7 @@ var NativeDocument = (function (exports) {
                     }
                 }
                 if (cleanedCount > 0) {
-                    DebugManager.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
+                    DebugManager$1.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
                 }
             }
         };
@@ -207,7 +207,7 @@ var NativeDocument = (function (exports) {
                         try{
                             callback.call(plugin, ...data);
                         } catch (error) {
-                            DebugManager.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
+                            DebugManager$1.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
                         }
                     }
                 }
@@ -459,7 +459,7 @@ var NativeDocument = (function (exports) {
     ObservableItem.prototype.subscribe = function(callback, target = null) {
         this.$listeners = this.$listeners ?? [];
         if (this.$isCleanedUp) {
-            DebugManager.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
+            DebugManager$1.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
             return () => {};
         }
         if (typeof callback !== 'function') {
@@ -959,7 +959,7 @@ var NativeDocument = (function (exports) {
             }
             {
                 if (this[name] && !this.$localExtensions.has(name)) {
-                    DebugManager.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
+                    DebugManager$1.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
                 }
                 this.$localExtensions.set(name, method);
             }
@@ -993,17 +993,17 @@ var NativeDocument = (function (exports) {
             const method = methods[name];
 
             if (typeof method !== 'function') {
-                DebugManager.warn('NDElement.extend', `"${name}" is not a function, skipping`);
+                DebugManager$1.warn('NDElement.extend', `"${name}" is not a function, skipping`);
                 continue;
             }
 
             if (protectedMethods.has(name)) {
-                DebugManager.error('NDElement.extend', `Cannot override protected method "${name}"`);
+                DebugManager$1.error('NDElement.extend', `Cannot override protected method "${name}"`);
                 throw new NativeDocumentError(`Cannot override protected method "${name}"`);
             }
 
             if (NDElement.prototype[name]) {
-                DebugManager.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
+                DebugManager$1.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
             }
 
             NDElement.prototype[name] = method;
@@ -1149,7 +1149,7 @@ var NativeDocument = (function (exports) {
             const foundReserved = Object.keys(attributes).filter(key => reserved.includes(key));
 
             if (foundReserved.length > 0) {
-                DebugManager.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
+                DebugManager$1.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
             }
 
             return attributes;
@@ -1197,7 +1197,7 @@ var NativeDocument = (function (exports) {
         element.appendChild = function(child, before = null) {
             const parent = anchorEnd.parentNode;
             if(!parent) {
-                DebugManager.error('Anchor', 'Anchor : parent not found', child);
+                DebugManager$1.error('Anchor', 'Anchor : parent not found', child);
                 return;
             }
             before = before ?? anchorEnd;
@@ -1246,17 +1246,20 @@ var NativeDocument = (function (exports) {
         };
 
         element.replaceContent = function(child) {
+            const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
             const parent = anchorEnd.parentNode;
             if(!parent) {
                 return;
             }
             if(isParentUniqueChild(parent)) {
-                parent.replaceChildren(anchorStart, child, anchorEnd);
+                parent.replaceChildren(anchorStart, childElement, anchorEnd);
                 return;
             }
             element.removeChildren();
-            parent.insertBefore(child, anchorEnd);
+            parent.insertBefore(childElement, anchorEnd);
         };
+
+        element.setContent = element.replaceContent;
 
         element.insertBefore = function(child, anchor = null) {
             element.appendChild(child, anchor);
@@ -1601,7 +1604,7 @@ var NativeDocument = (function (exports) {
                 $nodeCache.set(name, node);
                 return node.cloneNode();
             }
-            return new Anchor('Fragment');
+            return Anchor('Fragment');
         },
         /**
          *
@@ -2100,7 +2103,7 @@ var NativeDocument = (function (exports) {
 
         this.createSection = (name, fn) => {
             $components = $components || {};
-            const anchor = new Anchor('Component '+name);
+            const anchor = Anchor('Component '+name);
 
             $components[name] = function(...args) {
                 anchor.removeChildren();
@@ -2724,7 +2727,7 @@ var NativeDocument = (function (exports) {
      * @returns {DocumentFragment}
      */
     function ForEach(data, callback, key, { shouldKeepItemsInCache = false } = {}) {
-        const element = new Anchor('ForEach');
+        const element = Anchor('ForEach');
         const blockEnd = element.endElement();
         element.startElement();
 
@@ -2778,7 +2781,7 @@ var NativeDocument = (function (exports) {
                 }
                 cache.set(keyId, { keyId, isNew: true, child: new WeakRef(child), indexObserver});
             } catch (e) {
-                DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
+                DebugManager$1.error('ForEach', `Error creating element for key ${keyId}` , e);
                 throw e;
             }
             return keyId;
@@ -2861,7 +2864,7 @@ var NativeDocument = (function (exports) {
     }
 
     function ForEachArray(data, callback, key, configs = {}) {
-        const element = new Anchor('ForEach Array');
+        const element = Anchor('ForEach Array');
         const blockEnd = element.endElement();
         const blockStart = element.startElement();
 
@@ -3150,9 +3153,9 @@ var NativeDocument = (function (exports) {
      */
     const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
         if(!(Validator.isObservable(condition)) && !Validator.isObservableWhenResult(condition)) {
-            return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
+            return DebugManager$1.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
         }
-        const element = new Anchor('Show if : '+(comment || ''));
+        const element = Anchor('Show if : '+(comment || ''));
 
         let childElement = null;
         const getChildElement = () => {
@@ -3249,7 +3252,7 @@ var NativeDocument = (function (exports) {
             throw new NativeDocumentError("Toggle : condition must be an Observable");
         }
 
-        const anchor = new Anchor('Match');
+        const anchor = Anchor('Match');
         const cache = new Map();
 
         const getItem = function(key) {
@@ -3937,7 +3940,7 @@ var NativeDocument = (function (exports) {
                 window.history.pushState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, query, path);
             } catch (e) {
-                DebugManager.error('HistoryRouter', 'Error in pushState', e);
+                DebugManager$1.error('HistoryRouter', 'Error in pushState', e);
             }
         };
         /**
@@ -3950,7 +3953,7 @@ var NativeDocument = (function (exports) {
                 window.history.replaceState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, {}, path);
             } catch(e) {
-                DebugManager.error('HistoryRouter', 'Error in replaceState', e);
+                DebugManager$1.error('HistoryRouter', 'Error in replaceState', e);
             }
         };
         this.forward = function() {
@@ -3977,7 +3980,7 @@ var NativeDocument = (function (exports) {
                     }
                     this.handleRouteChange(route, params, query, path);
                 } catch(e) {
-                    DebugManager.error('HistoryRouter', 'Error in popstate event', e);
+                    DebugManager$1.error('HistoryRouter', 'Error in popstate event', e);
                 }
             });
             const { route, params, query, path } = this.resolve(defaultPath || (window.location.pathname+window.location.search));
@@ -4131,7 +4134,7 @@ var NativeDocument = (function (exports) {
                     listener(request);
                     next && next(request);
                 } catch (e) {
-                    DebugManager.warn('Route Listener', 'Error in listener:', e);
+                    DebugManager$1.warn('Route Listener', 'Error in listener:', e);
                 }
             }
         };
@@ -4290,7 +4293,7 @@ var NativeDocument = (function (exports) {
      */
     Router.create = function(options, callback) {
         if(!Validator.isFunction(callback)) {
-            DebugManager.error('Router', 'Callback must be a function', e);
+            DebugManager$1.error('Router', 'Callback must be a function', e);
             throw new RouterError('Callback must be a function');
         }
         const router = new Router(options);

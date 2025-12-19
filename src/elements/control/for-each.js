@@ -15,7 +15,7 @@ import NativeDocumentError from "../../errors/NativeDocumentError";
  * @returns {DocumentFragment}
  */
 export function ForEach(data, callback, key, { shouldKeepItemsInCache = false } = {}) {
-    const element = new Anchor('ForEach');
+    const element = Anchor('ForEach');
     const blockEnd = element.endElement();
     const blockStart = element.startElement();
 

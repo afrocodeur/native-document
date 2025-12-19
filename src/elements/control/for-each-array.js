@@ -6,7 +6,7 @@ import { ElementCreator } from "../../wrappers/ElementCreator";
 import NativeDocumentError from "../../errors/NativeDocumentError";
 
 export function ForEachArray(data, callback, key, configs = {}) {
-    const element = new Anchor('ForEach Array');
+    const element = Anchor('ForEach Array');
     const blockEnd = element.endElement();
     const blockStart = element.startElement();
 

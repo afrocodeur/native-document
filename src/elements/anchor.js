@@ -93,17 +93,20 @@ export default function Anchor(name, isUniqueChild = false) {
     };
 
     element.replaceContent = function(child) {
+        const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
         const parent = anchorEnd.parentNode;
         if(!parent) {
             return;
         }
         if(isParentUniqueChild(parent)) {
-            parent.replaceChildren(anchorStart, child, anchorEnd);
+            parent.replaceChildren(anchorStart, childElement, anchorEnd);
             return;
         }
         element.removeChildren();
-        parent.insertBefore(child, anchorEnd);
+        parent.insertBefore(childElement, anchorEnd);
     };
+
+    element.setContent = element.replaceContent;
 
     element.insertBefore = function(child, anchor = null) {
         element.appendChild(child, anchor);

@@ -10,7 +10,7 @@ Anchors are instances of the Anchor class that use two comment nodes as invisibl
 
 ```javascript
 // Create an anchor instance
-const anchor = new Anchor("My Content");
+const anchor = Anchor("My Content");
 // Or using the alias
 const anchor = new NativeDocumentFragment("My Content");
 
@@ -39,7 +39,7 @@ fragment.appendChild(Div("Standard fragment content"));
 
 ```javascript
 // Anchor is a NativeDocument class
-const anchor = new Anchor("Dynamic Area");
+const anchor = Anchor("Dynamic Area");
 anchor.appendChild(Div("Dynamic content")); // Uses comment markers system
 ```
 
@@ -49,8 +49,8 @@ anchor.appendChild(Div("Dynamic content")); // Uses comment markers system
 
 ```javascript
 // Create anchor with custom identifier
-const contentAnchor = new Anchor("Content Area");
-const listAnchor = new Anchor("Todo List");
+const contentAnchor = Anchor("Content Area");
+const listAnchor = Anchor("Todo List");
 
 // Anchor needs to be added to parent container
 const container = Div();
@@ -60,7 +60,7 @@ container.appendChild(contentAnchor);
 ### appendChild() - Add Content Between Markers
 
 ```javascript
-const anchor = new Anchor("Dynamic Section");
+const anchor = Anchor("Dynamic Section");
 const container = Div();
 container.appendChild(anchor);
 
@@ -80,7 +80,7 @@ anchor.appendChild(Div("Dynamic content 2"));
 ### insertBefore() - Positioned Insertion
 
 ```javascript
-const anchor = new Anchor("Ordered Content");
+const anchor = Anchor("Ordered Content");
 const element1 = Div("First");
 const element2 = Div("Second");
 
@@ -92,7 +92,7 @@ anchor.insertBefore(element2, element1); // Inserts before element1
 ### replaceContent() - Replace All Content
 
 ```javascript
-const anchor = new Anchor("Replaceable");
+const anchor = Anchor("Replaceable");
 anchor.appendChild(Div("Old content"));
 
 // Replace all content between markers with new content
@@ -104,7 +104,7 @@ anchor.replaceContent(Div("New content"));
 ### remove() vs removeChildren() vs clear()
 
 ```javascript
-const anchor = new Anchor("Content Management");
+const anchor = Anchor("Content Management");
 
 // Remove all content between markers (markers remain)
 anchor.remove(); // Content cleared, anchor can be reused
@@ -126,7 +126,7 @@ anchor.removeWithAnchors(); // Destroys the entire anchor system
 ### Access Markers
 
 ```javascript
-const anchor = new Anchor("My Anchor");
+const anchor = Anchor("My Anchor");
 
 // Get the start and end comment nodes
 const start = anchor.startElement();
@@ -141,7 +141,7 @@ console.log(end.textContent);   // "/ Anchor End My Anchor"
 ### Working with Arrays of Content
 
 ```javascript
-const anchor = new Anchor("Multi Content");
+const anchor = Anchor("Multi Content");
 const container = Div();
 container.appendChild(anchor);
 
@@ -158,7 +158,7 @@ anchor.appendChild([
 ### Dynamic Content Updates
 
 ```javascript
-const contentAnchor = new Anchor("Dynamic Updates");
+const contentAnchor = Anchor("Dynamic Updates");
 const isLoading = Observable(true);
 const data = Observable(null);
 
@@ -248,7 +248,7 @@ const fragment = Fragment(
 
 ```javascript
 // Dynamic content area that can be updated multiple times
-const anchor = new Anchor("Updates");
+const anchor = Anchor("Updates");
 anchor.appendChild(Div("Initial content"));
 anchor.remove(); // Clear content
 anchor.appendChild(Div("New content")); // Add different content - markers remain
@@ -259,7 +259,7 @@ anchor.appendChild(Div("New content")); // Add different content - markers remai
 ### Memory Management
 ```javascript
 // Anchors are automatically cleaned up when removed from DOM
-const anchor = new Anchor("Temporary");
+const anchor = Anchor("Temporary");
 
 // Manual cleanup if needed
 anchor.removeWithAnchors(); // Fully destroys anchor and frees memory
@@ -285,7 +285,7 @@ anchor.appendChild(Div("Item 2"));
 ```javascript
 
 function ConditionalList(condition, items) {
-    const anchor = new Anchor("ConditionalList");
+    const anchor = Anchor("ConditionalList");
 
     const updateContent = (value) => {
         console.log(value);
@@ -320,9 +320,9 @@ document.body.appendChild(Div([
 
 ```javascript
 function LayoutManager() {
-    const header = new Anchor("Header");
-    const content = new Anchor("Content");
-    const footer = new Anchor("Footer");
+    const header = Anchor("Header");
+    const content = Anchor("Content");
+    const footer = Anchor("Footer");
     
     return {
         setHeader: (component) => header.replaceContent(component),

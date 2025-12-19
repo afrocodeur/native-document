@@ -65,7 +65,7 @@ export const ElementCreator = {
             $nodeCache.set(name, node);
             return node.cloneNode();
         }
-        return new Anchor('Fragment');
+        return Anchor('Fragment');
     },
     /**
      *

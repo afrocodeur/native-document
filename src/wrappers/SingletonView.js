@@ -21,7 +21,7 @@ export function SingletonView($viewCreator) {
 
     this.createSection = (name, fn) => {
         $components = $components || {};
-        const anchor = new Anchor('Component '+name);
+        const anchor = Anchor('Component '+name);
 
         $components[name] = function(...args) {
             anchor.removeChildren();
