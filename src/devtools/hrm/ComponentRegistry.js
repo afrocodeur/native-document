@@ -1,7 +1,30 @@
-import {Anchor} from "../../../elements.js";
+import {Anchor} from "@elements";
+import Validator from "@src/core/utils/validator";
 
 const ComponentRegistry = (function() {
     const registry = new Map();
+
+    const attachLocalExtensions = (instance, factoryInstance) => {
+        if(!factoryInstance.$localExtensions) {
+            return;
+        }
+        const extensions = Object.fromEntries(factoryInstance.$localExtensions);
+        for(const name in extensions) {
+            instance.anchor[name] = function() {
+                const result = extensions[name](...arguments);
+                if(result === null || result === undefined) {
+                    return instance.anchor;
+                }
+                if(Validator.isFragment(result) || Validator.isElement(result) || Validator.isNDElement(result)) {
+                    instance.anchor.setContent(result);
+                    return instance.anchor;
+                }
+                return result;
+            };
+        }
+        instance.anchor.$localExtensions = factoryInstance.$localExtensions;
+        instance.extensions = Object.keys(extensions);
+    };
 
     const wrapper = function(id, factory, metadata, registryItem) {
         const factoryName = factory.name;
@@ -10,13 +33,21 @@ const ComponentRegistry = (function() {
             const firstParam = args[0];
             if(firstParam?.__instance) {
                 const instance = firstParam.__instance;
-                const newInstance = factory(...instance.context.args, instance);
-                instance.anchor.setContent(newInstance);
+                const newFactoryInstance = factory(...instance.context.args, instance);
+
+                if(instance.extensions) {
+                    instance.extensions.forEach((extensionName) => {
+                        instance.anchor[extensionName] = undefined;
+                    });
+                }
+                attachLocalExtensions(instance, newFactoryInstance);
+                instance.anchor.setContent(newFactoryInstance);
                 return;
             }
             const anchor = Anchor(factoryName);
             const instance = {
                 anchor,
+                extensions: null,
                 context: {
                     args,
                     states: new Map()
@@ -25,6 +56,8 @@ const ComponentRegistry = (function() {
             const factoryInstance = factory(...args, instance);
             anchor.setContent(factoryInstance);
             registryItem.instances.add(instance);
+
+            attachLocalExtensions(instance, factoryInstance);
             return anchor;
         };
     }

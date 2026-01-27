@@ -1,3 +1,5 @@
+import Validator from "@src/core/utils/validator";
+
 /**
  *
  * @param {Router} router
@@ -6,15 +8,24 @@
 export function RouterComponent(router, container) {
 
     const $cache = new Map();
+    let $lastNodeInserted  = null;
 
     const updateContainer = function(node, route) {
         container.innerHTML = '';
+        let nodeToInsert = node;
         const layout = route.layout();
+        if(Validator.isNDElement(node)) {
+            nodeToInsert = node.node();
+        }
         if(layout) {
-            container.appendChild(layout(node));
+            container.appendChild(layout(nodeToInsert));
             return;
         }
-        container.appendChild(node);
+        if(Validator.isAnchor($lastNodeInserted)) {
+            $lastNodeInserted.remove();
+        }
+        container.appendChild(nodeToInsert);
+        $lastNodeInserted = node;
     };
 
     const handleCurrentRouterState = function(state) {

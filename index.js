@@ -1,22 +1,22 @@
-export { default as HtmlElementWrapper, createTextNode } from './src/wrappers/HtmlElementWrapper'
-export { ElementCreator } from './src/wrappers/ElementCreator';
-export { NDElement } from './src/wrappers/NDElement';
-export { TemplateCloner, useCache } from './src/wrappers/TemplateCloner';
-export { SingletonView, useSingleton } from './src/wrappers/SingletonView';
-export { default as PluginsManager } from './src/utils/plugins-manager';
-export { default as Validator } from './src/utils/validator';
+export { default as HtmlElementWrapper, createTextNode } from './src/core/wrappers/HtmlElementWrapper'
+export { ElementCreator } from './src/core/wrappers/ElementCreator';
+export { NDElement } from './src/core/wrappers/NDElement';
+export { TemplateCloner, useCache } from './src/core/wrappers/TemplateCloner';
+export { SingletonView, useSingleton } from './src/core/wrappers/SingletonView';
+export { default as PluginsManager } from './src/core/utils/plugins-manager';
+export { default as Validator } from './src/core/utils/validator';
 
-import './src/utils/prototypes.js';
+import './src/core/utils/prototypes.js';
 
-export * from './src/utils/property-accumulator';
-export * from './src/utils/args-types';
-export * from './src/utils/memoize';
-export * from './src/data/Observable';
-export * from './src/data/observable-helpers/array';
-export * from './src/data/observable-helpers/batch';
-export * from './src/data/observable-helpers/object';
-export * from './src/data/observable-helpers/computed';
-export * from './src/data/Store';
+export * from './src/core/utils/property-accumulator';
+export * from './src/core/utils/args-types';
+export * from './src/core/utils/memoize';
+export * from './src/core/data/Observable';
+export * from './src/core/data/observable-helpers/array';
+export * from './src/core/data/observable-helpers/batch';
+export * from './src/core/data/observable-helpers/object';
+export * from './src/core/data/observable-helpers/computed';
+export * from './src/core/data/Store';
 
 import * as elements from './elements';
 import * as router from './router';

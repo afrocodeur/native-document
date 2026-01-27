@@ -53,11 +53,11 @@ function transformObservableImports(code, params) {
 }
 
 function transformObservableDeclarations(code) {
-    const regex = /const\s+(\w+)\s*=\s*(\$|Observable)(\.(?:init|array|json))?\s*\(/g;
+    const regex = /(const|let|var)\s+([\w$]+)\s*=\s*(\$|Observable)(\.(?:init|array|json))?\s*\(/g;
 
-    return code.replace(regex, (match, varName, caller, method) => {
+    return code.replace(regex, (match, varType, varName, caller, method) => {
         const obsName = method ? `${caller}${method}` : 'Observable';
-        return `const ${varName} = ${obsName}('${varName}', arguments[arguments.length - 1], `;
+        return `${varType} ${varName} = ${obsName}('${varName}', arguments[arguments.length - 1], `;
     });
 }
 

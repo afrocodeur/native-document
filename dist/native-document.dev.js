@@ -1,10 +1,10 @@
 var NativeDocument = (function (exports) {
     'use strict';
 
-    let DebugManager = {};
+    let DebugManager$1 = {};
 
     {
-        DebugManager = {
+        DebugManager$1 = {
             enabled: false,
 
             enable() {
@@ -35,7 +35,7 @@ var NativeDocument = (function (exports) {
         };
 
     }
-    var DebugManager$1 = DebugManager;
+    var DebugManager = DebugManager$1;
 
     const MemoryManager = (function() {
 
@@ -84,7 +84,7 @@ var NativeDocument = (function (exports) {
                     }
                 }
                 if (cleanedCount > 0) {
-                    DebugManager$1.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
+                    DebugManager.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
                 }
             }
         };
@@ -207,7 +207,7 @@ var NativeDocument = (function (exports) {
                         try{
                             callback.call(plugin, ...data);
                         } catch (error) {
-                            DebugManager$1.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
+                            DebugManager.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
                         }
                     }
                 }
@@ -236,6 +236,19 @@ var NativeDocument = (function (exports) {
 
     ObservableWhen.prototype.isActive = function() {
         return this.$observer.$currentValue === this.$target;
+    };
+
+    const nextTick = function(fn) {
+        let pending = false;
+        return function(...args) {
+            if (pending) return;
+            pending = true;
+
+            Promise.resolve().then(() => {
+                fn.apply(this, args);
+                pending = false;
+            });
+        };
     };
 
     /**
@@ -300,6 +313,8 @@ var NativeDocument = (function (exports) {
      * @class ObservableItem
      */
     function ObservableItem(value, configs = null) {
+        value = Validator.isObservable(value) ? value.val() : value;
+
         this.$previousValue = null;
         this.$currentValue = value;
         this.$isCleanedUp = false;
@@ -333,9 +348,15 @@ var NativeDocument = (function (exports) {
     const DEFAULT_OPERATIONS = {};
     const noneTrigger = function() {};
 
+    ObservableItem.prototype.intercept = function(callback) {
+        this.$interceptor = callback;
+        return this;
+    };
+
     ObservableItem.prototype.triggerFirstListener = function(operations) {
         this.$listeners[0](this.$currentValue, this.$previousValue, operations || {});
     };
+
     ObservableItem.prototype.triggerListeners = function(operations) {
         const $listeners = this.$listeners;
         const $previousValue = this.$previousValue;
@@ -343,6 +364,7 @@ var NativeDocument = (function (exports) {
 
         operations = operations || DEFAULT_OPERATIONS;
         for(let i = 0, length = $listeners.length; i < length; i++) {
+            $listeners[i];
             $listeners[i]($currentValue, $previousValue, operations);
         }
     };
@@ -360,6 +382,7 @@ var NativeDocument = (function (exports) {
             callback.set ? callback.set(value) : callback(value);
         });
     };
+
     ObservableItem.prototype.triggerWatchers = function() {
         if(!this.$watchers) {
             return;
@@ -410,7 +433,17 @@ var NativeDocument = (function (exports) {
      * @param {*} data
      */
     ObservableItem.prototype.set = function(data) {
-        const newValue = (typeof data === 'function') ? data(this.$currentValue) : data;
+        let newValue = (typeof data === 'function') ? data(this.$currentValue) : data;
+        newValue = Validator.isObservable(newValue) ? newValue.val() : newValue;
+
+        if (this.$interceptor) {
+            const result = this.$interceptor(newValue, this.$currentValue);
+
+            if (result !== undefined) {
+                newValue = result;
+            }
+        }
+
         if(this.$currentValue === newValue) {
             return;
         }
@@ -443,7 +476,18 @@ var NativeDocument = (function (exports) {
         this.trigger = noneTrigger;
     };
 
+    ObservableItem.prototype.onCleanup = function(callback) {
+        this.$cleanupListeners = this.$cleanupListeners ?? [];
+        this.$cleanupListeners.push(callback);
+    };
+
     ObservableItem.prototype.cleanup = function() {
+        if (this.$cleanupListeners) {
+            for (let i = 0; i < this.$cleanupListeners.length; i++) {
+                this.$cleanupListeners[i]();
+            }
+            this.$cleanupListeners = null;
+        }
         MemoryManager.unregister(this.$memoryId);
         this.disconnectAll();
         this.$isCleanedUp = true;
@@ -459,7 +503,7 @@ var NativeDocument = (function (exports) {
     ObservableItem.prototype.subscribe = function(callback, target = null) {
         this.$listeners = this.$listeners ?? [];
         if (this.$isCleanedUp) {
-            DebugManager$1.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
+            DebugManager.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
             return () => {};
         }
         if (typeof callback !== 'function') {
@@ -504,6 +548,18 @@ var NativeDocument = (function (exports) {
             }
             this.assocTrigger();
         };
+    };
+
+    ObservableItem.prototype.once = function(predicate, callback) {
+        const fn = typeof predicate === 'function' ? predicate : (v) => v === predicate;
+
+        const unsub = this.subscribe((val) => {
+            if (fn(val)) {
+                unsub();
+                callback(val);
+            }
+        });
+        return unsub;
     };
 
     /**
@@ -569,36 +625,67 @@ var NativeDocument = (function (exports) {
         this.set(resetValue);
     };
 
+
+    ObservableItem.prototype.toString = function() {
+        return String(this.$currentValue);
+    };
+
     const DocumentObserver = {
         mounted: new WeakMap(),
         mountedSupposedSize: 0,
         unmounted: new WeakMap(),
         unmountedSupposedSize: 0,
         observer: null,
+        executeMountedCallback(node) {
+            const data = DocumentObserver.mounted.get(node);
+            if(!data) {
+                return;
+            }
+            data.inDom = true;
+            data.mounted && data.mounted(node);
+        },
+        executeUnmountedCallback(node) {
+            const data = DocumentObserver.unmounted.get(node);
+            if(!data) {
+                return;
+            }
+
+            data.inDom = false;
+            if(data.unmounted && data.unmounted(node) === true) {
+                data.disconnect();
+                node.nd?.remove();
+            }
+        },
         checkMutation: function(mutationsList) {
             for(const mutation of mutationsList) {
                 if(DocumentObserver.mountedSupposedSize > 0 ) {
                     for(const node of mutation.addedNodes) {
-                        const data = DocumentObserver.mounted.get(node);
-                        if(!data) {
-                            continue;
+                        DocumentObserver.executeMountedCallback(node);
+                        if(!node.querySelectorAll) {
+                            return;
                         }
-                        data.inDom = true;
-                        data.mounted && data.mounted(node);
+                        const children = node.querySelectorAll('[data--nd-mounted]');
+                        if(!children.length) {
+                            return;
+                        }
+                        for(const node of children) {
+                            DocumentObserver.executeMountedCallback(node);
+                        }
                     }
                 }
 
                 if(DocumentObserver.unmountedSupposedSize > 0 ) {
                     for(const node of mutation.removedNodes) {
-                        const data = DocumentObserver.unmounted.get(node);
-                        if(!data) {
-                            continue;
+                        DocumentObserver.executeUnmountedCallback(node);
+                        if(!node.querySelectorAll) {
+                            return;
                         }
-
-                        data.inDom = false;
-                        if(data.unmounted && data.unmounted(node) === true) {
-                            data.disconnect();
-                            node.nd?.remove();
+                        const children = node.querySelectorAll('[data--nd-unmounted]');
+                        if(!children.length) {
+                            return;
+                        }
+                        for(const node of children) {
+                            DocumentObserver.executeUnmountedCallback(node);
                         }
                     }
                 }
@@ -646,92 +733,12 @@ var NativeDocument = (function (exports) {
         subtree: true,
     });
 
-    const EVENTS = [
-      "Click",
-      "DblClick",
-      "MouseDown",
-      "MouseEnter",
-      "MouseLeave",
-      "MouseMove",
-      "MouseOut",
-      "MouseOver",
-      "MouseUp",
-      "Wheel",
-      "KeyDown",
-      "KeyPress",
-      "KeyUp",
-      "Blur",
-      "Change",
-      "Focus",
-      "Input",
-      "Invalid",
-      "Reset",
-      "Search",
-      "Select",
-      "Submit",
-      "Drag",
-      "DragEnd",
-      "DragEnter",
-      "DragLeave",
-      "DragOver",
-      "DragStart",
-      "Drop",
-      "AfterPrint",
-      "BeforePrint",
-      "BeforeUnload",
-      "Error",
-      "HashChange",
-      "Load",
-      "Offline",
-      "Online",
-      "PageHide",
-      "PageShow",
-      "Resize",
-      "Scroll",
-      "Unload",
-      "Abort",
-      "CanPlay",
-      "CanPlayThrough",
-      "DurationChange",
-      "Emptied",
-      "Ended",
-      "LoadedData",
-      "LoadedMetadata",
-      "LoadStart",
-      "Pause",
-      "Play",
-      "Playing",
-      "Progress",
-      "RateChange",
-      "Seeked",
-      "Seeking",
-      "Stalled",
-      "Suspend",
-      "TimeUpdate",
-      "VolumeChange",
-      "Waiting",
-
-      "TouchCancel",
-      "TouchEnd",
-      "TouchMove",
-      "TouchStart",
-      "AnimationEnd",
-      "AnimationIteration",
-      "AnimationStart",
-      "TransitionEnd",
-      "Copy",
-      "Cut",
-      "Paste",
-      "FocusIn",
-      "FocusOut",
-      "ContextMenu"
-    ];
-
     function NDElement(element) {
         this.$element = element;
         this.$observer = null;
         PluginsManager.emit('NDElementCreated', element, this);
     }
+
     NDElement.prototype.__$isNDElement = true;
 
     NDElement.prototype.valueOf = function() {
@@ -775,10 +782,17 @@ var NativeDocument = (function (exports) {
     NDElement.prototype.lifecycle = function(states) {
         this.$observer = this.$observer || DocumentObserver.watch(this.$element);
 
-        states.mounted && this.$observer.mounted(states.mounted);
-        states.unmounted && this.$observer.unmounted(states.unmounted);
+        if(states.mounted) {
+            this.$element.setAttribute('data--nd-mounted', '1');
+            this.$observer.mounted(states.mounted);
+        }
+        if(states.unmounted) {
+            this.$element.setAttribute('data--nd-unmounted', '1');
+            this.$observer.unmounted(states.unmounted);
+        }
         return this;
     };
+
     NDElement.prototype.mounted = function(callback) {
         return this.lifecycle({ mounted: callback });
     };
@@ -808,137 +822,20 @@ var NativeDocument = (function (exports) {
 
         return this;
     };
+
     NDElement.prototype.openShadow = function(style = null) {
         return this.shadow('open', style);
     };
+
     NDElement.prototype.closedShadow = function(style = null) {
         return this.shadow('closed', style);
     };
 
-    NDElement.prototype.attach = function(bindingHydrator) {
-        bindingHydrator.$hydrate(this.$element);
+    NDElement.prototype.attach = function(methodName, bindingHydrator) {
+        bindingHydrator.$hydrate(this.$element, methodName);
         return this.$element;
     };
 
-
-    /**
-     *
-     * ND events API
-     *
-     */
-
-    const DelegatedEventsCallbackStore = {};
-
-    const addCallbackToCallbacksStore = function(element, eventName, callback) {
-        if(!element) return;
-        if(!DelegatedEventsCallbackStore[eventName]) {
-            const eventStore = new WeakMap();
-            DelegatedEventsCallbackStore[eventName] = eventStore;
-            eventStore.set(element, callback);
-            return;
-        }
-        const eventStore = DelegatedEventsCallbackStore[eventName];
-
-        if(!eventStore.has(element)) {
-            eventStore.set(element, callback);
-            return;
-        }
-        const existingCallbacks = eventStore.get(element);
-        if(!Validator.isArray(existingCallbacks)) {
-            eventStore.set(element, [store[eventName], callback]);
-            return;
-        }
-        existingCallbacks.push(callback);
-    };
-
-    const handleDelegatedCallbacks = function(container, eventName) {
-        container.addEventListener(eventName, (event) => {
-            const eventStore = DelegatedEventsCallbackStore[eventName];
-            if(!eventStore) {
-                return;
-            }
-            let target = event.target;
-            while(target && target !== container) {
-                const callback = eventStore.get(target);
-                if(!callback) {
-                    target = target.parentElement;
-                    continue;
-                }
-
-                if(Validator.isFunction(callback)) {
-                    callback.call(target, event);
-                }
-                else {
-                    for(let i = 0; i < callback.length; i++) {
-                        callback[i].call(target, event);
-                    }
-                }
-                return;
-            }
-        });
-    };
-
-
-    const preventDefaultWrapper = function(element, eventName, callback) {
-        element.addEventListener(eventName, (event) => {
-            event.preventDefault();
-            callback && callback.call(element, event);
-        });
-        return this;
-    };
-    const stopPropagationWrapper = function(element, eventName, callback) {
-        element.addEventListener(eventName, (event) => {
-            event.stopPropagation();
-            callback && callback.call(element, event);
-        });
-        return this;
-    };
-    const preventDefaultAndStopPropagationWrapper = function(element, eventName, callback) {
-        element.addEventListener(eventName, (event) => {
-            event.stopPropagation();
-            event.preventDefault();
-            callback && callback.call(element, event);
-        });
-        return this;
-    };
-    const captureEventWrapper = function(element, eventName, directHandler) {
-        if(directHandler) {
-            element.addEventListener(eventName, directHandler);
-            return this;
-        }
-        handleDelegatedCallbacks(element, eventName);
-        return this;
-    };
-
-    for(const event of EVENTS) {
-        const eventName = event.toLowerCase();
-        NDElement.prototype['on'+event] = function(callback) {
-            this.$element.addEventListener(eventName, callback);
-            return this;
-        };
-        NDElement.prototype['onPrevent'+event] = function(callback) {
-            preventDefaultWrapper(this.$element, eventName, callback);
-            return this;
-        };
-        NDElement.prototype['onStop'+event] = function(callback) {
-            stopPropagationWrapper(this.$element, eventName, callback);
-            return this;
-        };
-        NDElement.prototype['onPreventStop'+event] = function(callback) {
-            preventDefaultAndStopPropagationWrapper(this.$element, eventName, callback);
-            return this;
-        };
-
-        NDElement.prototype['when'+event] = function(callback) {
-            addCallbackToCallbacksStore(this.$element, eventName, callback);
-            return this;
-        };
-
-        NDElement.prototype['capture'+event] = function(directHandler) {
-            captureEventWrapper(this.$element, eventName, directHandler);
-            return this;
-        };
-    }
 
     NDElement.prototype.with = function(methods) {
         if (!methods || typeof methods !== 'object') {
@@ -959,7 +856,7 @@ var NativeDocument = (function (exports) {
             }
             {
                 if (this[name] && !this.$localExtensions.has(name)) {
-                    DebugManager$1.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
+                    DebugManager.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
                 }
                 this.$localExtensions.set(name, method);
             }
@@ -993,17 +890,17 @@ var NativeDocument = (function (exports) {
             const method = methods[name];
 
             if (typeof method !== 'function') {
-                DebugManager$1.warn('NDElement.extend', `"${name}" is not a function, skipping`);
+                DebugManager.warn('NDElement.extend', `"${name}" is not a function, skipping`);
                 continue;
             }
 
             if (protectedMethods.has(name)) {
-                DebugManager$1.error('NDElement.extend', `Cannot override protected method "${name}"`);
+                DebugManager.error('NDElement.extend', `Cannot override protected method "${name}"`);
                 throw new NativeDocumentError(`Cannot override protected method "${name}"`);
             }
 
             if (NDElement.prototype[name]) {
-                DebugManager$1.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
+                DebugManager.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
             }
 
             NDElement.prototype[name] = method;
@@ -1013,6 +910,12 @@ var NativeDocument = (function (exports) {
 
         return NDElement;
     };
+
+    function TemplateBinding(hydrate) {
+        this.$hydrate = hydrate;
+    }
+
+    TemplateBinding.prototype.__$isTemplateBinding = true;
 
     const COMMON_NODE_TYPES = {
         ELEMENT: 1,
@@ -1025,6 +928,9 @@ var NativeDocument = (function (exports) {
         isObservable(value) {
             return  value?.__$isObservable || value instanceof ObservableItem || value instanceof ObservableChecker;
         },
+        isTemplateBinding(value) {
+            return  value?.__$isTemplateBinding || value instanceof TemplateBinding;
+        },
         isObservableWhenResult(value) {
             return value && (value.__$isObservableWhen || (typeof value === 'object' && '$target' in value && '$observer' in value));
         },
@@ -1033,6 +939,9 @@ var NativeDocument = (function (exports) {
         },
         isProxy(value) {
             return value?.__isProxy__
+        },
+        isObservableOrProxy(value) {
+            return Validator.isObservable(value) || Validator.isProxy(value);
         },
         isAnchor(value) {
             return value?.__Anchor__
@@ -1149,7 +1058,7 @@ var NativeDocument = (function (exports) {
             const foundReserved = Object.keys(attributes).filter(key => reserved.includes(key));
 
             if (foundReserved.length > 0) {
-                DebugManager$1.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
+                DebugManager.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
             }
 
             return attributes;
@@ -1157,23 +1066,23 @@ var NativeDocument = (function (exports) {
     }
 
     function Anchor(name, isUniqueChild = false) {
-        const element = document.createDocumentFragment();
-        element.__Anchor__ = true;
+        const anchorFragment = document.createDocumentFragment();
+        anchorFragment.__Anchor__ = true;
 
         const anchorStart = document.createComment('Anchor Start : '+name);
         const anchorEnd = document.createComment('/ Anchor End '+name);
 
-        element.appendChild(anchorStart);
-        element.appendChild(anchorEnd);
+        anchorFragment.appendChild(anchorStart);
+        anchorFragment.appendChild(anchorEnd);
 
-        element.nativeInsertBefore = element.insertBefore;
-        element.nativeAppendChild = element.appendChild;
+        anchorFragment.nativeInsertBefore = anchorFragment.insertBefore;
+        anchorFragment.nativeAppendChild = anchorFragment.appendChild;
 
         const isParentUniqueChild = (parent) => (isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd));
 
         const insertBefore = function(parent, child, target) {
             const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
-            if(parent === element) {
+            if(parent === anchorFragment) {
                 parent.nativeInsertBefore(childElement, target);
                 return;
             }
@@ -1184,32 +1093,32 @@ var NativeDocument = (function (exports) {
             parent.insertBefore(childElement, target);
         };
 
-        element.appendElement = function(child, before = null) {
+        anchorFragment.appendElement = function(child, before = null) {
             const parentNode = anchorStart.parentNode;
             const targetBefore = before || anchorEnd;
-            if(parentNode === element) {
+            if(parentNode === anchorFragment) {
                 parentNode.nativeInsertBefore(child, targetBefore);
                 return;
             }
             parentNode?.insertBefore(child, targetBefore);
         };
 
-        element.appendChild = function(child, before = null) {
+        anchorFragment.appendChild = function(child, before = null) {
             const parent = anchorEnd.parentNode;
             if(!parent) {
-                DebugManager$1.error('Anchor', 'Anchor : parent not found', child);
+                DebugManager.error('Anchor', 'Anchor : parent not found', child);
                 return;
             }
             before = before ?? anchorEnd;
             insertBefore(parent, child, before);
         };
-        element.append = function(...args ) {
-            return element.appendChild(args);
+        anchorFragment.append = function(...args ) {
+            return anchorFragment.appendChild(args);
         };
 
-        element.removeChildren = function() {
+        anchorFragment.removeChildren = function() {
             const parent = anchorEnd.parentNode;
-            if(parent === element) {
+            if(parent === anchorFragment) {
                 return;
             }
             if(isParentUniqueChild(parent)) {
@@ -1226,26 +1135,26 @@ var NativeDocument = (function (exports) {
             }
             fragment.replaceChildren();
         };
-        element.remove = function() {
+        anchorFragment.remove = function() {
             const parent = anchorEnd.parentNode;
-            if(parent === element) {
+            if(parent === anchorFragment) {
                 return;
             }
             let itemToRemove = anchorStart.nextSibling, tempItem;
             while(itemToRemove && itemToRemove !== anchorEnd) {
                 tempItem = itemToRemove.nextSibling;
-                element.nativeAppendChild(itemToRemove);
+                anchorFragment.nativeAppendChild(itemToRemove);
                 itemToRemove = tempItem;
             }
         };
 
-        element.removeWithAnchors = function() {
-            element.removeChildren();
+        anchorFragment.removeWithAnchors = function() {
+            anchorFragment.removeChildren();
             anchorStart.remove();
             anchorEnd.remove();
         };
 
-        element.replaceContent = function(child) {
+        anchorFragment.replaceContent = function(child) {
             const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
             const parent = anchorEnd.parentNode;
             if(!parent) {
@@ -1255,31 +1164,31 @@ var NativeDocument = (function (exports) {
                 parent.replaceChildren(anchorStart, childElement, anchorEnd);
                 return;
             }
-            element.removeChildren();
+            anchorFragment.removeChildren();
             parent.insertBefore(childElement, anchorEnd);
         };
 
-        element.setContent = element.replaceContent;
+        anchorFragment.setContent = anchorFragment.replaceContent;
 
-        element.insertBefore = function(child, anchor = null) {
-            element.appendChild(child, anchor);
+        anchorFragment.insertBefore = function(child, anchor = null) {
+            anchorFragment.appendChild(child, anchor);
         };
 
 
-        element.endElement = function() {
+        anchorFragment.endElement = function() {
             return anchorEnd;
         };
 
-        element.startElement = function() {
+        anchorFragment.startElement = function() {
             return anchorStart;
         };
-        element.restore = function() {
-            element.appendChild(element);
+        anchorFragment.restore = function() {
+            anchorFragment.appendChild(anchorFragment);
         };
-        element.clear = element.remove;
-        element.detach = element.remove;
+        anchorFragment.clear = anchorFragment.remove;
+        anchorFragment.detach = anchorFragment.remove;
 
-        element.getByIndex = function(index) {
+        anchorFragment.getByIndex = function(index) {
             let currentNode = anchorStart;
             for(let i = 0; i <= index; i++) {
                 if(!currentNode.nextSibling) {
@@ -1290,7 +1199,7 @@ var NativeDocument = (function (exports) {
             return currentNode !== anchorStart ? currentNode : null;
         };
 
-        return element;
+        return anchorFragment;
     }
     /**
      *
@@ -1378,12 +1287,28 @@ var NativeDocument = (function (exports) {
         setInterval(() => MemoryManager.cleanObservables(threshold), interval);
     };
 
+    ObservableItem.prototype.bindNdClass = function(element, className) {
+        element.classes.toggle(className, this.val());
+        this.subscribe(toggleElementClass.bind(null, element, className));
+    };
+
+    ObservableWhen.prototype.bindNdClass = function(element, className) {
+        element.classes.toggle(className, this.isMath());
+        this.subscribe(toggleElementClass.bind(null, element, className));
+    };
+
+    TemplateBinding.prototype.bindNdClass = function(element, className) {
+        this.$hydrate(element, className);
+    };
+
     function toggleElementClass(element, className, shouldAdd) {
         element.classes.toggle(className, shouldAdd);
     }
+
     function toggleElementStyle(element, styleName, newValue) {
         element.style[styleName] = newValue;
     }
+
     function updateInputFromObserver(element, attributeName, newValue) {
         if(Validator.isBoolean(newValue)) {
             element[attributeName] = newValue;
@@ -1391,6 +1316,7 @@ var NativeDocument = (function (exports) {
         }
         element[attributeName] = newValue === element.value;
     }
+
     function updateObserverFromInput(element, attributeName, defaultValue, value) {
         if(Validator.isBoolean(defaultValue)) {
             value.set(element[attributeName]);
@@ -1398,6 +1324,7 @@ var NativeDocument = (function (exports) {
         }
         value.set(element.value);
     }
+
     /**
      *
      * @param {HTMLElement} element
@@ -1406,18 +1333,8 @@ var NativeDocument = (function (exports) {
     function bindClassAttribute(element, data) {
         for(let className in data) {
             const value = data[className];
-            if(Validator.isObservable(value)) {
-                element.classes.toggle(className, value.val());
-                value.subscribe(toggleElementClass.bind(null, element, className));
-                continue;
-            }
-            if(Validator.isObservableWhenResult(value)) {
-                element.classes.toggle(className, value.isMath());
-                value.subscribe(toggleElementClass.bind(null, element, className));
-                continue;
-            }
-            if(value.$hydrate) {
-                value.$hydrate(element, className);
+            if(value?.bindNdClass) {
+                value.bindNdClass(element, className);
                 continue;
             }
             element.classes.toggle(className, value);
@@ -1506,16 +1423,13 @@ var NativeDocument = (function (exports) {
             if(value === null || value === undefined) {
                 continue;
             }
+            if(value.handleNdAttribute) {
+                value.handleNdAttribute(element, attributeName, value);
+                continue;
+            }
             if(Validator.isString(value)) {
-                value = value.resolveObservableTemplate ? value.resolveObservableTemplate() : value;
-                if(Validator.isString(value)) {
-                    element.setAttribute(attributeName, value);
-                    continue;
-                }
-                const observables = value.filter(item => Validator.isObservable(item));
-                value = Observable.computed(() => {
-                    return value.map(item => Validator.isObservable(item) ? item.val() : item).join(' ') || ' ';
-                }, observables);
+                element.setAttribute(attributeName, value);
+                return;
             }
             if(attributeName === 'class' && Validator.isObject(value)) {
                 bindClassAttribute(element, value);
@@ -1537,11 +1451,81 @@ var NativeDocument = (function (exports) {
                 value.$hydrate(element, attributeName);
                 continue;
             }
+
             element.setAttribute(attributeName, value);
 
         }
         return element;
     }
+
+    String.prototype.toNdElement = function () {
+        const formattedChild = this.resolveObservableTemplate ? this.resolveObservableTemplate() : this;
+        if(Validator.isString(formattedChild)) {
+            return ElementCreator.createStaticTextNode(null, formattedChild);
+        }
+        return ElementCreator.getChild(null, formattedChild);
+    };
+
+    Element.prototype.toNdElement = function () {
+        return this;
+    };
+    Text.prototype.toNdElement = function () {
+        return this;
+    };
+    Comment.prototype.toNdElement = function () {
+        return this;
+    };
+    Document.prototype.toNdElement = function () {
+        return this;
+    };
+    DocumentFragment.prototype.toNdElement = function () {
+        return this;
+    };
+
+    ObservableItem.prototype.toNdElement = function () {
+        return ElementCreator.createObservableNode(null, this);
+    };
+
+    NDElement.prototype.toNdElement = function () {
+        return this.$element ?? this.$build?.() ?? this.build?.() ?? null;
+    };
+
+    Array.prototype.toNdElement = function () {
+        const fragment = document.createDocumentFragment();
+        for(let i = 0, length = this.length; i < length; i++) {
+            const child = ElementCreator.getChild(this[i]);
+            if(child === null) continue;
+            fragment.appendChild(child);
+        }
+        return fragment;
+    };
+
+    Function.prototype.toNdElement = function () {
+        const child = this;
+        PluginsManager.emit('BeforeProcessComponent', child);
+        return ElementCreator.getChild(child());
+    };
+
+    TemplateBinding.prototype.toNdElement = function () {
+        return ElementCreator.createHydratableNode(null, this);
+    };
+
+    String.prototype.handleNdAttribute = function(element, attributeName) {
+        element.setAttribute(attributeName, this);
+    };
+
+    ObservableItem.prototype.handleNdAttribute = function(element, attributeName) {
+        if(BOOLEAN_ATTRIBUTES.includes(attributeName)) {
+            bindBooleanAttribute(element, attributeName, this);
+            return;
+        }
+
+        bindAttributeWithObservable(element, attributeName, this);
+    };
+
+    TemplateBinding.prototype.handleNdAttribute = function(element, attributeName) {
+        this.$hydrate(element, attributeName);
+    };
 
     const $nodeCache = new Map();
     let $textNodeCache = null;
@@ -1614,58 +1598,28 @@ var NativeDocument = (function (exports) {
         processChildren(children, parent) {
             if(children === null) return;
             PluginsManager.emit('BeforeProcessChildren', parent);
-            if(!Array.isArray(children)) {
-                let child = this.getChild(children);
-                if(child) {
-                    parent.appendChild(child);
-                }
+            let child = this.getChild(children);
+            if(child) {
+                parent.appendChild(child);
             }
-            else {
-                for(let i = 0, length = children.length; i < length; i++) {
-                    let child = this.getChild(children[i]);
-                    if (child === null) continue;
-                    parent.appendChild(child);
-                }
-            }
-
             PluginsManager.emit('AfterProcessChildren', parent);
         },
         getChild(child) {
-            if(child === null) {
+            if(child == null) {
                 return null;
             }
-            if(Validator.isString(child)) {
-                child = child.resolveObservableTemplate ? child.resolveObservableTemplate() : child;
-                if(Validator.isString(child)) {
-                    return ElementCreator.createStaticTextNode(null, child);
-                }
+            if(child.toNdElement) {
+                do {
+                    child =  child.toNdElement();
+                    if(Validator.isElement(child)) {
+                        return child;
+                    }
+                    if(child == null) {
+                        return null;
+                    }
+                } while (child.toNdElement);
             }
-            if (Validator.isElement(child)) {
-                return child;
-            }
-            if (Validator.isObservable(child)) {
-                return ElementCreator.createObservableNode(null, child);
-            }
-            if(Validator.isNDElement(child)) {
-                return child.$element ?? child.$build?.() ?? null;
-            }
-            if(Validator.$element) {
-                return Validator.$element;
-            }
-            if(Validator.isArray(child)) {
-                const fragment = document.createDocumentFragment();
-                for(let i = 0, length = child.length; i < length; i++) {
-                    fragment.appendChild(this.getChild(child[i]));
-                }
-                return fragment;
-            }
-            if(Validator.isFunction(child)) {
-                PluginsManager.emit('BeforeProcessComponent', child);
-                return this.getChild(child());
-            }
-            if(child?.$hydrate) {
-                return ElementCreator.createHydratableNode(null, child);
-            }
+
             return ElementCreator.createStaticTextNode(null, child);
         },
         /**
@@ -1692,16 +1646,166 @@ var NativeDocument = (function (exports) {
         }
     };
 
+    const EVENTS = [
+      "Click",
+      "DblClick",
+      "MouseDown",
+      "MouseEnter",
+      "MouseLeave",
+      "MouseMove",
+      "MouseOut",
+      "MouseOver",
+      "MouseUp",
+      "Wheel",
+      "KeyDown",
+      "KeyPress",
+      "KeyUp",
+      "Blur",
+      "Change",
+      "Focus",
+      "Input",
+      "Invalid",
+      "Reset",
+      "Search",
+      "Select",
+      "Submit",
+      "Drag",
+      "DragEnd",
+      "DragEnter",
+      "DragLeave",
+      "DragOver",
+      "DragStart",
+      "Drop",
+      "AfterPrint",
+      "BeforePrint",
+      "BeforeUnload",
+      "Error",
+      "HashChange",
+      "Load",
+      "Offline",
+      "Online",
+      "PageHide",
+      "PageShow",
+      "Resize",
+      "Scroll",
+      "Unload",
+      "Abort",
+      "CanPlay",
+      "CanPlayThrough",
+      "DurationChange",
+      "Emptied",
+      "Ended",
+      "LoadedData",
+      "LoadedMetadata",
+      "LoadStart",
+      "Pause",
+      "Play",
+      "Playing",
+      "Progress",
+      "RateChange",
+      "Seeked",
+      "Seeking",
+      "Stalled",
+      "Suspend",
+      "TimeUpdate",
+      "VolumeChange",
+      "Waiting",
+
+      "TouchCancel",
+      "TouchEnd",
+      "TouchMove",
+      "TouchStart",
+      "AnimationEnd",
+      "AnimationIteration",
+      "AnimationStart",
+      "TransitionEnd",
+      "Copy",
+      "Cut",
+      "Paste",
+      "FocusIn",
+      "FocusOut",
+      "ContextMenu"
+    ];
+
+    const EVENTS_WITH_PREVENT = [
+      "Click",
+      "DblClick",
+      "MouseDown",
+      "MouseUp",
+      "Wheel",
+      "KeyDown",
+      "KeyPress",
+      "Invalid",
+      "Reset",
+      "Submit",
+      "DragOver",
+      "Drop",
+      "BeforeUnload",
+      "TouchCancel",
+      "TouchEnd",
+      "TouchMove",
+      "TouchStart",
+      "Copy",
+      "Cut",
+      "Paste",
+      "ContextMenu"
+    ];
+
+    const EVENTS_WITH_STOP =  [
+      "Click",
+      "DblClick",
+      "MouseDown",
+      "MouseMove",
+      "MouseOut",
+      "MouseOver",
+      "MouseUp",
+      "Wheel",
+      "KeyDown",
+      "KeyPress",
+      "KeyUp",
+      "Change",
+      "Input",
+      "Invalid",
+      "Reset",
+      "Search",
+      "Select",
+      "Submit",
+      "Drag",
+      "DragEnd",
+      "DragEnter",
+      "DragLeave",
+      "DragOver",
+      "DragStart",
+      "Drop",
+      "BeforeUnload",
+      "HashChange",
+      "TouchCancel",
+      "TouchEnd",
+      "TouchMove",
+      "TouchStart",
+      "AnimationEnd",
+      "AnimationIteration",
+      "AnimationStart",
+      "TransitionEnd",
+      "Copy",
+      "Cut",
+      "Paste",
+      "FocusIn",
+      "FocusOut",
+      "ContextMenu"
+    ];
+
     const property = {
         configurable: true,
         get() {
-            return  new NDElement(this);
+            return new NDElement(this);
         }
     };
 
     Object.defineProperty(HTMLElement.prototype, 'nd', property);
 
     Object.defineProperty(DocumentFragment.prototype, 'nd', property);
+
     Object.defineProperty(NDElement.prototype, 'nd', {
         configurable: true,
         get: function() {
@@ -1709,6 +1813,63 @@ var NativeDocument = (function (exports) {
         }
     });
 
+
+
+    // ----------------------------------------------------------------
+    // Events helpers
+    // ----------------------------------------------------------------
+    EVENTS.forEach(eventSourceName => {
+        const eventName = eventSourceName.toLowerCase();
+        NDElement.prototype['on'+eventSourceName] = function(callback = null) {
+            this.$element.addEventListener(eventName, callback);
+            return this;
+        };
+    });
+
+    EVENTS_WITH_STOP.forEach(eventSourceName => {
+        const eventName = eventSourceName.toLowerCase();
+        NDElement.prototype['onStop'+eventSourceName] = function(callback = null) {
+            _stop(this.$element, eventName, callback);
+            return this;
+        };
+    });
+
+    EVENTS_WITH_PREVENT.forEach(eventSourceName => {
+        const eventName = eventSourceName.toLowerCase();
+        NDElement.prototype['onPrevent'+eventSourceName] = function(callback = null) {
+            _prevent(this.$element, eventName, callback);
+            return this;
+        };
+    });
+
+    NDElement.prototype.on = function(name, callback, options) {
+        this.$element.addEventListener(name.toLowerCase(), callback, options);
+        return this;
+    };
+
+    const _prevent = function(element, eventName, callback) {
+        const handler = (event) => {
+            event.preventDefault();
+            callback && callback.call(element, event);
+        };
+        element.addEventListener(eventName, handler);
+        return this;
+    };
+
+    const _stop = function(element, eventName, callback) {
+        const handler = (event) => {
+            event.stopPropagation();
+            callback && callback.call(element, event);
+        };
+        element.addEventListener(eventName, handler);
+        return this;
+    };
+
+
+
+    // ----------------------------------------------------------------
+    // Class attributes binder
+    // ----------------------------------------------------------------
     const classListMethods = {
         getClasses() {
             return this.$element.className?.split(' ').filter(Boolean);
@@ -1925,7 +2086,7 @@ var NativeDocument = (function (exports) {
     const bindAttributes = (node, bindDingData, data) => {
         let attributes = null;
         if(bindDingData.attributes) {
-            attributes = attributes || {};
+            attributes = {};
             for (const attr in bindDingData.attributes) {
                 attributes[attr] = bindDingData.attributes[attr](...data);
             }
@@ -1955,29 +2116,29 @@ var NativeDocument = (function (exports) {
         return null;
     };
 
-    const $hydrateFn = function(hydrateFunction, target, element, property) {
+    const $hydrateFn = function(hydrateFunction, targetType, element, property) {
         if(!cloneBindingsDataCache.has(element)) {
             // { classes, styles, attributes, value, attach }
             cloneBindingsDataCache.set(element, {});
         }
         const hydrationState = cloneBindingsDataCache.get(element);
-        if(target === 'value') {
+        if(targetType === 'value') {
             hydrationState.value = hydrateFunction;
             return;
         }
-        if(target === 'attach') {
-            hydrationState.attach = hydrateFunction;
-            return;
-        }
-        hydrationState[target] = hydrationState[target] || {};
-        hydrationState[target][property] = hydrateFunction;
+        hydrationState[targetType] = hydrationState[targetType] || {};
+        hydrationState[targetType][property] = hydrateFunction;
     };
 
     const bindAttachMethods = function(node, bindDingData, data) {
         if(!bindDingData.attach) {
             return null;
         }
-        bindDingData.attach(node, ...data);
+        for(const methodName in bindDingData.attach) {
+            node.nd[methodName](function(...args) {
+                bindDingData.attach[methodName].call(this, ...[...args, ...data]);
+            });
+        }
     };
 
     function TemplateCloner($fn) {
@@ -2025,13 +2186,11 @@ var NativeDocument = (function (exports) {
         };
 
 
-        const createBinding = (hydrateFunction, target) => {
-            return {
-                $hydrate : (element, property) => {
-                    $hasBindingData = true;
-                    $hydrateFn(hydrateFunction, target, element, property);
-                },
-            }
+        const createBinding = (hydrateFunction, targetType) => {
+            return new TemplateBinding((element, property) => {
+                $hasBindingData = true;
+                $hydrateFn(hydrateFunction, targetType, element, property);
+            });
         };
 
         this.style = (fn) => {
@@ -2280,6 +2439,357 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    function toDate(value) {
+        if (value instanceof Date) return value;
+        return new Date(value);
+    }
+
+    function isSameDay(date1, date2) {
+        const d1 = toDate(date1);
+        const d2 = toDate(date2);
+        return d1.getFullYear() === d2.getFullYear() &&
+            d1.getMonth() === d2.getMonth() &&
+            d1.getDate() === d2.getDate();
+    }
+
+    function getSecondsOfDay(date) {
+        const d = toDate(date);
+        return (d.getHours() * 3600) + (d.getMinutes() * 60) + d.getSeconds();
+    }
+
+    function createFilter(observableOrValue, callbackFn){
+        const isObservable = Validator.isObservable(observableOrValue);
+
+        return {
+            dependencies: isObservable ? observableOrValue : null,
+            callback: (value) => callbackFn(value, isObservable ? observableOrValue.val() : observableOrValue)
+        };
+    }
+
+    function createMultiSourceFilter(sources, callbackFn){
+        const observables = sources.filter(Validator.isObservable);
+
+        const getValues = () => sources.map(src =>
+            Validator.isObservable(src) ? src.val() : src
+        );
+
+        return {
+            dependencies: observables.length > 0 ? observables : null,
+            callback: (value) => callbackFn(value, getValues())
+        };
+    }
+
+    function equals(observableOrValue){
+        return createFilter(observableOrValue, (value, target) => value === target);
+    }
+
+    function notEquals(observableOrValue){
+        return createFilter(observableOrValue, (value, target) => value !== target);
+    }
+
+    function greaterThan(observableOrValue){
+        return createFilter(observableOrValue, (value, target) => value > target);
+    }
+
+    function greaterThanOrEqual(observableOrValue){
+        return createFilter(observableOrValue, (value, target) => value >= target);
+    }
+
+    function lessThan(observableOrValue){
+        return createFilter(observableOrValue, (value, target) => value < target);
+    }
+
+    function lessThanOrEqual(observableOrValue){
+        return createFilter(observableOrValue, (value, target) => value <= target);
+    }
+
+    function between(minObservableOrValue, maxObservableOrValue){
+        return createMultiSourceFilter(
+            [minObservableOrValue, maxObservableOrValue],
+            (value, [min, max]) => value >= min && value <= max
+        );
+    }
+
+    function inArray(observableOrArray){
+        return createFilter(observableOrArray, (value, arr) => arr.includes(value));
+    }
+
+    function notIn(observableOrArray){
+        return createFilter(observableOrArray, (value, arr) => !arr.includes(value));
+    }
+
+    function isEmpty(observableOrValue = true){
+        return createFilter(observableOrValue, (value, shouldBeEmpty) => {
+            const isActuallyEmpty = !value || value === '' ||
+                (Array.isArray(value) && value.length === 0);
+
+            return shouldBeEmpty ? isActuallyEmpty : !isActuallyEmpty;
+        });
+    }
+
+    function isNotEmpty(observableOrValue = true){
+        return createFilter(observableOrValue, (value, shouldBeNotEmpty) => {
+            const isActuallyNotEmpty = !!value && value !== '' &&
+                (!Array.isArray(value) || value.length > 0);
+
+            return shouldBeNotEmpty ? isActuallyNotEmpty : !isActuallyNotEmpty;
+        });
+    }
+
+    function match(patternObservableOrValue, asRegexObservableOrValue = true, flagsObservableOrValue = ''){
+        return createMultiSourceFilter(
+            [patternObservableOrValue, asRegexObservableOrValue, flagsObservableOrValue],
+            (value, [pattern, asRegex, flags]) => {
+                if (!pattern) return true;
+
+                if (asRegex){
+                    try {
+                        const regex = new RegExp(pattern, flags);
+                        return regex.test(String(value));
+                    } catch (error){
+                        console.warn('Invalid regex pattern:', pattern, error);
+                        return false;
+                    }
+                }
+
+                if (!flags || flags === ''){
+                    return String(value).toLowerCase().includes(String(pattern).toLowerCase());
+                }
+                return String(value).includes(String(pattern));
+            }
+        );
+    }
+
+    function and(...filters){
+        const dependencies = filters
+            .flatMap(f => f.dependencies ? (Array.isArray(f.dependencies) ? f.dependencies : [f.dependencies]) : [])
+            .filter(Validator.isObservable);
+
+        return {
+            dependencies: dependencies.length > 0 ? dependencies : null,
+            callback: (value) => filters.every(f => f.callback(value))
+        };
+    }
+
+    function or(...filters){
+        const dependencies = filters
+            .flatMap(f => f.dependencies ? (Array.isArray(f.dependencies) ? f.dependencies : [f.dependencies]) : [])
+            .filter(Validator.isObservable);
+
+        return {
+            dependencies: dependencies.length > 0 ? dependencies : null,
+            callback: (value) => filters.some(f => f.callback(value))
+        };
+    }
+
+    function not(filter){
+        return {
+            dependencies: filter.dependencies,
+            callback: (value) => !filter.callback(value)
+        };
+    }
+
+    function custom(callbackFn, ...observables){
+        const dependencies = observables.filter(Validator.isObservable);
+
+        return {
+            dependencies: dependencies.length > 0 ? dependencies : null,
+            callback: (value) => {
+                const values = observables.map(o =>
+                    Validator.isObservable(o) ? o.val() : o
+                );
+                return callbackFn(value, ...values);
+            }
+        };
+    }
+
+    const gt = greaterThan;
+    const gte = greaterThanOrEqual;
+    const lt = lessThan;
+    const lte = lessThanOrEqual;
+    const eq = equals;
+    const neq = notEquals;
+    const all = and;
+    const any = or;
+
+    const dateEquals = (observableOrValue) => {
+        return createFilter(observableOrValue, (value, target) => {
+            if (!value || !target) return false;
+            return isSameDay(value, target);
+        });
+    };
+
+    const dateBefore = (observableOrValue) => {
+        return createFilter(observableOrValue, (value, target) => {
+            if (!value || !target) return false;
+            return toDate(value) < toDate(target);
+        });
+    };
+
+    const dateAfter = (observableOrValue) => {
+        return createFilter(observableOrValue, (value, target) => {
+            if (!value || !target) return false;
+            return toDate(value) > toDate(target);
+        });
+    };
+
+    const dateBetween = (startObservableOrValue, endObservableOrValue) => {
+        return createMultiSourceFilter(
+            [startObservableOrValue, endObservableOrValue],
+            (value, [start, end]) => {
+                if (!value || !start || !end) return false;
+                const date = toDate(value);
+                return date >= toDate(start) && date <= toDate(end);
+            }
+        );
+    };
+
+    const timeEquals = (observableOrValue) => {
+        return createFilter(observableOrValue, (value, target) => {
+            if (!value || !target) return false;
+            const d1 = toDate(value);
+            const d2 = toDate(target);
+            return d1.getHours() === d2.getHours() &&
+                d1.getMinutes() === d2.getMinutes() &&
+                d1.getSeconds() === d2.getSeconds();
+        });
+    };
+
+    const timeAfter = (observableOrValue) => {
+        return createFilter(observableOrValue, (value, target) => {
+            if (!value || !target) return false;
+            return getSecondsOfDay(value) > getSecondsOfDay(target);
+        });
+    };
+
+    const timeBefore = (observableOrValue) => {
+        return createFilter(observableOrValue, (value, target) => {
+            if (!value || !target) return false;
+            return getSecondsOfDay(value) < getSecondsOfDay(target);
+        });
+    };
+
+    const timeBetween = (startObservableOrValue, endObservableOrValue) => {
+        return createMultiSourceFilter([startObservableOrValue, endObservableOrValue],
+            (value, [start, end]) => {
+                if (!value || !start || !end) return false;
+                const date = getSecondsOfDay(value);
+                return date >= getSecondsOfDay(start) && date <= getSecondsOfDay(end);
+            }
+        );
+    };
+
+    const dateTimeEquals = (observableOrValue) => {
+        return createFilter(observableOrValue, (value, target) => {
+            if (!value || !target) return false;
+            return toDate(value).getTime() === toDate(target).getTime();
+        });
+    };
+
+    const dateTimeAfter = (observableOrValue) => {
+        return createFilter(observableOrValue, (value, target) => {
+            if (!value || !target) return false;
+            return toDate(value) > toDate(target);
+        });
+    };
+
+    const dateTimeBefore = (observableOrValue) => {
+        return createFilter(observableOrValue, (value, target) => {
+            if (!value || !target) return false;
+            return toDate(value) < toDate(target);
+        });
+    };
+
+    const dateTimeBetween = (startObservableOrValue, endObservableOrValue) => {
+        return createMultiSourceFilter([startObservableOrValue, endObservableOrValue], (value, [start, end]) => {
+            if (!value || !start || !end) return false;
+            const date = toDate(value);
+            return date >= toDate(start) && date <= toDate(end);
+        });
+    };
+
+    function includes(observableOrValue, caseSensitive = false){
+        return createFilter(observableOrValue, (value, query) => {
+            if (!value) return false;
+            if (!query) return true;
+            if (!caseSensitive){
+                return String(value).toLowerCase().includes(String(query).toLowerCase());
+            }
+            return String(value).includes(String(query));
+        });
+    }
+
+    const contains = includes;
+
+    function startsWith(observableOrValue, caseSensitive = false){
+        return createFilter(observableOrValue, (value, query) => {
+            if (!query) return true;
+            if (!caseSensitive){
+                return String(value).toLowerCase().startsWith(String(query).toLowerCase());
+            }
+            return String(value).startsWith(String(query));
+        });
+    }
+
+    function endsWith(observableOrValue, caseSensitive = false){
+        return createFilter(observableOrValue, (value, query) => {
+            if (!query) return true;
+            if (!caseSensitive){
+                return String(value).toLowerCase().endsWith(String(query).toLowerCase());
+            }
+            return String(value).endsWith(String(query));
+        });
+    }
+
+    var index = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        all: all,
+        and: and,
+        any: any,
+        between: between,
+        contains: contains,
+        createFilter: createFilter,
+        createMultiSourceFilter: createMultiSourceFilter,
+        custom: custom,
+        dateAfter: dateAfter,
+        dateBefore: dateBefore,
+        dateBetween: dateBetween,
+        dateEquals: dateEquals,
+        dateTimeAfter: dateTimeAfter,
+        dateTimeBefore: dateTimeBefore,
+        dateTimeBetween: dateTimeBetween,
+        dateTimeEquals: dateTimeEquals,
+        endsWith: endsWith,
+        eq: eq,
+        equals: equals,
+        getSecondsOfDay: getSecondsOfDay,
+        greaterThan: greaterThan,
+        greaterThanOrEqual: greaterThanOrEqual,
+        gt: gt,
+        gte: gte,
+        inArray: inArray,
+        includes: includes,
+        isEmpty: isEmpty,
+        isNotEmpty: isNotEmpty,
+        isSameDay: isSameDay,
+        lessThan: lessThan,
+        lessThanOrEqual: lessThanOrEqual,
+        lt: lt,
+        lte: lte,
+        match: match,
+        neq: neq,
+        not: not,
+        notEquals: notEquals,
+        notIn: notIn,
+        or: or,
+        startsWith: startsWith,
+        timeAfter: timeAfter,
+        timeBefore: timeBefore,
+        timeBetween: timeBetween,
+        timeEquals: timeEquals,
+        toDate: toDate
+    });
+
     const mutationMethods = ['push', 'pop', 'shift', 'unshift', 'reverse', 'sort', 'splice'];
     const noMutationMethods = ['map', 'forEach', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex', 'concat', 'includes', 'indexOf'];
 
@@ -2290,7 +2800,7 @@ var NativeDocument = (function (exports) {
      * @param {{propagation: boolean, deep: boolean, reset: boolean}|null} configs
      * @constructor
      */
-    const ObservableArray = function (target, configs) {
+    const ObservableArray = function (target, configs = null) {
         if(!Array.isArray(target)) {
             throw new NativeDocumentError('Observable.array : target must be an array');
         }
@@ -2300,7 +2810,15 @@ var NativeDocument = (function (exports) {
     };
 
     ObservableArray.prototype = Object.create(ObservableItem.prototype);
+    ObservableArray.prototype.constructor = ObservableArray;
     ObservableArray.prototype.__$isObservableArray = true;
+
+
+    Object.defineProperty(ObservableArray.prototype, 'length', {
+        get() {
+            return this.$currentValue.length;
+        }
+    });
 
     mutationMethods.forEach((method) => {
         ObservableArray.prototype[method] = function(...values) {
@@ -2346,10 +2864,6 @@ var NativeDocument = (function (exports) {
         return count;
     };
 
-    ObservableArray.prototype.length = function() {
-        return this.$currentValue.length;
-    };
-
     ObservableArray.prototype.swap = function(indexA, indexB) {
         const value = this.$currentValue;
         const length = value.length;
@@ -2392,13 +2906,80 @@ var NativeDocument = (function (exports) {
         this.trigger({ action: 'populate', args: [this.$currentValue, iteration, callback] });
     };
 
+
+    ObservableArray.prototype.where = function(predicates) {
+        const sourceArray = this;
+        const observableDependencies = [sourceArray];
+        const filterCallbacks = {};
+
+        for (const [key, rawPredicate] of Object.entries(predicates)) {
+            const predicate = Validator.isObservable(rawPredicate) ? match(rawPredicate, false) : rawPredicate;
+            if (predicate && typeof predicate === 'object' && 'callback' in predicate) {
+                filterCallbacks[key] = predicate.callback;
+
+                if (predicate.dependencies) {
+                    const deps = Array.isArray(predicate.dependencies)
+                        ? predicate.dependencies
+                        : [predicate.dependencies];
+                    observableDependencies.push(...deps);
+                }
+            } else if(typeof predicate === 'function') {
+                filterCallbacks[key] = predicate;
+            } else {
+                filterCallbacks[key] = (value) => value === predicate;
+            }
+        }
+
+        const viewArray = Observable.array();
+
+        const filters = Object.entries(filterCallbacks);
+        const updateView = () => {
+            const filtered = sourceArray.val().filter(item => {
+                for (const [key, callback] of filters) {
+                    if(key === '_') {
+                        if (!callback(item)) return false;
+                    } else {
+                        if (!callback(item[key])) return false;
+                    }
+                }
+                return true;
+            });
+
+            viewArray.set(filtered);
+        };
+
+        observableDependencies.forEach(dep => dep.subscribe(updateView));
+
+        updateView();
+
+        return viewArray;
+    };
+
+    ObservableArray.prototype.whereSome = function(fields, filter) {
+        return this.where({
+            _: {
+                dependencies: filter.dependencies,
+                callback: (item) => fields.some(field => filter.callback(item[field]))
+            }
+        });
+    };
+
+    ObservableArray.prototype.whereEvery = function(fields, filter) {
+        return this.where({
+            _: {
+                dependencies: filter.dependencies,
+                callback: (item) => fields.every(field => filter.callback(item[field]))
+            }
+        });
+    };
+
     /**
      *
      * @param {Array} target
      * @param {{propagation: boolean, deep: boolean, reset: boolean}|null} configs
      * @returns {ObservableArray}
      */
-    Observable.array = function(target, configs = null) {
+    Observable.array = function(target = [], configs = null) {
         return new ObservableArray(target, configs);
     };
 
@@ -2620,7 +3201,7 @@ var NativeDocument = (function (exports) {
     Observable.computed = function(callback, dependencies = []) {
         const initialValue = callback();
         const observable = new ObservableItem(initialValue);
-        const updatedValue = () => observable.set(callback());
+        const updatedValue = nextTick(() => observable.set(callback()));
 
         PluginsManager.emit('CreateObservableComputed', observable, dependencies);
 
@@ -2776,12 +3357,12 @@ var NativeDocument = (function (exports) {
             try {
                 const indexObserver = callback.length >= 2 ? Observable(indexKey) : null;
                 let child = ElementCreator.getChild(callback(item, indexObserver));
-                if(!child || Validator.isFragment(child)) {
-                    throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
+                if(!child) {
+                    throw new NativeDocumentError("ForEach child can't be null or undefined!");
                 }
                 cache.set(keyId, { keyId, isNew: true, child: new WeakRef(child), indexObserver});
             } catch (e) {
-                DebugManager$1.error('ForEach', `Error creating element for key ${keyId}` , e);
+                DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
                 throw e;
             }
             return keyId;
@@ -2879,12 +3460,14 @@ var NativeDocument = (function (exports) {
             cleanCache();
             lastNumberOfItems = 0;
         };
+
         const getItemKey = (item, indexKey) => {
             if(keysCache.has(item)) {
                 return keysCache.get(item);
             }
             return getKey(item, indexKey, key);
         };
+
         const getItemChild = (item) => {
             return getChildByKey(getItemKey(item));
         };
@@ -2949,7 +3532,7 @@ var NativeDocument = (function (exports) {
 
             const indexObserver = isIndexRequired ? Observable(indexKey) : null;
             let child = ElementCreator.getChild(callback(item, indexObserver));
-            if(!child || Validator.isFragment(child)) {
+            if(!child) {
                 throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
             }
             cache.set(keyId, {
@@ -3001,9 +3584,7 @@ var NativeDocument = (function (exports) {
             },
             add(items, delay = 2) {
                 const fragment = Actions.toFragment(items);
-                setTimeout(() => {
-                    element.appendElement(fragment);
-                }, delay);
+                element.appendElement(fragment);
             },
             replace(items) {
                 clear();
@@ -3153,7 +3734,7 @@ var NativeDocument = (function (exports) {
      */
     const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
         if(!(Validator.isObservable(condition)) && !Validator.isObservableWhenResult(condition)) {
-            return DebugManager$1.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
+            return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
         }
         const element = Anchor('Show if : '+(comment || ''));
 
@@ -3940,7 +4521,7 @@ var NativeDocument = (function (exports) {
                 window.history.pushState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, query, path);
             } catch (e) {
-                DebugManager$1.error('HistoryRouter', 'Error in pushState', e);
+                DebugManager.error('HistoryRouter', 'Error in pushState', e);
             }
         };
         /**
@@ -3953,7 +4534,7 @@ var NativeDocument = (function (exports) {
                 window.history.replaceState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, {}, path);
             } catch(e) {
-                DebugManager$1.error('HistoryRouter', 'Error in replaceState', e);
+                DebugManager.error('HistoryRouter', 'Error in replaceState', e);
             }
         };
         this.forward = function() {
@@ -3980,7 +4561,7 @@ var NativeDocument = (function (exports) {
                     }
                     this.handleRouteChange(route, params, query, path);
                 } catch(e) {
-                    DebugManager$1.error('HistoryRouter', 'Error in popstate event', e);
+                    DebugManager.error('HistoryRouter', 'Error in popstate event', e);
                 }
             });
             const { route, params, query, path } = this.resolve(defaultPath || (window.location.pathname+window.location.search));
@@ -4068,15 +4649,24 @@ var NativeDocument = (function (exports) {
     function RouterComponent(router, container) {
 
         const $cache = new Map();
+        let $lastNodeInserted  = null;
 
         const updateContainer = function(node, route) {
             container.innerHTML = '';
+            let nodeToInsert = node;
             const layout = route.layout();
+            if(Validator.isNDElement(node)) {
+                nodeToInsert = node.node();
+            }
             if(layout) {
-                container.appendChild(layout(node));
+                container.appendChild(layout(nodeToInsert));
                 return;
             }
-            container.appendChild(node);
+            if(Validator.isAnchor($lastNodeInserted)) {
+                $lastNodeInserted.remove();
+            }
+            container.appendChild(nodeToInsert);
+            $lastNodeInserted = node;
         };
 
         const handleCurrentRouterState = function(state) {
@@ -4134,7 +4724,7 @@ var NativeDocument = (function (exports) {
                     listener(request);
                     next && next(request);
                 } catch (e) {
-                    DebugManager$1.warn('Route Listener', 'Error in listener:', e);
+                    DebugManager.warn('Route Listener', 'Error in listener:', e);
                 }
             }
         };
@@ -4293,7 +4883,7 @@ var NativeDocument = (function (exports) {
      */
     Router.create = function(options, callback) {
         if(!Validator.isFunction(callback)) {
-            DebugManager$1.error('Router', 'Callback must be a function', e);
+            DebugManager.error('Router', 'Callback must be a function', e);
             throw new RouterError('Callback must be a function');
         }
         const router = new Router(options);
@@ -4467,6 +5057,7 @@ var NativeDocument = (function (exports) {
 
     var utils = /*#__PURE__*/Object.freeze({
         __proto__: null,
+        Filters: index,
         NativeFetch: NativeFetch,
         Service: Service
     });

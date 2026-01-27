@@ -1,5 +1,6 @@
 import {ObservableChecker, ObservableItem, ObservableProxy} from "./observable";
-import { NDElement, ValidChild } from "./elements";
+import { ValidChild } from "./elements";
+import { NDElement } from "./nd-element";
 
 export type ValidChildren = ValidChild | ValidChild[];
 

@@ -17,12 +17,6 @@ if (import.meta.hot) {
             return;
         }
 
-        // const NativeDocument = window.NativeDocument;
-        // if (!NativeDocument) {
-        //     console.error('[HMR Browser] NativeDocument not found on window!');
-        //     return;
-        // }
-
         if (!ComponentRegistry) {
             console.error('[HMR Browser] ComponentRegistry not found!');
             return;

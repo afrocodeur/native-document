@@ -6,10 +6,12 @@ import { fileURLToPath } from 'node:url'
 const AliasPlugin = alias({
     entries: [
         { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
-        { find: '@root', replacement: fileURLToPath(new URL('./', import.meta.url)) },
-        { find: '@core', replacement: fileURLToPath(new URL('./index', import.meta.url)) },
         { find: '@src', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
+        { find: '@root', replacement: fileURLToPath(new URL('./', import.meta.url)) },
+        { find: '@components', replacement: fileURLToPath(new URL('./src/components', import.meta.url)) },
         { find: '@devtools', replacement: fileURLToPath(new URL('./src/devtools', import.meta.url)) },
+        { find: '@core', replacement: fileURLToPath(new URL('./index', import.meta.url)) },
+        { find: '@elements', replacement: fileURLToPath(new URL('./elements', import.meta.url)) },
     ]
 });
 
@@ -66,8 +68,24 @@ export default [
         },
         plugins: [
             AliasPlugin,
-            PreventProd,
             terser()
+        ]
+    },
+    {
+        input: {
+            main: 'components.js'
+        },
+        output: {
+            dir: 'dist',
+            entryFileNames: 'native-document.components.min.js',
+            format: 'iife',
+            globals: 'NativeComponents',
+            name: 'NativeComponents',
+        },
+        plugins: [
+            AliasPlugin,
+            PreventProd,
+            // terser()
         ]
     }
 ];

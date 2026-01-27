@@ -1,8 +1,10 @@
-import NativeFetch from "./src/utils/fetch/NativeFetch";
-import { Service } from "./src/utils/service";
+import NativeFetch from "@src/fetch/NativeFetch";
+import { Service } from "@src/core/utils/service";
+import * as Filters from "@src/core/utils/filters/index";
 
 
 export {
     NativeFetch,
-    Service
+    Service,
+    Filters,
 };

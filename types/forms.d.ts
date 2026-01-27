@@ -1,5 +1,6 @@
 // Form elements type definitions
-import { Attributes, ValidChild, NDElement } from './elements';
+import { Attributes, ValidChild } from './elements';
+import { NDElement} from "./nd-element";
 import {ElementFunction} from "./elements";
 
 // Form Elements

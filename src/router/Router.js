@@ -1,12 +1,12 @@
 import {Route} from "./Route.js";
-import Validator from "../utils/validator.js";
-import RouterError from "../errors/RouterError.js";
+import Validator from "@src/core/utils/validator.js";
+import RouterError from "@src/core/errors/RouterError.js";
 import {RouteGroupHelper} from "./RouteGroupHelper.js";
-import {trim} from "../utils/helpers.js";
+import {trim} from "@src/core/utils/helpers.js";
 import HashRouter from "./modes/HashRouter.js";
 import HistoryRouter from "./modes/HistoryRouter.js";
 import MemoryRouter from "./modes/MemoryRouter.js";
-import DebugManager from "../utils/debug-manager.js";
+import DebugManager from "@src/core/utils/debug-manager.js";
 import {RouterComponent} from "./RouterComponent.js";
 
 export const DEFAULT_ROUTER_NAME = 'default';

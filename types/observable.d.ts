@@ -1,3 +1,5 @@
+import {FilterResult, PredicateMap} from "./filters/types";
+
 export type Unsubscribe = () => void;
 
 // Observable system type definitions
@@ -89,6 +91,10 @@ export interface ObservableArray<T> extends ObservableItem<T[]> {
     at(index: number): T | undefined;
     findIndex(callback: (value: T, index: number, array: T[]) => boolean): number;
     concat(...items: (T | T[])[]): T[];
+
+    where(predicates: PredicateMap<T>): ObservableArray<T>;
+    whereSome<K extends keyof T>(fields: K[], filter: FilterResult<T[K]>): ObservableArray<T>;
+    whereEvery<K extends keyof T>(fields: K[], filter: FilterResult<T[K]>): ObservableArray<T>;
 }
 
 export type ObservableProxy<T extends Record<string, any>> = {
@@ -134,7 +140,7 @@ export interface ObservableConfig {
 
 export interface ObservableStatic {
     <T>(value: T, configs?: ObservableConfig | null): ObservableItem<T>;
-    array<T>(target: T[], configs?: ObservableConfig | null): ObservableArray<T>;
+    array<T>(target: T[] | null, configs?: ObservableConfig | null): ObservableArray<T>;
 
     init<T extends Record<string, any>>(value: T, configs?: ObservableConfig | null): ObservableProxy<T>;
     object<T extends Record<string, any>>(value: T, configs?: ObservableConfig | null): ObservableProxy<T>;

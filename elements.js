@@ -1,5 +1,5 @@
-import Anchor from "./src/elements/anchor";
-export { createPortal } from "./src/elements/anchor";
-export * from './src/elements/index';
+import Anchor from "./src/core/elements/anchor";
+export { createPortal } from "./src/core/elements/anchor";
+export * from './src/core/elements/index';
 
 export { Anchor, Anchor as NativeDocumentFragment };

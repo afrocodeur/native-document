@@ -1,5 +1,8 @@
 
 function Observable(name, instance, value, ...args) {
+    if(!instance?.context) {
+        return __OriginalObservable__(value, ...args);
+    }
     if(instance.context.states.has(name)) {
         const item =  instance.context.states.get(name);
         if(item.value !== value) {
@@ -18,6 +21,9 @@ function Observable(name, instance, value, ...args) {
 };
 
 Observable.init = function(name, instance, value, ...args) {
+    if(!instance?.context) {
+        return __OriginalObservable__.init(value, ...args);
+    }
     if(instance.context.states.has(name)) {
         const item = instance.context.states.get(name);
 
@@ -37,6 +43,9 @@ Observable.init = function(name, instance, value, ...args) {
 };
 
 Observable.array = function(name, instance, value, ...args) {
+    if(!instance?.context) {
+        return __OriginalObservable__.array(value, ...args);
+    }
     if(instance.context.states.has(name)) {
         const item = instance.context.states.get(name);
         if(item.value !== JSON.stringify(value)) {
@@ -53,6 +62,7 @@ Observable.array = function(name, instance, value, ...args) {
     return item;
 };
 
-Observable.object = Observable.init;
-Observable.json = Observable.init;
+Observable.object = __OriginalObservable__.init;
+Observable.json = __OriginalObservable__.init;
+Observable.computed = __OriginalObservable__.computed;
 const $ = Observable;

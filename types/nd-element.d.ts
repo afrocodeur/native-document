@@ -6,6 +6,12 @@ interface MethodsObject {
     [methodName: string]: (this: NDElement, ...args: any[]) => any;
 }
 
+export type ExtractMethods<T extends MethodsObject> = {
+    [K in keyof T]: T[K] extends (this: NDElement, ...args: infer Args) => infer R
+        ? (...args: Args) => R
+        : never;
+};
+
 export interface NDElement {
     readonly __$isNDElement: true;
     readonly $element: HTMLElement;
@@ -14,8 +20,11 @@ export interface NDElement {
 
     ref(target: any, name: string): this;
     refSelf(target: any, name: string): this;
-    with(methods: MethodsObject): this;
+    with<T extends MethodsObject>(methods: T): this & ExtractMethods<T>;
     extend(methods: MethodsObject): NDElement;
+    extend<T extends MethodsObject>(
+        methods: T
+    ): NDElement & { prototype: NDElement & ExtractMethods<T> };
 
     unmountChildren(): this;
     remove(): this;

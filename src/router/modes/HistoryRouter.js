@@ -1,5 +1,4 @@
-import RouterError from '../../errors/RouterError';
-import DebugManager from "../../utils/debug-manager.js";
+import DebugManager from "@src/core/utils/debug-manager.js";
 
 export default function HistoryRouter() {
 

@@ -1,5 +1,5 @@
-import {Div} from "../../../elements";
-import DevToolsWidget from "../widget/DevToolsWidget";
+import {Div} from "@elements";
+import DevToolsWidget from "@devtools/widget/DevToolsWidget";
 
 export default function App() {
 
