@@ -108,6 +108,12 @@ export function bindAttributeWithObservable(element, attributeName, value) {
     }
 }
 
+const NdBindings = {
+    class: (element, value) => bindClassAttribute(element, value),
+    style: (element, value) => bindStyleAttribute(element, value),
+};
+
+
 /**
  *
  * @param {HTMLElement} element
@@ -123,41 +129,27 @@ export default function AttributesWrapper(element, attributes) {
 
     for(let key in attributes) {
         const attributeName = key.toLowerCase();
-        let value = attributes[attributeName];
-        if(value === null || value === undefined) {
+        let value = attributes[key];
+        if(value == null) {
             continue;
         }
         if(value.handleNdAttribute) {
             value.handleNdAttribute(element, attributeName, value)
             continue;
         }
-        if(Validator.isString(value)) {
-            element.setAttribute(attributeName, value);
-            return;
+        if(typeof value === 'object') {
+            const binding = NdBindings[attributeName];
+            if(binding) {
+                binding(element, value);
+                continue;
+            }
         }
-        if(attributeName === 'class' && Validator.isObject(value)) {
-            bindClassAttribute(element, value);
-            continue;
-        }
-        if(attributeName === 'style' && Validator.isObject(value)) {
-            bindStyleAttribute(element, value);
-            continue;
-        }
-        if(BOOLEAN_ATTRIBUTES.includes(attributeName)) {
+        if(BOOLEAN_ATTRIBUTES.has(attributeName)) {
             bindBooleanAttribute(element, attributeName, value);
-            continue;
-        }
-        if(Validator.isObservable(value)) {
-            bindAttributeWithObservable(element, attributeName, value);
-            continue;
-        }
-        if(value.$hydrate) {
-            value.$hydrate(element, attributeName);
             continue;
         }
 
         element.setAttribute(attributeName, value);
-
     }
     return element;
 }

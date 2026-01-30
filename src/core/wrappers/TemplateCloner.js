@@ -10,7 +10,7 @@ const bindAttributes = (node, bindDingData, data) => {
     if(bindDingData.attributes) {
         attributes = {};
         for (const attr in bindDingData.attributes) {
-            attributes[attr] = bindDingData.attributes[attr](...data);
+            attributes[attr] = bindDingData.attributes[attr].apply(null, data);
         }
     }
 
@@ -18,7 +18,7 @@ const bindAttributes = (node, bindDingData, data) => {
         attributes = attributes || {};
         attributes.class = {};
         for (const className in bindDingData.classes) {
-            attributes.class[className] = bindDingData.classes[className](...data);
+            attributes.class[className] = bindDingData.classes[className].apply(null, data);
         }
     }
 
@@ -26,7 +26,7 @@ const bindAttributes = (node, bindDingData, data) => {
         attributes = attributes || {};
         attributes.style = {};
         for (const property in bindDingData.styles) {
-            attributes.style[property] = bindDingData.styles[property](...data);
+            attributes.style[property] = bindDingData.styles[property].apply(null, data);
         }
     }
 
@@ -36,6 +36,14 @@ const bindAttributes = (node, bindDingData, data) => {
     }
 
     return null;
+};
+
+const findByPath = (root, path) => {
+    let target = root;
+    for (let i = 0, len = path.length; i < len; i++) {
+        target = target.childNodes[path[i]];
+    }
+    return target;
 };
 
 const $hydrateFn = function(hydrateFunction, targetType, element, property) {
@@ -58,7 +66,7 @@ const bindAttachMethods = function(node, bindDingData, data) {
     }
     for(const methodName in bindDingData.attach) {
         node.nd[methodName](function(...args) {
-            bindDingData.attach[methodName].call(this, ...[...args, ...data]);
+            bindDingData.attach[methodName].apply(this, [...args, ...data]);
         });
     }
 };
@@ -67,44 +75,78 @@ export function TemplateCloner($fn) {
     let $node = null;
     let $hasBindingData = false;
 
-    const clone = (node, data) => {
+    const $bindingPaths = [];
+
+    const clone = (node, data, path) => {
         const bindDingData = cloneBindingsDataCache.get(node);
         if(node.nodeType === 3) {
             if(bindDingData && bindDingData.value) {
+                $bindingPaths.push({
+                    path: [...path],
+                    fn: (data, targetNode, currentRoot) => {
+                        const newNode = bindDingData.value(data);
+                        targetNode.replaceWith(newNode);
+                        if (targetNode === currentRoot) {
+                            return newNode;
+                        }
+                        return null;
+                    }
+                });
                 return bindDingData.value(data);
             }
             return node.cloneNode(true);
         }
         const nodeCloned = node.cloneNode(node.fullCloneNode);
+        if(node.fullCloneNode) {
+            return nodeCloned;
+        }
         if(bindDingData) {
             bindAttributes(nodeCloned, bindDingData, data);
             bindAttachMethods(nodeCloned, bindDingData, data);
-        }
-        if(node.fullCloneNode) {
-            return nodeCloned;
+            $bindingPaths.push({
+                path: [...path],
+                fn: (data, targetNode) => {
+                    bindAttributes(targetNode, bindDingData, data);
+                    bindAttachMethods(targetNode, bindDingData, data);
+                }
+            })
         }
         const childNodes = node.childNodes;
         for(let i = 0, length = childNodes.length; i < length; i++) {
             const childNode = childNodes[i];
-            const childNodeCloned = clone(childNode, data);
+            path.push(i);
+            const childNodeCloned = clone(childNode, data, path);
+            path.pop();
             nodeCloned.appendChild(childNodeCloned);
         }
         return nodeCloned;
     };
 
-    this.clone = (data) => {
-        if(!$node) {
-            $node = $fn(this);
-            if(!$hasBindingData) {
-                const nodeCloned = $node.cloneNode(true);
-                nodeCloned.fullCloneNode = true;
-                return nodeCloned;
+    const cloneWithBindingPaths = (data) => {
+        let root = $node.cloneNode(true);
+
+        for (let i = 0, len = $bindingPaths.length; i < len; i++) {
+            const binding = $bindingPaths[i];
+            const target = findByPath(root, binding.path);
+            const newRoot = binding.fn(data, target, root);
+            if(newRoot) {
+                root = newRoot;
             }
         }
+
+        return root;
+    };
+
+    this.clone = (data) => {
+        $node = $fn(this);
         if(!$hasBindingData) {
+            this.clone = () => $node.cloneNode(true);
             return $node.cloneNode(true);
         }
-        return clone($node, data);
+
+        const firstClone = clone($node, data, []);
+        this.clone = cloneWithBindingPaths;
+        return firstClone;
     };
 
 
@@ -163,3 +205,4 @@ export function useCache(fn) {
         return wrapper([_, __, ...args]);
     };
 }
+w

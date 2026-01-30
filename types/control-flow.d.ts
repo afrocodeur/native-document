@@ -37,7 +37,6 @@ export interface ForEachFunction {
 export interface ForEachArrayFunction {
     <T>(data: ObservableArray<T>,
         callback: (item: T, index?: ObservableItem<number>) => ValidChild,
-        key?: string | ((item: T, defaultKey: number) => string),
         configs?: { pushDelay?: (items: T[]) => number, isParentUniqueChild: boolean, shouldKeepItemsInCache?: boolean }): DocumentFragment;
 }
 

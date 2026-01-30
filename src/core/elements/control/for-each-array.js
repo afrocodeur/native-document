@@ -5,7 +5,7 @@ import {getKey} from "@src/core/utils/helpers";
 import { ElementCreator } from "@src/core/wrappers/ElementCreator";
 import NativeDocumentError from "@src/core/errors/NativeDocumentError";
 
-export function ForEachArray(data, callback, key, configs = {}) {
+export function ForEachArray(data, callback, configs = {}) {
     const element = Anchor('ForEach Array');
     const blockEnd = element.endElement();
     const blockStart = element.startElement();
@@ -14,23 +14,14 @@ export function ForEachArray(data, callback, key, configs = {}) {
     let lastNumberOfItems = 0;
     const isIndexRequired = callback.length >= 2;
 
-    const keysCache = new WeakMap();
-
-    const clear = () => {
+    const clear = (items) => {
         element.removeChildren();
-        cleanCache();
+        cleanCache(items);
         lastNumberOfItems = 0;
     };
 
-    const getItemKey = (item, indexKey) => {
-        if(keysCache.has(item)) {
-            return keysCache.get(item);
-        }
-        return getKey(item, indexKey, key);
-    };
-
     const getItemChild = (item) => {
-        return getChildByKey(getItemKey(item));
+        return cache.get(item)?.child;
     };
 
     const updateIndexObservers = (items, startFrom = 0) => {
@@ -39,16 +30,17 @@ export function ForEachArray(data, callback, key, configs = {}) {
         }
         let index = startFrom;
         for(let i = startFrom, length = items?.length; i < length; i++) {
-            const cacheItem = cache.get(getItemKey(items[i], i));
+            const cacheItem = cache.get(items[i]);
             if(!cacheItem) {
                 continue;
             }
-            cacheItem.indexObserver?.deref()?.set(index);
+            cacheItem.indexObserver?.set(index);
             index++;
         }
     };
 
-    const removeCacheItem = (cacheItem, removeChild = true) => {
+    const removeCacheItem = (item, removeChild = true) => {
+        const cacheItem = cache.get(item);
         if(!cacheItem) {
             return;
         }
@@ -57,14 +49,10 @@ export function ForEachArray(data, callback, key, configs = {}) {
             child?.remove();
             cache.delete(cacheItem.keyId);
         }
-        cacheItem.indexObserver?.deref()?.cleanup();
-    }
-
-    const removeCacheItemByKey = (keyId, removeChild = true) => {
-        removeCacheItem(cache.get(keyId), removeChild);
+        cacheItem.indexObserver?.cleanup();
     };
 
-    const cleanCache = () => {
+    const cleanCache = (items) => {
         if(configs.shouldKeepItemsInCache) {
             return;
         }
@@ -72,53 +60,41 @@ export function ForEachArray(data, callback, key, configs = {}) {
             cache.clear();
             return;
         }
-        for (const [keyId, cacheItem] of cache.entries()) {
-            removeCacheItem(cacheItem, false);
+        for (const [itemAsKey, _] of cache.entries()) {
+            if(items && items.contains(itemAsKey)) {
+                continue;
+            }
+            removeCacheItem(itemAsKey, false);
         }
         cache.clear();
     }
 
     const buildItem = (item, indexKey) => {
-        const keyId = getItemKey(item, indexKey);
-
-        if(cache.has(keyId)) {
-            const cacheItem = cache.get(keyId);
-            cacheItem.indexObserver?.deref()?.set(indexKey);
+        const cacheItem = cache.get(item);
+        if(cacheItem) {
+            cacheItem.indexObserver?.set(indexKey);
             const child = cacheItem.child;
             if(child) {
                 return child;
             }
-            cache.delete(keyId);
+            cache.delete(item);
         }
 
         const indexObserver = isIndexRequired ? Observable(indexKey) : null;
         let child = ElementCreator.getChild(callback(item, indexObserver));
-        if(!child) {
-            throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
+        if(child) {
+            cache.set(item, {
+                child,
+                indexObserver: (indexObserver ? new WeakRef(indexObserver) : null)
+            });
+            return child;
         }
-        cache.set(keyId, {
-            keyId,
-            child: child,
-            indexObserver: (indexObserver ? new WeakRef(indexObserver) : null)
-        });
-        keysCache.set(item, keyId);
-        return child;
-    };
-    const getChildByKey = function(keyId) {
-        const cacheItem = cache.get(keyId);
-        if(!cacheItem) {
-            return null;
-        }
-        const child = cacheItem.child;
-        if(!child) {
-            removeCacheItem(cacheItem, false);
-            return null;
-        }
-        return child;
+
+        throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
     };
 
-    const removeByKey = function(keyId, fragment) {
-        const cacheItem = cache.get(keyId);
+    const removeByItem = function(item, fragment) {
+        const cacheItem = cache.get(item);
         if(!cacheItem) {
             return null;
         }
@@ -147,7 +123,7 @@ export function ForEachArray(data, callback, key, configs = {}) {
             element.appendElement(Actions.toFragment(items));
         },
         replace(items) {
-            clear();
+            clear(items);
             Actions.add(items);
         },
         reOrder(items) {
@@ -163,7 +139,7 @@ export function ForEachArray(data, callback, key, configs = {}) {
             element.appendElement(fragment, blockEnd);
         },
         removeOne(element, index) {
-            removeCacheItemByKey(getItemKey(element, index), true);
+            removeCacheItem(element, true);
         },
         clear,
         merge(items) {
@@ -197,16 +173,15 @@ export function ForEachArray(data, callback, key, configs = {}) {
             const garbageFragment = document.createDocumentFragment();
 
             if(deleted.length > 0) {
-                let firstKey = getItemKey(deleted[0], start);
+                let firstItem = deleted[0];
                 if(deleted.length === 1) {
-                    removeByKey(firstKey, garbageFragment);
+                    removeByItem(firstItem, garbageFragment);
                 } else if(deleted.length > 1) {
-                    const firstChildRemoved = getChildByKey(firstKey);
+                    const firstChildRemoved = getItemChild(deleted[0]);
                     elementBeforeFirst = firstChildRemoved?.previousSibling;
 
                     for(let i = 0; i < deleted.length; i++) {
-                        const keyId = getItemKey(deleted[i], start + i, key);
-                        removeByKey(keyId, garbageFragment);
+                        firstItem(deleted[i], garbageFragment);
                     }
                 }
             } else {

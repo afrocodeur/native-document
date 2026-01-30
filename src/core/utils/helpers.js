@@ -56,15 +56,18 @@ export const nextTick = function(fn) {
  * @returns {*}
  */
 export const getKey = (item, defaultKey, key) => {
-    if(Validator.isFunction(key)) return key(item, defaultKey);
-    if(Validator.isObservable(item)) {
-        const val = item.val();
-        return (val && key) ? val[key] : defaultKey;
+    if (Validator.isString(key)) {
+        const val = Validator.isObservable(item) ? item.val() : item;
+        const result = val?.[key];
+        return Validator.isObservable(result) ? result.val() : (result ?? defaultKey);
     }
-    if(!Validator.isObject(item)) {
-        return item;
+
+    if (Validator.isFunction(key)) {
+        return key(item, defaultKey);
     }
-    return item[key]?.val?.() ??  item[key] ?? defaultKey;
+
+    const val = Validator.isObservable(item) ? item.val() : item;
+    return val ?? defaultKey;
 };
 
 export const trim = function(str, char) {

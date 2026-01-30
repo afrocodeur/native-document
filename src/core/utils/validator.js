@@ -139,6 +139,7 @@ const Validator = {
 };
 if(process.env.NODE_ENV === 'development') {
     Validator.validateAttributes = function(attributes) {
+        console.log('AttributesWrapper', attributes);
         if (!attributes || typeof attributes !== 'object') {
             return attributes;
         }

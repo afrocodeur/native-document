@@ -83,22 +83,14 @@ export const ElementCreator = {
         PluginsManager.emit('AfterProcessChildren', parent);
     },
     getChild(child) {
-        if(child == null) {
-            return null;
-        }
-        if(child.toNdElement) {
-            do {
-                child =  child.toNdElement();
-                if(Validator.isElement(child)) {
-                    return child;
-                }
-                if(child == null) {
-                    return null;
-                }
-            } while (child.toNdElement);
+        while (child?.toNdElement) {
+            child = child.toNdElement();
+
+            if (Validator.isElement(child)) return child;
+            if (!child) return null;
         }
 
-        return ElementCreator.createStaticTextNode(null, child);
+        return child ? ElementCreator.createStaticTextNode(null, child) : null;
     },
     /**
      *
