@@ -1,4 +1,4 @@
-import {Validator} from "@core";
+import {Validator} from "../../../../index";
 
 export const Validation = {
 

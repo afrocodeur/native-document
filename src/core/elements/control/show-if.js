@@ -1,8 +1,8 @@
-import { Observable } from "@src/core/data/Observable";
-import Validator from "@src/core/utils/validator";
-import DebugManager from "@src/core/utils/debug-manager.js";
-import Anchor from "@src/core/elements/anchor";
-import {ElementCreator} from "@src/core/wrappers/ElementCreator";
+import { Observable } from "../../data/Observable";
+import Validator from "../../utils/validator";
+import DebugManager from "../../utils/debug-manager.js";
+import Anchor from "../../elements/anchor";
+import {ElementCreator} from "../../wrappers/ElementCreator";
 
 /**
  * Show the element if the condition is true

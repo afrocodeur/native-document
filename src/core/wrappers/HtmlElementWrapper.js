@@ -1,7 +1,7 @@
-import Validator from "@src/core/utils/validator";
+import Validator from "../utils/validator";
 import {ElementCreator} from "./ElementCreator";
 import './NdPrototype';
-import {normalizeComponentArgs} from "@src/core/utils/args-types";
+import {normalizeComponentArgs} from "../utils/args-types";
 
 /**
  *

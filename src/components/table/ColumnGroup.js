@@ -1,5 +1,5 @@
 import Column from "./Column";
-import { THeadCell } from "@elements";
+import { THeadCell } from "../../../elements";
 
 export default function ColumnGroup(title, configs = {}) {
     this.$description = {

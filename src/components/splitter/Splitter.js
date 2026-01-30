@@ -1,7 +1,6 @@
-import BaseComponent from "@components/BaseComponent";
-import EventEmitter from "@src/core/utils/EventEmitter";
-import SplitterPanel from "./SplitterPanel";
-import {Validator} from "@core";
+import BaseComponent from "../BaseComponent";
+import EventEmitter from "../../../src/core/utils/EventEmitter";
+import {Validator} from "../../../index";
 
 export default function Splitter(config = {}) {
     if(!(this instanceof Splitter)) {

@@ -1,4 +1,4 @@
-import {Validation} from "@components/form/validation/Validation";
+import {Validation} from "../../validation/Validation";
 import StringField from "./StringField";
 
 export default function PasswordField(name, defaultConfig) {

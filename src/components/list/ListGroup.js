@@ -1,5 +1,5 @@
-import BaseComponent from "@components/BaseComponent";
-import HasItems from "@components/$traits/HasItems";
+import BaseComponent from "../BaseComponent";
+import HasItems from "../$traits/HasItems";
 
 export default function ListGroup(label, config = {}) {
     if(!(this instanceof ListGroup)) {

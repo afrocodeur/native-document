@@ -1,7 +1,7 @@
-import ObservableItem from "@/core/data/ObservableItem";
-import {toggleElementClass} from "@/core/wrappers/AttributesWrapper";
-import {ObservableWhen} from "@/core/data/ObservableWhen";
-import TemplateBinding from "@/core/wrappers/TemplateBinding";
+import ObservableItem from "../../../core/data/ObservableItem";
+import {toggleElementClass} from "../AttributesWrapper";
+import {ObservableWhen} from "../../data/ObservableWhen";
+import TemplateBinding from "../../../core/wrappers/TemplateBinding";
 
 ObservableItem.prototype.bindNdClass = function(element, className) {
     element.classes.toggle(className, this.val());

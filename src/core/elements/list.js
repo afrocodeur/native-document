@@ -1,4 +1,4 @@
-import HtmlElementWrapper from "@src/core/wrappers/HtmlElementWrapper";
+import HtmlElementWrapper from "../wrappers/HtmlElementWrapper";
 
 export const OrderedList = HtmlElementWrapper('ol');
 export const UnorderedList = HtmlElementWrapper('ul');

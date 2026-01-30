@@ -1,8 +1,8 @@
-import {debounce} from "@src/core/utils/helpers";
-import EventEmitter from "@src/core/utils/EventEmitter";
-import {Validator, Observable as $ } from "@core";
-import NativeDocumentError from "@src/core/errors/NativeDocumentError";
-import BaseComponent from "@components/BaseComponent";
+import {debounce} from "../../core/utils/helpers";
+import EventEmitter from "../../../src/core/utils/EventEmitter";
+import {Validator, Observable as $ } from "../../../index";
+import NativeDocumentError from "../../../src/core/errors/NativeDocumentError";
+import BaseComponent from "../BaseComponent";
 
 /**
  * @param { {data: Observable } } configs

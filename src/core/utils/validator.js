@@ -1,9 +1,9 @@
-import ObservableItem from "@src/core/data/ObservableItem";
+import ObservableItem from "../data/ObservableItem";
 import DebugManager from "./debug-manager";
-import NativeDocumentError from "@src/core/errors/NativeDocumentError";
-import ObservableChecker from "@src/core/data/ObservableChecker";
-import {NDElement} from "@src/core/wrappers/NDElement";
-import TemplateBinding from "@src/core/wrappers/TemplateBinding";
+import NativeDocumentError from "../errors/NativeDocumentError";
+import ObservableChecker from "../data/ObservableChecker";
+import {NDElement} from "../wrappers/NDElement";
+import TemplateBinding from "../wrappers/TemplateBinding";
 
 const COMMON_NODE_TYPES = {
     ELEMENT: 1,

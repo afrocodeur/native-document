@@ -1,4 +1,4 @@
-import { ObservableItem } from '@src/core/data/observable';
+import { ObservableItem } from '../observable';
 import { FilterResult } from './types';
 
 export type DateValue = Date | string | number | ObservableItem<Date | string | number>;

@@ -1,5 +1,4 @@
-import DebugManager from "@src/core/utils/debug-manager";
-import Validator from "@src/core/utils/validator";
+import DebugManager from "../../core/utils/debug-manager";
 
 
 const MemoryManager = (function() {

@@ -1,6 +1,6 @@
 import ObservableItem from './ObservableItem';
 import MemoryManager from "./MemoryManager";
-import NativeDocumentError from "@src/core/errors/NativeDocumentError";
+import NativeDocumentError from "../../core/errors/NativeDocumentError";
 
 /**
  *

@@ -1,7 +1,7 @@
-import {bindAttributeWithObservable, bindBooleanAttribute} from "@src/core/wrappers/AttributesWrapper";
-import ObservableItem from "@src/core/data/ObservableItem";
-import TemplateBinding from "@src/core/wrappers/TemplateBinding";
-import {BOOLEAN_ATTRIBUTES} from "@src/core/wrappers/constants";
+import {bindAttributeWithObservable, bindBooleanAttribute} from "../AttributesWrapper";
+import ObservableItem from "../../data/ObservableItem";
+import TemplateBinding from "../TemplateBinding";
+import {BOOLEAN_ATTRIBUTES} from "../constants";
 
 
 String.prototype.handleNdAttribute = function(element, attributeName) {

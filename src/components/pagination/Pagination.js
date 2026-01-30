@@ -1,5 +1,5 @@
-import BaseComponent from "@components/BaseComponent";
-import EventEmitter from "@src/core/utils/EventEmitter";
+import BaseComponent from "../BaseComponent";
+import EventEmitter from "../../../src/core/utils/EventEmitter";
 
 export default function Pagination(config = {}) {
     if(!(this instanceof Pagination)) {

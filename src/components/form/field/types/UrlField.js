@@ -1,5 +1,5 @@
 import StringField from "./StringField";
-import {Validation} from "@components/form/validation/Validation";
+import {Validation} from "../../validation/Validation";
 
 export default function UrlField(name, defaultConfig) {
     if(!(this instanceof UrlField)) {

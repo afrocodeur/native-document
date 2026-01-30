@@ -1,5 +1,5 @@
-import Validator from "@src/core/utils/validator.js";
-import NativeDocumentError from "@src/core/errors/NativeDocumentError.js";
+import Validator from "../../utils/validator.js";
+import NativeDocumentError from "../../errors/NativeDocumentError.js";
 import {ShowIf} from "./show-if.js";
 
 export const ShowWhen = function() {

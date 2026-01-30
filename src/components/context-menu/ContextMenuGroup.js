@@ -1,4 +1,4 @@
-import MenuGroup from "@components/menu/MenuGroup";
+import MenuGroup from "../menu/MenuGroup";
 
 export default function ContextMenuGroup(label, config) {
     if(!(this instanceof ContextMenuGroup)) {

@@ -1,9 +1,8 @@
-import Anchor from "@src/core/elements/anchor";
-import {Observable} from "@src/core/data/Observable";
-import Validator from "@src/core/utils/validator";
-import {getKey} from "@src/core/utils/helpers";
-import { ElementCreator } from "@src/core/wrappers/ElementCreator";
-import NativeDocumentError from "@src/core/errors/NativeDocumentError";
+import Anchor from "../../elements/anchor";
+import {Observable} from "../../data/Observable";
+import Validator from "../../utils/validator";
+import { ElementCreator } from "../../wrappers/ElementCreator";
+import NativeDocumentError from "../../errors/NativeDocumentError";
 
 export function ForEachArray(data, callback, configs = {}) {
     const element = Anchor('ForEach Array');

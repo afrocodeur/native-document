@@ -1,9 +1,9 @@
-import ObservableItem from "@src/core/data/ObservableItem";
-import {NDElement} from "@src/core/wrappers/NDElement";
-import TemplateBinding from "@src/core/wrappers/TemplateBinding";
-import {ElementCreator} from "@src/core/wrappers/ElementCreator";
-import PluginsManager from "@src/core/utils/plugins-manager";
-import Validator from "@src/core/utils/validator";
+import ObservableItem from "../../data/ObservableItem";
+import {NDElement} from "../NDElement";
+import TemplateBinding from "../TemplateBinding";
+import {ElementCreator} from "../ElementCreator";
+import PluginsManager from "../../utils/plugins-manager";
+import Validator from "../../utils/validator";
 
 String.prototype.toNdElement = function () {
     const formattedChild = this.resolveObservableTemplate ? this.resolveObservableTemplate() : this;

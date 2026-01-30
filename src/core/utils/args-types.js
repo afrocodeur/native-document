@@ -1,6 +1,6 @@
 import Validator from "./validator";
-import ArgTypesError from "@src/core/errors/ArgTypesError";
-import NativeDocumentError from "@src/core/errors/NativeDocumentError";
+import ArgTypesError from "../errors/ArgTypesError";
+import NativeDocumentError from "../errors/NativeDocumentError";
 
 let withValidation = (fn) => fn;
 let ArgTypes = {};

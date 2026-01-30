@@ -1,4 +1,3 @@
-import {debounce} from "@src/core/utils/helpers";
 
 const DocumentObserver = {
     mounted: new WeakMap(),

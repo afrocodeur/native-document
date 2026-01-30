@@ -1,4 +1,4 @@
-import {trim} from "@src/core/utils/helpers.js";
+import {trim} from "../core/utils/helpers.js";
 
 export const RouteGroupHelper = {
     /**

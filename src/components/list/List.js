@@ -1,8 +1,8 @@
 
-import BaseComponent from "@components/BaseComponent";
-import EventEmitter from "@src/core/utils/EventEmitter";
-import HasItems from "@components/$traits/HasItems";
-import Dropdown from "@components/dropdown/Dropdown";
+import BaseComponent from "../BaseComponent";
+import EventEmitter from "../../../src/core/utils/EventEmitter";
+import HasItems from "../$traits/HasItems";
+import Dropdown from "../dropdown/Dropdown";
 
 export default function List(config = {}) {
     if(!(this instanceof List)) {

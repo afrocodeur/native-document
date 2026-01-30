@@ -1,5 +1,5 @@
 import Field from "../Field";
-import {Validator} from "@core";
+import {Validator} from "../../../../../index";
 import CheckboxField from "./CheckboxField";
 
 export default function RadioField(name, options, defaultConfig = {}) {

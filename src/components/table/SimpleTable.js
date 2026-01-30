@@ -1,6 +1,6 @@
 import Column from "./Column";
 import ColumnGroup from "./ColumnGroup";
-import { Table, TFoot, TRow } from "@elements";
+import { Table, TFoot, TRow } from "../../../elements";
 import DataTable from "./DataTable";
 
 

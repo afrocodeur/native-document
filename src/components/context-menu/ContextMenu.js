@@ -1,5 +1,5 @@
-import Menu from "@components/menu/Menu";
-import BaseComponent from "@components/BaseComponent";
+import Menu from "../menu/Menu";
+import BaseComponent from "../BaseComponent";
 
 export default function ContextMenu(config = {}) {
     if(!(this instanceof ContextMenu)) {

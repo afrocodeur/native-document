@@ -1,4 +1,4 @@
-import {$} from "@core";
+import {$} from "../../../index";
 
 export default function HasItems() {}
 

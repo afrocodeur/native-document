@@ -1,4 +1,4 @@
-import HtmlElementWrapper from "@src/core/wrappers/HtmlElementWrapper";
+import HtmlElementWrapper from "../wrappers/HtmlElementWrapper";
 
 export const Caption = HtmlElementWrapper('caption');
 export const Table = HtmlElementWrapper('table');

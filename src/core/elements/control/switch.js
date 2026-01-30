@@ -1,7 +1,7 @@
-import NativeDocumentError from "@src/core/errors/NativeDocumentError";
-import Validator from "@src/core/utils/validator";
-import Anchor from "@src/core/elements/anchor";
-import {ElementCreator} from "@src/core/wrappers/ElementCreator";
+import NativeDocumentError from "../../errors/NativeDocumentError";
+import Validator from "../../utils/validator";
+import Anchor from "../../elements/anchor";
+import {ElementCreator} from "../../wrappers/ElementCreator";
 
 
 

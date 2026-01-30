@@ -1,5 +1,5 @@
 import { NDElement } from "./NDElement";
-import {EVENTS, EVENTS_WITH_PREVENT, EVENTS_WITH_STOP} from "@src/core/utils/events";
+import {EVENTS, EVENTS_WITH_PREVENT, EVENTS_WITH_STOP} from "../utils/events";
 
 const property = {
     configurable: true,

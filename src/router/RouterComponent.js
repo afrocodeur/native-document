@@ -1,4 +1,4 @@
-import Validator from "@src/core/utils/validator";
+import Validator from "../core/utils/validator";
 
 /**
  *

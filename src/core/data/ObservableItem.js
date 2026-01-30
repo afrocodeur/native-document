@@ -1,11 +1,11 @@
-import DebugManager from "@src/core/utils/debug-manager";
+import DebugManager from "../../core/utils/debug-manager";
 import MemoryManager from "./MemoryManager";
-import NativeDocumentError from "@src/core/errors/NativeDocumentError";
+import NativeDocumentError from "../../core/errors/NativeDocumentError";
 import ObservableChecker from "./ObservableChecker";
-import PluginsManager from "@src/core/utils/plugins-manager";
-import Validator from "@src/core/utils/validator";
+import PluginsManager from "../../core/utils/plugins-manager";
+import Validator from "../../core/utils/validator";
 import {ObservableWhen} from "./ObservableWhen";
-import {deepClone} from "@src/core/utils/helpers.js";
+import {deepClone} from "../utils/helpers";
 
 /**
  *

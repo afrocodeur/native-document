@@ -1,6 +1,6 @@
-import HtmlElementWrapper from "@src/core/wrappers/HtmlElementWrapper"
-import Validator from "@src/core/utils/validator";
-import NativeDocumentError from "@src/core/errors/NativeDocumentError";
+import HtmlElementWrapper from "../wrappers/HtmlElementWrapper"
+import Validator from "../utils/validator";
+import NativeDocumentError from "../errors/NativeDocumentError";
 
 export const BaseImage = HtmlElementWrapper('img');
 export const Img = function(src, attributes) {

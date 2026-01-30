@@ -1,6 +1,6 @@
-import BaseComponent from "@components/BaseComponent";
-import EventEmitter from "@src/core/utils/EventEmitter";
-import HasItems from "@components/$traits/HasItems";
+import BaseComponent from "../BaseComponent";
+import EventEmitter from "../../../src/core/utils/EventEmitter";
+import HasItems from "../$traits/HasItems";
 import MenuDivider from "./MenuDivider";
 import MenuGroup from "./MenuGroup";
 

@@ -1,4 +1,4 @@
-import {Observable} from "@core";
+import {Observable} from "../../index";
 
 export const DevToolService = {
     createdObservable: Observable(0),

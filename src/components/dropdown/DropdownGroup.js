@@ -1,5 +1,5 @@
 import DropdownItem from "./DropdownItem";
-import BaseComponent from "@components/BaseComponent";
+import BaseComponent from "../BaseComponent";
 import DropdownDivider from "./DropdownDivider";
 
 

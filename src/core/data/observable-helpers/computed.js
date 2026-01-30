@@ -1,9 +1,9 @@
-import ObservableItem from "@src/core/data/ObservableItem";
-import Validator from "@src/core/utils/validator";
-import NativeDocumentError from "@src/core/errors/NativeDocumentError";
-import {Observable} from "@src/core/data/Observable";
-import PluginsManager from "@src/core/utils/plugins-manager";
-import {nextTick} from "@src/core/utils/helpers";
+import ObservableItem from "../ObservableItem";
+import Validator from "../../utils/validator";
+import NativeDocumentError from "../..//errors/NativeDocumentError";
+import {Observable} from "../Observable";
+import PluginsManager from "../../utils/plugins-manager";
+import {nextTick} from "../../utils/helpers";
 
 /**
  *

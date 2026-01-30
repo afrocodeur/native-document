@@ -1,4 +1,4 @@
-import { ObservableItem } from '@src/core/data/observable';
+import { ObservableItem } from '../observable';
 
 export interface FilterResult<T = any> {
     dependencies: ObservableItem | ObservableItem[] | null;

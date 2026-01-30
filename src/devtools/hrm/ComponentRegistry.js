@@ -1,5 +1,5 @@
-import {Anchor} from "@elements";
-import Validator from "@src/core/utils/validator";
+import {Anchor} from "../../../elements";
+import Validator from "../../core/utils/validator";
 
 const ComponentRegistry = (function() {
     const registry = new Map();

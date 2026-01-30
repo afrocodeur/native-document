@@ -1,5 +1,5 @@
 import FileField from "./FileField";
-import {Validation} from "@components/form/validation/Validation";
+import {Validation} from "../../validation/Validation";
 
 export default function ImageField(name, defaultConfig) {
     if(!(this instanceof ImageField)) {

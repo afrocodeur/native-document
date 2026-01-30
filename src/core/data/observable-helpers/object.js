@@ -1,5 +1,5 @@
-import Validator from "@src/core/utils/validator";
-import {Observable} from "@src/core/data/Observable";
+import Validator from "../../utils/validator";
+import {Observable} from "../Observable";
 
 const ObservableObjectValue = function(data) {
     const result = {};

@@ -1,7 +1,7 @@
 import {withValidation} from "./args-types.js";
-import {Observable} from "@src/core/data/Observable";
+import {Observable} from "../data/Observable";
 import Validator from "./validator";
-import {NDElement} from "@src/core/wrappers/NDElement";
+import {NDElement} from "../wrappers/NDElement";
 
 
 Function.prototype.args = function(...args) {

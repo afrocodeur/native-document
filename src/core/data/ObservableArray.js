@@ -1,9 +1,9 @@
-import {match} from "@src/core/utils/filters";
-import Validator from "@src/core/utils/validator";
+import {match} from "../utils/filters/index";
+import Validator from "../utils/validator";
 import ObservableItem from "./ObservableItem.js";
 import {Observable} from "./Observable.js";
-import PluginsManager from "@src/core/utils/plugins-manager.js";
-import NativeDocumentError from "@src/core/errors/NativeDocumentError.js";
+import PluginsManager from "../utils/plugins-manager.js";
+import NativeDocumentError from "../errors/NativeDocumentError.js";
 
 const mutationMethods = ['push', 'pop', 'shift', 'unshift', 'reverse', 'sort', 'splice'];
 const noMutationMethods = ['map', 'forEach', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex', 'concat', 'includes', 'indexOf'];

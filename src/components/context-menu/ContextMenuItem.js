@@ -1,4 +1,4 @@
-import MenuItem from "@components/menu/MenuItem";
+import MenuItem from "../menu/MenuItem";
 
 export default function ContextMenuItem(config) {
     if(!(this instanceof ContextMenuItem)) {

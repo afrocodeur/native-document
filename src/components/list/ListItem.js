@@ -1,5 +1,5 @@
-import BaseComponent from "@components/BaseComponent";
-import {Validator} from "@core";
+import BaseComponent from "../BaseComponent";
+import {Validator} from "../../../index";
 
 export default function ListItem(content, config = {}) {
     if(!(this instanceof ListItem)) {

@@ -1,5 +1,5 @@
-import { $ } from '@core';
-import BaseComponent from "@components/BaseComponent";
+import { $ } from '../../../index';
+import BaseComponent from "../BaseComponent";
 
 export default function AccordionItem(config = {}) {
     if(!(this instanceof AccordionItem)){

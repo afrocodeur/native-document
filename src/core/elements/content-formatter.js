@@ -1,4 +1,4 @@
-import HtmlElementWrapper from "@src/core/wrappers/HtmlElementWrapper";
+import HtmlElementWrapper from "../wrappers/HtmlElementWrapper";
 
 export const Div = HtmlElementWrapper('div');
 export const Span = HtmlElementWrapper('span');

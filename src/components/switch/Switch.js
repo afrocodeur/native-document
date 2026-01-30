@@ -1,5 +1,5 @@
-import BaseComponent from "@components/BaseComponent";
-import EventEmitter from "@src/core/utils/EventEmitter";
+import BaseComponent from "../BaseComponent";
+import EventEmitter from "../../../src/core/utils/EventEmitter";
 
 function Switch(config = {}) {
     if (!(this instanceof Switch)) {

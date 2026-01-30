@@ -1,5 +1,5 @@
-import {Div, Button} from "@elements";
-import {DevToolService} from "@devtools/plugin";
+import {Div, Button} from "../../../elements";
+import {DevToolService} from "../plugin";
 
 export default function DevToolsWidget() {
     let shouldFollowPointer = false;

@@ -1,5 +1,5 @@
-import BaseComponent from "@components/BaseComponent";
-import { $ } from '@core';
+import BaseComponent from "../BaseComponent";
+import { $ } from '../../../index';
 
 export default function StepperStep(label, config = {}) {
     if(!(this instanceof StepperStep)) {

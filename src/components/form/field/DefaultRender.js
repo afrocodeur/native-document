@@ -1,5 +1,5 @@
-import {Input, Label, Select} from "@elements";
-import { $ } from "@core";
+import {Input, Label, Select} from "../../../../elements";
+import { $ } from "../../../../index";
 
 
 

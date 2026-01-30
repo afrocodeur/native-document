@@ -1,5 +1,5 @@
 import SimpleTable from "./SimpleTable";
-import { Observable as $ } from "@core";
+import { Observable as $ } from "../../../index";
 
 export default function DataTable(name, configs) {
     SimpleTable.call(this, name, configs);

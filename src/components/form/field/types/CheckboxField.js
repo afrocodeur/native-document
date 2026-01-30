@@ -1,5 +1,5 @@
 import Field from "../Field";
-import {Validator} from "@core";
+import {Validator} from "../../../../../index";
 
 export default function CheckboxField(name, defaultConfig) {
     if(!(this instanceof CheckboxField)) {

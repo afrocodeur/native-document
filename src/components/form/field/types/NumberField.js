@@ -1,4 +1,4 @@
-import {Validation} from "@components/form/validation/Validation";
+import {Validation} from "../../validation/Validation";
 import Field from "../Field";
 
 export default function NumberField(name, type = 'number', defaultConfig = {}) {

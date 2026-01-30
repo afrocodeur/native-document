@@ -1,5 +1,5 @@
-import BaseComponent from "@components/BaseComponent";
-import EventEmitter from "@src/core/utils/EventEmitter";
+import BaseComponent from "../BaseComponent";
+import EventEmitter from "../../../src/core/utils/EventEmitter";
 import DropdownGroup from "./DropdownGroup";
 import DropdownTrigger from "./DropdownTrigger";
 import DropdownDivider from "./DropdownDivider";

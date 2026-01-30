@@ -1,5 +1,5 @@
-import BaseComponent from "@components/BaseComponent";
-import { Button as NativeButton } from "@elements";
+import BaseComponent from "../BaseComponent";
+import { Button as NativeButton } from "../../../elements";
 
 export default function Button(label, config = {}) {
     if(!(this instanceof Button)) {

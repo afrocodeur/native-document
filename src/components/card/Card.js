@@ -1,4 +1,4 @@
-import BaseComponent from "@components/BaseComponent";
+import BaseComponent from "../BaseComponent";
 
 export default function Card(config = {}) {
     if(!(this instanceof Card)) {

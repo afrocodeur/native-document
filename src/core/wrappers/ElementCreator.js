@@ -1,7 +1,7 @@
-import Anchor from "@src/core/elements/anchor";
-import Validator from "@src/core/utils/validator";
+import Anchor from "../elements/anchor";
+import Validator from "../utils/validator";
 import AttributesWrapper from "./AttributesWrapper";
-import PluginsManager from "@src/core/utils/plugins-manager";
+import PluginsManager from "../utils/plugins-manager";
 import './prototypes/nd-element-extensions';
 import './prototypes/attributes-extensions';
 

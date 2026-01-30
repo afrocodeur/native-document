@@ -1,4 +1,4 @@
-import DebugManager from "@src/core/utils/debug-manager.js";
+import DebugManager from "../../core/utils/debug-manager.js";
 
 export default function HistoryRouter() {
 

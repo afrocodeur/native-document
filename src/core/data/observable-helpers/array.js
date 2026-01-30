@@ -1,5 +1,5 @@
-import {Observable} from "@src/core/data/Observable";
-import ObservableArray from "@src/core/data/ObservableArray.js";
+import {Observable} from "../Observable";
+import ObservableArray from "../ObservableArray";
 
 
 /**

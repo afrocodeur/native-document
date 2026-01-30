@@ -1,5 +1,5 @@
 import Field from "../Field";
-import {Validation} from "@components/form/validation/Validation";
+import {Validation} from "../../validation/Validation";
 
 export default function DateField(name, defaultConfig) {
     if(!(this instanceof DateField)) {

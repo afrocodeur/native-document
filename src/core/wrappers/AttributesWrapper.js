@@ -1,7 +1,7 @@
-import Validator from "@src/core/utils/validator";
-import NativeDocumentError from "@src/core/errors/NativeDocumentError";
+import Validator from "../utils/validator";
+import NativeDocumentError from "../errors/NativeDocumentError";
 import {BOOLEAN_ATTRIBUTES} from "./constants.js";
-import {Observable} from "@src/core/data/Observable";
+import {Observable} from "../data/Observable";
 import './prototypes/bind-class-extensions';
 
 

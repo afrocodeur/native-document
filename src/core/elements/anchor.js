@@ -1,6 +1,6 @@
-import Validator from "@src/core/utils/validator";
-import DebugManager from "@src/core/utils/debug-manager";
-import {ElementCreator} from "@src/core/wrappers/ElementCreator";
+import Validator from "../utils/validator";
+import DebugManager from "../utils/debug-manager";
+import {ElementCreator} from "../wrappers/ElementCreator";
 
 
 export default function Anchor(name, isUniqueChild = false) {

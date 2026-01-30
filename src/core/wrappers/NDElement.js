@@ -1,7 +1,7 @@
 import DocumentObserver from "./DocumentObserver";
-import PluginsManager from "@src/core/utils/plugins-manager";
-import NativeDocumentError from "@src/core/errors/NativeDocumentError.js";
-import DebugManager from "@src/core/utils/debug-manager.js";
+import PluginsManager from "../utils/plugins-manager";
+import NativeDocumentError from "../errors/NativeDocumentError.js";
+import DebugManager from "../utils/debug-manager.js";
 
 export function NDElement(element) {
     this.$element = element;

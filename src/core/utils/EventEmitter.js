@@ -1,4 +1,4 @@
-import NativeDocumentError from "@src/core/errors/NativeDocumentError";
+import NativeDocumentError from "../errors/NativeDocumentError";
 
 export default function EventEmitter() {
 

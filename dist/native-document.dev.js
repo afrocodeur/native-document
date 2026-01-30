@@ -259,15 +259,18 @@ var NativeDocument = (function (exports) {
      * @returns {*}
      */
     const getKey = (item, defaultKey, key) => {
-        if(Validator.isFunction(key)) return key(item, defaultKey);
-        if(Validator.isObservable(item)) {
-            const val = item.val();
-            return (val && key) ? val[key] : defaultKey;
+        if (Validator.isString(key)) {
+            const val = Validator.isObservable(item) ? item.val() : item;
+            const result = val?.[key];
+            return Validator.isObservable(result) ? result.val() : (result ?? defaultKey);
         }
-        if(!Validator.isObject(item)) {
-            return item;
+
+        if (Validator.isFunction(key)) {
+            return key(item, defaultKey);
         }
-        return item[key]?.val?.() ??  item[key] ?? defaultKey;
+
+        const val = Validator.isObservable(item) ? item.val() : item;
+        return val ?? defaultKey;
     };
 
     const trim = function(str, char) {
@@ -1050,6 +1053,7 @@ var NativeDocument = (function (exports) {
     };
     {
         Validator.validateAttributes = function(attributes) {
+            console.log('AttributesWrapper', attributes);
             if (!attributes || typeof attributes !== 'object') {
                 return attributes;
             }
@@ -1215,7 +1219,38 @@ var NativeDocument = (function (exports) {
         return anchor;
     }
 
-    const BOOLEAN_ATTRIBUTES = ['checked', 'selected', 'disabled', 'readonly', 'required', 'autofocus', 'multiple', 'autocomplete', 'hidden', 'contenteditable', 'spellcheck', 'translate', 'draggable', 'async', 'defer', 'autoplay', 'controls', 'loop', 'muted', 'download', 'reversed', 'open', 'default', 'formnovalidate', 'novalidate', 'scoped', 'itemscope', 'allowfullscreen', 'allowpaymentrequest', 'playsinline'];
+    const BOOLEAN_ATTRIBUTES = new Set([
+        'checked',
+        'selected',
+        'disabled',
+        'readonly',
+        'required',
+        'autofocus',
+        'multiple',
+        'autocomplete',
+        'hidden',
+        'contenteditable',
+        'spellcheck',
+        'translate',
+        'draggable',
+        'async',
+        'defer',
+        'autoplay',
+        'controls',
+        'loop',
+        'muted',
+        'download',
+        'reversed',
+        'open',
+        'default',
+        'formnovalidate',
+        'novalidate',
+        'scoped',
+        'itemscope',
+        'allowfullscreen',
+        'allowpaymentrequest',
+        'playsinline'
+    ]);
 
     /**
      *
@@ -1404,6 +1439,12 @@ var NativeDocument = (function (exports) {
         }
     }
 
+    const NdBindings = {
+        class: (element, value) => bindClassAttribute(element, value),
+        style: (element, value) => bindStyleAttribute(element, value),
+    };
+
+
     /**
      *
      * @param {HTMLElement} element
@@ -1419,41 +1460,27 @@ var NativeDocument = (function (exports) {
 
         for(let key in attributes) {
             const attributeName = key.toLowerCase();
-            let value = attributes[attributeName];
-            if(value === null || value === undefined) {
+            let value = attributes[key];
+            if(value == null) {
                 continue;
             }
             if(value.handleNdAttribute) {
                 value.handleNdAttribute(element, attributeName, value);
                 continue;
             }
-            if(Validator.isString(value)) {
-                element.setAttribute(attributeName, value);
-                return;
+            if(typeof value === 'object') {
+                const binding = NdBindings[attributeName];
+                if(binding) {
+                    binding(element, value);
+                    continue;
+                }
             }
-            if(attributeName === 'class' && Validator.isObject(value)) {
-                bindClassAttribute(element, value);
-                continue;
-            }
-            if(attributeName === 'style' && Validator.isObject(value)) {
-                bindStyleAttribute(element, value);
-                continue;
-            }
-            if(BOOLEAN_ATTRIBUTES.includes(attributeName)) {
+            if(BOOLEAN_ATTRIBUTES.has(attributeName)) {
                 bindBooleanAttribute(element, attributeName, value);
-                continue;
-            }
-            if(Validator.isObservable(value)) {
-                bindAttributeWithObservable(element, attributeName, value);
-                continue;
-            }
-            if(value.$hydrate) {
-                value.$hydrate(element, attributeName);
                 continue;
             }
 
             element.setAttribute(attributeName, value);
-
         }
         return element;
     }
@@ -1514,8 +1541,16 @@ var NativeDocument = (function (exports) {
         element.setAttribute(attributeName, this);
     };
 
+    Number.prototype.handleNdAttribute = function(element, attributeName) {
+        element.setAttribute(attributeName, this);
+    };
+
+    Boolean.prototype.handleNdAttribute = function(element, attrName) {
+        bindBooleanAttribute(element, attrName, this);
+    };
+
     ObservableItem.prototype.handleNdAttribute = function(element, attributeName) {
-        if(BOOLEAN_ATTRIBUTES.includes(attributeName)) {
+        if(BOOLEAN_ATTRIBUTES.has(attributeName)) {
             bindBooleanAttribute(element, attributeName, this);
             return;
         }
@@ -1605,22 +1640,14 @@ var NativeDocument = (function (exports) {
             PluginsManager.emit('AfterProcessChildren', parent);
         },
         getChild(child) {
-            if(child == null) {
-                return null;
-            }
-            if(child.toNdElement) {
-                do {
-                    child =  child.toNdElement();
-                    if(Validator.isElement(child)) {
-                        return child;
-                    }
-                    if(child == null) {
-                        return null;
-                    }
-                } while (child.toNdElement);
+            while (child?.toNdElement) {
+                child = child.toNdElement();
+
+                if (Validator.isElement(child)) return child;
+                if (!child) return null;
             }
 
-            return ElementCreator.createStaticTextNode(null, child);
+            return child ? ElementCreator.createStaticTextNode(null, child) : null;
         },
         /**
          *
@@ -2088,7 +2115,7 @@ var NativeDocument = (function (exports) {
         if(bindDingData.attributes) {
             attributes = {};
             for (const attr in bindDingData.attributes) {
-                attributes[attr] = bindDingData.attributes[attr](...data);
+                attributes[attr] = bindDingData.attributes[attr].apply(null, data);
             }
         }
 
@@ -2096,7 +2123,7 @@ var NativeDocument = (function (exports) {
             attributes = attributes || {};
             attributes.class = {};
             for (const className in bindDingData.classes) {
-                attributes.class[className] = bindDingData.classes[className](...data);
+                attributes.class[className] = bindDingData.classes[className].apply(null, data);
             }
         }
 
@@ -2104,7 +2131,7 @@ var NativeDocument = (function (exports) {
             attributes = attributes || {};
             attributes.style = {};
             for (const property in bindDingData.styles) {
-                attributes.style[property] = bindDingData.styles[property](...data);
+                attributes.style[property] = bindDingData.styles[property].apply(null, data);
             }
         }
 
@@ -2114,6 +2141,14 @@ var NativeDocument = (function (exports) {
         }
 
         return null;
+    };
+
+    const findByPath = (root, path) => {
+        let target = root;
+        for (let i = 0, len = path.length; i < len; i++) {
+            target = target.childNodes[path[i]];
+        }
+        return target;
     };
 
     const $hydrateFn = function(hydrateFunction, targetType, element, property) {
@@ -2136,7 +2171,7 @@ var NativeDocument = (function (exports) {
         }
         for(const methodName in bindDingData.attach) {
             node.nd[methodName](function(...args) {
-                bindDingData.attach[methodName].call(this, ...[...args, ...data]);
+                bindDingData.attach[methodName].apply(this, [...args, ...data]);
             });
         }
     };
@@ -2145,44 +2180,78 @@ var NativeDocument = (function (exports) {
         let $node = null;
         let $hasBindingData = false;
 
-        const clone = (node, data) => {
+        const $bindingPaths = [];
+
+        const clone = (node, data, path) => {
             const bindDingData = cloneBindingsDataCache.get(node);
             if(node.nodeType === 3) {
                 if(bindDingData && bindDingData.value) {
+                    $bindingPaths.push({
+                        path: [...path],
+                        fn: (data, targetNode, currentRoot) => {
+                            const newNode = bindDingData.value(data);
+                            targetNode.replaceWith(newNode);
+                            if (targetNode === currentRoot) {
+                                return newNode;
+                            }
+                            return null;
+                        }
+                    });
                     return bindDingData.value(data);
                 }
                 return node.cloneNode(true);
             }
             const nodeCloned = node.cloneNode(node.fullCloneNode);
+            if(node.fullCloneNode) {
+                return nodeCloned;
+            }
             if(bindDingData) {
                 bindAttributes(nodeCloned, bindDingData, data);
                 bindAttachMethods(nodeCloned, bindDingData, data);
-            }
-            if(node.fullCloneNode) {
-                return nodeCloned;
+                $bindingPaths.push({
+                    path: [...path],
+                    fn: (data, targetNode) => {
+                        bindAttributes(targetNode, bindDingData, data);
+                        bindAttachMethods(targetNode, bindDingData, data);
+                    }
+                });
             }
             const childNodes = node.childNodes;
             for(let i = 0, length = childNodes.length; i < length; i++) {
                 const childNode = childNodes[i];
-                const childNodeCloned = clone(childNode, data);
+                path.push(i);
+                const childNodeCloned = clone(childNode, data, path);
+                path.pop();
                 nodeCloned.appendChild(childNodeCloned);
             }
             return nodeCloned;
         };
 
-        this.clone = (data) => {
-            if(!$node) {
-                $node = $fn(this);
-                if(!$hasBindingData) {
-                    const nodeCloned = $node.cloneNode(true);
-                    nodeCloned.fullCloneNode = true;
-                    return nodeCloned;
+        const cloneWithBindingPaths = (data) => {
+            let root = $node.cloneNode(true);
+
+            for (let i = 0, len = $bindingPaths.length; i < len; i++) {
+                const binding = $bindingPaths[i];
+                const target = findByPath(root, binding.path);
+                const newRoot = binding.fn(data, target, root);
+                if(newRoot) {
+                    root = newRoot;
                 }
             }
+
+            return root;
+        };
+
+        this.clone = (data) => {
+            $node = $fn(this);
             if(!$hasBindingData) {
+                this.clone = () => $node.cloneNode(true);
                 return $node.cloneNode(true);
             }
-            return clone($node, data);
+
+            const firstClone = clone($node, data, []);
+            this.clone = cloneWithBindingPaths;
+            return firstClone;
         };
 
 
@@ -2835,6 +2904,9 @@ var NativeDocument = (function (exports) {
     });
 
     ObservableArray.prototype.clear = function() {
+        if(this.$currentValue.length === 0) {
+            return;
+        }
         this.$currentValue.length = 0;
         this.trigger({ action: 'clear' });
         return true;
@@ -3444,7 +3516,7 @@ var NativeDocument = (function (exports) {
         return element;
     }
 
-    function ForEachArray(data, callback, key, configs = {}) {
+    function ForEachArray(data, callback, configs = {}) {
         const element = Anchor('ForEach Array');
         const blockEnd = element.endElement();
         const blockStart = element.startElement();
@@ -3453,23 +3525,14 @@ var NativeDocument = (function (exports) {
         let lastNumberOfItems = 0;
         const isIndexRequired = callback.length >= 2;
 
-        const keysCache = new WeakMap();
-
-        const clear = () => {
+        const clear = (items) => {
             element.removeChildren();
-            cleanCache();
+            cleanCache(items);
             lastNumberOfItems = 0;
         };
 
-        const getItemKey = (item, indexKey) => {
-            if(keysCache.has(item)) {
-                return keysCache.get(item);
-            }
-            return getKey(item, indexKey, key);
-        };
-
         const getItemChild = (item) => {
-            return getChildByKey(getItemKey(item));
+            return cache.get(item)?.child;
         };
 
         const updateIndexObservers = (items, startFrom = 0) => {
@@ -3478,16 +3541,17 @@ var NativeDocument = (function (exports) {
             }
             let index = startFrom;
             for(let i = startFrom, length = items?.length; i < length; i++) {
-                const cacheItem = cache.get(getItemKey(items[i], i));
+                const cacheItem = cache.get(items[i]);
                 if(!cacheItem) {
                     continue;
                 }
-                cacheItem.indexObserver?.deref()?.set(index);
+                cacheItem.indexObserver?.set(index);
                 index++;
             }
         };
 
-        const removeCacheItem = (cacheItem, removeChild = true) => {
+        const removeCacheItem = (item, removeChild = true) => {
+            const cacheItem = cache.get(item);
             if(!cacheItem) {
                 return;
             }
@@ -3496,14 +3560,10 @@ var NativeDocument = (function (exports) {
                 child?.remove();
                 cache.delete(cacheItem.keyId);
             }
-            cacheItem.indexObserver?.deref()?.cleanup();
+            cacheItem.indexObserver?.cleanup();
         };
 
-        const removeCacheItemByKey = (keyId, removeChild = true) => {
-            removeCacheItem(cache.get(keyId), removeChild);
-        };
-
-        const cleanCache = () => {
+        const cleanCache = (items) => {
             if(configs.shouldKeepItemsInCache) {
                 return;
             }
@@ -3511,53 +3571,41 @@ var NativeDocument = (function (exports) {
                 cache.clear();
                 return;
             }
-            for (const [keyId, cacheItem] of cache.entries()) {
-                removeCacheItem(cacheItem, false);
+            for (const [itemAsKey, _] of cache.entries()) {
+                if(items && items.contains(itemAsKey)) {
+                    continue;
+                }
+                removeCacheItem(itemAsKey, false);
             }
             cache.clear();
         };
 
         const buildItem = (item, indexKey) => {
-            const keyId = getItemKey(item, indexKey);
-
-            if(cache.has(keyId)) {
-                const cacheItem = cache.get(keyId);
-                cacheItem.indexObserver?.deref()?.set(indexKey);
+            const cacheItem = cache.get(item);
+            if(cacheItem) {
+                cacheItem.indexObserver?.set(indexKey);
                 const child = cacheItem.child;
                 if(child) {
                     return child;
                 }
-                cache.delete(keyId);
+                cache.delete(item);
             }
 
             const indexObserver = isIndexRequired ? Observable(indexKey) : null;
             let child = ElementCreator.getChild(callback(item, indexObserver));
-            if(!child) {
-                throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
+            if(child) {
+                cache.set(item, {
+                    child,
+                    indexObserver: (indexObserver ? new WeakRef(indexObserver) : null)
+                });
+                return child;
             }
-            cache.set(keyId, {
-                keyId,
-                child: child,
-                indexObserver: (indexObserver ? new WeakRef(indexObserver) : null)
-            });
-            keysCache.set(item, keyId);
-            return child;
-        };
-        const getChildByKey = function(keyId) {
-            const cacheItem = cache.get(keyId);
-            if(!cacheItem) {
-                return null;
-            }
-            const child = cacheItem.child;
-            if(!child) {
-                removeCacheItem(cacheItem, false);
-                return null;
-            }
-            return child;
+
+            throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
         };
 
-        const removeByKey = function(keyId, fragment) {
-            const cacheItem = cache.get(keyId);
+        const removeByItem = function(item, fragment) {
+            const cacheItem = cache.get(item);
             if(!cacheItem) {
                 return null;
             }
@@ -3583,11 +3631,10 @@ var NativeDocument = (function (exports) {
                 return fragment;
             },
             add(items, delay = 2) {
-                const fragment = Actions.toFragment(items);
-                element.appendElement(fragment);
+                element.appendElement(Actions.toFragment(items));
             },
             replace(items) {
-                clear();
+                clear(items);
                 Actions.add(items);
             },
             reOrder(items) {
@@ -3603,7 +3650,7 @@ var NativeDocument = (function (exports) {
                 element.appendElement(fragment, blockEnd);
             },
             removeOne(element, index) {
-                removeCacheItemByKey(getItemKey(element, index), true);
+                removeCacheItem(element, true);
             },
             clear,
             merge(items) {
@@ -3637,16 +3684,15 @@ var NativeDocument = (function (exports) {
                 const garbageFragment = document.createDocumentFragment();
 
                 if(deleted.length > 0) {
-                    let firstKey = getItemKey(deleted[0], start);
+                    let firstItem = deleted[0];
                     if(deleted.length === 1) {
-                        removeByKey(firstKey, garbageFragment);
+                        removeByItem(firstItem, garbageFragment);
                     } else if(deleted.length > 1) {
-                        const firstChildRemoved = getChildByKey(firstKey);
+                        const firstChildRemoved = getItemChild(deleted[0]);
                         elementBeforeFirst = firstChildRemoved?.previousSibling;
 
                         for(let i = 0; i < deleted.length; i++) {
-                            const keyId = getItemKey(deleted[i], start + i);
-                            removeByKey(keyId, garbageFragment);
+                            firstItem(deleted[i], garbageFragment);
                         }
                     }
                 } else {

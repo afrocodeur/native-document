@@ -3,18 +3,6 @@ import replace from '@rollup/plugin-replace';
 import alias from '@rollup/plugin-alias';
 import { fileURLToPath } from 'node:url'
 
-const AliasPlugin = alias({
-    entries: [
-        { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
-        { find: '@src', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
-        { find: '@root', replacement: fileURLToPath(new URL('./', import.meta.url)) },
-        { find: '@components', replacement: fileURLToPath(new URL('./src/components', import.meta.url)) },
-        { find: '@devtools', replacement: fileURLToPath(new URL('./src/devtools', import.meta.url)) },
-        { find: '@core', replacement: fileURLToPath(new URL('./index', import.meta.url)) },
-        { find: '@elements', replacement: fileURLToPath(new URL('./elements', import.meta.url)) },
-    ]
-});
-
 const PreventProd = replace({
     'process.env.NODE_ENV': JSON.stringify('production'),
     preventAssignment: true,
@@ -33,7 +21,6 @@ export default [
             sourcemap: true
         },
         plugins: [
-            AliasPlugin,
             replace({
                 'process.env.NODE_ENV': JSON.stringify('development'),
                 preventAssignment: true,
@@ -51,7 +38,6 @@ export default [
             name: 'NativeDocument'
         },
         plugins: [
-            AliasPlugin,
             PreventProd,
             terser()
         ]
@@ -67,7 +53,6 @@ export default [
             name: 'NativeDocumentDevTools',
         },
         plugins: [
-            AliasPlugin,
             terser()
         ]
     },
@@ -83,7 +68,6 @@ export default [
             name: 'NativeComponents',
         },
         plugins: [
-            AliasPlugin,
             PreventProd,
             // terser()
         ]

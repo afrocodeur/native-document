@@ -1,6 +1,6 @@
 // ColorField.js
 import Field from "../Field";
-import {Validation} from "@components/form/validation/Validation";
+import {Validation} from "../../validation/Validation";
 
 export default function ColorField(name, defaultConfig) {
     if(!(this instanceof ColorField)) {

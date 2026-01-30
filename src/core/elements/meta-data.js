@@ -1,4 +1,4 @@
-import HtmlElementWrapper from "@src/core/wrappers/HtmlElementWrapper";
+import HtmlElementWrapper from "../wrappers/HtmlElementWrapper";
 
 export const Time = HtmlElementWrapper('time');
 export const Data = HtmlElementWrapper('data');

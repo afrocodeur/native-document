@@ -1,8 +1,8 @@
-import { Observable as $, Validator } from "@core";
-import NativeDocumentError from "@src/core/errors/NativeDocumentError";
-import {Validation} from "@components/form/validation/Validation";
-import {resolveParams} from "@components/form/utils";
-import BaseComponent from "@components/BaseComponent";
+import { Observable as $, Validator } from "../../../../index";
+import NativeDocumentError from "../../../../src/core/errors/NativeDocumentError";
+import {Validation} from "../validation/Validation";
+import {resolveParams} from "../utils";
+import BaseComponent from "../../BaseComponent";
 
 export default function FieldCollection(name, config) {
     if(!(this instanceof FieldCollection)) {

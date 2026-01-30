@@ -1,7 +1,7 @@
-import {Validation} from "@components/form/validation/Validation";
-import {Validator} from "@core";
-import {resolveParams} from "@components/form/utils";
-import BaseComponent from "@components/BaseComponent";
+import {Validation} from "../validation/Validation";
+import {Validator} from "../../../../index";
+import {resolveParams} from "../utils";
+import BaseComponent from "../../BaseComponent";
 
 export default function Field(name, type, defaultConfig) {
 

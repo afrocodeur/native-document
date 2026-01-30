@@ -1,5 +1,5 @@
-import {Validator} from "@core";
-import BaseComponent from "@components/BaseComponent";
+import {Validator} from "../../../index";
+import BaseComponent from "../BaseComponent";
 
 export default function Avatar(source, config = {}) {
     if (!(this instanceof Avatar)) {
