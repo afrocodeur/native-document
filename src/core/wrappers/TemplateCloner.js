@@ -38,14 +38,6 @@ const bindAttributes = (node, bindDingData, data) => {
     return null;
 };
 
-const findByPath = (root, path) => {
-    let target = root;
-    for (let i = 0, len = path.length; i < len; i++) {
-        target = target.childNodes[path[i]];
-    }
-    return target;
-};
-
 const $hydrateFn = function(hydrateFunction, targetType, element, property) {
     if(!cloneBindingsDataCache.has(element)) {
         // { classes, styles, attributes, value, attach }
@@ -71,27 +63,43 @@ const bindAttachMethods = function(node, bindDingData, data) {
     }
 };
 
+
+const applyBindingTreePath = (root, target, data, path) => {
+    let newTarget = null;
+    if(path.fn) {
+        newTarget = path.fn(data, target, root);
+    }
+    if(path.children) {
+        for(let i = 0, length = path.children.length; i < length; i++) {
+            const currentPath = path.children[i];
+            const pathTargetNode = target.childNodes[currentPath.index];
+            applyBindingTreePath(root, pathTargetNode, data, currentPath);
+        }
+    }
+    return newTarget;
+};
+
 export function TemplateCloner($fn) {
     let $node = null;
     let $hasBindingData = false;
 
-    const $bindingPaths = [];
+    const $bindingTreePath = {
+        fn: null,
+        children: [],
+    };
 
-    const clone = (node, data, path) => {
+    const clone = (node, data, currentPath) => {
         const bindDingData = cloneBindingsDataCache.get(node);
         if(node.nodeType === 3) {
             if(bindDingData && bindDingData.value) {
-                $bindingPaths.push({
-                    path: [...path],
-                    fn: (data, targetNode, currentRoot) => {
-                        const newNode = bindDingData.value(data);
-                        targetNode.replaceWith(newNode);
-                        if (targetNode === currentRoot) {
-                            return newNode;
-                        }
-                        return null;
+                currentPath.fn = (data, targetNode, currentRoot) => {
+                    const newNode = bindDingData.value(data);
+                    if (targetNode === currentRoot) {
+                        return newNode;
                     }
-                });
+                    targetNode.replaceWith(newNode);
+                    return null;
+                };
                 return bindDingData.value(data);
             }
             return node.cloneNode(true);
@@ -103,21 +111,25 @@ export function TemplateCloner($fn) {
         if(bindDingData) {
             bindAttributes(nodeCloned, bindDingData, data);
             bindAttachMethods(nodeCloned, bindDingData, data);
-            $bindingPaths.push({
-                path: [...path],
-                fn: (data, targetNode) => {
-                    bindAttributes(targetNode, bindDingData, data);
-                    bindAttachMethods(targetNode, bindDingData, data);
-                }
-            })
+            currentPath.fn = (data, targetNode) => {
+                bindAttributes(targetNode, bindDingData, data);
+                bindAttachMethods(targetNode, bindDingData, data);
+            };
         }
         const childNodes = node.childNodes;
+        const bindingPathChildren = [];
         for(let i = 0, length = childNodes.length; i < length; i++) {
             const childNode = childNodes[i];
-            path.push(i);
+            const path = { index: i, fn: null };
             const childNodeCloned = clone(childNode, data, path);
-            path.pop();
+            if(path.children || path.fn) {
+                bindingPathChildren.push(path);
+            }
             nodeCloned.appendChild(childNodeCloned);
+        }
+        if(bindingPathChildren.length) {
+            currentPath.children = currentPath.children || [];
+            currentPath.children = bindingPathChildren;
         }
         return nodeCloned;
     };
@@ -125,13 +137,9 @@ export function TemplateCloner($fn) {
     const cloneWithBindingPaths = (data) => {
         let root = $node.cloneNode(true);
 
-        for (let i = 0, len = $bindingPaths.length; i < len; i++) {
-            const binding = $bindingPaths[i];
-            const target = findByPath(root, binding.path);
-            const newRoot = binding.fn(data, target, root);
-            if(newRoot) {
-                root = newRoot;
-            }
+        const newRoot = applyBindingTreePath(root, root, data, $bindingTreePath);
+        if(newRoot) {
+            root = newRoot;
         }
 
         return root;
@@ -144,7 +152,7 @@ export function TemplateCloner($fn) {
             return $node.cloneNode(true);
         }
 
-        const firstClone = clone($node, data, []);
+        const firstClone = clone($node, data, $bindingTreePath);
         this.clone = cloneWithBindingPaths;
         return firstClone;
     };

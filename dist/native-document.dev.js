@@ -1,10 +1,10 @@
 var NativeDocument = (function (exports) {
     'use strict';
 
-    let DebugManager$1 = {};
+    let DebugManager = {};
 
     {
-        DebugManager$1 = {
+        DebugManager = {
             enabled: false,
 
             enable() {
@@ -35,7 +35,7 @@ var NativeDocument = (function (exports) {
         };
 
     }
-    var DebugManager = DebugManager$1;
+    var DebugManager$1 = DebugManager;
 
     const MemoryManager = (function() {
 
@@ -84,7 +84,7 @@ var NativeDocument = (function (exports) {
                     }
                 }
                 if (cleanedCount > 0) {
-                    DebugManager.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
+                    DebugManager$1.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
                 }
             }
         };
@@ -207,7 +207,7 @@ var NativeDocument = (function (exports) {
                         try{
                             callback.call(plugin, ...data);
                         } catch (error) {
-                            DebugManager.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
+                            DebugManager$1.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
                         }
                     }
                 }
@@ -322,6 +322,7 @@ var NativeDocument = (function (exports) {
         this.$currentValue = value;
         this.$isCleanedUp = false;
 
+        this.$firstListener = null;
         this.$listeners = null;
         this.$watchers = null;
 
@@ -357,7 +358,7 @@ var NativeDocument = (function (exports) {
     };
 
     ObservableItem.prototype.triggerFirstListener = function(operations) {
-        this.$listeners[0](this.$currentValue, this.$previousValue, operations || {});
+        this.$firstListener(this.$currentValue, this.$previousValue, operations || {});
     };
 
     ObservableItem.prototype.triggerListeners = function(operations) {
@@ -406,22 +407,29 @@ var NativeDocument = (function (exports) {
     };
 
     ObservableItem.prototype.triggerAll = function(operations) {
-        this.triggerListeners(operations);
         this.triggerWatchers();
+        this.triggerListeners(operations);
     };
 
     ObservableItem.prototype.triggerWatchersAndFirstListener = function(operations) {
-        this.triggerListeners(operations);
         this.triggerWatchers();
+        this.triggerListeners(operations);
     };
 
     ObservableItem.prototype.assocTrigger = function() {
+        this.$firstListener = null;
         if(this.$watchers?.size && this.$listeners?.length) {
             this.trigger = (this.$listeners.length === 1) ? this.triggerWatchersAndFirstListener : this.triggerAll;
             return;
         }
         if(this.$listeners?.length) {
-            this.trigger = (this.$listeners.length === 1) ? this.triggerFirstListener : this.triggerListeners;
+            if(this.$listeners.length === 1) {
+                this.$firstListener = this.$listeners[0];
+                this.trigger = this.triggerFirstListener;
+            }
+            else {
+                this.trigger = this.triggerListeners;
+            }
             return;
         }
         if(this.$watchers?.size) {
@@ -506,7 +514,7 @@ var NativeDocument = (function (exports) {
     ObservableItem.prototype.subscribe = function(callback, target = null) {
         this.$listeners = this.$listeners ?? [];
         if (this.$isCleanedUp) {
-            DebugManager.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
+            DebugManager$1.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
             return () => {};
         }
         if (typeof callback !== 'function') {
@@ -859,7 +867,7 @@ var NativeDocument = (function (exports) {
             }
             {
                 if (this[name] && !this.$localExtensions.has(name)) {
-                    DebugManager.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
+                    DebugManager$1.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
                 }
                 this.$localExtensions.set(name, method);
             }
@@ -893,17 +901,17 @@ var NativeDocument = (function (exports) {
             const method = methods[name];
 
             if (typeof method !== 'function') {
-                DebugManager.warn('NDElement.extend', `"${name}" is not a function, skipping`);
+                DebugManager$1.warn('NDElement.extend', `"${name}" is not a function, skipping`);
                 continue;
             }
 
             if (protectedMethods.has(name)) {
-                DebugManager.error('NDElement.extend', `Cannot override protected method "${name}"`);
+                DebugManager$1.error('NDElement.extend', `Cannot override protected method "${name}"`);
                 throw new NativeDocumentError(`Cannot override protected method "${name}"`);
             }
 
             if (NDElement.prototype[name]) {
-                DebugManager.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
+                DebugManager$1.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
             }
 
             NDElement.prototype[name] = method;
@@ -1062,7 +1070,7 @@ var NativeDocument = (function (exports) {
             const foundReserved = Object.keys(attributes).filter(key => reserved.includes(key));
 
             if (foundReserved.length > 0) {
-                DebugManager.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
+                DebugManager$1.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
             }
 
             return attributes;
@@ -1110,7 +1118,7 @@ var NativeDocument = (function (exports) {
         anchorFragment.appendChild = function(child, before = null) {
             const parent = anchorEnd.parentNode;
             if(!parent) {
-                DebugManager.error('Anchor', 'Anchor : parent not found', child);
+                DebugManager$1.error('Anchor', 'Anchor : parent not found', child);
                 return;
             }
             before = before ?? anchorEnd;
@@ -1368,8 +1376,18 @@ var NativeDocument = (function (exports) {
     function bindClassAttribute(element, data) {
         for(let className in data) {
             const value = data[className];
-            if(value?.bindNdClass) {
-                value.bindNdClass(element, className);
+            if(Validator.isObservable(value)) {
+                element.classes.toggle(className, value.val());
+                value.subscribe(toggleElementClass.bind(null, element, className));
+                continue;
+            }
+            if(Validator.isObservableWhenResult(value)) {
+                element.classes.toggle(className, value.isMath());
+                value.subscribe(toggleElementClass.bind(null, element, className));
+                continue;
+            }
+            if(value.$hydrate) {
+                value.$hydrate(element, className);
                 continue;
             }
             element.classes.toggle(className, value);
@@ -1439,12 +1457,6 @@ var NativeDocument = (function (exports) {
         }
     }
 
-    const NdBindings = {
-        class: (element, value) => bindClassAttribute(element, value),
-        style: (element, value) => bindStyleAttribute(element, value),
-    };
-
-
     /**
      *
      * @param {HTMLElement} element
@@ -1460,7 +1472,7 @@ var NativeDocument = (function (exports) {
 
         for(let key in attributes) {
             const attributeName = key.toLowerCase();
-            let value = attributes[key];
+            let value = attributes[attributeName];
             if(value == null) {
                 continue;
             }
@@ -1468,10 +1480,13 @@ var NativeDocument = (function (exports) {
                 value.handleNdAttribute(element, attributeName, value);
                 continue;
             }
-            if(typeof value === 'object') {
-                const binding = NdBindings[attributeName];
-                if(binding) {
-                    binding(element, value);
+            if(typeof value ===  'object') {
+                if(attributeName === 'class') {
+                    bindClassAttribute(element, value);
+                    continue;
+                }
+                if(attributeName === 'style') {
+                    bindStyleAttribute(element, value);
                     continue;
                 }
             }
@@ -1539,14 +1554,6 @@ var NativeDocument = (function (exports) {
 
     String.prototype.handleNdAttribute = function(element, attributeName) {
         element.setAttribute(attributeName, this);
-    };
-
-    Number.prototype.handleNdAttribute = function(element, attributeName) {
-        element.setAttribute(attributeName, this);
-    };
-
-    Boolean.prototype.handleNdAttribute = function(element, attrName) {
-        bindBooleanAttribute(element, attrName, this);
     };
 
     ObservableItem.prototype.handleNdAttribute = function(element, attributeName) {
@@ -1640,14 +1647,19 @@ var NativeDocument = (function (exports) {
             PluginsManager.emit('AfterProcessChildren', parent);
         },
         getChild(child) {
-            while (child?.toNdElement) {
-                child = child.toNdElement();
-
-                if (Validator.isElement(child)) return child;
-                if (!child) return null;
+            if(child == null) {
+                return null;
+            }
+            if(child.toNdElement) {
+                do {
+                    child =  child.toNdElement();
+                    if(Validator.isElement(child)) {
+                        return child;
+                    }
+                } while (child.toNdElement);
             }
 
-            return child ? ElementCreator.createStaticTextNode(null, child) : null;
+            return ElementCreator.createStaticTextNode(null, child);
         },
         /**
          *
@@ -2143,14 +2155,6 @@ var NativeDocument = (function (exports) {
         return null;
     };
 
-    const findByPath = (root, path) => {
-        let target = root;
-        for (let i = 0, len = path.length; i < len; i++) {
-            target = target.childNodes[path[i]];
-        }
-        return target;
-    };
-
     const $hydrateFn = function(hydrateFunction, targetType, element, property) {
         if(!cloneBindingsDataCache.has(element)) {
             // { classes, styles, attributes, value, attach }
@@ -2176,27 +2180,43 @@ var NativeDocument = (function (exports) {
         }
     };
 
+
+    const applyBindingTreePath = (root, target, data, path) => {
+        let newTarget = null;
+        if(path.fn) {
+            newTarget = path.fn(data, target, root);
+        }
+        if(path.children) {
+            for(let i = 0, length = path.children.length; i < length; i++) {
+                const currentPath = path.children[i];
+                const pathTargetNode = target.childNodes[currentPath.index];
+                applyBindingTreePath(root, pathTargetNode, data, currentPath);
+            }
+        }
+        return newTarget;
+    };
+
     function TemplateCloner($fn) {
         let $node = null;
         let $hasBindingData = false;
 
-        const $bindingPaths = [];
+        const $bindingTreePath = {
+            fn: null,
+            children: [],
+        };
 
-        const clone = (node, data, path) => {
+        const clone = (node, data, currentPath) => {
             const bindDingData = cloneBindingsDataCache.get(node);
             if(node.nodeType === 3) {
                 if(bindDingData && bindDingData.value) {
-                    $bindingPaths.push({
-                        path: [...path],
-                        fn: (data, targetNode, currentRoot) => {
-                            const newNode = bindDingData.value(data);
-                            targetNode.replaceWith(newNode);
-                            if (targetNode === currentRoot) {
-                                return newNode;
-                            }
-                            return null;
+                    currentPath.fn = (data, targetNode, currentRoot) => {
+                        const newNode = bindDingData.value(data);
+                        if (targetNode === currentRoot) {
+                            return newNode;
                         }
-                    });
+                        targetNode.replaceWith(newNode);
+                        return null;
+                    };
                     return bindDingData.value(data);
                 }
                 return node.cloneNode(true);
@@ -2208,21 +2228,25 @@ var NativeDocument = (function (exports) {
             if(bindDingData) {
                 bindAttributes(nodeCloned, bindDingData, data);
                 bindAttachMethods(nodeCloned, bindDingData, data);
-                $bindingPaths.push({
-                    path: [...path],
-                    fn: (data, targetNode) => {
-                        bindAttributes(targetNode, bindDingData, data);
-                        bindAttachMethods(targetNode, bindDingData, data);
-                    }
-                });
+                currentPath.fn = (data, targetNode) => {
+                    bindAttributes(targetNode, bindDingData, data);
+                    bindAttachMethods(targetNode, bindDingData, data);
+                };
             }
             const childNodes = node.childNodes;
+            const bindingPathChildren = [];
             for(let i = 0, length = childNodes.length; i < length; i++) {
                 const childNode = childNodes[i];
-                path.push(i);
+                const path = { index: i, fn: null };
                 const childNodeCloned = clone(childNode, data, path);
-                path.pop();
+                if(path.children || path.fn) {
+                    bindingPathChildren.push(path);
+                }
                 nodeCloned.appendChild(childNodeCloned);
+            }
+            if(bindingPathChildren.length) {
+                currentPath.children = currentPath.children || [];
+                currentPath.children = bindingPathChildren;
             }
             return nodeCloned;
         };
@@ -2230,13 +2254,9 @@ var NativeDocument = (function (exports) {
         const cloneWithBindingPaths = (data) => {
             let root = $node.cloneNode(true);
 
-            for (let i = 0, len = $bindingPaths.length; i < len; i++) {
-                const binding = $bindingPaths[i];
-                const target = findByPath(root, binding.path);
-                const newRoot = binding.fn(data, target, root);
-                if(newRoot) {
-                    root = newRoot;
-                }
+            const newRoot = applyBindingTreePath(root, root, data, $bindingTreePath);
+            if(newRoot) {
+                root = newRoot;
             }
 
             return root;
@@ -2249,7 +2269,7 @@ var NativeDocument = (function (exports) {
                 return $node.cloneNode(true);
             }
 
-            const firstClone = clone($node, data, []);
+            const firstClone = clone($node, data, $bindingTreePath);
             this.clone = cloneWithBindingPaths;
             return firstClone;
         };
@@ -2356,6 +2376,8 @@ var NativeDocument = (function (exports) {
             return $cache.render(args);
         };
     }
+
+    DocumentFragment.prototype.__IS_FRAGMENT = true;
 
     Function.prototype.args = function(...args) {
         return exports.withValidation(this, args);
@@ -2891,7 +2913,7 @@ var NativeDocument = (function (exports) {
 
     mutationMethods.forEach((method) => {
         ObservableArray.prototype[method] = function(...values) {
-            const result = this.$currentValue[method](...values);
+            const result = this.$currentValue[method].apply(this.$currentValue, values);
             this.trigger({ action: method, args: values, result });
             return result;
         };
@@ -2899,7 +2921,7 @@ var NativeDocument = (function (exports) {
 
     noMutationMethods.forEach((method) => {
         ObservableArray.prototype[method] = function(...values) {
-            return this.$currentValue[method](...values);
+            return this.$currentValue[method].apply(this.$currentValue, values);
         };
     });
 
@@ -2917,7 +2939,7 @@ var NativeDocument = (function (exports) {
     };
 
     ObservableArray.prototype.merge = function(values) {
-        this.$currentValue.push(...values);
+        this.$currentValue.push.apply(this.$currentValue, values);
         this.trigger({ action: 'merge',  args: values });
     };
 
@@ -2993,7 +3015,7 @@ var NativeDocument = (function (exports) {
                     const deps = Array.isArray(predicate.dependencies)
                         ? predicate.dependencies
                         : [predicate.dependencies];
-                    observableDependencies.push(...deps);
+                    observableDependencies.push.apply(observableDependencies, deps);
                 }
             } else if(typeof predicate === 'function') {
                 filterCallbacks[key] = predicate;
@@ -3434,7 +3456,7 @@ var NativeDocument = (function (exports) {
                 }
                 cache.set(keyId, { keyId, isNew: true, child: new WeakRef(child), indexObserver});
             } catch (e) {
-                DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
+                DebugManager$1.error('ForEach', `Error creating element for key ${keyId}` , e);
                 throw e;
             }
             return keyId;
@@ -3780,7 +3802,7 @@ var NativeDocument = (function (exports) {
      */
     const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
         if(!(Validator.isObservable(condition)) && !Validator.isObservableWhenResult(condition)) {
-            return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
+            return DebugManager$1.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
         }
         const element = Anchor('Show if : '+(comment || ''));
 
@@ -4567,7 +4589,7 @@ var NativeDocument = (function (exports) {
                 window.history.pushState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, query, path);
             } catch (e) {
-                DebugManager.error('HistoryRouter', 'Error in pushState', e);
+                DebugManager$1.error('HistoryRouter', 'Error in pushState', e);
             }
         };
         /**
@@ -4580,7 +4602,7 @@ var NativeDocument = (function (exports) {
                 window.history.replaceState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, {}, path);
             } catch(e) {
-                DebugManager.error('HistoryRouter', 'Error in replaceState', e);
+                DebugManager$1.error('HistoryRouter', 'Error in replaceState', e);
             }
         };
         this.forward = function() {
@@ -4607,7 +4629,7 @@ var NativeDocument = (function (exports) {
                     }
                     this.handleRouteChange(route, params, query, path);
                 } catch(e) {
-                    DebugManager.error('HistoryRouter', 'Error in popstate event', e);
+                    DebugManager$1.error('HistoryRouter', 'Error in popstate event', e);
                 }
             });
             const { route, params, query, path } = this.resolve(defaultPath || (window.location.pathname+window.location.search));
@@ -4770,7 +4792,7 @@ var NativeDocument = (function (exports) {
                     listener(request);
                     next && next(request);
                 } catch (e) {
-                    DebugManager.warn('Route Listener', 'Error in listener:', e);
+                    DebugManager$1.warn('Route Listener', 'Error in listener:', e);
                 }
             }
         };
@@ -4929,7 +4951,7 @@ var NativeDocument = (function (exports) {
      */
     Router.create = function(options, callback) {
         if(!Validator.isFunction(callback)) {
-            DebugManager.error('Router', 'Callback must be a function', e);
+            DebugManager$1.error('Router', 'Callback must be a function', e);
             throw new RouterError('Callback must be a function');
         }
         const router = new Router(options);

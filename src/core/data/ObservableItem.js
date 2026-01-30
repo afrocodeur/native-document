@@ -20,6 +20,7 @@ export default function ObservableItem(value, configs = null) {
     this.$currentValue = value;
     this.$isCleanedUp = false;
 
+    this.$firstListener = null;
     this.$listeners = null;
     this.$watchers = null;
 
@@ -55,7 +56,7 @@ ObservableItem.prototype.intercept = function(callback) {
 };
 
 ObservableItem.prototype.triggerFirstListener = function(operations) {
-    this.$listeners[0](this.$currentValue, this.$previousValue, operations || {});
+    this.$firstListener(this.$currentValue, this.$previousValue, operations || {});
 };
 
 ObservableItem.prototype.triggerListeners = function(operations) {
@@ -104,22 +105,29 @@ ObservableItem.prototype.triggerWatchers = function() {
 };
 
 ObservableItem.prototype.triggerAll = function(operations) {
-    this.triggerListeners(operations);
     this.triggerWatchers();
+    this.triggerListeners(operations);
 };
 
 ObservableItem.prototype.triggerWatchersAndFirstListener = function(operations) {
-    this.triggerListeners(operations);
     this.triggerWatchers();
+    this.triggerListeners(operations);
 };
 
 ObservableItem.prototype.assocTrigger = function() {
+    this.$firstListener = null;
     if(this.$watchers?.size && this.$listeners?.length) {
         this.trigger = (this.$listeners.length === 1) ? this.triggerWatchersAndFirstListener : this.triggerAll;
         return;
     }
     if(this.$listeners?.length) {
-        this.trigger = (this.$listeners.length === 1) ? this.triggerFirstListener : this.triggerListeners;
+        if(this.$listeners.length === 1) {
+            this.$firstListener = this.$listeners[0];
+            this.trigger = this.triggerFirstListener
+        }
+        else {
+            this.trigger = this.triggerListeners;
+        }
         return;
     }
     if(this.$watchers?.size) {

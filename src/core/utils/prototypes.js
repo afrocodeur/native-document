@@ -4,6 +4,8 @@ import Validator from "./validator";
 import {NDElement} from "../wrappers/NDElement";
 
 
+DocumentFragment.prototype.__IS_FRAGMENT = true;
+
 Function.prototype.args = function(...args) {
     return withValidation(this, args);
 };

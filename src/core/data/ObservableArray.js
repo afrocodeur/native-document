@@ -37,7 +37,7 @@ Object.defineProperty(ObservableArray.prototype, 'length', {
 
 mutationMethods.forEach((method) => {
     ObservableArray.prototype[method] = function(...values) {
-        const result = this.$currentValue[method](...values);
+        const result = this.$currentValue[method].apply(this.$currentValue, values);
         this.trigger({ action: method, args: values, result });
         return result;
     };
@@ -45,7 +45,7 @@ mutationMethods.forEach((method) => {
 
 noMutationMethods.forEach((method) => {
     ObservableArray.prototype[method] = function(...values) {
-        return this.$currentValue[method](...values);
+        return this.$currentValue[method].apply(this.$currentValue, values);
     };
 });
 
@@ -63,7 +63,7 @@ ObservableArray.prototype.at = function(index) {
 };
 
 ObservableArray.prototype.merge = function(values) {
-    this.$currentValue.push(...values);
+    this.$currentValue.push.apply(this.$currentValue, values);
     this.trigger({ action: 'merge',  args: values });
 };
 
@@ -139,7 +139,7 @@ ObservableArray.prototype.where = function(predicates) {
                 const deps = Array.isArray(predicate.dependencies)
                     ? predicate.dependencies
                     : [predicate.dependencies];
-                observableDependencies.push(...deps);
+                observableDependencies.push.apply(observableDependencies, deps);
             }
         } else if(typeof predicate === 'function') {
             filterCallbacks[key] = predicate;

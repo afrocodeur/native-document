@@ -37,8 +37,18 @@ export function updateObserverFromInput(element, attributeName, defaultValue, va
 export function bindClassAttribute(element, data) {
     for(let className in data) {
         const value = data[className];
-        if(value?.bindNdClass) {
-            value.bindNdClass(element, className);
+        if(Validator.isObservable(value)) {
+            element.classes.toggle(className, value.val());
+            value.subscribe(toggleElementClass.bind(null, element, className));
+            continue;
+        }
+        if(Validator.isObservableWhenResult(value)) {
+            element.classes.toggle(className, value.isMath());
+            value.subscribe(toggleElementClass.bind(null, element, className));
+            continue;
+        }
+        if(value.$hydrate) {
+            value.$hydrate(element, className);
             continue;
         }
         element.classes.toggle(className, value)
@@ -108,12 +118,6 @@ export function bindAttributeWithObservable(element, attributeName, value) {
     }
 }
 
-const NdBindings = {
-    class: (element, value) => bindClassAttribute(element, value),
-    style: (element, value) => bindStyleAttribute(element, value),
-};
-
-
 /**
  *
  * @param {HTMLElement} element
@@ -129,7 +133,7 @@ export default function AttributesWrapper(element, attributes) {
 
     for(let key in attributes) {
         const attributeName = key.toLowerCase();
-        let value = attributes[key];
+        let value = attributes[attributeName];
         if(value == null) {
             continue;
         }
@@ -137,10 +141,13 @@ export default function AttributesWrapper(element, attributes) {
             value.handleNdAttribute(element, attributeName, value)
             continue;
         }
-        if(typeof value === 'object') {
-            const binding = NdBindings[attributeName];
-            if(binding) {
-                binding(element, value);
+        if(typeof value ===  'object') {
+            if(attributeName === 'class') {
+                bindClassAttribute(element, value);
+                continue;
+            }
+            if(attributeName === 'style') {
+                bindStyleAttribute(element, value);
                 continue;
             }
         }

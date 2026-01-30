@@ -8,14 +8,6 @@ String.prototype.handleNdAttribute = function(element, attributeName) {
     element.setAttribute(attributeName, this);
 };
 
-Number.prototype.handleNdAttribute = function(element, attributeName) {
-    element.setAttribute(attributeName, this);
-};
-
-Boolean.prototype.handleNdAttribute = function(element, attrName) {
-    bindBooleanAttribute(element, attrName, this);
-};
-
 ObservableItem.prototype.handleNdAttribute = function(element, attributeName) {
     if(BOOLEAN_ATTRIBUTES.has(attributeName)) {
         bindBooleanAttribute(element, attributeName, this);
