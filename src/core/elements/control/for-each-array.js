@@ -84,7 +84,7 @@ export function ForEachArray(data, callback, configs = {}) {
         if(child) {
             cache.set(item, {
                 child,
-                indexObserver: (indexObserver ? new WeakRef(indexObserver) : null)
+                indexObserver
             });
             return child;
         }

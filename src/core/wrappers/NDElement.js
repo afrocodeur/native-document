@@ -6,7 +6,9 @@ import DebugManager from "../utils/debug-manager.js";
 export function NDElement(element) {
     this.$element = element;
     this.$observer = null;
-    PluginsManager.emit('NDElementCreated', element, this);
+    if(process.env.NODE_ENV === 'development') {
+        PluginsManager.emit('NDElementCreated', element, this);
+    }
 }
 
 NDElement.prototype.__$isNDElement = true;
@@ -175,8 +177,9 @@ NDElement.extend = function(methods) {
 
         NDElement.prototype[name] = method;
     }
-
-    PluginsManager.emit('NDElementExtended', methods);
+    if(process.env.NODE_ENV === 'development') {
+        PluginsManager.emit('NDElementExtended', methods);
+    }
 
     return NDElement;
 };

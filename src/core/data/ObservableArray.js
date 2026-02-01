@@ -21,7 +21,9 @@ const ObservableArray = function (target, configs = null) {
     }
 
     ObservableItem.call(this, target, configs);
-    PluginsManager.emit('CreateObservableArray', this);
+    if(process.env.NODE_ENV === 'development') {
+        PluginsManager.emit('CreateObservableArray', this);
+    }
 };
 
 ObservableArray.prototype = Object.create(ObservableItem.prototype);

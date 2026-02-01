@@ -15,8 +15,9 @@ Observable.computed = function(callback, dependencies = []) {
     const initialValue = callback();
     const observable = new ObservableItem(initialValue);
     const updatedValue = nextTick(() => observable.set(callback()));
-
-    PluginsManager.emit('CreateObservableComputed', observable, dependencies)
+    if(process.env.NODE_ENV === 'development') {
+        PluginsManager.emit('CreateObservableComputed', observable, dependencies);
+    }
 
     if(Validator.isFunction(dependencies)) {
         if(!Validator.isObservable(dependencies.$observer)) {

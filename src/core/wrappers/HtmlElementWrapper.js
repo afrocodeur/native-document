@@ -20,14 +20,9 @@ function createHtmlElement($tagName, customWrapper, _attributes, _children = nul
     let element = ElementCreator.createElement($tagName);
     let finalElement = (customWrapper && typeof customWrapper === 'function') ? customWrapper(element) : element;
 
-    if(attributes) {
-        ElementCreator.processAttributes(finalElement, attributes);
-    }
-    if(children) {
-        ElementCreator.processChildren(children, finalElement);
-    }
-
-    return ElementCreator.setup(finalElement, attributes, customWrapper);
+    ElementCreator.processAttributes(finalElement, attributes);
+    ElementCreator.processChildren(children, finalElement);
+    return finalElement;
 }
 
 /**

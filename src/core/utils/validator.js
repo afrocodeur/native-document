@@ -15,10 +15,10 @@ const COMMON_NODE_TYPES = {
 
 const Validator = {
     isObservable(value) {
-        return  value?.__$isObservable || value instanceof ObservableItem || value instanceof ObservableChecker;
+        return  value?.__$isObservable;
     },
     isTemplateBinding(value) {
-        return  value?.__$isTemplateBinding || value instanceof TemplateBinding;
+        return  value?.__$isTemplateBinding;
     },
     isObservableWhenResult(value) {
         return value && (value.__$isObservableWhen || (typeof value === 'object' && '$target' in value && '$observer' in value));

@@ -32,8 +32,9 @@ export default function ObservableItem(value, configs = null) {
             this.$initialValue = Validator.isObject(value) ? deepClone(value) : value;
         }
     }
-
-    PluginsManager.emit('CreateObservable', this);
+    if(process.env.NODE_ENV === 'development') {
+        PluginsManager.emit('CreateObservable', this);
+    }
 }
 
 Object.defineProperty(ObservableItem.prototype, '$value', {
@@ -158,10 +159,14 @@ ObservableItem.prototype.set = function(data) {
     }
     this.$previousValue = this.$currentValue;
     this.$currentValue = newValue;
-    PluginsManager.emit('ObservableBeforeChange', this);
+    if(process.env.NODE_ENV === 'development') {
+        PluginsManager.emit('ObservableBeforeChange', this);
+    }
     this.trigger();
     this.$previousValue = null;
-    PluginsManager.emit('ObservableAfterChange', this);
+    if(process.env.NODE_ENV === 'development') {
+        PluginsManager.emit('ObservableAfterChange', this);
+    }
 };
 
 ObservableItem.prototype.val = function() {
@@ -221,11 +226,15 @@ ObservableItem.prototype.subscribe = function(callback, target = null) {
 
     this.$listeners.push(callback);
     this.assocTrigger();
-    PluginsManager.emit('ObservableSubscribe', this, target);
+    if(process.env.NODE_ENV === 'development') {
+        PluginsManager.emit('ObservableSubscribe', this, target);
+    }
     return () => {
         this.unsubscribe(callback);
         this.assocTrigger();
-        PluginsManager.emit('ObservableUnsubscribe', this);
+        if(process.env.NODE_ENV === 'development') {
+            PluginsManager.emit('ObservableUnsubscribe', this);
+        }
     };
 };
 

@@ -141,79 +141,85 @@ var NativeDocument = (function (exports) {
         return this.observable.cleanup();
     };
 
-    const PluginsManager = (function() {
+    let PluginsManager$1 = null;
 
-        const $plugins = new Map();
-        const $pluginByEvents = new Map();
+    {
+        PluginsManager$1 = (function() {
 
-        return {
-            list() {
-                return $pluginByEvents;
-            },
-            add(plugin, name){
-                if (!plugin || typeof plugin !== 'object') {
-                    throw new Error(`Plugin ${name} must be an object`);
-                }
-                name = name || plugin.name;
-                if (!name || typeof name !== 'string') {
-                    throw new Error(`Please, provide a valid plugin name`);
-                }
-                if($plugins.has(name)) {
-                    return;
-                }
+            const $plugins = new Map();
+            const $pluginByEvents = new Map();
 
-                plugin.$name = name;
-                $plugins.set(name ,plugin);
-                if(typeof plugin?.init === 'function') {
-                    plugin.init();
-                }
-                for(const methodName in plugin) {
-                    if(/^on[A-Z]/.test(methodName)) {
-                        const eventName = methodName.replace(/^on/, '');
-                        if(!$pluginByEvents.has(eventName)) {
-                            $pluginByEvents.set(eventName, new Set());
-                        }
-                        $pluginByEvents.get(eventName).add(plugin);
+            return {
+                list() {
+                    return $pluginByEvents;
+                },
+                add(plugin, name){
+                    if (!plugin || typeof plugin !== 'object') {
+                        throw new Error(`Plugin ${name} must be an object`);
                     }
-                }
-            },
-            remove(pluginName){
-                if(!$plugins.has(pluginName)) {
-                    return;
-                }
-                const plugin = $plugins.get(pluginName);
-                if(typeof plugin.cleanup === 'function') {
-                    plugin.cleanup();
-                }
-                for(const [name, sets] of $pluginByEvents.entries() ) {
-                    if(sets.has(plugin)) {
-                        sets.delete(plugin);
+                    name = name || plugin.name;
+                    if (!name || typeof name !== 'string') {
+                        throw new Error(`Please, provide a valid plugin name`);
                     }
-                    if(sets.size === 0) {
-                        $pluginByEvents.delete(name);
+                    if($plugins.has(name)) {
+                        return;
                     }
-                }
-                $plugins.delete(pluginName);
-            },
-            emit(eventName, ...data) {
-                if(!$pluginByEvents.has(eventName)) {
-                    return;
-                }
-                const plugins = $pluginByEvents.get(eventName);
 
-                for(const plugin of plugins) {
-                    const callback = plugin['on'+eventName];
-                    if(typeof callback === 'function') {
-                        try{
-                            callback.call(plugin, ...data);
-                        } catch (error) {
-                            DebugManager$1.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
+                    plugin.$name = name;
+                    $plugins.set(name ,plugin);
+                    if(typeof plugin?.init === 'function') {
+                        plugin.init();
+                    }
+                    for(const methodName in plugin) {
+                        if(/^on[A-Z]/.test(methodName)) {
+                            const eventName = methodName.replace(/^on/, '');
+                            if(!$pluginByEvents.has(eventName)) {
+                                $pluginByEvents.set(eventName, new Set());
+                            }
+                            $pluginByEvents.get(eventName).add(plugin);
                         }
                     }
+                },
+                remove(pluginName){
+                    if(!$plugins.has(pluginName)) {
+                        return;
+                    }
+                    const plugin = $plugins.get(pluginName);
+                    if(typeof plugin.cleanup === 'function') {
+                        plugin.cleanup();
+                    }
+                    for(const [name, sets] of $pluginByEvents.entries() ) {
+                        if(sets.has(plugin)) {
+                            sets.delete(plugin);
+                        }
+                        if(sets.size === 0) {
+                            $pluginByEvents.delete(name);
+                        }
+                    }
+                    $plugins.delete(pluginName);
+                },
+                emit(eventName, ...data) {
+                    if(!$pluginByEvents.has(eventName)) {
+                        return;
+                    }
+                    const plugins = $pluginByEvents.get(eventName);
+
+                    for(const plugin of plugins) {
+                        const callback = plugin['on'+eventName];
+                        if(typeof callback === 'function') {
+                            try{
+                                callback.call(plugin, ...data);
+                            } catch (error) {
+                                DebugManager$1.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
+                            }
+                        }
+                    }
                 }
-            }
-        };
-    }());
+            };
+        }());
+    }
+
+    var PluginsManager = PluginsManager$1;
 
     const ObservableWhen = function(observer, value) {
         this.$target = value;
@@ -334,8 +340,9 @@ var NativeDocument = (function (exports) {
                 this.$initialValue = Validator.isObject(value) ? deepClone(value) : value;
             }
         }
-
-        PluginsManager.emit('CreateObservable', this);
+        {
+            PluginsManager.emit('CreateObservable', this);
+        }
     }
 
     Object.defineProperty(ObservableItem.prototype, '$value', {
@@ -460,10 +467,14 @@ var NativeDocument = (function (exports) {
         }
         this.$previousValue = this.$currentValue;
         this.$currentValue = newValue;
-        PluginsManager.emit('ObservableBeforeChange', this);
+        {
+            PluginsManager.emit('ObservableBeforeChange', this);
+        }
         this.trigger();
         this.$previousValue = null;
-        PluginsManager.emit('ObservableAfterChange', this);
+        {
+            PluginsManager.emit('ObservableAfterChange', this);
+        }
     };
 
     ObservableItem.prototype.val = function() {
@@ -523,11 +534,15 @@ var NativeDocument = (function (exports) {
 
         this.$listeners.push(callback);
         this.assocTrigger();
-        PluginsManager.emit('ObservableSubscribe', this, target);
+        {
+            PluginsManager.emit('ObservableSubscribe', this, target);
+        }
         return () => {
             this.unsubscribe(callback);
             this.assocTrigger();
-            PluginsManager.emit('ObservableUnsubscribe', this);
+            {
+                PluginsManager.emit('ObservableUnsubscribe', this);
+            }
         };
     };
 
@@ -747,7 +762,9 @@ var NativeDocument = (function (exports) {
     function NDElement(element) {
         this.$element = element;
         this.$observer = null;
-        PluginsManager.emit('NDElementCreated', element, this);
+        {
+            PluginsManager.emit('NDElementCreated', element, this);
+        }
     }
 
     NDElement.prototype.__$isNDElement = true;
@@ -916,8 +933,9 @@ var NativeDocument = (function (exports) {
 
             NDElement.prototype[name] = method;
         }
-
-        PluginsManager.emit('NDElementExtended', methods);
+        {
+            PluginsManager.emit('NDElementExtended', methods);
+        }
 
         return NDElement;
     };
@@ -937,10 +955,10 @@ var NativeDocument = (function (exports) {
 
     const Validator = {
         isObservable(value) {
-            return  value?.__$isObservable || value instanceof ObservableItem || value instanceof ObservableChecker;
+            return  value?.__$isObservable;
         },
         isTemplateBinding(value) {
-            return  value?.__$isTemplateBinding || value instanceof TemplateBinding;
+            return  value?.__$isTemplateBinding;
         },
         isObservableWhenResult(value) {
             return value && (value.__$isObservableWhen || (typeof value === 'object' && '$target' in value && '$observer' in value));
@@ -1226,6 +1244,8 @@ var NativeDocument = (function (exports) {
         (parent || document.body).appendChild(anchor);
         return anchor;
     }
+
+    DocumentFragment.prototype.setAttribute = () => {};
 
     const BOOLEAN_ATTRIBUTES = new Set([
         'checked',
@@ -1544,7 +1564,9 @@ var NativeDocument = (function (exports) {
 
     Function.prototype.toNdElement = function () {
         const child = this;
-        PluginsManager.emit('BeforeProcessComponent', child);
+        {
+            PluginsManager.emit('BeforeProcessComponent', child);
+        }
         return ElementCreator.getChild(child());
     };
 
@@ -1623,8 +1645,9 @@ var NativeDocument = (function (exports) {
          */
         createElement(name)  {
             if(name) {
-                if($nodeCache.has(name)) {
-                    return $nodeCache.get(name).cloneNode();
+                const cacheNode = $nodeCache.get(name);
+                if(cacheNode) {
+                    return cacheNode.cloneNode();
                 }
                 const node = document.createElement(name);
                 $nodeCache.set(name, node);
@@ -1639,12 +1662,16 @@ var NativeDocument = (function (exports) {
          */
         processChildren(children, parent) {
             if(children === null) return;
-            PluginsManager.emit('BeforeProcessChildren', parent);
+            {
+                PluginsManager.emit('BeforeProcessChildren', parent);
+            }
             let child = this.getChild(children);
             if(child) {
                 parent.appendChild(child);
             }
-            PluginsManager.emit('AfterProcessChildren', parent);
+            {
+                PluginsManager.emit('AfterProcessChildren', parent);
+            }
         },
         getChild(child) {
             if(child == null) {
@@ -1667,21 +1694,9 @@ var NativeDocument = (function (exports) {
          * @param {Object} attributes
          */
         processAttributes(element, attributes) {
-            if(Validator.isFragment(element)) return;
             if (attributes) {
                 AttributesWrapper(element, attributes);
             }
-        },
-        /**
-         *
-         * @param {HTMLElement} element
-         * @param {Object} attributes
-         * @param {?Function} customWrapper
-         * @returns {HTMLElement|DocumentFragment}
-         */
-        setup(element, attributes, customWrapper) {
-            PluginsManager.emit('Setup', element, attributes, customWrapper);
-            return element;
         }
     };
 
@@ -2099,14 +2114,9 @@ var NativeDocument = (function (exports) {
         let element = ElementCreator.createElement($tagName);
         let finalElement = (customWrapper && typeof customWrapper === 'function') ? customWrapper(element) : element;
 
-        if(attributes) {
-            ElementCreator.processAttributes(finalElement, attributes);
-        }
-        if(children) {
-            ElementCreator.processChildren(children, finalElement);
-        }
-
-        return ElementCreator.setup(finalElement, attributes, customWrapper);
+        ElementCreator.processAttributes(finalElement, attributes);
+        ElementCreator.processChildren(children, finalElement);
+        return finalElement;
     }
 
     /**
@@ -2897,7 +2907,9 @@ var NativeDocument = (function (exports) {
         }
 
         ObservableItem.call(this, target, configs);
-        PluginsManager.emit('CreateObservableArray', this);
+        {
+            PluginsManager.emit('CreateObservableArray', this);
+        }
     };
 
     ObservableArray.prototype = Object.create(ObservableItem.prototype);
@@ -3296,8 +3308,9 @@ var NativeDocument = (function (exports) {
         const initialValue = callback();
         const observable = new ObservableItem(initialValue);
         const updatedValue = nextTick(() => observable.set(callback()));
-
-        PluginsManager.emit('CreateObservableComputed', observable, dependencies);
+        {
+            PluginsManager.emit('CreateObservableComputed', observable, dependencies);
+        }
 
         if(Validator.isFunction(dependencies)) {
             if(!Validator.isObservable(dependencies.$observer)) {
@@ -3618,7 +3631,7 @@ var NativeDocument = (function (exports) {
             if(child) {
                 cache.set(item, {
                     child,
-                    indexObserver: (indexObserver ? new WeakRef(indexObserver) : null)
+                    indexObserver
                 });
                 return child;
             }

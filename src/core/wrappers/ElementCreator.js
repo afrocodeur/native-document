@@ -59,8 +59,9 @@ export const ElementCreator = {
      */
     createElement(name)  {
         if(name) {
-            if($nodeCache.has(name)) {
-                return $nodeCache.get(name).cloneNode();
+            const cacheNode = $nodeCache.get(name);
+            if(cacheNode) {
+                return cacheNode.cloneNode();
             }
             const node = document.createElement(name);
             $nodeCache.set(name, node);
@@ -75,12 +76,16 @@ export const ElementCreator = {
      */
     processChildren(children, parent) {
         if(children === null) return;
-        PluginsManager.emit('BeforeProcessChildren', parent);
+        if(process.env.NODE_ENV === 'development') {
+            PluginsManager.emit('BeforeProcessChildren', parent);
+        }
         let child = this.getChild(children);
         if(child) {
             parent.appendChild(child);
         }
-        PluginsManager.emit('AfterProcessChildren', parent);
+        if(process.env.NODE_ENV === 'development') {
+            PluginsManager.emit('AfterProcessChildren', parent);
+        }
     },
     getChild(child) {
         if(child == null) {
@@ -103,20 +108,8 @@ export const ElementCreator = {
      * @param {Object} attributes
      */
     processAttributes(element, attributes) {
-        if(Validator.isFragment(element)) return;
         if (attributes) {
             AttributesWrapper(element, attributes);
         }
-    },
-    /**
-     *
-     * @param {HTMLElement} element
-     * @param {Object} attributes
-     * @param {?Function} customWrapper
-     * @returns {HTMLElement|DocumentFragment}
-     */
-    setup(element, attributes, customWrapper) {
-        PluginsManager.emit('Setup', element, attributes, customWrapper);
-        return element;
     }
 };

@@ -49,7 +49,9 @@ Array.prototype.toNdElement = function () {
 
 Function.prototype.toNdElement = function () {
     const child = this;
-    PluginsManager.emit('BeforeProcessComponent', child);
+    if(process.env.NODE_ENV === 'development') {
+        PluginsManager.emit('BeforeProcessComponent', child);
+    }
     return ElementCreator.getChild(child());
 };
 

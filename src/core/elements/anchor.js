@@ -153,3 +153,5 @@ export function createPortal(children, { parent, name = 'unnamed' } = {}) {
     (parent || document.body).appendChild(anchor);
     return anchor;
 }
+
+DocumentFragment.prototype.setAttribute = () => {}
