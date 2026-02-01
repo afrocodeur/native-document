@@ -1,6 +1,6 @@
 {
   "name": "native-document",
-  "version": "1.0.83",
+  "version": "1.0.84",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -20,5 +20,8 @@
     "eslint": "^9.33.0",
     "magic-string": "^0.30.21",
     "rollup": "^4.53.3"
+  },
+  "dependencies": {
+    "i18next": "^25.8.0"
   }
 }
