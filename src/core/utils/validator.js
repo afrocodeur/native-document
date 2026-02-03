@@ -60,7 +60,7 @@ const Validator = {
         return typeof value === 'object' && value !== null;
     },
     isJson(value) {
-        return typeof value === 'object' && value !== null && !Array.isArray(value) && value.constructor.name === 'Object';
+        return !(typeof value !== 'object' || value === null || Array.isArray(value) || value.constructor.name !== 'Object')
     },
     isElement(value) {
         return value && (

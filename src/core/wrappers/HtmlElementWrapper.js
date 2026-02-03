@@ -32,6 +32,6 @@ function createHtmlElement($tagName, customWrapper, _attributes, _children = nul
  * @returns {Function}
  */
 export default function HtmlElementWrapper(name, customWrapper) {
-    return createHtmlElement.bind(null, name.toLowerCase(), customWrapper);
+    return createHtmlElement.bind(null, name, customWrapper);
 };
 
