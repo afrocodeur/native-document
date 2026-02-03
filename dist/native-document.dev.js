@@ -5013,13 +5013,13 @@ var NativeDocument = (function (exports) {
 
     function Link(options, children){
         const { to, href, ...attributes } = options;
-        const target = to || href;
-        if(Validator.isString(target)) {
+        if(href) {
             const router = Router.get();
-            return Link$1({ ...attributes, href: target}, children).nd.onPreventClick(() => {
-                router.push(target);
+            return Link$1({ ...attributes, href}, children).nd.onPreventClick(() => {
+                router.push(href);
             });
         }
+        const target = typeof to === 'string' ? { name: to } : to;
         const routerName = target.router || DEFAULT_ROUTER_NAME;
         const router = Router.get(routerName);
         if(!router) {
