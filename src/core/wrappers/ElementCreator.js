@@ -69,6 +69,14 @@ export const ElementCreator = {
         }
         return Anchor('Fragment');
     },
+    bindTextNode(textNode, value) {
+        if(value?.__$isObservable) {
+            value.subscribe(newValue => textNode.nodeValue = newValue);
+            textNode.nodeValue = value.val();
+            return;
+        }
+        textNode.nodeValue = value;
+    },
     /**
      *
      * @param {*} children

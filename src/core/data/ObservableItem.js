@@ -18,7 +18,9 @@ export default function ObservableItem(value, configs = null) {
 
     this.$previousValue = null;
     this.$currentValue = value;
-    this.$isCleanedUp = false;
+    if(process.env.NODE_ENV === 'development') {
+        this.$isCleanedUp = false;
+    }
 
     this.$firstListener = null;
     this.$listeners = null;
@@ -53,11 +55,12 @@ const noneTrigger = function() {};
 
 ObservableItem.prototype.intercept = function(callback) {
     this.$interceptor = callback;
+    this.set = this.$setWithInterceptor;
     return this;
 };
 
 ObservableItem.prototype.triggerFirstListener = function(operations) {
-    this.$firstListener(this.$currentValue, this.$previousValue, operations || {});
+    this.$firstListener(this.$currentValue, this.$previousValue, operations);
 };
 
 ObservableItem.prototype.triggerListeners = function(operations) {
@@ -65,54 +68,34 @@ ObservableItem.prototype.triggerListeners = function(operations) {
     const $previousValue = this.$previousValue;
     const $currentValue = this.$currentValue;
 
-    operations = operations || DEFAULT_OPERATIONS;
     for(let i = 0, length = $listeners.length; i < length; i++) {
-        const listener = $listeners[i];
         $listeners[i]($currentValue, $previousValue, operations);
     }
 };
 
-const handleWatcherCallback = function(callbacks, value) {
-    if(typeof callbacks === "function") {
-        callbacks(value);
-        return;
-    }
-    if (callbacks.set) {
-        callbacks.set(value);
-        return;
-    }
-    callbacks.forEach(callback => {
-        callback.set ? callback.set(value) : callback(value);
-    });
-};
-
-ObservableItem.prototype.triggerWatchers = function() {
-    if(!this.$watchers) {
-        return;
-    }
-
+ObservableItem.prototype.triggerWatchers = function(operations) {
     const $watchers = this.$watchers;
     const $previousValue = this.$previousValue;
     const $currentValue = this.$currentValue;
 
-    if($watchers.has($currentValue)) {
-        const $currentValueCallbacks = $watchers.get($currentValue);
-        handleWatcherCallback($currentValueCallbacks, true);
+    const $currentValueCallbacks = $watchers.get($currentValue);
+    const $previousValueCallbacks = $watchers.get($previousValue);
+    if($currentValueCallbacks) {
+        $currentValueCallbacks(true, $previousValue, operations);
     }
-    if($watchers.has($previousValue)) {
-        const $previousValueCallbacks = $watchers.get($previousValue);
-        handleWatcherCallback($previousValueCallbacks, false);
+    if($previousValueCallbacks) {
+        $previousValueCallbacks(false, $currentValue, operations);
     }
 };
 
 ObservableItem.prototype.triggerAll = function(operations) {
-    this.triggerWatchers();
+    this.triggerWatchers(operations);
     this.triggerListeners(operations);
 };
 
 ObservableItem.prototype.triggerWatchersAndFirstListener = function(operations) {
-    this.triggerWatchers();
-    this.triggerListeners(operations);
+    this.triggerWatchers(operations);
+    this.triggerFirstListener(operations);
 };
 
 ObservableItem.prototype.assocTrigger = function() {
@@ -139,21 +122,8 @@ ObservableItem.prototype.assocTrigger = function() {
 };
 ObservableItem.prototype.trigger = noneTrigger;
 
-/**
- * @param {*} data
- */
-ObservableItem.prototype.set = function(data) {
-    let newValue = (typeof data === 'function') ? data(this.$currentValue) : data;
-    newValue = Validator.isObservable(newValue) ? newValue.val() : newValue;
-
-    if (this.$interceptor) {
-        const result = this.$interceptor(newValue, this.$currentValue);
-
-        if (result !== undefined) {
-            newValue = result;
-        }
-    }
-
+ObservableItem.prototype.$updateWithNewValue = function(newValue) {
+    newValue = newValue?.__$isObservable ? newValue.val() : newValue;
     if(this.$currentValue === newValue) {
         return;
     }
@@ -168,6 +138,30 @@ ObservableItem.prototype.set = function(data) {
         PluginsManager.emit('ObservableAfterChange', this);
     }
 };
+
+/**
+ * @param {*} data
+ */
+ObservableItem.prototype.$setWithInterceptor = function(data) {
+    let newValue = (typeof data === 'function') ? data(this.$currentValue) : data;
+    const result = this.$interceptor(newValue, this.$currentValue);
+
+    if (result !== undefined) {
+        newValue = result;
+    }
+
+    this.$updateWithNewValue(newValue);
+}
+
+/**
+ * @param {*} data
+ */
+ObservableItem.prototype.$basicSet = function(data) {
+    let newValue = (typeof data === 'function') ? data(this.$currentValue) : data;
+    this.$updateWithNewValue(newValue);
+};
+
+ObservableItem.prototype.set = ObservableItem.prototype.$basicSet;
 
 ObservableItem.prototype.val = function() {
     return this.$currentValue;
@@ -204,38 +198,34 @@ ObservableItem.prototype.cleanup = function() {
     }
     MemoryManager.unregister(this.$memoryId);
     this.disconnectAll();
-    this.$isCleanedUp = true;
+    if(process.env.NODE_ENV === 'development') {
+        this.$isCleanedUp = true;
+    }
     delete this.$value;
 };
 
 /**
  *
  * @param {Function} callback
- * @param {any} target
  * @returns {(function(): void)}
  */
-ObservableItem.prototype.subscribe = function(callback, target = null) {
+ObservableItem.prototype.subscribe = function(callback) {
+    if(process.env.NODE_ENV === 'development') {
+        if (this.$isCleanedUp) {
+            DebugManager.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
+            return;
+        }
+        if (typeof callback !== 'function') {
+            throw new NativeDocumentError('Callback must be a function');
+        }
+    }
     this.$listeners = this.$listeners ?? [];
-    if (this.$isCleanedUp) {
-        DebugManager.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
-        return () => {};
-    }
-    if (typeof callback !== 'function') {
-        throw new NativeDocumentError('Callback must be a function');
-    }
 
     this.$listeners.push(callback);
     this.assocTrigger();
     if(process.env.NODE_ENV === 'development') {
-        PluginsManager.emit('ObservableSubscribe', this, target);
+        PluginsManager.emit('ObservableSubscribe', this);
     }
-    return () => {
-        this.unsubscribe(callback);
-        this.assocTrigger();
-        if(process.env.NODE_ENV === 'development') {
-            PluginsManager.emit('ObservableUnsubscribe', this);
-        }
-    };
 };
 
 ObservableItem.prototype.on = function(value, callback) {
@@ -243,41 +233,66 @@ ObservableItem.prototype.on = function(value, callback) {
 
     let watchValueList = this.$watchers.get(value);
 
+    if(callback.__$isObservable) {
+        callback = callback.set.bind(callback);
+    }
+
     if(!watchValueList) {
+        watchValueList = callback;
         this.$watchers.set(value, callback);
-    } else if(!Validator.isArray(watchValueList)) {
-        watchValueList = [watchValueList];
-        this.$watchers.set(value, watchValueList);
-        return;
+    } else if(!Validator.isArray(watchValueList.list)) {
+        watchValueList = [watchValueList, callback];
+        callback = (value) => {
+            for(let i = 0, length = watchValueList.length; i < length; i++) {
+                watchValueList[i](value);
+            }
+        }
+        callback.list = watchValueList;
+        this.$watchers.set(value, callback);
     } else {
-        watchValueList.push(callback);
+        watchValueList.list.push(callback);
     }
 
     this.assocTrigger();
-    return () => {
-        const index = watchValueList.indexOf(callback);
-        watchValueList?.splice(index, 1);
-        if(watchValueList.size === 1) {
-            this.$watchers.set(value, watchValueList[0]);
-        }
-        else if(watchValueList.size === 0) {
-            this.$watchers?.delete(value);
-            watchValueList = null;
-        }
+};
+
+/**
+ * @param {*} value
+ * @param {Function} callback - if omitted, removes all watchers for this value
+ */
+ObservableItem.prototype.off = function(value, callback) {
+    if(!this.$watchers) return;
+
+    const watchValueList = this.$watchers.get(value);
+    if(!watchValueList) return;
+
+    if(!callback || !Array.isArray(watchValueList.list)) {
+        this.$watchers?.delete(value);
         this.assocTrigger();
-    };
+        return;
+    }
+    const index = watchValueList.indexOf(callback);
+    watchValueList?.splice(index, 1);
+    if(watchValueList.length === 1) {
+        this.$watchers.set(value, watchValueList[0]);
+    }
+    else if(watchValueList.length === 0) {
+        this.$watchers?.delete(value);
+        watchValueList = null;
+    }
+    this.assocTrigger();
 };
 
 ObservableItem.prototype.once = function(predicate, callback) {
     const fn = typeof predicate === 'function' ? predicate : (v) => v === predicate;
 
-    const unsub = this.subscribe((val) => {
+    const handler = (val) => {
         if (fn(val)) {
-            unsub();
+            this.unsubscribe(handler);
             callback(val);
         }
-    });
-    return unsub;
+    };
+    this.subscribe(handler);
 };
 
 /**
@@ -285,11 +300,15 @@ ObservableItem.prototype.once = function(predicate, callback) {
  * @param {Function} callback
  */
 ObservableItem.prototype.unsubscribe = function(callback) {
+    if(!this.$listeners) return;
     const index = this.$listeners.indexOf(callback);
     if (index > -1) {
         this.$listeners.splice(index, 1);
     }
     this.assocTrigger();
+    if(process.env.NODE_ENV === 'development') {
+        PluginsManager.emit('ObservableUnsubscribe', this);
+    }
 };
 
 /**
@@ -310,12 +329,6 @@ ObservableItem.prototype.when = function(value) {
     return new ObservableWhen(this, value);
 };
 
-ObservableItem.prototype.toString = function() {
-    if(!this.$memoryId) {
-        MemoryManager.register(this);
-    }
-    return '{{#ObItem::(' +this.$memoryId+ ')}}';
-};
 ObservableItem.prototype.equals = function(other) {
     if(Validator.isObservable(other)) {
         return this.$currentValue === other.$currentValue;
@@ -346,4 +359,8 @@ ObservableItem.prototype.reset = function() {
 
 ObservableItem.prototype.toString = function() {
     return String(this.$currentValue);
+};
+
+ObservableItem.prototype.valueOf = function() {
+    return this.$currentValue;
 };

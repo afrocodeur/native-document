@@ -1,5 +1,4 @@
 import {ElementCreator} from "./ElementCreator";
-import {createTextNode} from "./HtmlElementWrapper";
 import TemplateBinding from "./TemplateBinding";
 
 const cloneBindingsDataCache = new WeakMap();
@@ -65,9 +64,8 @@ const bindAttachMethods = function(node, bindDingData, data) {
 
 
 const applyBindingTreePath = (root, target, data, path) => {
-    let newTarget = null;
     if(path.fn) {
-        newTarget = path.fn(data, target, root);
+        path.fn(data, target, root);
     }
     if(path.children) {
         for(let i = 0, length = path.children.length; i < length; i++) {
@@ -76,7 +74,6 @@ const applyBindingTreePath = (root, target, data, path) => {
             applyBindingTreePath(root, pathTargetNode, data, currentPath);
         }
     }
-    return newTarget;
 };
 
 export function TemplateCloner($fn) {
@@ -92,15 +89,10 @@ export function TemplateCloner($fn) {
         const bindDingData = cloneBindingsDataCache.get(node);
         if(node.nodeType === 3) {
             if(bindDingData && bindDingData.value) {
-                currentPath.fn = (data, targetNode, currentRoot) => {
-                    const newNode = bindDingData.value(data);
-                    if (targetNode === currentRoot) {
-                        return newNode;
-                    }
-                    targetNode.replaceWith(newNode);
-                    return null;
-                };
-                return bindDingData.value(data);
+                currentPath.fn = bindDingData.value;
+                const textNode = node.cloneNode();
+                bindDingData.value(data, textNode);
+                return textNode;
             }
             return node.cloneNode(true);
         }
@@ -137,11 +129,7 @@ export function TemplateCloner($fn) {
     const cloneWithBindingPaths = (data) => {
         let root = $node.cloneNode(true);
 
-        const newRoot = applyBindingTreePath(root, root, data, $bindingTreePath);
-        if(newRoot) {
-            root = newRoot;
-        }
-
+        applyBindingTreePath(root, root, data, $bindingTreePath);
         return root;
     };
 
@@ -176,13 +164,13 @@ export function TemplateCloner($fn) {
     }
     this.value = (callbackOrProperty) => {
         if(typeof callbackOrProperty !== 'function') {
-            return createBinding(function(data) {
+            return createBinding(function(data, textNode) {
                 const firstArgument = data[0];
-                return createTextNode(firstArgument[callbackOrProperty]);
+                ElementCreator.bindTextNode(textNode, firstArgument[callbackOrProperty]);
             }, 'value');
         }
-        return createBinding(function(data) {
-            return createTextNode(callbackOrProperty(...data));
+        return createBinding(function(data, textNode) {
+            ElementCreator.bindTextNode(textNode, callbackOrProperty(...data));
         }, 'value');
     };
     this.attr = (fn) => {

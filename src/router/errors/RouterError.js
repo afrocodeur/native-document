@@ -5,5 +5,4 @@ export default class RouterError extends Error {
         super(message);
         this.context = context;
     }
-
 }

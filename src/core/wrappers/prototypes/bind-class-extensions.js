@@ -5,12 +5,12 @@ import TemplateBinding from "../../../core/wrappers/TemplateBinding";
 
 ObservableItem.prototype.bindNdClass = function(element, className) {
     element.classes.toggle(className, this.val());
-    this.subscribe(toggleElementClass.bind(null, element, className));
+    this.subscribe((shouldAdd) => element.classes.toggle(className, shouldAdd));
 };
 
 ObservableWhen.prototype.bindNdClass = function(element, className) {
     element.classes.toggle(className, this.isMath());
-    this.subscribe(toggleElementClass.bind(null, element, className));
+    this.subscribe((shouldAdd) => element.classes.toggle(className, shouldAdd));
 };
 
 TemplateBinding.prototype.bindNdClass = function(element, className) {

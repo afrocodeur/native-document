@@ -180,7 +180,7 @@ export function ForEachArray(data, callback, configs = {}) {
                     elementBeforeFirst = firstChildRemoved?.previousSibling;
 
                     for(let i = 0; i < deleted.length; i++) {
-                        firstItem(deleted[i], garbageFragment);
+                        removeByItem(deleted[i], garbageFragment);
                     }
                 }
             } else {
@@ -226,7 +226,7 @@ export function ForEachArray(data, callback, configs = {}) {
     };
 
     const buildContent = (items, _, operations) => {
-        if(operations.action === 'clear' || !items.length) {
+        if(operations?.action === 'clear' || !items.length) {
             if(lastNumberOfItems === 0) {
                 return;
             }

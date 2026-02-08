@@ -201,7 +201,7 @@ Router.routers = {};
  */
 Router.create = function(options, callback) {
     if(!Validator.isFunction(callback)) {
-        DebugManager.error('Router', 'Callback must be a function', e);
+        DebugManager.error('Router', 'Callback must be a function');
         throw new RouterError('Callback must be a function');
     }
     const router = new Router(options);
