@@ -53,6 +53,16 @@ ObservableItem.prototype.__$isObservable = true;
 const DEFAULT_OPERATIONS = {};
 const noneTrigger = function() {};
 
+/**
+ * Intercepts and transforms values before they are set on the observable.
+ * The interceptor can modify the value or return undefined to use the original value.
+ *
+ * @param {(value) => any} callback - Interceptor function that receives (newValue, currentValue) and returns the transformed value or undefined
+ * @returns {ObservableItem} The observable instance for chaining
+ * @example
+ * const count = Observable(0);
+ * count.intercept((newVal, oldVal) => Math.max(0, newVal)); // Prevent negative values
+ */
 ObservableItem.prototype.intercept = function(callback) {
     this.$interceptor = callback;
     this.set = this.$setWithInterceptor;
@@ -184,6 +194,16 @@ ObservableItem.prototype.disconnectAll = function() {
     this.trigger = noneTrigger;
 };
 
+/**
+ * Registers a cleanup callback that will be executed when the observable is cleaned up.
+ * Useful for disposing resources, removing event listeners, or other cleanup tasks.
+ *
+ * @param {Function} callback - Cleanup function to execute on observable disposal
+ * @example
+ * const obs = Observable(0);
+ * obs.onCleanup(() => console.log('Cleaned up!'));
+ * obs.cleanup(); // Logs: "Cleaned up!"
+ */
 ObservableItem.prototype.onCleanup = function(callback) {
     this.$cleanupListeners = this.$cleanupListeners ?? [];
     this.$cleanupListeners.push(callback);
@@ -228,6 +248,17 @@ ObservableItem.prototype.subscribe = function(callback) {
     }
 };
 
+/**
+ * Watches for a specific value and executes callback when the observable equals that value.
+ * Creates a watcher that only triggers when the observable changes to the specified value.
+ *
+ * @param {*} value - The value to watch for
+ * @param {(value) => void|ObservableItem} callback - Callback function or observable to set when value matches
+ * @example
+ * const status = Observable('idle');
+ * status.on('loading', () => console.log('Started loading'));
+ * status.on('error', isError); // Set another observable
+ */
 ObservableItem.prototype.on = function(value, callback) {
     this.$watchers = this.$watchers ?? new Map();
 
@@ -257,8 +288,16 @@ ObservableItem.prototype.on = function(value, callback) {
 };
 
 /**
- * @param {*} value
- * @param {Function} callback - if omitted, removes all watchers for this value
+ * Removes a watcher for a specific value. If no callback is provided, removes all watchers for that value.
+ *
+ * @param {*} value - The value to stop watching
+ * @param {Function} [callback] - Specific callback to remove. If omitted, removes all watchers for this value
+ * @example
+ * const status = Observable('idle');
+ * const handler = () => console.log('Loading');
+ * status.on('loading', handler);
+ * status.off('loading', handler); // Remove specific handler
+ * status.off('loading'); // Remove all handlers for 'loading'
  */
 ObservableItem.prototype.off = function(value, callback) {
     if(!this.$watchers) return;
@@ -278,11 +317,20 @@ ObservableItem.prototype.off = function(value, callback) {
     }
     else if(watchValueList.length === 0) {
         this.$watchers?.delete(value);
-        watchValueList = null;
     }
     this.assocTrigger();
 };
 
+/**
+ * Subscribes to the observable but automatically unsubscribes after the first time the predicate matches.
+ *
+ * @param {(value) => Boolean|any} predicate - Value to match or function that returns true when condition is met
+ * @param {(value) => void} callback - Callback to execute when predicate matches, receives the matched value
+ * @example
+ * const status = Observable('loading');
+ * status.once('ready', (val) => console.log('Ready!'));
+ * status.once(val => val === 'error', (val) => console.log('Error occurred'));
+ */
 ObservableItem.prototype.once = function(predicate, callback) {
     const fn = typeof predicate === 'function' ? predicate : (v) => v === predicate;
 
@@ -320,15 +368,50 @@ ObservableItem.prototype.check = function(callback) {
     return new ObservableChecker(this, callback)
 };
 
+/**
+ * Gets a property value from the observable's current value.
+ * If the property is an observable, returns its value.
+ *
+ * @param {string|number} key - Property key to retrieve
+ * @returns {*} The value of the property, unwrapped if it's an observable
+ * @example
+ * const user = Observable({ name: 'John', age: Observable(25) });
+ * user.get('name'); // 'John'
+ * user.get('age'); // 25 (unwrapped from observable)
+ */
 ObservableItem.prototype.get = function(key) {
     const item = this.$currentValue[key];
     return Validator.isObservable(item) ? item.val() : item;
 };
 
+/**
+ * Creates an ObservableWhen that represents whether the observable equals a specific value.
+ * Returns an object that can be subscribed to and will emit true/false.
+ *
+ * @param {*} value - The value to compare against
+ * @returns {ObservableWhen} An ObservableWhen instance that tracks when the observable equals the value
+ * @example
+ * const status = Observable('idle');
+ * const isLoading = status.when('loading');
+ * isLoading.subscribe(active => console.log('Loading:', active));
+ * status.set('loading'); // Logs: "Loading: true"
+ */
 ObservableItem.prototype.when = function(value) {
     return new ObservableWhen(this, value);
 };
 
+/**
+ * Compares the observable's current value with another value or observable.
+ *
+ * @param {*|ObservableItem} other - Value or observable to compare against
+ * @returns {boolean} True if values are equal
+ * @example
+ * const a = Observable(5);
+ * const b = Observable(5);
+ * a.equals(5);  // true
+ * a.equals(b);  // true
+ * a.equals(10); // false
+ */
 ObservableItem.prototype.equals = function(other) {
     if(Validator.isObservable(other)) {
         return this.$currentValue === other.$currentValue;
@@ -336,14 +419,41 @@ ObservableItem.prototype.equals = function(other) {
     return this.$currentValue === other;
 };
 
+/**
+ * Converts the observable's current value to a boolean.
+ *
+ * @returns {boolean} The boolean representation of the current value
+ * @example
+ * const count = Observable(0);
+ * count.toBool(); // false
+ * count.set(5);
+ * count.toBool(); // true
+ */
 ObservableItem.prototype.toBool = function() {
     return !!this.$currentValue;
 };
 
+/**
+ * Toggles the boolean value of the observable (false becomes true, true becomes false).
+ *
+ * @example
+ * const isOpen = Observable(false);
+ * isOpen.toggle(); // Now true
+ * isOpen.toggle(); // Now false
+ */
 ObservableItem.prototype.toggle = function() {
     this.set(!this.$currentValue);
 };
 
+/**
+ * Resets the observable to its initial value.
+ * Only works if the observable was created with { reset: true } config.
+ *
+ * @example
+ * const count = Observable(0, { reset: true });
+ * count.set(10);
+ * count.reset(); // Back to 0
+ */
 ObservableItem.prototype.reset = function() {
     if(!this.configs?.reset) {
         return;
@@ -356,11 +466,21 @@ ObservableItem.prototype.reset = function() {
     this.set(resetValue)
 };
 
-
+/**
+ * Returns a string representation of the observable's current value.
+ *
+ * @returns {string} String representation of the current value
+ */
 ObservableItem.prototype.toString = function() {
     return String(this.$currentValue);
 };
 
+/**
+ * Returns the primitive value of the observable (its current value).
+ * Called automatically in type coercion contexts.
+ *
+ * @returns {*} The current value of the observable
+ */
 ObservableItem.prototype.valueOf = function() {
     return this.$currentValue;
 };

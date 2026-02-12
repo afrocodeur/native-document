@@ -8,6 +8,5 @@ export {
     Menu,
     MenuItem,
     MenuGroup,
-    MenuDivider,
-    MenuInterface
+    MenuDivider
 };

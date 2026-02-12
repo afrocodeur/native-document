@@ -4,8 +4,26 @@ import Validator from "../../utils/validator";
 import { ElementCreator } from "../../wrappers/ElementCreator";
 import NativeDocumentError from "../../errors/NativeDocumentError";
 
+/**
+ * Renders items from an ObservableArray with optimized array-specific updates.
+ * Provides index observables and handles array mutations efficiently.
+ *
+ * @param {ObservableArray} data - ObservableArray to iterate over
+ * @param {Function} callback - Function that renders each item (item, indexObservable) => ValidChild
+ * @param {Object} [configs={}] - Configuration options
+ * @param {boolean} [configs.shouldKeepItemsInCache] - Whether to cache rendered items
+ * @param {boolean} [configs.isParentUniqueChild] - When it's the only child of the parent
+ * @returns {AnchorDocumentFragment} Fragment managing the list rendering
+ * @example
+ * const items = Observable.array([1, 2, 3]);
+ * ForEachArray(items, (item, index) =>
+ *   Div({}, `Item ${item} at index ${index.val()}`)
+ * );
+ *
+ * items.push(4); // Automatically updates DOM
+ */
 export function ForEachArray(data, callback, configs = {}) {
-    const element = Anchor('ForEach Array');
+    const element = Anchor('ForEach Array', configs.isParentUniqueChild);
     const blockEnd = element.endElement();
     const blockStart = element.startElement();
 

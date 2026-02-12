@@ -1,6 +1,7 @@
 // Router system type definitions
 import { ValidChild } from './elements';
 import { NDElement } from './nd-element';
+import {ValidChildren} from "./validator";
 
 export interface RouteParams {
     [key: string]: string;
@@ -21,6 +22,7 @@ export interface Route {
     middlewares(): Function[];
     shouldRebuild(): boolean;
     path(): string;
+    layout(): Function | null;
     match(path: string): RouteParams | false;
     url(configs: { params?: RouteParams; query?: QueryParams; basePath?: string }): string;
 }
@@ -30,6 +32,7 @@ export interface RouterState {
     params: RouteParams | null;
     query: QueryParams | null;
     path: string | null;
+    hash: string | null;
 }
 
 export interface Router {
@@ -41,9 +44,10 @@ export interface Router {
         middlewares?: Function[];
         shouldRebuild?: boolean;
         with?: Record<string, string>;
+        layout?: (children: ValidChild) => ValidChild ;
     }): this;
 
-    group(suffix: string, options: { middlewares?: Function[]; name?: string, layout?: Function }, callback: () => void): this;
+    group(suffix: string, options: { middlewares?: Function[]; name?: string; layout?: Function }, callback: () => void): this;
 
     generateUrl(name: string, params?: RouteParams, query?: QueryParams): string;
     resolve(target: string | { name: string; params?: RouteParams; query?: QueryParams }): {

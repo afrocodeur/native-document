@@ -10,6 +10,7 @@
 NativeDocument combines the familiarity of vanilla JavaScript with the power of modern reactivity. No compilation, no virtual DOM, just pure JavaScript with an intuitive API.
 
 ## Why NativeDocument?
+> **Note**: NativeDocument works best with a bundler (Vite, Webpack, Rollup) for tree-shaking and optimal bundle size. The CDN version includes all features
 
 ### **Instant Start**
 ```html
@@ -18,7 +19,7 @@ NativeDocument combines the familiarity of vanilla JavaScript with the power of 
 
 ### **Familiar API**
 ```javascript
-import { Div, Button } from 'native-document/src/elements';
+import { Div, Button } from 'native-document/elements';
 import { Observable } from 'native-document';
 
 // CDN
@@ -29,7 +30,6 @@ const count = Observable(0);
 
 const App = Div({ class: 'app' }, [
     Div([ 'Count ', count]),
-    // OR Div(`Count ${count}`),
     Button('Increment').nd.onClick(() => count.set(count.val() + 1))
 ]);
 
@@ -74,7 +74,7 @@ yarn add native-document
 ## Quick Example
 
 ```javascript
-import { Div, Input, Button, ShowIf, ForEach } from 'native-document/src/elements'
+import { Div, Input, Button, ShowIf, ForEach } from 'native-document/elements'
 import { Observable } from 'native-document'
 
 // CDN
@@ -105,7 +105,7 @@ const TodoApp = Div({ class: 'todo-app' }, [
             Input({ type: 'checkbox', checked: todo.done }),
             `${todo.text}`,
             Button('Delete').nd.onClick(() => todos.splice(index.val(), 1))
-        ]), /*item key (string | callback) */(item) => item),
+        ]), (item) => item.id ), // Key function - use unique identifier
 
     // Empty state
     ShowIf(
@@ -122,7 +122,7 @@ document.body.appendChild(TodoApp)
 ### Observables
 Reactive data that automatically updates the DOM:
 ```javascript
-import { Div } from 'native-document/src/elements'
+import { Div } from 'native-document/elements'
 import { Observable } from 'native-document'
 
 // CDN
@@ -135,16 +135,19 @@ const greeting = Observable.computed(() => `Hello ${user.$value.name}!`, [user])
 
 document.body.appendChild(Div(greeting));
 
-// user.name = 'Fausty'; // will not work
-// user.$value = { ...user.$value, name: ' Hermes!' }; // will work
-// user.set(data => ({ ...data, name: 'Hermes!' })); // will work
+// Direct mutation won't trigger updates
+user.name = 'Fausty';
+
+// These will trigger updates:
+user.$value = { ...user.$value, name: ' Hermes!' };
+user.set(data => ({ ...data, name: 'Hermes!' }));
 user.set({ ...user.val(), name: 'Hermes!' });
 ```
 
 ### Elements
 Familiar HTML element creation with reactive bindings:
 ```javascript
-import { Div, Button } from 'native-document/src/elements'
+import { Div, Button } from 'native-document/elements'
 import { Observable } from 'native-document'
 
 // CDN
@@ -185,6 +188,30 @@ When(condition)
     .otherwise(onFalse)
 ```
 
+### List Rendering
+Efficient rendering of lists with automatic updates:
+```javascript
+import { ForEach, Div } from 'native-document/elements'
+import { Observable } from 'native-document'
+
+const items = Observable.array(['Apple', 'Banana', 'Cherry'])
+
+ForEach(items, (item, index) => 
+    Div([index, '. ', item])
+)
+
+// With object arrays - use key function
+const users = Observable.array([
+    { id: 1, name: 'Alice' },
+    { id: 2, name: 'Bob' }
+])
+
+ForEach(users, (user) => 
+    Div(user.name),
+    (user) => user.id  // Key for efficient updates
+)
+```
+
 ## Documentation
 
 - **[Getting Started](docs/getting-started.md)** - Installation and first steps
@@ -213,6 +240,8 @@ When(condition)
 
 ### Developer Experience
 ```javascript
+import { ArgTypes } from 'native-document'
+
 // Built-in debugging
 Observable.debug.enable()
 
@@ -221,12 +250,15 @@ const createUser = (function (name, age) {
   // Auto-validates argument types
 }).args(ArgTypes.string('name'), ArgTypes.number('age'))
 
-// Error boundaries
-const AppWithBoundayError = App.errorBoundary(() => {
-    return Div('Error in the Create User component');
-})
 
-document.body.appendChild(AppWithBoundayError());
+const SafeApp = App.errorBoundary((error, { caller, args }) => {
+    return Div({ class: 'error' }, [
+        'An error occurred: ',
+        error.message
+    ])
+});
+
+document.body.appendChild(SafeApp());
 ```
 
 ## Contributing

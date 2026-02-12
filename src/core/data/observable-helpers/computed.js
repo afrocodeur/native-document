@@ -6,11 +6,24 @@ import PluginsManager from "../../utils/plugins-manager";
 import {nextTick} from "../../utils/helpers";
 
 /**
+ * Creates a computed observable that automatically updates when its dependencies change.
+ * The callback is re-executed whenever any dependency observable changes.
  *
- * @param {Function} callback
- * @param {Array|Function} dependencies
- * @returns {ObservableItem}
- */
+ * @param {Function} callback - Function that returns the computed value
+ * @param {Array<ObservableItem|ObservableChecker|ObservableProxy>|Function} [dependencies=[]] - Array of observables to watch, or batch function
+ * @returns {ObservableItem} A new observable that updates automatically
+ * @example
+ * const firstName = Observable('John');
+ * const lastName = Observable('Doe');
+ * const fullName = Observable.computed(
+ *   () => `${firstName.val()} ${lastName.val()}`,
+ *   [firstName, lastName]
+ * );
+ *
+ * // With batch function
+ * const batch = Observable.batch(() => { ...  });
+ * const computed = Observable.computed(() => { ... }, batch);
+*/
 Observable.computed = function(callback, dependencies = []) {
     const initialValue = callback();
     const observable = new ObservableItem(initialValue);

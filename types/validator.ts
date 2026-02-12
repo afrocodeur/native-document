@@ -1,4 +1,4 @@
-import {ObservableChecker, ObservableItem, ObservableProxy} from "./observable";
+import {ObservableArray, ObservableChecker, ObservableItem, ObservableProxy} from "./observable";
 import { ValidChild } from "./elements";
 import { NDElement } from "./nd-element";
 
@@ -13,6 +13,16 @@ declare const Validator: {
     isProxy(value: any): value is ObservableProxy<any>;
 
     isObservableChecker(value: any): value is ObservableChecker;
+
+    isTemplateBinding(value: any): boolean;
+
+    isObservableWhenResult(value: any): boolean;
+
+    isArrayObservable(value: any): value is ObservableArray<any>;
+
+    isObservableOrProxy(value: any): value is ObservableItem | ObservableProxy<any>;
+
+    isAnchor(value: any): boolean;
 
     isArray(value: any): value is Array<any>;
 

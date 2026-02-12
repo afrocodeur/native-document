@@ -38,6 +38,10 @@ EVENTS_WITH_STOP.forEach(eventSourceName => {
         _stop(this.$element, eventName, callback);
         return this;
     };
+    NDElement.prototype['onPreventStop'+eventSourceName] = function(callback = null) {
+        _preventStop(this.$element, eventName, callback);
+        return this;
+    };
 });
 
 EVENTS_WITH_PREVENT.forEach(eventSourceName => {

@@ -14,7 +14,7 @@ export const DEFAULT_ROUTER_NAME = 'default';
 /**
  *
  * @param {{mode: 'memory'|'history'|'hash'}} $options
- * @constructor
+ * @class
  */
 export default function Router($options = {}) {
 
@@ -72,11 +72,20 @@ export default function Router($options = {}) {
     };
 
     /**
+     * Groups routes under a common path prefix with shared options.
      *
-     * @param {string} suffix
-     * @param {{ middlewares: Function[], name: string}} options
-     * @param {Function} callback
-     * @returns {this}
+     * @param {string} suffix - Path prefix to prepend to all routes in the group
+     * @param {Object} options - Group configuration options
+     * @param {Function[]} [options.middlewares] - Middlewares applied to all routes in group
+     * @param {string} [options.name] - Name prefix for all routes in group
+     * @param {Function} [options.layout] - Layout component for all routes in group
+     * @param {Function} callback - Function that defines routes within the group
+     * @returns {this} Router instance for chaining
+     * @example
+     * router.group('/admin', { middlewares: [authMiddleware], layout: AdminLayout }, () => {
+     *   router.add('/users', UsersPage, { name: 'users' });
+     *   router.add('/settings', SettingsPage, { name: 'settings' });
+     * });
      */
     this.group = function(suffix, options, callback) {
         if(!Validator.isFunction(callback)) {
@@ -194,10 +203,20 @@ export default function Router($options = {}) {
 Router.routers = {};
 
 /**
+ * Creates and initializes a new router instance.
  *
- * @param {{mode: 'memory'|'history'|'hash', name?:string, entry?: string}} options
- * @param {Function} callback
- * @param {Element} container
+ * @param {Object} options - Router configuration
+ * @param {'memory'|'history'|'hash'} options.mode - Routing mode
+ * @param {string} [options.name] - Router name for multi-router apps
+ * @param {string} [options.entry] - Initial route path
+ * @param {Function} callback - Setup function that receives the router instance
+ * @returns {Router} The configured router instance with mount() method
+ * @example
+ * const router = Router.create({ mode: 'history' }, (r) => {
+ *   r.add('/home', HomePage, { name: 'home' });
+ *   r.add('/about', AboutPage, { name: 'about' });
+ * });
+ * router.mount('#app');
  */
 Router.create = function(options, callback) {
     if(!Validator.isFunction(callback)) {

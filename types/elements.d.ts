@@ -130,12 +130,15 @@ export declare type AnchorDocumentFragment = DocumentFragment & {
     clear: ()  => void;
     remove: ()  => void;
     removeChildren: ()  => void;
-    insertBefore: (child: ValidChild, before: HTMLElement|Comment)  => void;
+    insertBefore: (child: ValidChild, before: HTMLElement|Comment|null)  => void;
     replaceContent: (child: ValidChild)  => void;
-    appendElement: (child: ValidChild, before: HTMLElement) => void;
-    getByIndex: (index: number) => HTMLElement;
+    setContent: (child: ValidChild)  => void;
+    appendElement: (child: ValidChild, before: HTMLElement|Comment|null) => void;
+    append: (...args: ValidChild[]) => void;
+    getByIndex: (index: number) => HTMLElement|null;
     endElement: () => Comment;
     startElement: () => Comment;
+    removeWithAnchors: () => void;
 };
 
 // Anchor

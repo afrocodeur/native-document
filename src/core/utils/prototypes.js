@@ -27,13 +27,14 @@ Function.prototype.cached = function(...args) {
 };
 
 Function.prototype.errorBoundary = function(callback) {
-    return (...args)  => {
+    const handler = (...args)  => {
         try {
             return this.apply(this, args);
         } catch(e) {
-            return callback(e);
+            return callback(e, {caller: handler, args: args });
         }
     };
+    return handler;
 };
 
 String.prototype.use = function(args) {

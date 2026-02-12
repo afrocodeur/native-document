@@ -51,6 +51,14 @@ noMutationMethods.forEach((method) => {
     };
 });
 
+/**
+ * Removes all items from the array and triggers an update.
+ *
+ * @returns {boolean} True if array was cleared, false if it was already empty
+ * @example
+ * const items = Observable.array([1, 2, 3]);
+ * items.clear(); // []
+ */
 ObservableArray.prototype.clear = function() {
     if(this.$currentValue.length === 0) {
         return;
@@ -60,19 +68,42 @@ ObservableArray.prototype.clear = function() {
     return true;
 };
 
+/**
+ * Returns the element at the specified index in the array.
+ *
+ * @param {number} index - Zero-based index of the element to retrieve
+ * @returns {*} The element at the specified index
+ * @example
+ * const items = Observable.array(['a', 'b', 'c']);
+ * items.at(1); // 'b'
+ */
 ObservableArray.prototype.at = function(index) {
     return this.$currentValue[index];
 };
 
+
+/**
+ * Merges multiple values into the array and triggers an update.
+ * Similar to push but with a different operation name.
+ *
+ * @param {Array} values - Array of values to merge
+ * @example
+ * const items = Observable.array([1, 2]);
+ * items.merge([3, 4]); // [1, 2, 3, 4]
+ */
 ObservableArray.prototype.merge = function(values) {
     this.$currentValue.push.apply(this.$currentValue, values);
     this.trigger({ action: 'merge',  args: values });
 };
 
 /**
+ * Counts the number of elements that satisfy the provided condition.
  *
- * @param {Function} condition
- * @returns {number}
+ * @param {(value: *, index: number) => Boolean} condition - Function that tests each element (item, index) => boolean
+ * @returns {number} The count of elements that satisfy the condition
+ * @example
+ * const numbers = Observable.array([1, 2, 3, 4, 5]);
+ * numbers.count(n => n > 3); // 2
  */
 ObservableArray.prototype.count = function(condition) {
     let count = 0;
@@ -84,6 +115,16 @@ ObservableArray.prototype.count = function(condition) {
     return count;
 };
 
+/**
+ * Swaps two elements at the specified indices and triggers an update.
+ *
+ * @param {number} indexA - Index of the first element
+ * @param {number} indexB - Index of the second element
+ * @returns {boolean} True if swap was successful, false if indices are out of bounds
+ * @example
+ * const items = Observable.array(['a', 'b', 'c']);
+ * items.swap(0, 2); // ['c', 'b', 'a']
+ */
 ObservableArray.prototype.swap = function(indexA, indexB) {
     const value = this.$currentValue;
     const length = value.length;
@@ -104,6 +145,15 @@ ObservableArray.prototype.swap = function(indexA, indexB) {
     return true;
 };
 
+/**
+ * Removes the element at the specified index and triggers an update.
+ *
+ * @param {number} index - Index of the element to remove
+ * @returns {Array} Array containing the removed element, or empty array if index is invalid
+ * @example
+ * const items = Observable.array(['a', 'b', 'c']);
+ * items.remove(1); // ['b'] - Array is now ['a', 'c']
+ */
 ObservableArray.prototype.remove = function(index) {
     const deleted = this.$currentValue.splice(index, 1);
     if(deleted.length === 0) {
@@ -113,20 +163,57 @@ ObservableArray.prototype.remove = function(index) {
     return deleted;
 };
 
+/**
+ * Removes the first occurrence of the specified item from the array.
+ *
+ * @param {*} item - The item to remove
+ * @returns {Array} Array containing the removed element, or empty array if item not found
+ * @example
+ * const items = Observable.array(['a', 'b', 'c']);
+ * items.removeItem('b'); // ['b'] - Array is now ['a', 'c']
+ */
 ObservableArray.prototype.removeItem = function(item) {
     const indexOfItem = this.$currentValue.indexOf(item);
     return this.remove(indexOfItem);
 };
 
+/**
+ * Checks if the array is empty.
+ *
+ * @returns {boolean} True if array has no elements
+ * @example
+ * const items = Observable.array([]);
+ * items.isEmpty(); // true
+ */
 ObservableArray.prototype.isEmpty = function() {
     return this.$currentValue.length === 0;
 };
 
+/**
+ * Triggers a populate operation with the current array, iteration count, and callback.
+ * Used internally for rendering optimizations.
+ *
+ * @param {number} iteration - Iteration count for rendering
+ * @param {Function} callback - Callback function for rendering items
+ */
 ObservableArray.prototype.populateAndRender = function(iteration, callback) {
     this.trigger({ action: 'populate', args: [this.$currentValue, iteration, callback] });
 };
 
 
+/**
+ * Creates a filtered view of the array based on predicates.
+ * The filtered array updates automatically when source data or predicates change.
+ *
+ * @param {Object} predicates - Object mapping property names to filter conditions or functions
+ * @returns {ObservableArray} A new observable array containing filtered items
+ * @example
+ * const users = Observable.array([
+ *   { name: 'John', age: 25 },
+ *   { name: 'Jane', age: 30 }
+ * ]);
+ * const adults = users.where({ age: (val) => val >= 18 });
+ */
 ObservableArray.prototype.where = function(predicates) {
     const sourceArray = this;
     const observableDependencies = [sourceArray];
@@ -175,6 +262,20 @@ ObservableArray.prototype.where = function(predicates) {
     return viewArray;
 };
 
+/**
+ * Creates a filtered view where at least one of the specified fields matches the filter.
+ *
+ * @param {Array<string>} fields - Array of field names to check
+ * @param {FilterResult} filter - Filter condition with callback and dependencies
+ * @returns {ObservableArray} A new observable array containing filtered items
+ * @example
+ * const products = Observable.array([
+ *   { name: 'Apple', category: 'Fruit' },
+ *   { name: 'Carrot', category: 'Vegetable' }
+ * ]);
+ * const searchTerm = Observable('App');
+ * const filtered = products.whereSome(['name', 'category'], match(searchTerm));
+ */
 ObservableArray.prototype.whereSome = function(fields, filter) {
     return this.where({
         _: {
@@ -184,6 +285,20 @@ ObservableArray.prototype.whereSome = function(fields, filter) {
     });
 };
 
+/**
+ * Creates a filtered view where all specified fields match the filter.
+ *
+ * @param {Array<string>} fields - Array of field names to check
+ * @param {FilterResult} filter - Filter condition with callback and dependencies
+ * @returns {ObservableArray} A new observable array containing filtered items
+ * @example
+ * const items = Observable.array([
+ *   { status: 'active', verified: true },
+ *   { status: 'active', verified: false }
+ * ]);
+ * const activeFilter = equals('active');
+ * const filtered = items.whereEvery(['status', 'verified'], activeFilter);
+ */
 ObservableArray.prototype.whereEvery = function(fields, filter) {
     return this.where({
         _: {

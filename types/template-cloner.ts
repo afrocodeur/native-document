@@ -29,6 +29,7 @@ export declare class TemplateCloner {
     style(fn: (...data: any[]) => any): BindingHydrator;
     class(fn: (...data: any[]) => any): BindingHydrator;
     value(callbackOrProperty: string | ((...data: any[]) => any)): BindingHydrator;
+    text(callbackOrProperty: string | ((...data: any[]) => any)): BindingHydrator;
     attr(fn: (...data: any[]) => any): BindingHydrator;
     event(fn: (event: Event, ...data: any[]) => void): BindingHydrator;
 

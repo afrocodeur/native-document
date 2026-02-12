@@ -6,11 +6,24 @@ import {ElementCreator} from "../../wrappers/ElementCreator";
 
 
 /**
+ * Displays different content based on the current value of an observable.
+ * Like a switch statement for UI - shows the content corresponding to current value.
  *
- * @param {ObservableItem|ObservableChecker} $condition
- * @param {{[key]: *}} values
- * @param {Boolean} shouldKeepInCache
- * @returns {DocumentFragment}
+ * @param {ObservableItem|ObservableChecker} $condition - Observable to watch
+ * @param {Object<string|number, ValidChild>} values - Map of values to their corresponding content
+ * @param {boolean} [shouldKeepInCache=true] - Whether to cache rendered views
+ * @returns {AnchorDocumentFragment & {add: Function, remove: Function}} Fragment with dynamic methods
+ * @example
+ * const status = Observable('idle');
+ * const view = Match(status, {
+ *   idle: Div({}, 'Ready'),
+ *   loading: Div({}, 'Loading...'),
+ *   error: Div({}, 'Error occurred')
+ * });
+ *
+ * // Dynamic addition
+ * view.add('success', Div({}, 'Success!'));
+ * view.remove('idle');
  */
 export const Match = function($condition, values, shouldKeepInCache = true) {
 
@@ -67,11 +80,19 @@ export const Match = function($condition, values, shouldKeepInCache = true) {
 
 
 /**
+ * Displays one of two views based on a boolean observable condition.
+ * Simplified version of Match for true/false cases.
  *
- * @param {ObservableItem|ObservableChecker} $condition
- * @param {*} onTrue
- * @param {*} onFalse
- * @returns {DocumentFragment}
+ * @param {ObservableItem<boolean>|ObservableChecker<boolean>} $condition - Boolean observable to watch
+ * @param {ValidChild} onTrue - Content to show when condition is true
+ * @param {ValidChild} onFalse - Content to show when condition is false
+ * @returns {AnchorDocumentFragment} Fragment managing the conditional content
+ * @example
+ * const isLoggedIn = Observable(false);
+ * Switch(isLoggedIn,
+ *   Div({}, 'Welcome back!'),
+ *   Div({}, 'Please login')
+ * );
  */
 export const Switch = function ($condition, onTrue, onFalse) {
     if(!Validator.isObservable($condition)) {
@@ -85,9 +106,15 @@ export const Switch = function ($condition, onTrue, onFalse) {
 }
 
 /**
+ * Provides a fluent API for conditional rendering with show/otherwise pattern.
  *
- * @param {ObservableItem|ObservableChecker} $condition
- * @returns {{show: Function, otherwise: (((*) => {}):DocumentFragment)}
+ * @param {ObservableItem<boolean>|ObservableChecker<boolean>} $condition - Boolean observable to watch
+ * @returns {{show: Function, otherwise: Function}} Object with fluent methods
+ * @example
+ * const isLoading = Observable(false);
+ * When(isLoading)
+ *   .show(LoadingSpinner())
+ *   .otherwise(Content());
  */
 export const When = function($condition) {
     if(!Validator.isObservable($condition)) {
@@ -104,6 +131,9 @@ export const When = function($condition) {
         },
         otherwise(onFalse) {
             $onFalse = onFalse;
+            return Switch($condition, $onTrue, $onFalse);
+        },
+        toNdElement() {
             return Switch($condition, $onTrue, $onFalse);
         }
     }

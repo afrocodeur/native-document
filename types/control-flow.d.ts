@@ -12,7 +12,10 @@ export interface HideIfFunction {
 }
 
 export interface MatchFunction {
-    <T extends string | number>(condition: ObservableItem<T> | ObservableChecker<T>, values: Record<T, ValidChild>, shouldKeepInCache?: boolean): DocumentFragment;
+    <T extends string | number>(condition: ObservableItem<T> | ObservableChecker<T>, values: Record<T, ValidChild>, shouldKeepInCache?: boolean): DocumentFragment & {
+        add(key: T, child: ValidChild, shouldFocusOn?: boolean): void;
+        remove(key: T): void;
+    };
 }
 
 export interface SwitchFunction {
@@ -30,14 +33,14 @@ export interface WhenFunction {
 export interface ForEachFunction {
     <T>(data: T[] | Record<string, T> | ObservableItem<T[]> | ObservableItem<Record<string, T>>,
         callback: (item: T, index?: ObservableItem<number>) => ValidChild,
-        key?: string | ((item: T, defaultKey: string | number) => string),
-        configs?: { shouldKeepItemsInCache: boolean, isParentUniqueChild: boolean,  }): DocumentFragment,
+        key?: string | ((item: T, defaultKey: string | number) => string | number),
+        options?: { shouldKeepItemsInCache: boolean, isParentUniqueChild: boolean,  }): DocumentFragment,
 }
 
 export interface ForEachArrayFunction {
     <T>(data: ObservableArray<T>,
         callback: (item: T, index?: ObservableItem<number>) => ValidChild,
-        configs?: { pushDelay?: (items: T[]) => number, isParentUniqueChild: boolean, shouldKeepItemsInCache?: boolean }): DocumentFragment;
+        configs?: { isParentUniqueChild: boolean, shouldKeepItemsInCache?: boolean }): DocumentFragment;
 }
 
 export interface HideIfNotFunction {
@@ -45,8 +48,8 @@ export interface HideIfNotFunction {
 }
 
 
-export function ShowWhen(observer: ObservableWhen, target: any): ReturnType<typeof ShowIf>;
-export function ShowWhen(observer: ObservableWhen, target: any, view: any): ReturnType<typeof ShowIf>;
+export function ShowWhen(observerWhenResult: ObservableWhen, view: ValidChild): ReturnType<typeof ShowIf>;
+export function ShowWhen(observer: ObservableItem, target: any, view: ValidChild): ReturnType<typeof ShowIf>;
 
 // Control Flow Components
 export declare const ShowIf: ShowIfFunction;

@@ -1,4 +1,7 @@
-
+/**
+ *
+ * @class
+ */
 export default function BaseComponent() {
 
 }

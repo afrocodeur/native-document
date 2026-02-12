@@ -113,6 +113,16 @@ var NativeDocument = (function (exports) {
 
     ObservableChecker.prototype.__$isObservableChecker = true;
 
+    /**
+     * Subscribes to changes in the checked/transformed value.
+     *
+     * @param {Function} callback - Function called with the transformed value when observable changes
+     * @returns {Function} Unsubscribe function
+     * @example
+     * const count = Observable(5);
+     * const doubled = count.check(n => n * 2);
+     * doubled.subscribe(value => console.log(value)); // Logs: 10
+     */
     ObservableChecker.prototype.subscribe = function(callback) {
         const unSubscribe = this.observable.subscribe((value) => {
             callback && callback(this.checker(value));
@@ -121,22 +131,62 @@ var NativeDocument = (function (exports) {
         return unSubscribe;
     };
 
+    /**
+     * Creates a new ObservableChecker by applying another transformation.
+     * Allows chaining transformations.
+     *
+     * @param {(value: *) => *} callback - Transformation function to apply to the current checked value
+     * @returns {ObservableChecker} New ObservableChecker with chained transformation
+     * @example
+     * const count = Observable(5);
+     * const result = count.check(n => n * 2).check(n => n + 1);
+     * result.val(); // 11
+     */
     ObservableChecker.prototype.check = function(callback) {
         return this.observable.check(() => callback(this.val()));
     };
 
+    /**
+     * Gets the current transformed/checked value.
+     *
+     * @returns {*} The result of applying the checker function to the observable's current value
+     * @example
+     * const count = Observable(5);
+     * const doubled = count.check(n => n * 2);
+     * doubled.val(); // 10
+     */
     ObservableChecker.prototype.val = function() {
         return this.checker && this.checker(this.observable.val());
     };
 
+    /**
+     * Sets the value of the underlying observable (not the transformed value).
+     *
+     * @param {*} value - New value for the underlying observable
+     * @example
+     * const count = Observable(5);
+     * const doubled = count.check(n => n * 2);
+     * doubled.set(10); // Sets count to 10, doubled.val() returns 20
+     */
     ObservableChecker.prototype.set = function(value) {
         return this.observable.set(value);
     };
 
+    /**
+     * Manually triggers the underlying observable to notify subscribers.
+     *
+     * @example
+     * const count = Observable(5);
+     * const doubled = count.check(n => n * 2);
+     * doubled.trigger(); // Notifies all subscribers
+     */
     ObservableChecker.prototype.trigger = function() {
         return this.observable.trigger();
     };
 
+    /**
+     * Cleans up the underlying observable and all its subscriptions.
+     */
     ObservableChecker.prototype.cleanup = function() {
         return this.observable.cleanup();
     };
@@ -221,6 +271,13 @@ var NativeDocument = (function (exports) {
 
     var PluginsManager$1 = PluginsManager;
 
+    /**
+     * Creates an ObservableWhen that tracks whether an observable equals a specific value.
+     *
+     * @param {ObservableItem} observer - The observable to watch
+     * @param {*} value - The value to compare against
+     * @class ObservableWhen
+     */
     const ObservableWhen = function(observer, value) {
         this.$target = value;
         this.$observer = observer;
@@ -228,21 +285,44 @@ var NativeDocument = (function (exports) {
 
     ObservableWhen.prototype.__$isObservableWhen = true;
 
+    /**
+     * Subscribes to changes in the match status (true when observable equals target value).
+     *
+     * @param {Function} callback - Function called with boolean indicating if values match
+     * @returns {Function} Unsubscribe function
+     * @example
+     * const status = Observable('idle');
+     * const isLoading = status.when('loading');
+     * isLoading.subscribe(active => console.log('Loading:', active));
+     */
     ObservableWhen.prototype.subscribe = function(callback) {
         return this.$observer.on(this.$target, callback);
     };
 
+    /**
+     * Returns true if the observable's current value equals the target value.
+     *
+     * @returns {boolean} True if observable value matches target value
+     */
     ObservableWhen.prototype.val = function() {
         return this.$observer.$currentValue === this.$target;
     };
 
-    ObservableWhen.prototype.isMath = function() {
-        return this.$observer.$currentValue === this.$target;
-    };
+    /**
+     * Returns true if the observable's current value equals the target value.
+     * Alias for val().
+     *
+     * @returns {boolean} True if observable value matches target value
+     */
+    ObservableWhen.prototype.isMatch = ObservableWhen.prototype.val;
 
-    ObservableWhen.prototype.isActive = function() {
-        return this.$observer.$currentValue === this.$target;
-    };
+    /**
+     * Returns true if the observable's current value equals the target value.
+     * Alias for val().
+     *
+     * @returns {boolean} True if observable value matches target value
+     */
+    ObservableWhen.prototype.isActive = ObservableWhen.prototype.val;
 
     const nextTick = function(fn) {
         let pending = false;
@@ -360,6 +440,16 @@ var NativeDocument = (function (exports) {
     ObservableItem.prototype.__$isObservable = true;
     const noneTrigger = function() {};
 
+    /**
+     * Intercepts and transforms values before they are set on the observable.
+     * The interceptor can modify the value or return undefined to use the original value.
+     *
+     * @param {(value) => any} callback - Interceptor function that receives (newValue, currentValue) and returns the transformed value or undefined
+     * @returns {ObservableItem} The observable instance for chaining
+     * @example
+     * const count = Observable(0);
+     * count.intercept((newVal, oldVal) => Math.max(0, newVal)); // Prevent negative values
+     */
     ObservableItem.prototype.intercept = function(callback) {
         this.$interceptor = callback;
         this.set = this.$setWithInterceptor;
@@ -491,6 +581,16 @@ var NativeDocument = (function (exports) {
         this.trigger = noneTrigger;
     };
 
+    /**
+     * Registers a cleanup callback that will be executed when the observable is cleaned up.
+     * Useful for disposing resources, removing event listeners, or other cleanup tasks.
+     *
+     * @param {Function} callback - Cleanup function to execute on observable disposal
+     * @example
+     * const obs = Observable(0);
+     * obs.onCleanup(() => console.log('Cleaned up!'));
+     * obs.cleanup(); // Logs: "Cleaned up!"
+     */
     ObservableItem.prototype.onCleanup = function(callback) {
         this.$cleanupListeners = this.$cleanupListeners ?? [];
         this.$cleanupListeners.push(callback);
@@ -535,6 +635,17 @@ var NativeDocument = (function (exports) {
         }
     };
 
+    /**
+     * Watches for a specific value and executes callback when the observable equals that value.
+     * Creates a watcher that only triggers when the observable changes to the specified value.
+     *
+     * @param {*} value - The value to watch for
+     * @param {(value) => void|ObservableItem} callback - Callback function or observable to set when value matches
+     * @example
+     * const status = Observable('idle');
+     * status.on('loading', () => console.log('Started loading'));
+     * status.on('error', isError); // Set another observable
+     */
     ObservableItem.prototype.on = function(value, callback) {
         this.$watchers = this.$watchers ?? new Map();
 
@@ -564,8 +675,16 @@ var NativeDocument = (function (exports) {
     };
 
     /**
-     * @param {*} value
-     * @param {Function} callback - if omitted, removes all watchers for this value
+     * Removes a watcher for a specific value. If no callback is provided, removes all watchers for that value.
+     *
+     * @param {*} value - The value to stop watching
+     * @param {Function} [callback] - Specific callback to remove. If omitted, removes all watchers for this value
+     * @example
+     * const status = Observable('idle');
+     * const handler = () => console.log('Loading');
+     * status.on('loading', handler);
+     * status.off('loading', handler); // Remove specific handler
+     * status.off('loading'); // Remove all handlers for 'loading'
      */
     ObservableItem.prototype.off = function(value, callback) {
         if(!this.$watchers) return;
@@ -585,11 +704,20 @@ var NativeDocument = (function (exports) {
         }
         else if(watchValueList.length === 0) {
             this.$watchers?.delete(value);
-            watchValueList = null;
         }
         this.assocTrigger();
     };
 
+    /**
+     * Subscribes to the observable but automatically unsubscribes after the first time the predicate matches.
+     *
+     * @param {(value) => Boolean|any} predicate - Value to match or function that returns true when condition is met
+     * @param {(value) => void} callback - Callback to execute when predicate matches, receives the matched value
+     * @example
+     * const status = Observable('loading');
+     * status.once('ready', (val) => console.log('Ready!'));
+     * status.once(val => val === 'error', (val) => console.log('Error occurred'));
+     */
     ObservableItem.prototype.once = function(predicate, callback) {
         const fn = typeof predicate === 'function' ? predicate : (v) => v === predicate;
 
@@ -627,15 +755,50 @@ var NativeDocument = (function (exports) {
         return new ObservableChecker(this, callback)
     };
 
+    /**
+     * Gets a property value from the observable's current value.
+     * If the property is an observable, returns its value.
+     *
+     * @param {string|number} key - Property key to retrieve
+     * @returns {*} The value of the property, unwrapped if it's an observable
+     * @example
+     * const user = Observable({ name: 'John', age: Observable(25) });
+     * user.get('name'); // 'John'
+     * user.get('age'); // 25 (unwrapped from observable)
+     */
     ObservableItem.prototype.get = function(key) {
         const item = this.$currentValue[key];
         return Validator.isObservable(item) ? item.val() : item;
     };
 
+    /**
+     * Creates an ObservableWhen that represents whether the observable equals a specific value.
+     * Returns an object that can be subscribed to and will emit true/false.
+     *
+     * @param {*} value - The value to compare against
+     * @returns {ObservableWhen} An ObservableWhen instance that tracks when the observable equals the value
+     * @example
+     * const status = Observable('idle');
+     * const isLoading = status.when('loading');
+     * isLoading.subscribe(active => console.log('Loading:', active));
+     * status.set('loading'); // Logs: "Loading: true"
+     */
     ObservableItem.prototype.when = function(value) {
         return new ObservableWhen(this, value);
     };
 
+    /**
+     * Compares the observable's current value with another value or observable.
+     *
+     * @param {*|ObservableItem} other - Value or observable to compare against
+     * @returns {boolean} True if values are equal
+     * @example
+     * const a = Observable(5);
+     * const b = Observable(5);
+     * a.equals(5);  // true
+     * a.equals(b);  // true
+     * a.equals(10); // false
+     */
     ObservableItem.prototype.equals = function(other) {
         if(Validator.isObservable(other)) {
             return this.$currentValue === other.$currentValue;
@@ -643,14 +806,41 @@ var NativeDocument = (function (exports) {
         return this.$currentValue === other;
     };
 
+    /**
+     * Converts the observable's current value to a boolean.
+     *
+     * @returns {boolean} The boolean representation of the current value
+     * @example
+     * const count = Observable(0);
+     * count.toBool(); // false
+     * count.set(5);
+     * count.toBool(); // true
+     */
     ObservableItem.prototype.toBool = function() {
         return !!this.$currentValue;
     };
 
+    /**
+     * Toggles the boolean value of the observable (false becomes true, true becomes false).
+     *
+     * @example
+     * const isOpen = Observable(false);
+     * isOpen.toggle(); // Now true
+     * isOpen.toggle(); // Now false
+     */
     ObservableItem.prototype.toggle = function() {
         this.set(!this.$currentValue);
     };
 
+    /**
+     * Resets the observable to its initial value.
+     * Only works if the observable was created with { reset: true } config.
+     *
+     * @example
+     * const count = Observable(0, { reset: true });
+     * count.set(10);
+     * count.reset(); // Back to 0
+     */
     ObservableItem.prototype.reset = function() {
         if(!this.configs?.reset) {
             return;
@@ -663,11 +853,21 @@ var NativeDocument = (function (exports) {
         this.set(resetValue);
     };
 
-
+    /**
+     * Returns a string representation of the observable's current value.
+     *
+     * @returns {string} String representation of the current value
+     */
     ObservableItem.prototype.toString = function() {
         return String(this.$currentValue);
     };
 
+    /**
+     * Returns the primitive value of the observable (its current value).
+     * Called automatically in type coercion contexts.
+     *
+     * @returns {*} The current value of the observable
+     */
     ObservableItem.prototype.valueOf = function() {
         return this.$currentValue;
     };
@@ -875,12 +1075,35 @@ var NativeDocument = (function (exports) {
         return this.shadow('closed', style);
     };
 
+    /**
+     * Attaches a template binding to the element by hydrating it with the specified method.
+     *
+     * @param {string} methodName - Name of the hydration method to call
+     * @param {BindingHydrator} bindingHydrator - Template binding with $hydrate method
+     * @returns {HTMLElement} The underlying HTML element
+     * @example
+     * const onClick = $binder.attach((event, data) => console.log(data));
+     * element.nd.attach('onClick', onClick);
+     */
     NDElement.prototype.attach = function(methodName, bindingHydrator) {
         bindingHydrator.$hydrate(this.$element, methodName);
         return this.$element;
     };
 
-
+    /**
+     * Extends the current NDElement instance with custom methods.
+     * Methods are bound to the instance and available for chaining.
+     *
+     * @param {Object} methods - Object containing method definitions
+     * @returns {this} The NDElement instance with added methods for chaining
+     * @example
+     * element.nd.with({
+     *   highlight() {
+     *     this.$element.style.background = 'yellow';
+     *     return this;
+     *   }
+     * }).highlight().onClick(() => console.log('Clicked'));
+     */
     NDElement.prototype.with = function(methods) {
         if (!methods || typeof methods !== 'object') {
             throw new NativeDocumentError('extend() requires an object of methods');
@@ -911,6 +1134,23 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
+    /**
+     * Extends the NDElement prototype with new methods available to all NDElement instances.
+     * Use this to add global methods to all NDElements.
+     *
+     * @param {Object} methods - Object containing method definitions to add to prototype
+     * @returns {typeof NDElement} The NDElement constructor
+     * @throws {NativeDocumentError} If methods is not an object or contains non-function values
+     * @example
+     * NDElement.extend({
+     *   fadeIn() {
+     *     this.$element.style.opacity = '1';
+     *     return this;
+     *   }
+     * });
+     * // Now all NDElements have .fadeIn() method
+     * Div().nd.fadeIn();
+     */
     NDElement.extend = function(methods) {
         if (!methods || typeof methods !== 'object') {
             throw new NativeDocumentError('NDElement.extend() requires an object of methods');
@@ -1379,7 +1619,7 @@ var NativeDocument = (function (exports) {
                 continue;
             }
             if(value.__$isObservableWhen) {
-                element.classes.toggle(className, value.isMath());
+                element.classes.toggle(className, value.isActive());
                 value.subscribe((shouldAdd) => element.classes.toggle(className, shouldAdd));
                 continue;
             }
@@ -1871,6 +2111,10 @@ var NativeDocument = (function (exports) {
             _stop(this.$element, eventName, callback);
             return this;
         };
+        NDElement.prototype['onPreventStop'+eventSourceName] = function(callback = null) {
+            _preventStop(this.$element, eventName, callback);
+            return this;
+        };
     });
 
     EVENTS_WITH_PREVENT.forEach(eventSourceName => {
@@ -1898,6 +2142,16 @@ var NativeDocument = (function (exports) {
     const _stop = function(element, eventName, callback) {
         const handler = (event) => {
             event.stopPropagation();
+            callback && callback.call(element, event);
+        };
+        element.addEventListener(eventName, handler);
+        return this;
+    };
+
+    const _preventStop = function(element, eventName, callback) {
+        const handler = (event) => {
+            event.stopPropagation();
+            event.preventDefault();
             callback && callback.call(element, event);
         };
         element.addEventListener(eventName, handler);
@@ -2276,14 +2530,14 @@ var NativeDocument = (function (exports) {
         this.value = (callbackOrProperty) => {
             if(typeof callbackOrProperty !== 'function') {
                 return createBinding(function(data, textNode) {
-                    const firstArgument = data[0];
-                    ElementCreator.bindTextNode(textNode, firstArgument[callbackOrProperty]);
+                    ElementCreator.bindTextNode(textNode, data[0][callbackOrProperty]);
                 }, 'value');
             }
             return createBinding(function(data, textNode) {
                 ElementCreator.bindTextNode(textNode, callbackOrProperty(...data));
             }, 'value');
         };
+        this.text = this.value;
         this.attr = (fn) => {
             return createBinding(fn, 'attributes');
         };
@@ -2382,13 +2636,14 @@ var NativeDocument = (function (exports) {
     };
 
     Function.prototype.errorBoundary = function(callback) {
-        return (...args)  => {
+        const handler = (...args)  => {
             try {
                 return this.apply(this, args);
             } catch(e) {
-                return callback(e);
+                return callback(e, {caller: handler, args: args });
             }
         };
+        return handler;
     };
 
     String.prototype.use = function(args) {
@@ -2909,6 +3164,14 @@ var NativeDocument = (function (exports) {
         };
     });
 
+    /**
+     * Removes all items from the array and triggers an update.
+     *
+     * @returns {boolean} True if array was cleared, false if it was already empty
+     * @example
+     * const items = Observable.array([1, 2, 3]);
+     * items.clear(); // []
+     */
     ObservableArray.prototype.clear = function() {
         if(this.$currentValue.length === 0) {
             return;
@@ -2918,19 +3181,42 @@ var NativeDocument = (function (exports) {
         return true;
     };
 
+    /**
+     * Returns the element at the specified index in the array.
+     *
+     * @param {number} index - Zero-based index of the element to retrieve
+     * @returns {*} The element at the specified index
+     * @example
+     * const items = Observable.array(['a', 'b', 'c']);
+     * items.at(1); // 'b'
+     */
     ObservableArray.prototype.at = function(index) {
         return this.$currentValue[index];
     };
 
+
+    /**
+     * Merges multiple values into the array and triggers an update.
+     * Similar to push but with a different operation name.
+     *
+     * @param {Array} values - Array of values to merge
+     * @example
+     * const items = Observable.array([1, 2]);
+     * items.merge([3, 4]); // [1, 2, 3, 4]
+     */
     ObservableArray.prototype.merge = function(values) {
         this.$currentValue.push.apply(this.$currentValue, values);
         this.trigger({ action: 'merge',  args: values });
     };
 
     /**
+     * Counts the number of elements that satisfy the provided condition.
      *
-     * @param {Function} condition
-     * @returns {number}
+     * @param {(value: *, index: number) => Boolean} condition - Function that tests each element (item, index) => boolean
+     * @returns {number} The count of elements that satisfy the condition
+     * @example
+     * const numbers = Observable.array([1, 2, 3, 4, 5]);
+     * numbers.count(n => n > 3); // 2
      */
     ObservableArray.prototype.count = function(condition) {
         let count = 0;
@@ -2942,6 +3228,16 @@ var NativeDocument = (function (exports) {
         return count;
     };
 
+    /**
+     * Swaps two elements at the specified indices and triggers an update.
+     *
+     * @param {number} indexA - Index of the first element
+     * @param {number} indexB - Index of the second element
+     * @returns {boolean} True if swap was successful, false if indices are out of bounds
+     * @example
+     * const items = Observable.array(['a', 'b', 'c']);
+     * items.swap(0, 2); // ['c', 'b', 'a']
+     */
     ObservableArray.prototype.swap = function(indexA, indexB) {
         const value = this.$currentValue;
         const length = value.length;
@@ -2962,6 +3258,15 @@ var NativeDocument = (function (exports) {
         return true;
     };
 
+    /**
+     * Removes the element at the specified index and triggers an update.
+     *
+     * @param {number} index - Index of the element to remove
+     * @returns {Array} Array containing the removed element, or empty array if index is invalid
+     * @example
+     * const items = Observable.array(['a', 'b', 'c']);
+     * items.remove(1); // ['b'] - Array is now ['a', 'c']
+     */
     ObservableArray.prototype.remove = function(index) {
         const deleted = this.$currentValue.splice(index, 1);
         if(deleted.length === 0) {
@@ -2971,20 +3276,57 @@ var NativeDocument = (function (exports) {
         return deleted;
     };
 
+    /**
+     * Removes the first occurrence of the specified item from the array.
+     *
+     * @param {*} item - The item to remove
+     * @returns {Array} Array containing the removed element, or empty array if item not found
+     * @example
+     * const items = Observable.array(['a', 'b', 'c']);
+     * items.removeItem('b'); // ['b'] - Array is now ['a', 'c']
+     */
     ObservableArray.prototype.removeItem = function(item) {
         const indexOfItem = this.$currentValue.indexOf(item);
         return this.remove(indexOfItem);
     };
 
+    /**
+     * Checks if the array is empty.
+     *
+     * @returns {boolean} True if array has no elements
+     * @example
+     * const items = Observable.array([]);
+     * items.isEmpty(); // true
+     */
     ObservableArray.prototype.isEmpty = function() {
         return this.$currentValue.length === 0;
     };
 
+    /**
+     * Triggers a populate operation with the current array, iteration count, and callback.
+     * Used internally for rendering optimizations.
+     *
+     * @param {number} iteration - Iteration count for rendering
+     * @param {Function} callback - Callback function for rendering items
+     */
     ObservableArray.prototype.populateAndRender = function(iteration, callback) {
         this.trigger({ action: 'populate', args: [this.$currentValue, iteration, callback] });
     };
 
 
+    /**
+     * Creates a filtered view of the array based on predicates.
+     * The filtered array updates automatically when source data or predicates change.
+     *
+     * @param {Object} predicates - Object mapping property names to filter conditions or functions
+     * @returns {ObservableArray} A new observable array containing filtered items
+     * @example
+     * const users = Observable.array([
+     *   { name: 'John', age: 25 },
+     *   { name: 'Jane', age: 30 }
+     * ]);
+     * const adults = users.where({ age: (val) => val >= 18 });
+     */
     ObservableArray.prototype.where = function(predicates) {
         const sourceArray = this;
         const observableDependencies = [sourceArray];
@@ -3033,6 +3375,20 @@ var NativeDocument = (function (exports) {
         return viewArray;
     };
 
+    /**
+     * Creates a filtered view where at least one of the specified fields matches the filter.
+     *
+     * @param {Array<string>} fields - Array of field names to check
+     * @param {FilterResult} filter - Filter condition with callback and dependencies
+     * @returns {ObservableArray} A new observable array containing filtered items
+     * @example
+     * const products = Observable.array([
+     *   { name: 'Apple', category: 'Fruit' },
+     *   { name: 'Carrot', category: 'Vegetable' }
+     * ]);
+     * const searchTerm = Observable('App');
+     * const filtered = products.whereSome(['name', 'category'], match(searchTerm));
+     */
     ObservableArray.prototype.whereSome = function(fields, filter) {
         return this.where({
             _: {
@@ -3042,6 +3398,20 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    /**
+     * Creates a filtered view where all specified fields match the filter.
+     *
+     * @param {Array<string>} fields - Array of field names to check
+     * @param {FilterResult} filter - Filter condition with callback and dependencies
+     * @returns {ObservableArray} A new observable array containing filtered items
+     * @example
+     * const items = Observable.array([
+     *   { status: 'active', verified: true },
+     *   { status: 'active', verified: false }
+     * ]);
+     * const activeFilter = equals('active');
+     * const filtered = items.whereEvery(['status', 'verified'], activeFilter);
+     */
     ObservableArray.prototype.whereEvery = function(fields, filter) {
         return this.where({
             _: {
@@ -3052,10 +3422,19 @@ var NativeDocument = (function (exports) {
     };
 
     /**
+     * Creates an observable array with reactive array methods.
+     * All mutations trigger updates automatically.
      *
-     * @param {Array} target
-     * @param {{propagation: boolean, deep: boolean, reset: boolean}|null} configs
-     * @returns {ObservableArray}
+     * @param {Array} [target=[]] - Initial array value
+     * @param {Object|null} [configs=null] - Configuration options
+     * // @param {boolean} [configs.propagation=true] - Whether to propagate changes to parent observables
+     * // @param {boolean} [configs.deep=false] - Whether to make nested objects observable
+     * @param {boolean} [configs.reset=false] - Whether to store initial value for reset()
+     * @returns {ObservableArray} An observable array with reactive methods
+     * @example
+     * const items = Observable.array([1, 2, 3]);
+     * items.push(4); // Triggers update
+     * items.subscribe((arr) => console.log(arr));
      */
     Observable.array = function(target = [], configs = null) {
         return new ObservableArray(target, configs);
@@ -3120,10 +3499,26 @@ var NativeDocument = (function (exports) {
     };
 
     /**
+     * Creates an observable proxy for an object where each property becomes an observable.
+     * Properties can be accessed directly or via getter methods.
      *
-     * @param {Object} initialValue
-     * @param {{propagation: boolean, deep: boolean, reset: boolean}|null} configs
-     * @returns {Proxy}
+     * @param {Object} initialValue - Initial object value
+     * @param {Object|null} [configs=null] - Configuration options
+     * // @param {boolean} [configs.propagation=true] - Whether changes propagate to parent
+     * @param {boolean} [configs.deep=false] - Whether to make nested objects observable
+     * @param {boolean} [configs.reset=false] - Whether to enable reset() method
+     * @returns {ObservableProxy} A proxy where each property is an observable
+     * @example
+     * const user = Observable.init({
+     *   name: 'John',
+     *   age: 25,
+     *   address: { city: 'NYC' }
+     * }, { deep: true });
+     *
+     * user.name.val(); // 'John'
+     * user.name.set('Jane');
+     * user.name = 'Jane X'
+     * user.age.subscribe(val => console.log('Age:', val));
      */
     Observable.init = function(initialValue, configs = null) {
         const data = {};
@@ -3271,11 +3666,24 @@ var NativeDocument = (function (exports) {
     Observable.json = Observable.init;
 
     /**
+     * Creates a computed observable that automatically updates when its dependencies change.
+     * The callback is re-executed whenever any dependency observable changes.
      *
-     * @param {Function} callback
-     * @param {Array|Function} dependencies
-     * @returns {ObservableItem}
-     */
+     * @param {Function} callback - Function that returns the computed value
+     * @param {Array<ObservableItem|ObservableChecker|ObservableProxy>|Function} [dependencies=[]] - Array of observables to watch, or batch function
+     * @returns {ObservableItem} A new observable that updates automatically
+     * @example
+     * const firstName = Observable('John');
+     * const lastName = Observable('Doe');
+     * const fullName = Observable.computed(
+     *   () => `${firstName.val()} ${lastName.val()}`,
+     *   [firstName, lastName]
+     * );
+     *
+     * // With batch function
+     * const batch = Observable.batch(() => { ...  });
+     * const computed = Observable.computed(() => { ... }, batch);
+    */
     Observable.computed = function(callback, dependencies = []) {
         const initialValue = callback();
         const observable = new ObservableItem(initialValue);
@@ -3379,12 +3787,24 @@ var NativeDocument = (function (exports) {
     }());
 
     /**
+     * Renders a list of items from an observable array or object, automatically updating when data changes.
+     * Efficiently manages DOM updates by tracking items with keys.
      *
-     * @param {Array|Object|ObservableItem} data
-     * @param {Function} callback
-     * @param {?Function|?string} key
-     * @param {{shouldKeepItemsInCache: boolean}?} configs
-     * @returns {DocumentFragment}
+     * @param {ObservableItem<Array|Object>} data - Observable containing array or object to iterate over
+     * @param {Function} callback - Function that renders each item (item, index) => ValidChild
+     * @param {string|Function} [key] - Property name or function to generate unique keys for items
+     * @param {Object} [options={}] - Configuration options
+     * @param {boolean} [options.shouldKeepItemsInCache=false] - Whether to cache rendered items
+     * @returns {AnchorDocumentFragment} Fragment managing the list rendering
+     * @example
+     * const users = Observable([
+     *   { id: 1, name: 'John' },
+     *   { id: 2, name: 'Jane' }
+     * ]);
+     * ForEach(users, (user) => Div({}, user.name), 'id');
+     *
+     * // With function key
+     * ForEach(items, (item) => Div({}, item), (item) => item.id);
      */
     function ForEach(data, callback, key, { shouldKeepItemsInCache = false } = {}) {
         const element = Anchor('ForEach');
@@ -3523,8 +3943,26 @@ var NativeDocument = (function (exports) {
         return element;
     }
 
+    /**
+     * Renders items from an ObservableArray with optimized array-specific updates.
+     * Provides index observables and handles array mutations efficiently.
+     *
+     * @param {ObservableArray} data - ObservableArray to iterate over
+     * @param {Function} callback - Function that renders each item (item, indexObservable) => ValidChild
+     * @param {Object} [configs={}] - Configuration options
+     * @param {boolean} [configs.shouldKeepItemsInCache] - Whether to cache rendered items
+     * @param {boolean} [configs.isParentUniqueChild] - When it's the only child of the parent
+     * @returns {AnchorDocumentFragment} Fragment managing the list rendering
+     * @example
+     * const items = Observable.array([1, 2, 3]);
+     * ForEachArray(items, (item, index) =>
+     *   Div({}, `Item ${item} at index ${index.val()}`)
+     * );
+     *
+     * items.push(4); // Automatically updates DOM
+     */
     function ForEachArray(data, callback, configs = {}) {
-        const element = Anchor('ForEach Array');
+        const element = Anchor('ForEach Array', configs.isParentUniqueChild);
         const blockEnd = element.endElement();
         const blockStart = element.startElement();
 
@@ -3778,12 +4216,18 @@ var NativeDocument = (function (exports) {
     }
 
     /**
-     * Show the element if the condition is true
+     * Conditionally shows an element based on an observable condition.
+     * The element is mounted/unmounted from the DOM as the condition changes.
      *
-     * @param {ObservableItem|ObservableChecker} condition
-     * @param {*} child
-     * @param {{comment?: string|null, shouldKeepInCache?: Boolean}} configs
-     * @returns {DocumentFragment}
+     * @param {ObservableItem<boolean>|ObservableChecker<boolean>|ObservableWhen} condition - Observable condition to watch
+     * @param {ValidChild} child - Element or content to show/hide
+     * @param {Object} [options={}] - Configuration options
+     * @param {string|null} [options.comment=null] - Comment for debugging
+     * @param {boolean} [options.shouldKeepInCache=true] - Whether to cache the element when hidden
+     * @returns {AnchorDocumentFragment} Anchor fragment managing the conditional content
+     * @example
+     * const isVisible = Observable(false);
+     * ShowIf(isVisible, Div({}, 'Hello World'));
      */
     const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
         if(!(Validator.isObservable(condition)) && !Validator.isObservableWhenResult(condition)) {
@@ -3820,11 +4264,18 @@ var NativeDocument = (function (exports) {
     };
 
     /**
-     * Hide the element if the condition is true
-     * @param {ObservableItem|ObservableChecker} condition
-     * @param child
-     * @param {{comment?: string|null, shouldKeepInCache?: Boolean}} configs
-     * @returns {DocumentFragment}
+     * Conditionally hides an element when the observable condition is true.
+     * Inverse of ShowIf - element is shown when condition is false.
+     *
+     * @param {ObservableItem<boolean>|ObservableChecker<boolean>} condition - Observable condition to watch
+     * @param {ValidChild} child - Element or content to show/hide
+     * @param {Object} [configs] - Configuration options
+     * @param {string|null} [configs.comment] - Comment for debugging
+     * @param {boolean} [configs.shouldKeepInCache] - Whether to cache element when hidden
+     * @returns {AnchorDocumentFragment} Anchor fragment managing the conditional content
+     * @example
+     * const hasError = Observable(false);
+     * HideIf(hasError, Div({}, 'Content'));
      */
     const HideIf = function(condition, child, configs) {
         const hideCondition = Observable(!condition.val());
@@ -3834,17 +4285,43 @@ var NativeDocument = (function (exports) {
     };
 
     /**
-     * Hide the element if the condition is false
+     * Conditionally hides an element when the observable condition is false.
+     * Same as ShowIf - element is shown when condition is true.
      *
-     * @param {ObservableItem|ObservableChecker} condition
-     * @param {*} child
-     * @param {{comment?: string|null, shouldKeepInCache?: Boolean}} configs
-     * @returns {DocumentFragment}
+     * @param {ObservableItem<boolean>|ObservableChecker<boolean>|ObservableWhen} condition - Observable condition to watch
+     * @param {ValidChild} child - Element or content to show/hide
+     * @param {Object} [configs] - Configuration options
+     * @param {string|null} [configs.comment] - Comment for debugging
+     * @param {boolean} [configs.shouldKeepInCache] - Whether to cache element when hidden
+     * @returns {AnchorDocumentFragment} Anchor fragment managing the conditional content
      */
     const HideIfNot = function(condition, child, configs) {
         return ShowIf(condition, child, configs);
     };
 
+    /**
+     * Shows content when an observable equals a specific value.
+     * Can be called with 2 or 3 arguments.
+     *
+     * @overload
+     * @param {ObservableWhen} observerWhenResult - Result from observable.when(value)
+     * @param {ValidChild} view - Content to show when condition matches
+     * @returns {AnchorDocumentFragment}
+     *
+     * @overload
+     * @param {ObservableItem} observer - Observable to watch
+     * @param {*} target - Value to match
+     * @param {ValidChild} view - Content to show when observable equals target
+     * @returns {AnchorDocumentFragment}
+     *
+     * @example
+     * // 2 arguments
+     * const status = Observable('idle');
+     * ShowWhen(status.when('loading'), LoadingSpinner());
+     *
+     * // 3 arguments
+     * ShowWhen(status, 'loading', LoadingSpinner());
+     */
     const ShowWhen = function() {
         if(arguments.length === 2) {
             const [observer, target] = arguments;
@@ -3874,11 +4351,24 @@ var NativeDocument = (function (exports) {
     };
 
     /**
+     * Displays different content based on the current value of an observable.
+     * Like a switch statement for UI - shows the content corresponding to current value.
      *
-     * @param {ObservableItem|ObservableChecker} $condition
-     * @param {{[key]: *}} values
-     * @param {Boolean} shouldKeepInCache
-     * @returns {DocumentFragment}
+     * @param {ObservableItem|ObservableChecker} $condition - Observable to watch
+     * @param {Object<string|number, ValidChild>} values - Map of values to their corresponding content
+     * @param {boolean} [shouldKeepInCache=true] - Whether to cache rendered views
+     * @returns {AnchorDocumentFragment & {add: Function, remove: Function}} Fragment with dynamic methods
+     * @example
+     * const status = Observable('idle');
+     * const view = Match(status, {
+     *   idle: Div({}, 'Ready'),
+     *   loading: Div({}, 'Loading...'),
+     *   error: Div({}, 'Error occurred')
+     * });
+     *
+     * // Dynamic addition
+     * view.add('success', Div({}, 'Success!'));
+     * view.remove('idle');
      */
     const Match = function($condition, values, shouldKeepInCache = true) {
 
@@ -3935,11 +4425,19 @@ var NativeDocument = (function (exports) {
 
 
     /**
+     * Displays one of two views based on a boolean observable condition.
+     * Simplified version of Match for true/false cases.
      *
-     * @param {ObservableItem|ObservableChecker} $condition
-     * @param {*} onTrue
-     * @param {*} onFalse
-     * @returns {DocumentFragment}
+     * @param {ObservableItem<boolean>|ObservableChecker<boolean>} $condition - Boolean observable to watch
+     * @param {ValidChild} onTrue - Content to show when condition is true
+     * @param {ValidChild} onFalse - Content to show when condition is false
+     * @returns {AnchorDocumentFragment} Fragment managing the conditional content
+     * @example
+     * const isLoggedIn = Observable(false);
+     * Switch(isLoggedIn,
+     *   Div({}, 'Welcome back!'),
+     *   Div({}, 'Please login')
+     * );
      */
     const Switch = function ($condition, onTrue, onFalse) {
         if(!Validator.isObservable($condition)) {
@@ -3953,9 +4451,15 @@ var NativeDocument = (function (exports) {
     };
 
     /**
+     * Provides a fluent API for conditional rendering with show/otherwise pattern.
      *
-     * @param {ObservableItem|ObservableChecker} $condition
-     * @returns {{show: Function, otherwise: (((*) => {}):DocumentFragment)}
+     * @param {ObservableItem<boolean>|ObservableChecker<boolean>} $condition - Boolean observable to watch
+     * @returns {{show: Function, otherwise: Function}} Object with fluent methods
+     * @example
+     * const isLoading = Observable(false);
+     * When(isLoading)
+     *   .show(LoadingSpinner())
+     *   .otherwise(Content());
      */
     const When = function($condition) {
         if(!Validator.isObservable($condition)) {
@@ -3972,6 +4476,9 @@ var NativeDocument = (function (exports) {
             },
             otherwise(onFalse) {
                 $onFalse = onFalse;
+                return Switch($condition, $onTrue, $onFalse);
+            },
+            toNdElement() {
                 return Switch($condition, $onTrue, $onFalse);
             }
         }
@@ -4312,11 +4819,16 @@ var NativeDocument = (function (exports) {
     };
 
     /**
+     * Creates a new Route instance.
      *
-     * @param {string} $path
-     * @param {Function} $component
-     * @param {{name:?string, middlewares:Function[], shouldRebuild:Boolean, with: Object }}$options
-     * @class
+     * @param {string} $path - URL pattern with optional parameters (e.g., '/user/{id:number}')
+     * @param {Function} $component - Component function that returns HTMLElement or DocumentFragment
+     * @param {Object} [$options={}] - Route configuration options
+     * @param {string} [$options.name] - Unique name for the route (used for navigation)
+     * @param {Function[]} [$options.middlewares] - Array of middleware functions
+     * @param {boolean} [$options.shouldRebuild] - Whether to rebuild component on each navigation
+     * @param {Object} [$options.with] - Custom parameter validation patterns
+     * @param {Function} [$options.layout] - Layout component wrapper function
      */
     function Route($path, $component, $options = {}) {
 
@@ -4810,7 +5322,7 @@ var NativeDocument = (function (exports) {
     /**
      *
      * @param {{mode: 'memory'|'history'|'hash'}} $options
-     * @constructor
+     * @class
      */
     function Router($options = {}) {
 
@@ -4868,11 +5380,20 @@ var NativeDocument = (function (exports) {
         };
 
         /**
+         * Groups routes under a common path prefix with shared options.
          *
-         * @param {string} suffix
-         * @param {{ middlewares: Function[], name: string}} options
-         * @param {Function} callback
-         * @returns {this}
+         * @param {string} suffix - Path prefix to prepend to all routes in the group
+         * @param {Object} options - Group configuration options
+         * @param {Function[]} [options.middlewares] - Middlewares applied to all routes in group
+         * @param {string} [options.name] - Name prefix for all routes in group
+         * @param {Function} [options.layout] - Layout component for all routes in group
+         * @param {Function} callback - Function that defines routes within the group
+         * @returns {this} Router instance for chaining
+         * @example
+         * router.group('/admin', { middlewares: [authMiddleware], layout: AdminLayout }, () => {
+         *   router.add('/users', UsersPage, { name: 'users' });
+         *   router.add('/settings', SettingsPage, { name: 'settings' });
+         * });
          */
         this.group = function(suffix, options, callback) {
             if(!Validator.isFunction(callback)) {
@@ -4990,10 +5511,20 @@ var NativeDocument = (function (exports) {
     Router.routers = {};
 
     /**
+     * Creates and initializes a new router instance.
      *
-     * @param {{mode: 'memory'|'history'|'hash', name?:string, entry?: string}} options
-     * @param {Function} callback
-     * @param {Element} container
+     * @param {Object} options - Router configuration
+     * @param {'memory'|'history'|'hash'} options.mode - Routing mode
+     * @param {string} [options.name] - Router name for multi-router apps
+     * @param {string} [options.entry] - Initial route path
+     * @param {Function} callback - Setup function that receives the router instance
+     * @returns {Router} The configured router instance with mount() method
+     * @example
+     * const router = Router.create({ mode: 'history' }, (r) => {
+     *   r.add('/home', HomePage, { name: 'home' });
+     *   r.add('/about', AboutPage, { name: 'about' });
+     * });
+     * router.mount('#app');
      */
     Router.create = function(options, callback) {
         if(!Validator.isFunction(callback)) {

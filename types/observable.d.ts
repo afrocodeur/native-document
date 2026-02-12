@@ -23,7 +23,12 @@ export interface ObservableItem<T = any> {
 
     check<U>(callback: (value: T) => U): ObservableChecker<U>;
     get<U>(callback: (value: T) => U): ObservableChecker<U>;
-    when(value: T): { $target: T; $observer: ObservableItem<T> };
+    when(value: T): ObservableWhen<T>;
+    off(value: T, callback?: Function): void;
+    once(predicate: T | ((value: T) => boolean), callback: (value: T) => void): void;
+    onCleanup(callback: () => void): void;
+    intercept(callback: (newValue: T, currentValue: T) => T | undefined): this;
+    disconnectAll(): void;
 
     toString(): string;
     equals(value: any): boolean;
@@ -41,7 +46,7 @@ export class ObservableWhen<T = any> {
 
     subscribe(callback: (value: boolean) => void): Unsubscribe;
     val(): boolean;
-    isMath(): boolean;
+    isMatch(): boolean;
     isActive(): boolean;
 }
 

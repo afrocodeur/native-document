@@ -165,14 +165,14 @@ export function TemplateCloner($fn) {
     this.value = (callbackOrProperty) => {
         if(typeof callbackOrProperty !== 'function') {
             return createBinding(function(data, textNode) {
-                const firstArgument = data[0];
-                ElementCreator.bindTextNode(textNode, firstArgument[callbackOrProperty]);
+                ElementCreator.bindTextNode(textNode, data[0][callbackOrProperty]);
             }, 'value');
         }
         return createBinding(function(data, textNode) {
             ElementCreator.bindTextNode(textNode, callbackOrProperty(...data));
         }, 'value');
     };
+    this.text = this.value;
     this.attr = (fn) => {
         return createBinding(fn, 'attributes');
     };

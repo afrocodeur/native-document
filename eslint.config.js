@@ -3,18 +3,18 @@ import globals from 'globals'
 
 export default [
   { ignores: ['dist'] },
+  js.configs.recommended,
   {
     files: ['**/*.{js}'],
     languageOptions: {
-      ecmaVersion: 2020,
+      ecmaVersion: 'latest',
       globals: globals.browser,
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
       },
     },
-    plugins: {
-    },
+    plugins: {},
     rules: {
       ...js.configs.recommended.rules,
     },

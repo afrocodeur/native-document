@@ -2,6 +2,29 @@ import Validator from "../../utils/validator.js";
 import NativeDocumentError from "../../errors/NativeDocumentError.js";
 import {ShowIf} from "./show-if.js";
 
+/**
+ * Shows content when an observable equals a specific value.
+ * Can be called with 2 or 3 arguments.
+ *
+ * @overload
+ * @param {ObservableWhen} observerWhenResult - Result from observable.when(value)
+ * @param {ValidChild} view - Content to show when condition matches
+ * @returns {AnchorDocumentFragment}
+ *
+ * @overload
+ * @param {ObservableItem} observer - Observable to watch
+ * @param {*} target - Value to match
+ * @param {ValidChild} view - Content to show when observable equals target
+ * @returns {AnchorDocumentFragment}
+ *
+ * @example
+ * // 2 arguments
+ * const status = Observable('idle');
+ * ShowWhen(status.when('loading'), LoadingSpinner());
+ *
+ * // 3 arguments
+ * ShowWhen(status, 'loading', LoadingSpinner());
+ */
 export const ShowWhen = function() {
     if(arguments.length === 2) {
         const [observer, target] = arguments;

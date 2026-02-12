@@ -5,12 +5,18 @@ import Anchor from "../../elements/anchor";
 import {ElementCreator} from "../../wrappers/ElementCreator";
 
 /**
- * Show the element if the condition is true
+ * Conditionally shows an element based on an observable condition.
+ * The element is mounted/unmounted from the DOM as the condition changes.
  *
- * @param {ObservableItem|ObservableChecker} condition
- * @param {*} child
- * @param {{comment?: string|null, shouldKeepInCache?: Boolean}} configs
- * @returns {DocumentFragment}
+ * @param {ObservableItem<boolean>|ObservableChecker<boolean>|ObservableWhen} condition - Observable condition to watch
+ * @param {ValidChild} child - Element or content to show/hide
+ * @param {Object} [options={}] - Configuration options
+ * @param {string|null} [options.comment=null] - Comment for debugging
+ * @param {boolean} [options.shouldKeepInCache=true] - Whether to cache the element when hidden
+ * @returns {AnchorDocumentFragment} Anchor fragment managing the conditional content
+ * @example
+ * const isVisible = Observable(false);
+ * ShowIf(isVisible, Div({}, 'Hello World'));
  */
 export const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
     if(!(Validator.isObservable(condition)) && !Validator.isObservableWhenResult(condition)) {
@@ -47,11 +53,18 @@ export const ShowIf = function(condition, child, { comment = null, shouldKeepInC
 }
 
 /**
- * Hide the element if the condition is true
- * @param {ObservableItem|ObservableChecker} condition
- * @param child
- * @param {{comment?: string|null, shouldKeepInCache?: Boolean}} configs
- * @returns {DocumentFragment}
+ * Conditionally hides an element when the observable condition is true.
+ * Inverse of ShowIf - element is shown when condition is false.
+ *
+ * @param {ObservableItem<boolean>|ObservableChecker<boolean>} condition - Observable condition to watch
+ * @param {ValidChild} child - Element or content to show/hide
+ * @param {Object} [configs] - Configuration options
+ * @param {string|null} [configs.comment] - Comment for debugging
+ * @param {boolean} [configs.shouldKeepInCache] - Whether to cache element when hidden
+ * @returns {AnchorDocumentFragment} Anchor fragment managing the conditional content
+ * @example
+ * const hasError = Observable(false);
+ * HideIf(hasError, Div({}, 'Content'));
  */
 export const HideIf = function(condition, child, configs) {
     const hideCondition = Observable(!condition.val());
@@ -61,12 +74,15 @@ export const HideIf = function(condition, child, configs) {
 }
 
 /**
- * Hide the element if the condition is false
+ * Conditionally hides an element when the observable condition is false.
+ * Same as ShowIf - element is shown when condition is true.
  *
- * @param {ObservableItem|ObservableChecker} condition
- * @param {*} child
- * @param {{comment?: string|null, shouldKeepInCache?: Boolean}} configs
- * @returns {DocumentFragment}
+ * @param {ObservableItem<boolean>|ObservableChecker<boolean>|ObservableWhen} condition - Observable condition to watch
+ * @param {ValidChild} child - Element or content to show/hide
+ * @param {Object} [configs] - Configuration options
+ * @param {string|null} [configs.comment] - Comment for debugging
+ * @param {boolean} [configs.shouldKeepInCache] - Whether to cache element when hidden
+ * @returns {AnchorDocumentFragment} Anchor fragment managing the conditional content
  */
 export const HideIfNot = function(condition, child, configs) {
     return ShowIf(condition, child, configs);

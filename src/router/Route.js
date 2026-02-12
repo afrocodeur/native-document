@@ -5,11 +5,16 @@ export const RouteParamPatterns = {
 };
 
 /**
+ * Creates a new Route instance.
  *
- * @param {string} $path
- * @param {Function} $component
- * @param {{name:?string, middlewares:Function[], shouldRebuild:Boolean, with: Object }}$options
- * @class
+ * @param {string} $path - URL pattern with optional parameters (e.g., '/user/{id:number}')
+ * @param {Function} $component - Component function that returns HTMLElement or DocumentFragment
+ * @param {Object} [$options={}] - Route configuration options
+ * @param {string} [$options.name] - Unique name for the route (used for navigation)
+ * @param {Function[]} [$options.middlewares] - Array of middleware functions
+ * @param {boolean} [$options.shouldRebuild] - Whether to rebuild component on each navigation
+ * @param {Object} [$options.with] - Custom parameter validation patterns
+ * @param {Function} [$options.layout] - Layout component wrapper function
  */
 export function Route($path, $component, $options = {}) {
 

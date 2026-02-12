@@ -40,10 +40,26 @@ const ObservableGet = function(target, property) {
 };
 
 /**
+ * Creates an observable proxy for an object where each property becomes an observable.
+ * Properties can be accessed directly or via getter methods.
  *
- * @param {Object} initialValue
- * @param {{propagation: boolean, deep: boolean, reset: boolean}|null} configs
- * @returns {Proxy}
+ * @param {Object} initialValue - Initial object value
+ * @param {Object|null} [configs=null] - Configuration options
+ * // @param {boolean} [configs.propagation=true] - Whether changes propagate to parent
+ * @param {boolean} [configs.deep=false] - Whether to make nested objects observable
+ * @param {boolean} [configs.reset=false] - Whether to enable reset() method
+ * @returns {ObservableProxy} A proxy where each property is an observable
+ * @example
+ * const user = Observable.init({
+ *   name: 'John',
+ *   age: 25,
+ *   address: { city: 'NYC' }
+ * }, { deep: true });
+ *
+ * user.name.val(); // 'John'
+ * user.name.set('Jane');
+ * user.name = 'Jane X'
+ * user.age.subscribe(val => console.log('Age:', val));
  */
 Observable.init = function(initialValue, configs = null) {
     const data = {};

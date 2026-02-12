@@ -9,7 +9,7 @@ ObservableItem.prototype.bindNdClass = function(element, className) {
 };
 
 ObservableWhen.prototype.bindNdClass = function(element, className) {
-    element.classes.toggle(className, this.isMath());
+    element.classes.toggle(className, this.isMatch());
     this.subscribe((shouldAdd) => element.classes.toggle(className, shouldAdd));
 };
 

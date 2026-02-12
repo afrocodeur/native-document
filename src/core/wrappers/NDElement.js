@@ -103,12 +103,35 @@ NDElement.prototype.closedShadow = function(style = null) {
     return this.shadow('closed', style);
 };
 
+/**
+ * Attaches a template binding to the element by hydrating it with the specified method.
+ *
+ * @param {string} methodName - Name of the hydration method to call
+ * @param {BindingHydrator} bindingHydrator - Template binding with $hydrate method
+ * @returns {HTMLElement} The underlying HTML element
+ * @example
+ * const onClick = $binder.attach((event, data) => console.log(data));
+ * element.nd.attach('onClick', onClick);
+ */
 NDElement.prototype.attach = function(methodName, bindingHydrator) {
     bindingHydrator.$hydrate(this.$element, methodName);
     return this.$element;
 };
 
-
+/**
+ * Extends the current NDElement instance with custom methods.
+ * Methods are bound to the instance and available for chaining.
+ *
+ * @param {Object} methods - Object containing method definitions
+ * @returns {this} The NDElement instance with added methods for chaining
+ * @example
+ * element.nd.with({
+ *   highlight() {
+ *     this.$element.style.background = 'yellow';
+ *     return this;
+ *   }
+ * }).highlight().onClick(() => console.log('Clicked'));
+ */
 NDElement.prototype.with = function(methods) {
     if (!methods || typeof methods !== 'object') {
         throw new NativeDocumentError('extend() requires an object of methods');
@@ -139,6 +162,23 @@ NDElement.prototype.with = function(methods) {
     return this;
 }
 
+/**
+ * Extends the NDElement prototype with new methods available to all NDElement instances.
+ * Use this to add global methods to all NDElements.
+ *
+ * @param {Object} methods - Object containing method definitions to add to prototype
+ * @returns {typeof NDElement} The NDElement constructor
+ * @throws {NativeDocumentError} If methods is not an object or contains non-function values
+ * @example
+ * NDElement.extend({
+ *   fadeIn() {
+ *     this.$element.style.opacity = '1';
+ *     return this;
+ *   }
+ * });
+ * // Now all NDElements have .fadeIn() method
+ * Div().nd.fadeIn();
+ */
 NDElement.extend = function(methods) {
     if (!methods || typeof methods !== 'object') {
         throw new NativeDocumentError('NDElement.extend() requires an object of methods');

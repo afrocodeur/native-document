@@ -17,7 +17,7 @@ export function bindClassAttribute(element, data) {
             continue;
         }
         if(value.__$isObservableWhen) {
-            element.classes.toggle(className, value.isMath());
+            element.classes.toggle(className, value.isActive());
             value.subscribe((shouldAdd) => element.classes.toggle(className, shouldAdd));
             continue;
         }

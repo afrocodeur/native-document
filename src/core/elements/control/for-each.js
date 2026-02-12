@@ -7,12 +7,24 @@ import { ElementCreator } from "../../wrappers/ElementCreator";
 import NativeDocumentError from "../../errors/NativeDocumentError";
 
 /**
+ * Renders a list of items from an observable array or object, automatically updating when data changes.
+ * Efficiently manages DOM updates by tracking items with keys.
  *
- * @param {Array|Object|ObservableItem} data
- * @param {Function} callback
- * @param {?Function|?string} key
- * @param {{shouldKeepItemsInCache: boolean}?} configs
- * @returns {DocumentFragment}
+ * @param {ObservableItem<Array|Object>} data - Observable containing array or object to iterate over
+ * @param {Function} callback - Function that renders each item (item, index) => ValidChild
+ * @param {string|Function} [key] - Property name or function to generate unique keys for items
+ * @param {Object} [options={}] - Configuration options
+ * @param {boolean} [options.shouldKeepItemsInCache=false] - Whether to cache rendered items
+ * @returns {AnchorDocumentFragment} Fragment managing the list rendering
+ * @example
+ * const users = Observable([
+ *   { id: 1, name: 'John' },
+ *   { id: 2, name: 'Jane' }
+ * ]);
+ * ForEach(users, (user) => Div({}, user.name), 'id');
+ *
+ * // With function key
+ * ForEach(items, (item) => Div({}, item), (item) => item.id);
  */
 export function ForEach(data, callback, key, { shouldKeepItemsInCache = false } = {}) {
     const element = Anchor('ForEach');
