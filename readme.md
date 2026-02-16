@@ -225,9 +225,16 @@ ForEach(users, (user) =>
 - **[Lifecycle Events](docs/lifecycle-events.md)** - Lifecycle events
 - **[NDElement](docs/native-document-element.md)** - Native Document Element
 - **[Extending NDElement](docs/extending-native-document-element.md)** - Custom Methods Guide
+- **[Advanced Components](docs/advanced-components.md)** - Template caching and singleton views
 - **[Args Validation](docs/validation.md)** - Function Argument Validation
 - **[Memory Management](docs/memory-management.md)** - Memory management
 - **[Anchor](docs/anchor.md)** - Anchor
+
+### Utilities
+
+- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
+- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
+- **[Filters](docs/utils/filters.md)** - Data filtering helpers
 
 
 ## Key Features Deep Dive

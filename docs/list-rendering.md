@@ -77,7 +77,7 @@ const tasks = Observable.array([
 const TaskList = Ol([
     ForEach(tasks, (task, indexObservable) =>
         Li([
-            Strong(indexObservable.get(val => val + 1)),
+            Strong(indexObservable.check(val => val + 1)),
             ' ',
             task,
             Button('Remove').nd.onClick(() =>
@@ -179,7 +179,7 @@ const PlaylistView = Div({ class: 'playlist' }, [
                 }),
                 Button('↓').nd.onClick(() => {
                     const index = indexObservable.$value;
-                    if(index < playlist.length()-1) {
+                    if(index < playlist.length -1) {
                         playlist.swap(index, index+1);
                     }
                 }),
@@ -207,59 +207,410 @@ const PlaylistView = Div({ class: 'playlist' }, [
 ]);
 ```
 
-### Custom Key Functions with ForEachArray
-
-Key functions are crucial for optimal performance with complex objects:
-
+### Date and Time Filters
 ```javascript
-const products = Observable.array([
-    { sku: 'PHONE-001', name: 'Smartphone', price: 599 },
-    { sku: 'LAPTOP-001', name: 'Laptop', price: 999 },
-    { sku: 'TABLET-001', name: 'Tablet', price: 399 }
+import { 
+    dateEquals, dateBefore, dateAfter, dateBetween,
+    timeEquals, timeBefore, timeAfter, timeBetween,
+    dateTimeEquals, dateTimeBefore, dateTimeAfter, dateTimeBetween 
+} from 'native-document/utils/filters';
+
+const events = Observable.array([
+    { name: 'Meeting', date: '2024-03-15' },
+    { name: 'Conference', date: '2024-06-20' },
+    { name: 'Workshop', date: '2024-09-10' }
 ]);
 
-const ProductCatalog = Div({ class: 'catalog' }, [
-    ForEachArray(products,
-        product => Div({ class: 'product-card' }, [
-            H3(product.name),
-            Div({ class: 'price' }, `$${product.price}`),
-            Div({ class: 'sku' }, `SKU: ${product.sku}`)
-        ]),
-        'sku'  // Use SKU as key for efficient tracking
+// Date filters
+const today = Observable(new Date());
+const todayEvents = events.where({
+    date: dateEquals(today)
+});
+
+const futureEvents = events.where({
+    date: dateAfter(new Date())
+});
+
+const summerEvents = events.where({
+    date: dateBetween('2024-06-01', '2024-08-31')
+});
+
+// Time filters (ignores date, only checks time)
+const morningEvents = events.where({
+    date: timeBefore('2024-01-01 12:00:00')
+});
+
+const afternoonEvents = events.where({
+    date: timeBetween(
+        new Date('2024-01-01 13:00:00'),
+        new Date('2024-01-01 17:00:00')
     )
-]);
-
+});
 ```
 
-### Performance Configuration
+### Custom Filters
 
-`ForEachArray` supports performance tuning for large datasets:
-
+Create custom filter logic:
 ```javascript
-const bigDataset = Observable.array([...Array(10000)].map((_, i) => ({
-    id: i,
-    value: `Item ${i}`,
-    category: Math.floor(i / 100)
-})));
+import { custom } from 'native-document/utils/filters';
 
-const BigList = Div([
-    ForEachArray(bigDataset,
-        item => Div({ class: 'list-item' }, [
-            Strong(`#${item.id}`), ' - ', item.value
-        ]),
-        'id', // Key function
-        {
-            pushDelay: (items) => items.length > 100 ? 50 : 0  // Delay for large additions
-        }
-    )
+const minRating = Observable(4);
+
+const highRatedProducts = products.where({
+    _: custom((product, minRatingValue) => {
+        return product.rating >= minRatingValue && product.reviews > 10;
+    }, minRating)  // Pass observables as dependencies
+});
+
+// Multiple observable dependencies
+const searchTerm = Observable('');
+const minPrice = Observable(0);
+
+const advancedFilter = products.where({
+    _: custom((product, search, price) => {
+        const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase());
+        const matchesPrice = product.price >= price;
+        const hasDiscount = product.discount > 0;
+        
+        return matchesSearch && matchesPrice && hasDiscount;
+    }, searchTerm, minPrice)
+});
+```
+
+## Observable Array Utility Methods
+
+### swap() - Reorder Items
+
+Swap two items by their indices:
+```javascript
+const items = Observable.array(['A', 'B', 'C', 'D']);
+
+// Swap items at index 0 and 2
+items.swap(0, 2); // Result: ['C', 'B', 'A', 'D']
+
+// Practical example: Move item up/down
+const moveUp = (index) => {
+    if (index > 0) {
+        items.swap(index, index - 1);
+    }
+};
+
+const moveDown = (index) => {
+    if (index < items.length - 1) {
+        items.swap(index, index + 1);
+    }
+};
+```
+
+### removeItem() - Remove by Value
+
+Remove an item by its value (not index):
+```javascript
+const tags = Observable.array(['javascript', 'react', 'vue', 'angular']);
+
+// Remove by value
+tags.removeItem('react'); // Result: ['javascript', 'vue', 'angular']
+
+// Practical example: Remove tag
+const TagList = ForEachArray(tags, tag =>
+    Span({ class: 'tag' }, [
+        tag,
+        Button('×').nd.onClick(() => tags.removeItem(tag))
+    ]),
+    (item) => item
+);
+```
+
+### isEmpty() - Check if Empty
+
+Check if array is empty:
+```javascript
+const todos = Observable.array([]);
+
+// Check if empty
+console.log(todos.isEmpty()); // true
+
+todos.push({ text: 'New task' });
+console.log(todos.isEmpty()); // false
+
+// Practical example: Show empty state
+const TodoList = Div([
+    ShowIf(todos.check(list => list.isEmpty()),
+        Div({ class: 'empty-state' }, 'No todos yet!')
+    ),
+    ForEachArray(todos, renderTodo, 'id')
+]);
+```
+
+### clear() - Remove All Items
+
+Clear all items from array:
+```javascript
+const notifications = Observable.array([...]);
+
+// Clear all notifications
+notifications.clear();
+
+// Practical example: Clear all button
+Button('Clear All').nd.onClick(() => notifications.clear())
+```
+
+### at() - Access Item by Index
+
+Get item at specific index (supports negative indices):
+```javascript
+const items = Observable.array(['A', 'B', 'C', 'D']);
+
+console.log(items.at(0));   // 'A'
+console.log(items.at(-1));  // 'D' (last item)
+console.log(items.at(-2));  // 'C' (second to last)
+```
+
+### count() - Conditional Count
+
+Count items that match a condition:
+```javascript
+const tasks = Observable.array([
+    { text: 'Task 1', done: true },
+    { text: 'Task 2', done: false },
+    { text: 'Task 3', done: true }
 ]);
 
-// Large additions are automatically throttled
-bigDataset.push(...[...Array(500)].map((_, i) => ({
-    id: 10000 + i,
-    value: `New Item ${i}`,
-    category: 999
-})));
+// Count completed tasks
+const completedCount = tasks.count(task => task.done); // 2
+
+// Practical example: Display count
+const Stats = Div([
+    'Completed: ',
+    Observable.computed(() => tasks.count(t => t.done), [tasks]),
+    ' / ',
+    tasks.check(list => list.length)
+]);
+```
+
+### merge() - vBatch Add Items
+
+Add multiple items efficiently:
+```javascript
+const items = Observable.array([1, 2, 3]);
+
+// Add multiple items at once
+items.merge([4, 5, 6]); // Result: [1, 2, 3, 4, 5, 6]
+
+// More efficient than multiple push calls
+// items.push(4); items.push(5); items.push(6); // Less efficient
+````
+
+## Advanced Filtering with where()
+
+The `where()` method creates filtered observable arrays using powerful filter helpers that handle both static values and reactive observables.
+
+### Import Filter Helpers
+```javascript
+// Direct import of specific helpers
+import { equals, greaterThan, between, includes, and, or, not } from 'native-document/utils/filters';
+
+// Or import all filters
+import * as Filters from 'native-document/utils/filters';
+```
+
+### Basic Filtering with Helpers
+```javascript
+const products = Observable.array([
+    { id: 1, name: 'Phone', price: 599, inStock: true, category: 'electronics' },
+    { id: 2, name: 'Laptop', price: 999, inStock: false, category: 'electronics' },
+    { id: 3, name: 'Tablet', price: 399, inStock: true, category: 'electronics' },
+    { id: 4, name: 'Book', price: 29, inStock: true, category: 'books' }
+]);
+
+// Filter by exact value
+const inStockProducts = products.where({ 
+    inStock: equals(true)
+});
+
+// Filter by category
+const electronics = products.where({ 
+    category: equals('electronics')
+});
+```
+
+### Reactive Filtering with Observables
+
+Filter helpers work seamlessly with observables - filters update automatically when observables change:
+```javascript
+const minPrice = Observable(0);
+const maxPrice = Observable(1000);
+const searchTerm = Observable('');
+
+// Reactive filters using observables
+const filteredProducts = products.where({
+    price: between(minPrice, maxPrice),  // Updates when minPrice or maxPrice change
+    name: includes(searchTerm)            // Updates when searchTerm changes
+});
+
+// UI controls
+const FiltersUI = Div([
+    Input({ 
+        type: 'number', 
+        placeholder: 'Min price', 
+        value: minPrice 
+    }),
+    Input({ 
+        type: 'number', 
+        placeholder: 'Max price', 
+        value: maxPrice 
+    }),
+    Input({ 
+        placeholder: 'Search products...', 
+        value: searchTerm 
+    })
+]);
+
+// Product list updates automatically
+const ProductList = ForEachArray(filteredProducts, product => 
+    ProductCard(product)
+);
+```
+
+### Available Filter Helpers
+
+#### Comparison Filters
+```javascript
+import { equals, notEquals, greaterThan, greaterThanOrEqual, lessThan, lessThanOrEqual } from 'native-document/utils/filters';
+
+// Or use shortcuts
+import { eq, neq, gt, gte, lt, lte } from 'native-document/utils/filters';
+
+const expensiveProducts = products.where({
+    price: gt(500)  // price > 500
+});
+
+const affordableProducts = products.where({
+    price: lte(100)  // price <= 100
+});
+
+const notPhones = products.where({
+    name: neq('Phone')  // name !== 'Phone'
+});
+```
+
+#### Range Filters
+```javascript
+import { between } from 'native-document/utils/filters';
+
+const midRangeProducts = products.where({
+    price: between(200, 800)  // price >= 200 AND price <= 800
+});
+
+// With reactive observables
+const minPrice = Observable(100);
+const maxPrice = Observable(500);
+
+const rangeFiltered = products.where({
+    price: between(minPrice, maxPrice)  // Updates when either observable changes
+});
+```
+
+#### String Filters
+```javascript
+import { includes, startsWith, endsWith, match } from 'native-document/utils/filters';
+
+// Contains (case-insensitive by default)
+const searchResults = products.where({
+    name: includes('phone')  // Matches 'Phone', 'PHONE', 'phone', 'Smartphone'
+});
+
+// Starts with
+const pProducts = products.where({
+    name: startsWith('P')  // Phone, Pencil, etc.
+});
+
+// Ends with
+const bookProducts = products.where({
+    name: endsWith('book')  // Textbook, Handbook, etc.
+});
+
+// Regex pattern matching
+const alphaNumeric = products.where({
+    sku: match(/^[A-Z]{3}-\d{3}$/)  // Matches 'ABC-123' pattern
+});
+
+// Simple text search (no regex)
+const simpleSearch = products.where({
+    name: match('lap', false)  // false = not regex, just contains
+});
+```
+
+#### Array Filters
+```javascript
+import { inArray, notIn } from 'native-document/utils/filters';
+
+const allowedCategories = Observable.array(['electronics', 'books']);
+
+const filteredByCategory = products.where({
+    category: inArray(allowedCategories)  // category in ['electronics', 'books']
+});
+
+const excludedCategories = ['clothing', 'food'];
+const nonExcluded = products.where({
+    category: notIn(excludedCategories)
+});
+```
+
+#### Empty/Existence Filters
+```javascript
+import { isEmpty, isNotEmpty } from 'native-document/utils/filters';
+
+const tasks = Observable.array([
+    { title: 'Task 1', description: '' },
+    { title: 'Task 2', description: 'Details here' }
+]);
+
+const tasksWithDescription = tasks.where({
+    description: isNotEmpty()  // Has a description
+});
+
+const tasksWithoutDescription = tasks.where({
+    description: isEmpty()  // Empty or null description
+});
+```
+
+### Combining Filters with Logic
+```javascript
+import { and, or, not, equals, gt, lt, gte } from 'native-document/utils/filters';
+
+// AND: All conditions must be true
+const premiumElectronics = products.where({
+    category: equals('electronics'),
+    price: gt(500)
+});
+
+// OR: Any condition can be true
+const dealsOrPopular = products.where({
+    price: or(
+        lt(50),           // Price < 50
+        gte(1000)         // OR rating >= 1000
+    )
+});
+
+// NOT: Invert condition
+const notInStock = products.where({
+    inStock: not(equals(true))  // NOT in stock
+});
+
+// Complex combinations
+const searchQuery = Observable('');
+const selectedCategory = Observable('all');
+
+const complexFilter = products.where({
+    category: and(
+        or(
+            equals('all'),                    // Show all categories
+            equals(selectedCategory)          // OR match selected category
+        ),
+        includes(searchQuery)                 // AND name includes search term
+    )
+});
 ```
 
 ## Choosing Between ForEach and ForEachArray
@@ -290,6 +641,53 @@ comments.sort((a, b) => b.timestamp - a.timestamp);
 ✅ **Arrays of primitive values** - string, number, boolean  
 ✅ **Simple use cases** - Small lists with infrequent updates
 
+## Configuration Options
+
+### ForEach Configuration
+
+`ForEach` accepts an optional configuration object:
+```javascript
+ForEach(data, callback, key, { shouldKeepItemsInCache: false })
+```
+
+**shouldKeepItemsInCache**: When `true`, keeps rendered items in cache even when removed from the list. Useful for frequently toggling items visibility.
+```javascript
+const items = Observable.array(['A', 'B', 'C']);
+
+// Items stay in cache when removed
+const list = ForEach(items, item => Div(item), null, { 
+    shouldKeepItemsInCache: true 
+});
+
+items.splice(1, 1); // Removes 'B' from DOM but keeps it cached
+items.push('B');     // Re-adds 'B' without re-rendering
+```
+
+### ForEachArray Configuration
+
+`ForEachArray` accepts a configuration object:
+```javascript
+ForEachArray(data, callback, { 
+    shouldKeepItemsInCache: false
+})
+```
+
+**shouldKeepItemsInCache**: Same as ForEach - keeps items in cache when removed.
+
+**pushDelay**: Function that returns delay in milliseconds for batch operations. Useful for large datasets.
+```javascript
+const bigList = Observable.array([]);
+
+const list = ForEachArray(bigList, item => Div(item), {
+    pushDelay: (items) => {
+        // Add delay for large batches
+        return items.length > 100 ? 50 : 0;
+    }
+});
+
+// Adding 500 items will be throttled
+bigList.push(...Array(500).fill().map((_, i) => ({ id: i, text: `Item ${i}` })));
+```
 ## Real-World Examples
 
 ### Nested Lists with Mixed Rendering
@@ -327,7 +725,6 @@ const CategorizedProducts = Div({ class: 'product-categories' }, [
                     Span({ class: 'product-price' }, `$${item.price}`),
                     Button('Add to Cart').nd.onClick(() => addToCart(item))
                 ]),
-                'id'
             ),
             
             Button('Add Item').nd.onClick(() => {
@@ -338,8 +735,7 @@ const CategorizedProducts = Div({ class: 'product-categories' }, [
                 };
                 category.items.push(newItem);
             })
-        ]),
-        'id'
+        ])
     )
 ]);
 ```
@@ -350,11 +746,8 @@ const CategorizedProducts = Div({ class: 'product-categories' }, [
 
 ```javascript
 // ✅ Good: Efficient updates and reordering
-ForEachArray(users, user => UserCard(user), 'id')
-ForEach(tags, tag => TagComponent(tag), 'index')
-
-// ❌ Poor: Inefficient, may cause unnecessary re-renders  
 ForEachArray(users, user => UserCard(user))
+ForEach(tags, tag => TagComponent(tag), 'index')
 ```
 
 ### 2. Choose the Right Function
@@ -385,7 +778,7 @@ const filteredItems = Observable.computed(() =>
     [allItems, searchTerm]
 );
 
-ForEachArray(filteredItems, renderItem, 'id')
+ForEachArray(filteredItems, renderItem);
 
 // ❌ Inefficient: Filtering in render
 ForEachArray(allItems, item => {
@@ -429,7 +822,7 @@ items.cleanup();
 ForEachArray(users, user => UserProfile(user))
 
 // ✅ Solution: Use unique key
-ForEachArray(users, user => UserProfile(user), 'id')
+ForEachArray(users, user => UserProfile(user))
 ```
 
 ### 2. Using ForEach for Complex Arrays
@@ -468,7 +861,7 @@ const ItemList = Div([
         Div({ class: 'empty-state' }, 'No items found')
     ),
     HideIf(showEmptyState,
-        ForEachArray(items, item => ItemComponent(item), 'id')
+        ForEachArray(items, item => ItemComponent(item))
     )
 ]);
 ```
@@ -494,8 +887,7 @@ const DynamicForm = Form([
             ShowIf(field.error, 
                 Div({ class: 'error' }, field.error)
             )
-        ]),
-        'name'
+        ])
     ),
     Button({ type: 'submit' }, 'Submit')
 ]);
@@ -527,7 +919,7 @@ const loadMoreItems = async () => {
 };
 
 const InfiniteList = Div([
-    ForEachArray(items, item => ItemComponent(item), 'id'),
+    ForEachArray(items, item => ItemComponent(item)),
     ShowIf(isLoading, LoadingSpinner()),
     ShowIf(hasMore.check(more => more && !isLoading.val()),
         Button('Load More').nd.onClick(loadMoreItems)
@@ -595,7 +987,7 @@ items.subscribe((newItems, oldItems, operations) => {
 const DebugList = ForEachArray(items, (item, index) => {
     console.log('Rendering item:', item, 'at index:', index?.val());
     return ItemComponent(item);
-}, 'id');
+});
 ```
 
 ## Next Steps
@@ -608,6 +1000,13 @@ Now that you understand list rendering, explore these related topics:
 - **[Lifecycle Events](lifecycle-events.md)** - Lifecycle events
 - **[NDElement](native-document-element.md)** - Native Document Element
 - **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
+- **[Advanced Components](advanced-components.md)** - Template caching and singleton views
 - **[Args Validation](validation.md)** - Function Argument Validation
 - **[State Management](state-management.md)** - Managing application state
 - **[Memory Management](memory-management.md)** - Understanding cleanup and memory
+
+## Utilities
+
+- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
+- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
+- **[Filters](docs/utils/filters.md)** - Data filtering helpers

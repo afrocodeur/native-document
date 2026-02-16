@@ -1765,6 +1765,8 @@ var NativeDocument = (function (exports) {
         return ElementCreator.createObservableNode(null, this);
     };
 
+    ObservableChecker.prototype.toNdElement = ObservableItem.prototype.toNdElement;
+
     NDElement.prototype.toNdElement = function () {
         return this.$element ?? this.$build?.() ?? this.build?.() ?? null;
     };
@@ -2430,7 +2432,12 @@ var NativeDocument = (function (exports) {
 
     const applyBindingTreePath = (root, target, data, path) => {
         if(path.fn) {
-            path.fn(data, target, root);
+            if(typeof path.fn === 'string') {
+                ElementCreator.bindTextNode(target, data[0][path.fn]);
+            }
+            else {
+                path.fn(data, target, root);
+            }
         }
         if(path.children) {
             for(let i = 0, length = path.children.length; i < length; i++) {
@@ -2456,15 +2463,16 @@ var NativeDocument = (function (exports) {
                 if(bindDingData && bindDingData.value) {
                     currentPath.fn = bindDingData.value;
                     const textNode = node.cloneNode();
+                    if(typeof bindDingData.value === 'string') {
+                        ElementCreator.bindTextNode(textNode, data[0][bindDingData.value]);
+                        return textNode;
+                    }
                     bindDingData.value(data, textNode);
                     return textNode;
                 }
                 return node.cloneNode(true);
             }
-            const nodeCloned = node.cloneNode(node.fullCloneNode);
-            if(node.fullCloneNode) {
-                return nodeCloned;
-            }
+            const nodeCloned = node.cloneNode();
             if(bindDingData) {
                 bindAttributes(nodeCloned, bindDingData, data);
                 bindAttachMethods(nodeCloned, bindDingData, data);
@@ -2529,15 +2537,12 @@ var NativeDocument = (function (exports) {
         };
         this.value = (callbackOrProperty) => {
             if(typeof callbackOrProperty !== 'function') {
-                return createBinding(function(data, textNode) {
-                    ElementCreator.bindTextNode(textNode, data[0][callbackOrProperty]);
-                }, 'value');
+                return createBinding(callbackOrProperty, 'value');
             }
-            return createBinding(function(data, textNode) {
+            return createBinding((data, textNode) => {
                 ElementCreator.bindTextNode(textNode, callbackOrProperty(...data));
             }, 'value');
         };
-        this.text = this.value;
         this.attr = (fn) => {
             return createBinding(fn, 'attributes');
         };
@@ -2715,12 +2720,13 @@ var NativeDocument = (function (exports) {
         };
     };
 
-    const once = (fn) => {
+    const once$1 = (fn) => {
         let result = null;
         return (...args) => {
-            if(result === null) {
-                result = fn(...args);
+            if(result) {
+                return result;
             }
+            result = fn(...args);
             return result;
         };
     };
@@ -2729,22 +2735,26 @@ var NativeDocument = (function (exports) {
         let target = null;
         return new Proxy({}, {
             get: (_, key) => {
-                if(target === null) {
-                    target = fn();
+                if(target) {
+                    return target[key];
                 }
+                target = fn();
                 return target[key];
             }
         });
     };
 
-    const memoize = (fn) => {
+    const memoize$1 = (fn) => {
         const cache = new Map();
         return (...args) => {
             const [key, ...rest] = args;
-            if(!cache.has(key)) {
-                cache.set(key, fn(...rest));
+            const cached = cache.get(key);
+            if(cached) {
+                return cached;
             }
-            return cache.get(key);
+            const result = fn(...rest);
+            cache.set(key, result);
+            return result;
         };
     };
 
@@ -2752,17 +2762,21 @@ var NativeDocument = (function (exports) {
         const cache = new Map();
         return new Proxy({}, {
             get: (_, key) => {
-                if(!cache.has(key)) {
-                    if(fn.length > 0) {
-                        return (...args) => {
-                            const result = fn(...args);
-                            cache.set(key, result);
-                            return result;
-                        }
-                    }
-                    cache.set(key, fn());
+                const cached = cache.get(key);
+                if(cached) {
+                    return cached;
                 }
-                return cache.get(key);
+
+                if(fn.length > 0) {
+                    return (...args) => {
+                        const result = fn(...args, key);
+                        cache.set(key, result);
+                        return result;
+                    }
+                }
+                const result = fn(key);
+                cache.set(key, result);
+                return result;
             }
         });
     };
@@ -3287,6 +3301,9 @@ var NativeDocument = (function (exports) {
      */
     ObservableArray.prototype.removeItem = function(item) {
         const indexOfItem = this.$currentValue.indexOf(item);
+        if(indexOfItem === -1) {
+            return [];
+        }
         return this.remove(indexOfItem);
     };
 
@@ -5695,16 +5712,22 @@ var NativeDocument = (function (exports) {
         };
     }
 
-    const Service = {
-        once: fn => autoOnce(fn),
-        memoize: fn => autoMemoize(fn)
-    };
+    const once = fn => autoOnce(fn);
+    const singleton = fn => once$1(fn);
+    const memoize = fn => autoMemoize(fn);
+
+    var cache = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        memoize: memoize,
+        once: once,
+        singleton: singleton
+    });
 
     var utils = /*#__PURE__*/Object.freeze({
         __proto__: null,
-        Filters: index,
+        Cache: cache,
         NativeFetch: NativeFetch,
-        Service: Service
+        filters: index
     });
 
     exports.$ = $;
@@ -5723,10 +5746,10 @@ var NativeDocument = (function (exports) {
     exports.createTextNode = createTextNode;
     exports.cssPropertyAccumulator = cssPropertyAccumulator;
     exports.elements = elements;
-    exports.memoize = memoize;
+    exports.memoize = memoize$1;
     exports.normalizeComponentArgs = normalizeComponentArgs;
     exports.obs = obs;
-    exports.once = once;
+    exports.once = once$1;
     exports.router = router;
     exports.useCache = useCache;
     exports.useSingleton = useSingleton;

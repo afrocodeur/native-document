@@ -266,3 +266,9 @@ Explore these related topics to build complete applications:
 - **[Args Validation](validation.md)** - Function Argument Validation
 - **[Memory Management](memory-management.md)** - Memory management
 - **[Anchor](anchor.md)** - Anchor
+
+## Utilities
+
+- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
+- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
+- **[Filters](docs/utils/filters.md)** - Data filtering helpers

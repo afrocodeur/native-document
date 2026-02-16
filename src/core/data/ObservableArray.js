@@ -174,6 +174,9 @@ ObservableArray.prototype.remove = function(index) {
  */
 ObservableArray.prototype.removeItem = function(item) {
     const indexOfItem = this.$currentValue.indexOf(item);
+    if(indexOfItem === -1) {
+        return [];
+    }
     return this.remove(indexOfItem);
 };
 

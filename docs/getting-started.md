@@ -200,11 +200,12 @@ const addTodo = () => {
     if (!newTodo.val().trim()) {
         return;
     }
-    todos.push({
+    const todo = Observable.object({
         id: Date.now(),
         text: newTodo.val().trim(),
         done: false
     });
+    todos.push(todo);
     newTodo.set('');
 };
 
@@ -229,14 +230,14 @@ const TodoApp = Div({ class: 'todo-app' }, [
                 Div({ class: 'todo-item' }, [
                     Input({
                         type: 'checkbox',
-                        checked: Observable(todo.done)
+                        checked: todo.done
                     }).nd.onChange((e) => {
                         const todoList = todos.val();
                         todoList[index.val()].done = e.target.checked;
                         todos.set([...todoList]);
                     }),
 
-                    Div(['Task: ', todo.text]),
+                    Div({ class: todo.done.check(d => d ? 'completed' : '') }, ['Task: ', todo.text]),
 
                     Button('Delete').nd.onClick(() => {
                         todos.splice(index.val(), 1);
@@ -360,9 +361,17 @@ Now that you've built your first NativeDocument applications, explore these topi
 - **[Lifecycle Events](lifecycle-events.md)** - Lifecycle events
 - **[NDElement](native-document-element.md)** - Native Document Element
 - **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
+- **[Advanced Components](advanced-components.md)** - Template caching and singleton views
 - **[Args Validation](validation.md)** - Function Argument Validation
 - **[Memory Management](memory-management.md)** - Memory management
 - **[Anchor](anchor.md)** - Anchor
+
+## Utilities
+
+- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
+- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
+- **[Filters](docs/utils/filters.md)** - Data filtering helpers
+
 
 ## Common Issues
 

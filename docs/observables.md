@@ -615,10 +615,12 @@ console.log(isAdult.val()); // true
 const data = Observable("test");
 
 // Create a subscription
-const unsubscribe = data.subscribe(value => console.log(value));
+const handler = value => console.log(value);
+data.subscribe(handler);
+
 
 // Clean up manually if needed
-unsubscribe();
+data.unsubscribe('test', handler);
 
 // Complete observable cleanup
 data.cleanup(); // Removes all listeners and prevents new subscriptions
@@ -626,15 +628,136 @@ data.cleanup(); // Removes all listeners and prevents new subscriptions
 // Manual trigger (useful for forcing updates)
 data.trigger(); // Notifies all subscribers without changing the value
 
-// Get original value (useful for reset functionality)
-console.log(data.originalValue()); // Returns the initial value
-
 // Extract values from any observable structure
 const complexData = Observable.object({
     user: "John",
     items: [1, 2, 3]
 });
 console.log(Observable.value(complexData)); // Plain object with extracted values
+```
+
+## Utility Methods
+
+### `off(value, callback?)` - Remove Watchers
+
+Remove specific value watchers created with `.on()`:
+```javascript
+const status = Observable("idle");
+
+const loadingHandler = (isActive) => console.log("Loading:", isActive);
+status.on("loading", loadingHandler);
+
+// Remove specific callback
+status.off("loading", loadingHandler);
+
+// Remove all watchers for a value
+status.off("loading");
+```
+
+### `once(predicate, callback)` - Single-Time Listener
+
+Execute callback only once when condition is met:
+```javascript
+const count = Observable(0);
+
+// Wait for specific value
+count.once(5, (value) => {
+    console.log("Reached 5!"); // Only called once
+});
+
+// With predicate function
+count.once(val => val > 10, (value) => {
+    console.log("Greater than 10!"); // Only called once
+});
+
+count.set(5); // Callback fires and unsubscribes
+count.set(5); // Callback doesn't fire again
+```
+
+### `toggle()` - Boolean Toggle
+
+Toggle boolean observables:
+```javascript
+const isVisible = Observable(false);
+
+isVisible.toggle(); // true
+isVisible.toggle(); // false
+isVisible.toggle(); // true
+
+// Useful with buttons
+Button("Toggle").nd.onClick(() => isVisible.toggle());
+```
+
+### `reset()` - Reset to Initial Value
+
+Reset observable to its initial value (requires `reset: true` config):
+```javascript
+const name = Observable("Alice", { reset: true });
+
+name.set("Bob");
+console.log(name.val()); // "Bob"
+
+name.reset();
+console.log(name.val()); // "Alice" (initial value)
+
+// With objects
+const user = Observable({ name: "Alice", age: 25 }, { reset: true });
+user.set({ name: "Bob", age: 30 });
+user.reset(); // Back to { name: "Alice", age: 25 }
+```
+
+### `equals(other)` - Value Comparison
+
+Compare observable values:
+```javascript
+const num1 = Observable(5);
+const num2 = Observable(5);
+const num3 = Observable(10);
+
+console.log(num1.equals(num2)); // true (same value)
+console.log(num1.equals(5));    // true (compare with raw value)
+console.log(num1.equals(num3)); // false
+```
+
+### `toBool()` - Boolean Conversion
+
+Convert observable value to boolean:
+```javascript
+const text = Observable("");
+console.log(text.toBool()); // false
+
+text.set("Hello");
+console.log(text.toBool()); // true
+
+// Useful for conditions
+const hasContent = text.toBool();
+```
+
+### `intercept(callback)` - Value Interception
+
+Intercept and modify values before they're set:
+```javascript
+const age = Observable(0);
+
+// Intercept sets to enforce constraints
+age.intercept((newValue, oldValue) => {
+    if (newValue < 0) return 0;
+    if (newValue > 120) return 120;
+    return newValue;
+});
+
+age.set(-5);  // Actually sets 0
+age.set(150); // Actually sets 120
+age.set(25);  // Sets 25
+
+// Practical example: sanitize input
+const username = Observable("");
+username.intercept((value) => {
+    return value.toLowerCase().trim();
+});
+
+username.set("  JohnDoe  "); 
+console.log(username.val()); // "johndoe"
 ```
 
 ## Best Practices
@@ -664,3 +787,9 @@ Now that you understand NativeDocument's observable, explore these advanced topi
 - **[Args Validation](validation.md)** - Function Argument Validation
 - **[Memory Management](memory-management.md)** - Memory management
 - **[Anchor](anchor.md)** - Anchor
+
+## Utilities
+
+- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
+- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
+- **[Filters](docs/utils/filters.md)** - Data filtering helpers

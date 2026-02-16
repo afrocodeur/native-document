@@ -4,6 +4,7 @@ import TemplateBinding from "../TemplateBinding";
 import {ElementCreator} from "../ElementCreator";
 import PluginsManager from "../../utils/plugins-manager";
 import Validator from "../../utils/validator";
+import ObservableChecker from "../../data/ObservableChecker";
 
 String.prototype.toNdElement = function () {
     const formattedChild = this.resolveObservableTemplate ? this.resolveObservableTemplate() : this;
@@ -32,6 +33,8 @@ DocumentFragment.prototype.toNdElement = function () {
 ObservableItem.prototype.toNdElement = function () {
     return ElementCreator.createObservableNode(null, this);
 };
+
+ObservableChecker.prototype.toNdElement = ObservableItem.prototype.toNdElement;
 
 NDElement.prototype.toNdElement = function () {
     return this.$element ?? this.$build?.() ?? this.build?.() ?? null;

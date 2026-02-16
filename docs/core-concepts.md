@@ -376,7 +376,7 @@ function Header() {
     const user = Store.use('user');
     const theme = Store.use('theme');
     
-    return Div({ class: `theme-${theme}` }, [
+    return Div({ class: theme.check(t => `theme-${t}`) }, [
         ShowIf(user.check(u => u.isLoggedIn),
             Div(['Welcome, ', user.$value.name])
         )
@@ -512,6 +512,13 @@ Now that you understand NativeDocument's core concepts, explore these advanced t
 - **[Lifecycle Events](lifecycle-events.md)** - Lifecycle events
 - **[NDElement](native-document-element.md)** - Native Document Element
 - **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
+- **[Advanced Components](advanced-components.md)** - Template caching and singleton views
 - **[Args Validation](validation.md)** - Function Argument Validation
 - **[Memory Management](memory-management.md)** - Memory management
 - **[Anchor](anchor.md)** - Anchor
+
+## Utilities
+
+- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
+- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
+- **[Filters](docs/utils/filters.md)** - Data filtering helpers

@@ -46,14 +46,10 @@ obs.cleanup(); // Removes all listeners immediately
 ### Global Cleanup
 
 ```javascript
-// Clean all orphaned observables
+// Auto-cleanup is handled internally
+// Manual cleanup if needed:
 Observable.cleanup(); // Force cleanup of all registered observables
 
-// Auto-cleanup configuration
-Observable.autoCleanup(true, {
-    interval: 60000,    // Check every minute
-    threshold: 100      // Clean when 100+ orphaned observables
-});
 ```
 
 ## Performance Monitoring
@@ -88,3 +84,9 @@ window.addEventListener('beforeunload', () => {
 ## Next Steps
 
 - **[Anchor](anchor.md)** - Anchor
+
+## Utilities
+
+- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
+- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
+- **[Filters](docs/utils/filters.md)** - Data filtering helpers

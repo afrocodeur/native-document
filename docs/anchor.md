@@ -1,18 +1,19 @@
 # Anchor
 
-Anchors are a NativeDocument class that enables dynamic DOM manipulation without wrapper elements. They create two invisible comment nodes that act as boundaries, allowing you to insert, remove, and replace content between them.
+Anchors enable dynamic DOM manipulation without wrapper elements. They use two invisible comment nodes as boundaries, allowing you to insert, remove, and replace content between them while keeping your DOM clean.
 
 ## What are Anchors?
 
 Anchors are instances of the Anchor class that use two comment nodes as invisible markers:
+> **Important:** Anchors must be appended to a parent element to function. The comment markers only exist once the anchor is in the DOM.
 
-`NativeDocumentFragment is an Anchor alias`
+> **Note:** `NativeDocumentFragment` is an alias for `Anchor` - both create the same anchor system.
 
 ```javascript
 // Create an anchor instance
 const anchor = Anchor("My Content");
 // Or using the alias
-const anchor = new NativeDocumentFragment("My Content");
+const anchor = NativeDocumentFragment("My Content");
 
 // In the DOM, this creates:
 // <!-- Anchor Start : My Content -->
@@ -30,9 +31,12 @@ anchor.appendChild(Div("Dynamic content"));
 **Fragment** is a wrapper around `document.createDocumentFragment()`:
 
 ```javascript
-// Fragment is standard DOM DocumentFragment
+// Fragment creates a standard DOM DocumentFragment
 const fragment = Fragment(); // Wraps document.createDocumentFragment()
-fragment.appendChild(Div("Standard fragment content"));
+fragment.appendChild([
+    Div("Standard fragment content"),
+    Div("Standard fragment content 2"),
+]); // Returns document.createDocumentFragment() with children
 ```
 
 **Anchor** is a NativeDocument class for dynamic content management:
@@ -42,6 +46,36 @@ fragment.appendChild(Div("Standard fragment content"));
 const anchor = Anchor("Dynamic Area");
 anchor.appendChild(Div("Dynamic content")); // Uses comment markers system
 ```
+
+## Anchor vs DOM Elements
+
+### Why Use Anchors?
+
+**Without Anchors (wrapper element):**
+```javascript
+const wrapper = Div({ class: 'wrapper' }); // Extra DOM node
+
+if (condition) {
+    wrapper.appendChild(Div("Content"));
+}
+// DOM: Content
+```
+
+**With Anchors (no wrapper):**
+```javascript
+const anchor = Anchor("Content");
+
+if (condition) {
+    anchor.appendChild(Div("Content"));
+}
+// DOM: Content<!-- / Anchor End Content -->
+```
+
+**Benefits:**
+- ✅ No extra DOM nodes
+- ✅ Cleaner HTML structure
+- ✅ Better semantic markup
+- ✅ Easier CSS targeting (no wrapper interference)
 
 ## Creating and Using Anchors
 
@@ -75,6 +109,23 @@ anchor.appendChild(Div("Dynamic content 2"));
 //   <div>Dynamic content 2</div>
 //   <!-- / Anchor End Dynamic Section -->
 // </div>
+```
+
+### appendChild() with Arrays
+```javascript
+const anchor = Anchor("Multi Insert");
+
+// Append multiple elements at once
+anchor.appendChild([
+    Div("Element 1"),
+    Div("Element 2"),
+    Div("Element 3")
+]);
+
+// More efficient than multiple calls:
+// anchor.appendChild(Div("Element 1"));
+// anchor.appendChild(Div("Element 2"));
+// anchor.appendChild(Div("Element 3"));
 ```
 
 ### insertBefore() - Positioned Insertion
@@ -115,6 +166,7 @@ anchor.clear();
 ```
 
 ### removeWithAnchors() - Complete Removal
+> **Warning:** Once `removeWithAnchors()` is called, the anchor instance becomes unusable. Create a new anchor if you need dynamic content again.
 
 ```javascript
 // Remove markers AND all content permanently  
@@ -287,7 +339,8 @@ anchor.appendChild(Div("Item 2"));
 function ConditionalList(condition, items) {
     const anchor = Anchor("ConditionalList");
 
-    const updateContent = (value) => {
+    const updateContent = () => {
+        const value = items.val();
         console.log(value);
         if (value) {
             const listItems = items.val().map(item => Li(item));
@@ -299,15 +352,15 @@ function ConditionalList(condition, items) {
 
     condition.subscribe(updateContent);
     items.subscribe(updateContent);
-    updateContent(condition.val()); // Initial render
+    updateContent(); // Initial render
 
     return anchor;
 }
 
-// use ConditionalList
-const condition = new Observable(true);
+// Usage example
+const condition = Observable(true);
 let id = 0;
-const items = new Observable.array([]);
+const items = Observable.array([]);
 
 document.body.appendChild(Div([
     ConditionalList(condition, items),
@@ -374,5 +427,12 @@ anchor.replaceContent(content2);
 - **[State Management](state-management.md)** - Global state patterns
 - **[NDElement](native-document-element.md)** - Native Document Element
 - **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
+- **[Advanced Components](advanced-components.md)** - Template caching and singleton views
 - **[Args Validation](validation.md)** - Function Argument Validation
 - **[Memory Management](memory-management.md)** - Memory management
+
+## Utilities
+
+- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
+- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
+- **[Filters](docs/utils/filters.md)** - Data filtering helpers

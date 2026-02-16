@@ -3,9 +3,10 @@
 export const once = (fn) => {
     let result = null;
     return (...args) => {
-        if(result === null) {
-            result = fn(...args);
+        if(result) {
+            return result;
         }
+        result = fn(...args);
         return result;
     };
 };
@@ -14,9 +15,10 @@ export const autoOnce = (fn) => {
     let target = null;
     return new Proxy({}, {
         get: (_, key) => {
-            if(target === null) {
-                target = fn();
+            if(target) {
+                return target[key];
             }
+            target = fn();
             return target[key];
         }
     });
@@ -26,10 +28,13 @@ export const memoize = (fn) => {
     const cache = new Map();
     return (...args) => {
         const [key, ...rest] = args;
-        if(!cache.has(key)) {
-            cache.set(key, fn(...rest));
+        const cached = cache.get(key);
+        if(cached) {
+            return cached;
         }
-        return cache.get(key);
+        const result = fn(...rest);
+        cache.set(key, result);
+        return result;
     };
 };
 
@@ -37,17 +42,21 @@ export const autoMemoize = (fn) => {
     const cache = new Map();
     return new Proxy({}, {
         get: (_, key) => {
-            if(!cache.has(key)) {
-                if(fn.length > 0) {
-                    return (...args) => {
-                        const result = fn(...args);
-                        cache.set(key, result);
-                        return result;
-                    }
-                }
-                cache.set(key, fn());
+            const cached = cache.get(key);
+            if(cached) {
+                return cached;
             }
-            return cache.get(key);
+
+            if(fn.length > 0) {
+                return (...args) => {
+                    const result = fn(...args, key);
+                    cache.set(key, result);
+                    return result;
+                }
+            }
+            const result = fn(key);
+            cache.set(key, result);
+            return result;
         }
     });
 };

@@ -69,6 +69,8 @@ export interface ObservableChecker<T = any> {
 }
 
 export interface ObservableArray<T> extends ObservableItem<T[]> {
+    readonly length: number;
+
     push(...items: T[]): number;
     pop(): T | undefined;
     shift(): T | undefined;
@@ -83,7 +85,6 @@ export interface ObservableArray<T> extends ObservableItem<T[]> {
     removeItem(item: T): T[];
     remove(index: number): T[];
     swap(indexA: number, indexB: number): boolean;
-    length(): number;
     count(condition: (item:T, index?:number) => boolean): number;
     populateAndRender(iteration: number, callback: (index: number) => T): void;
 

@@ -65,7 +65,12 @@ const bindAttachMethods = function(node, bindDingData, data) {
 
 const applyBindingTreePath = (root, target, data, path) => {
     if(path.fn) {
-        path.fn(data, target, root);
+        if(typeof path.fn === 'string') {
+            ElementCreator.bindTextNode(target, data[0][path.fn]);
+        }
+        else {
+            path.fn(data, target, root);
+        }
     }
     if(path.children) {
         for(let i = 0, length = path.children.length; i < length; i++) {
@@ -91,15 +96,16 @@ export function TemplateCloner($fn) {
             if(bindDingData && bindDingData.value) {
                 currentPath.fn = bindDingData.value;
                 const textNode = node.cloneNode();
+                if(typeof bindDingData.value === 'string') {
+                    ElementCreator.bindTextNode(textNode, data[0][bindDingData.value]);
+                    return textNode;
+                }
                 bindDingData.value(data, textNode);
                 return textNode;
             }
             return node.cloneNode(true);
         }
-        const nodeCloned = node.cloneNode(node.fullCloneNode);
-        if(node.fullCloneNode) {
-            return nodeCloned;
-        }
+        const nodeCloned = node.cloneNode();
         if(bindDingData) {
             bindAttributes(nodeCloned, bindDingData, data);
             bindAttachMethods(nodeCloned, bindDingData, data);
@@ -164,15 +170,12 @@ export function TemplateCloner($fn) {
     }
     this.value = (callbackOrProperty) => {
         if(typeof callbackOrProperty !== 'function') {
-            return createBinding(function(data, textNode) {
-                ElementCreator.bindTextNode(textNode, data[0][callbackOrProperty]);
-            }, 'value');
+            return createBinding(callbackOrProperty, 'value');
         }
-        return createBinding(function(data, textNode) {
+        return createBinding((data, textNode) => {
             ElementCreator.bindTextNode(textNode, callbackOrProperty(...data));
         }, 'value');
     };
-    this.text = this.value;
     this.attr = (fn) => {
         return createBinding(fn, 'attributes');
     };

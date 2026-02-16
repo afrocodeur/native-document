@@ -54,8 +54,8 @@ const timer = Div("Timer: 0")
 
 ```javascript
 const focusInput = Input({ placeholder: "Auto-focused" })
-  .nd.mounted(input => {
-    input.focus();
+  .nd.mounted(element => {
+      Òelement.focus();
   });
 ```
 
@@ -100,9 +100,17 @@ Now that you understand lifecycle events, explore these related topics:
 
 - **[NDElement](native-document-element.md)** - Native Document Element
 - **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
+- **[Advanced Components](advanced-components.md)** - Template caching and singleton views
 - **[Args Validation](validation.md)** - Function Argument Validation
 - **[Memory Management](memory-management.md)** - Memory management
 - **[Anchor](anchor.md)** - Anchor
+
+## Utilities
+
+- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
+- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
+- **[Filters](docs/utils/filters.md)** - Data filtering helpers
+
 
 
 

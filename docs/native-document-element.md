@@ -197,14 +197,6 @@ Input({ type: 'text' })
 ```javascript
 const interactiveButton = Button("Interactive")
     .nd.onClick(e => console.log("Clicked"))
-    .nd.onMouseEnter(e => e.target.style.background = "blue")
-    .nd.onMouseLeave(e => e.target.style.background = "")
-    .nd.mounted(el => console.log("Button mounted"));
-
-// OR 
-
-const interactiveButton = Button("Interactive")
-    .nd.onClick(e => console.log("Clicked"))
     .onMouseEnter(e => e.target.style.background = "blue")
     .onMouseLeave(e => e.target.style.background = "")
     .mounted(el => console.log("Button mounted"));
@@ -220,6 +212,29 @@ const todoForm = Form([
     
     Button('Add', { type: 'submit' })
 ]).nd.onPreventSubmit(addTodo);
+```
+
+### Generic Event Handler - `on()`
+
+For any DOM event:
+```javascript
+element.nd.on('customEvent', callback, options)
+
+// Example with options
+element.nd.on('scroll', callback, { passive: true })
+```
+
+### Batch Event Registration
+
+Register multiple events at once:
+```javascript
+// Register multiple events in one call
+Input()
+    .nd.on({
+        focus: e => console.log('Focused'),
+        blur: e => console.log('Blurred'),
+        input: e => console.log('Value:', e.target.value)
+    });
 ```
 
 ### Reference Management
@@ -277,3 +292,9 @@ Explore these related topics to build complete applications:
 - **[Args Validation](validation.md)** - Function Argument Validation
 - **[Memory Management](memory-management.md)** - Memory management
 - **[Anchor](anchor.md)** - Anchor
+
+## Utilities
+
+- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
+- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
+- **[Filters](docs/utils/filters.md)** - Data filtering helpers

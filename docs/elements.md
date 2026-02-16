@@ -66,7 +66,7 @@ const theme = Observable("dark");
 const greeting = Div({
   class: theme, // Updates when theme changes
   hidden: isVisible.check(val => !val) // Hide when isVisible is false
-}, `Hello ${userName}!`); // Reactive text content
+}, ['Hello ', userName, '!']); // Reactive text content
 
 // Reactive styles
 const box = Div({
@@ -142,6 +142,63 @@ const form = Form()
   });
 ```
 
+## Advanced Element Composition
+
+### Extending Elements with Custom Methods
+
+Use `.nd.with()` to add custom methods to elements:
+```javascript
+const customButton = Button("Click me")
+    .nd.with({
+        highlight() {
+            this.$element.style.backgroundColor = 'yellow';
+            return this;
+        },
+        resetStyle() {
+            this.$element.style.backgroundColor = '';
+            return this;
+        }
+    })
+    .highlight();
+
+// Chain custom methods
+customButton.resetStyle().highlight();
+```
+
+### Class and Style Accumulators
+
+Build classes and styles programmatically:
+```javascript
+import { classPropertyAccumulator, cssPropertyAccumulator } from 'native-document';
+
+// Class accumulator
+const classes = classPropertyAccumulator(['btn']);
+classes.add('primary');
+classes.add('large');
+
+const button = Button({ class: classes.value() }, "Submit");
+// Result: class="btn primary large"
+
+// Or with object
+const classObj = classPropertyAccumulator({ btn: true });
+classObj.add('primary', true);
+classObj.add('disabled', false);
+console.log(classObj.value()); // { btn: true, primary: true, disabled: false }
+
+// CSS accumulator
+const styles = cssPropertyAccumulator({ color: 'red' });
+styles.add('font-size', '16px');
+styles.add('margin', '10px');
+
+const element = Div({ style: styles.value() }, "Styled content");
+// Result: style="color: red; font-size: 16px; margin: 10px"
+
+// Or with array
+const styleArr = cssPropertyAccumulator('color: red; font-size: 16px');
+styleArr.add('margin', '10px');
+console.log(styleArr.value()); // "color: red; font-size: 16px; margin: 10px;"
+```
+
 ## Form Elements and Two-Way Binding
 
 ```javascript
@@ -214,6 +271,34 @@ const widget = Div("Widget")
         unmounted: element => console.log("Widget unmounted")
     });
 ```
+## Manual DOM Manipulation
+
+### Unmounting Children
+
+Remove all children from an element:
+```javascript
+const container = Div([
+    P("Child 1"),
+    P("Child 2"),
+    P("Child 3")
+]);
+
+// Remove all children
+container.nd.unmountChildren();
+// container is now empty but still in DOM
+```
+
+### Removing Elements
+
+Remove an element from the DOM:
+```javascript
+const element = Div("Content");
+document.body.appendChild(element.nd.node());
+
+// Remove from DOM
+element.nd.remove();
+// Element is detached from DOM
+```
 
 ## Element References
 
@@ -229,6 +314,37 @@ const app = Div([
         refs.nameInput.focus(); // Use the reference
     })
 ]);
+```
+
+## Shadow DOM
+
+NativeDocument supports Shadow DOM for encapsulated components:
+```javascript
+// Open shadow DOM (inspectable)
+const widget = Div("Widget content")
+    .nd.openShadow(`
+            :host {
+                display: block;
+                padding: 20px;
+                background: #f0f0f0;
+            }
+            p { color: blue; }
+        
+    `);
+
+// Closed shadow DOM (private)
+const privateWidget = Div("Private content")
+    .nd.closedShadow(`
+            p { color: red; }
+        
+    `);
+
+// Manual shadow DOM with mode
+const customWidget = Div("Custom")
+    .nd.shadow('open', `
+            /* Scoped styles */
+        
+    `);
 ```
 
 ## Practical Example: Simple Button with Event
@@ -280,6 +396,8 @@ const validateForm = () => {
     newErrors.age = isNaN(data.age) || data.age < 1 ? "Age must be a valid number" : "";
 
     Observable.update(errors, newErrors);
+
+    errors.set(newErrors);
 
     return Object.values(newErrors).every(error => error === "");
 };
@@ -382,6 +500,13 @@ Now that you understand NativeDocument's elements, explore these advanced topics
 - **[Lifecycle Events](lifecycle-events.md)** - Lifecycle events
 - **[NDElement](native-document-element.md)** - Native Document Element
 - **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
+- **[Advanced Components](advanced-components.md)** - Template caching and singleton views
 - **[Args Validation](validation.md)** - Function Argument Validation
 - **[Memory Management](memory-management.md)** - Memory management
 - **[Anchor](anchor.md)** - Anchor
+
+## Utilities
+
+- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
+- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
+- **[Filters](docs/utils/filters.md)** - Data filtering helpers

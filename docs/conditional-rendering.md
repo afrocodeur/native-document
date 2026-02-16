@@ -102,6 +102,89 @@ HideIf(condition, content)
 ShowIf(condition.check(val => !val), content)
 ```
 
+## ShowWhen - Observable Value Matching
+
+`ShowWhen` is a specialized conditional function that shows content when an Observable matches a specific value. It's particularly useful for state machines and enum-based conditions.
+
+### Basic Usage
+```javascript
+const status = Observable('idle');
+
+// Show content when status equals 'loading'
+const loadingIndicator = ShowWhen(status, 'loading', 
+    Div({ class: 'spinner' }, 'Loading...')
+);
+
+// Show content when status equals 'success'
+const successMessage = ShowWhen(status, 'success',
+    Div({ class: 'success' }, '✅ Success!')
+);
+```
+
+### Two Syntax Options
+
+**Option 1: Three arguments (Observable, value, content)**
+```javascript
+const theme = Observable('light');
+
+ShowWhen(theme, 'dark', 
+    Div({ class: 'dark-mode-indicator' }, '🌙 Dark Mode')
+);
+```
+
+**Option 2: Two arguments (ObservableWhen result, content)**
+```javascript
+const theme = Observable('light');
+const isDark = theme.when('dark'); // Returns ObservableWhen
+
+ShowWhen(isDark,
+    Div({ class: 'dark-mode-indicator' }, '🌙 Dark Mode')
+);
+```
+
+### Practical Example: Status-Based UI
+```javascript
+const connectionStatus = Observable('disconnected');
+
+const StatusIndicator = Div({ class: 'status-bar' }, [
+    ShowWhen(connectionStatus, 'connecting',
+        Span({ class: 'status connecting' }, '🔄 Connecting...')
+    ),
+    ShowWhen(connectionStatus, 'connected',
+        Span({ class: 'status connected' }, '✅ Connected')
+    ),
+    ShowWhen(connectionStatus, 'disconnected',
+        Span({ class: 'status disconnected' }, '❌ Disconnected')
+    ),
+    ShowWhen(connectionStatus, 'error',
+        Span({ class: 'status error' }, '⚠️ Connection Error')
+    )
+]);
+
+// Update status
+setTimeout(() => connectionStatus.set('connecting'), 1000);
+setTimeout(() => connectionStatus.set('connected'), 3000);
+```
+
+Both can handle multiple states, but they serve different purposes:
+```javascript
+const phase = Observable('loading');
+
+// ShowWhen: Multiple independent conditions
+Div([
+    ShowWhen(phase, 'loading', LoadingSpinner()),
+    ShowWhen(phase, 'success', SuccessMessage()),
+    ShowWhen(phase, 'error', ErrorMessage())
+]);
+
+// Match: Single content area that switches
+Match(phase, {
+    loading: LoadingSpinner(),
+    success: SuccessMessage(),
+    error: ErrorMessage()
+});
+```
+
 ## Switch - Binary Content Switching
 
 `Switch` efficiently toggles between exactly two pieces of content based on a boolean condition:
@@ -627,6 +710,13 @@ Now that you understand conditional rendering, explore these related topics:
 - **[Lifecycle Events](lifecycle-events.md)** - Lifecycle events
 - **[NDElement](native-document-element.md)** - Native Document Element
 - **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
+- **[Advanced Components](advanced-components.md)** - Template caching and singleton views
 - **[Args Validation](validation.md)** - Function Argument Validation
 - **[Memory Management](memory-management.md)** - Memory management
 - **[Anchor](anchor.md)** - Anchor
+
+## Utilities
+
+- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
+- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
+- **[Filters](docs/utils/filters.md)** - Data filtering helpers
