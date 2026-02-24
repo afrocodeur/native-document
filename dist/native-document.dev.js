@@ -364,7 +364,12 @@ var NativeDocument = (function (exports) {
     };
 
     const deepClone = (value, onObservableFound) => {
-        // Primitives
+        try {
+            if(window.structuredClone !== undefined) {
+                return window.structuredClone(value);
+            }
+        } catch (e){}
+
         if (value === null || typeof value !== 'object') {
             return value;
         }
@@ -388,7 +393,7 @@ var NativeDocument = (function (exports) {
         // Objects
         const cloned = {};
         for (const key in value) {
-            if (value.hasOwnProperty(key)) {
+            if (Object.hasOwn(value, key)) {
                 cloned[key] = deepClone(value[key]);
             }
         }
@@ -1167,7 +1172,7 @@ var NativeDocument = (function (exports) {
         ]);
 
         for (const name in methods) {
-            if (!methods.hasOwnProperty(name)) {
+            if (!Object.hasOwn(methods, name)) {
                 continue;
             }
 
@@ -2361,10 +2366,10 @@ var NativeDocument = (function (exports) {
     /**
      *
      * @param {string} name
-     * @param {?Function} customWrapper
+     * @param {?Function=} customWrapper
      * @returns {Function}
      */
-    function HtmlElementWrapper(name, customWrapper) {
+    function HtmlElementWrapper(name, customWrapper = null) {
         return createHtmlElement.bind(null, name, customWrapper);
     }
 
@@ -2418,7 +2423,7 @@ var NativeDocument = (function (exports) {
         hydrationState[targetType][property] = hydrateFunction;
     };
 
-    const bindAttachMethods = function(node, bindDingData, data) {
+    const bindAttachMethods = (node, bindDingData, data) => {
         if(!bindDingData.attach) {
             return null;
         }
@@ -2723,7 +2728,7 @@ var NativeDocument = (function (exports) {
     const once$1 = (fn) => {
         let result = null;
         return (...args) => {
-            if(result) {
+            if(result != null) {
                 return result;
             }
             result = fn(...args);
@@ -3808,7 +3813,7 @@ var NativeDocument = (function (exports) {
      * Efficiently manages DOM updates by tracking items with keys.
      *
      * @param {ObservableItem<Array|Object>} data - Observable containing array or object to iterate over
-     * @param {Function} callback - Function that renders each item (item, index) => ValidChild
+     * @param {(item: *, index: null|ObservableItem) => NdChild} callback - Function that renders each item (item, index) => ValidChild
      * @param {string|Function} [key] - Property name or function to generate unique keys for items
      * @param {Object} [options={}] - Configuration options
      * @param {boolean} [options.shouldKeepItemsInCache=false] - Whether to cache rendered items
@@ -3965,7 +3970,7 @@ var NativeDocument = (function (exports) {
      * Provides index observables and handles array mutations efficiently.
      *
      * @param {ObservableArray} data - ObservableArray to iterate over
-     * @param {Function} callback - Function that renders each item (item, indexObservable) => ValidChild
+     * @param {(item: *, index: null|ObservableItem) => NdChild} callback - Function that renders each item (item, indexObservable) => ValidChild
      * @param {Object} [configs={}] - Configuration options
      * @param {boolean} [configs.shouldKeepItemsInCache] - Whether to cache rendered items
      * @param {boolean} [configs.isParentUniqueChild] - When it's the only child of the parent
@@ -4237,7 +4242,7 @@ var NativeDocument = (function (exports) {
      * The element is mounted/unmounted from the DOM as the condition changes.
      *
      * @param {ObservableItem<boolean>|ObservableChecker<boolean>|ObservableWhen} condition - Observable condition to watch
-     * @param {ValidChild} child - Element or content to show/hide
+     * @param {NdChild|(() => NdChild)} child - Element or content to show/hide
      * @param {Object} [options={}] - Configuration options
      * @param {string|null} [options.comment=null] - Comment for debugging
      * @param {boolean} [options.shouldKeepInCache=true] - Whether to cache the element when hidden
@@ -4285,7 +4290,7 @@ var NativeDocument = (function (exports) {
      * Inverse of ShowIf - element is shown when condition is false.
      *
      * @param {ObservableItem<boolean>|ObservableChecker<boolean>} condition - Observable condition to watch
-     * @param {ValidChild} child - Element or content to show/hide
+     * @param {NdChild|(() => NdChild)} child - Element or content to show/hide
      * @param {Object} [configs] - Configuration options
      * @param {string|null} [configs.comment] - Comment for debugging
      * @param {boolean} [configs.shouldKeepInCache] - Whether to cache element when hidden
@@ -4306,7 +4311,7 @@ var NativeDocument = (function (exports) {
      * Same as ShowIf - element is shown when condition is true.
      *
      * @param {ObservableItem<boolean>|ObservableChecker<boolean>|ObservableWhen} condition - Observable condition to watch
-     * @param {ValidChild} child - Element or content to show/hide
+     * @param {NdChild|(() => NdChild)} child - Element or content to show/hide
      * @param {Object} [configs] - Configuration options
      * @param {string|null} [configs.comment] - Comment for debugging
      * @param {boolean} [configs.shouldKeepInCache] - Whether to cache element when hidden
@@ -4322,13 +4327,13 @@ var NativeDocument = (function (exports) {
      *
      * @overload
      * @param {ObservableWhen} observerWhenResult - Result from observable.when(value)
-     * @param {ValidChild} view - Content to show when condition matches
+     * @param {NdChild|(() => NdChild)} view - Content to show when condition matches
      * @returns {AnchorDocumentFragment}
      *
      * @overload
      * @param {ObservableItem} observer - Observable to watch
      * @param {*} target - Value to match
-     * @param {ValidChild} view - Content to show when observable equals target
+     * @param {NdChild|(() => NdChild)} view - Content to show when observable equals target
      * @returns {AnchorDocumentFragment}
      *
      * @example
@@ -4372,7 +4377,7 @@ var NativeDocument = (function (exports) {
      * Like a switch statement for UI - shows the content corresponding to current value.
      *
      * @param {ObservableItem|ObservableChecker} $condition - Observable to watch
-     * @param {Object<string|number, ValidChild>} values - Map of values to their corresponding content
+     * @param {Object<string|number, NdChild|(() => NdChild)>} values - Map of values to their corresponding content
      * @param {boolean} [shouldKeepInCache=true] - Whether to cache rendered views
      * @returns {AnchorDocumentFragment & {add: Function, remove: Function}} Fragment with dynamic methods
      * @example
@@ -4501,41 +4506,202 @@ var NativeDocument = (function (exports) {
         }
     };
 
+    /**
+     * Creates a `<div>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLDivElement}
+     */
     const Div = HtmlElementWrapper('div');
+
+    /**
+     * Creates a `<span>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLSpanElement}
+     */
     const Span = HtmlElementWrapper('span');
+
+    /**
+     * Creates a `<label>` element.
+     * @type {function(LabelAttributes=, NdChild|NdChild[]=): HTMLLabelElement}
+     */
     const Label = HtmlElementWrapper('label');
+
+    /**
+     * Creates a `<p>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLParagraphElement}
+     */
     const P = HtmlElementWrapper('p');
+
+    /**
+     * Alias for {@link P}.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLParagraphElement}
+     */
     const Paragraph = P;
+
+    /**
+     * Creates a `<strong>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Strong = HtmlElementWrapper('strong');
+
+    /**
+     * Creates a `<h1>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLHeadingElement}
+     */
     const H1 = HtmlElementWrapper('h1');
+
+    /**
+     * Creates a `<h2>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLHeadingElement}
+     */
     const H2 = HtmlElementWrapper('h2');
+
+    /**
+     * Creates a `<h3>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLHeadingElement}
+     */
     const H3 = HtmlElementWrapper('h3');
+
+    /**
+     * Creates a `<h4>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLHeadingElement}
+     */
     const H4 = HtmlElementWrapper('h4');
+
+    /**
+     * Creates a `<h5>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLHeadingElement}
+     */
     const H5 = HtmlElementWrapper('h5');
+
+    /**
+     * Creates a `<h6>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLHeadingElement}
+     */
     const H6 = HtmlElementWrapper('h6');
 
+    /**
+     * Creates a `<br>` element.
+     * @type {function(GlobalAttributes=): HTMLBRElement}
+     */
     const Br = HtmlElementWrapper('br');
 
+    /**
+     * Creates an `<a>` element.
+     * @type {function(AnchorAttributes=, NdChild|NdChild[]=): HTMLAnchorElement}
+     */
     const Link$1 = HtmlElementWrapper('a');
+
+    /**
+     * Creates a `<pre>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLPreElement}
+     */
     const Pre = HtmlElementWrapper('pre');
+
+    /**
+     * Creates a `<code>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Code = HtmlElementWrapper('code');
+
+    /**
+     * Creates a `<blockquote>` element.
+     * @type {function(GlobalAttributes & { cite?: string }=, NdChild|NdChild[]=): HTMLQuoteElement}
+     */
     const Blockquote = HtmlElementWrapper('blockquote');
+
+    /**
+     * Creates an `<hr>` element.
+     * @type {function(GlobalAttributes=): HTMLHRElement}
+     */
     const Hr = HtmlElementWrapper('hr');
+
+    /**
+     * Creates an `<em>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Em = HtmlElementWrapper('em');
+
+    /**
+     * Creates a `<small>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Small = HtmlElementWrapper('small');
+
+    /**
+     * Creates a `<mark>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Mark = HtmlElementWrapper('mark');
+
+    /**
+     * Creates a `<del>` element.
+     * @type {function(ModAttributes=, NdChild|NdChild[]=): HTMLModElement}
+     */
     const Del = HtmlElementWrapper('del');
+
+    /**
+     * Creates an `<ins>` element.
+     * @type {function(ModAttributes=, NdChild|NdChild[]=): HTMLModElement}
+     */
     const Ins = HtmlElementWrapper('ins');
+
+    /**
+     * Creates a `<sub>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Sub = HtmlElementWrapper('sub');
+
+    /**
+     * Creates a `<sup>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Sup = HtmlElementWrapper('sup');
+
+    /**
+     * Creates an `<abbr>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Abbr = HtmlElementWrapper('abbr');
+
+    /**
+     * Creates a `<cite>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Cite = HtmlElementWrapper('cite');
+
+    /**
+     * Creates a `<q>` element.
+     * @type {function(GlobalAttributes & { cite?: string }=, NdChild|NdChild[]=): HTMLQuoteElement}
+     */
     const Quote = HtmlElementWrapper('q');
 
+    /**
+     * Creates a `<dl>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLDListElement}
+     */
     const Dl = HtmlElementWrapper('dl');
+
+    /**
+     * Creates a `<dt>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Dt = HtmlElementWrapper('dt');
+
+    /**
+     * Creates a `<dd>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Dd = HtmlElementWrapper('dd');
 
+    /**
+     * Creates a `<form>` element.
+     * Extended with fluent methods: `.submit()`, `.post()`, `.get()`, `.multipartFormData()`.
+     * @type {function(FormAttributes=, NdChild|NdChild[]=): HTMLFormElement & {
+     *   submit: (actionOrFn: string | ((e: SubmitEvent) => void)) => HTMLFormElement,
+     *   post: (action: string) => HTMLFormElement,
+     *   get: (action: string) => HTMLFormElement,
+     *   multipartFormData: () => HTMLFormElement,
+     * }}
+     */
     const Form = HtmlElementWrapper('form', function(el) {
 
         el.submit = function(action) {
@@ -4565,68 +4731,298 @@ var NativeDocument = (function (exports) {
         return el;
     });
 
+    /**
+     * Creates an `<input>` element.
+     * @type {function(InputAttributes=): HTMLInputElement}
+     */
     const Input = HtmlElementWrapper('input');
 
+    /**
+     * Creates a `<textarea>` element.
+     * @type {function(TextAreaAttributes=, NdChild|NdChild[]=): HTMLTextAreaElement}
+     */
     const TextArea = HtmlElementWrapper('textarea');
+
+    /**
+     * Alias for {@link TextArea}.
+     * @type {function(TextAreaAttributes=, NdChild|NdChild[]=): HTMLTextAreaElement}
+     */
     const TextInput = TextArea;
 
+    /**
+     * Creates a `<select>` element.
+     * @type {function(SelectAttributes=, NdChild|NdChild[]=): HTMLSelectElement}
+     */
     const Select = HtmlElementWrapper('select');
-    const FieldSet = HtmlElementWrapper('fieldset', );
+
+    /**
+     * Creates a `<fieldset>` element.
+     * @type {function(GlobalAttributes & { disabled?: Observable<boolean>|boolean }=, NdChild|NdChild[]=): HTMLFieldSetElement}
+     */
+    const FieldSet = HtmlElementWrapper('fieldset');
+
+    /**
+     * Creates an `<option>` element.
+     * @type {function(OptionAttributes=, NdChild|NdChild[]=): HTMLOptionElement}
+     */
     const Option = HtmlElementWrapper('option');
+
+    /**
+     * Creates a `<legend>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLLegendElement}
+     */
     const Legend = HtmlElementWrapper('legend');
+
+    /**
+     * Creates a `<datalist>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLDataListElement}
+     */
     const Datalist = HtmlElementWrapper('datalist');
+
+    /**
+     * Creates an `<output>` element.
+     * @type {function(OutputAttributes=, NdChild|NdChild[]=): HTMLOutputElement}
+     */
     const Output = HtmlElementWrapper('output');
+
+    /**
+     * Creates a `<progress>` element.
+     * @type {function(ProgressAttributes=, NdChild|NdChild[]=): HTMLProgressElement}
+     */
     const Progress = HtmlElementWrapper('progress');
+
+    /**
+     * Creates a `<meter>` element.
+     * @type {function(MeterAttributes=, NdChild|NdChild[]=): HTMLMeterElement}
+     */
     const Meter = HtmlElementWrapper('meter');
 
+    /**
+     * Creates an `<input readonly>` element.
+     * @param {Omit<InputAttributes, 'type'|'readonly'|'readOnly'>} [attributes]
+     * @returns {HTMLInputElement}
+     */
     const ReadonlyInput = (attributes) => Input({ readonly: true, ...attributes });
-    const HiddenInput = (attributes) => Input({type: 'hidden', ...attributes });
+
+    /**
+     * Creates an `<input type="hidden">` element.
+     * @param {Omit<InputAttributes, 'type'>} [attributes]
+     * @returns {HTMLInputElement}
+     */
+    const HiddenInput = (attributes) => Input({ type: 'hidden', ...attributes });
+
+    /**
+     * Creates an `<input type="file">` element.
+     * @param {Omit<InputAttributes, 'type'>} [attributes]
+     * @returns {HTMLInputElement}
+     */
     const FileInput = (attributes) => Input({ type: 'file', ...attributes });
+
+    /**
+     * Creates an `<input type="password">` element.
+     * @param {Omit<InputAttributes, 'type'>} [attributes]
+     * @returns {HTMLInputElement}
+     */
     const PasswordInput = (attributes) => Input({ type: 'password', ...attributes });
+
+    /**
+     * Creates an `<input type="checkbox">` element.
+     * @param {Omit<InputAttributes, 'type'>} [attributes]
+     * @returns {HTMLInputElement}
+     */
     const Checkbox = (attributes) => Input({ type: 'checkbox', ...attributes });
+
+    /**
+     * Creates an `<input type="radio">` element.
+     * @param {Omit<InputAttributes, 'type'>} [attributes]
+     * @returns {HTMLInputElement}
+     */
     const Radio = (attributes) => Input({ type: 'radio', ...attributes });
 
+    /**
+     * Creates an `<input type="range">` element.
+     * @param {Omit<InputAttributes, 'type'>} [attributes]
+     * @returns {HTMLInputElement}
+     */
     const RangeInput = (attributes) => Input({ type: 'range', ...attributes });
+
+    /**
+     * Creates an `<input type="color">` element.
+     * @param {Omit<InputAttributes, 'type'>} [attributes]
+     * @returns {HTMLInputElement}
+     */
     const ColorInput = (attributes) => Input({ type: 'color', ...attributes });
+
+    /**
+     * Creates an `<input type="date">` element.
+     * @param {Omit<InputAttributes, 'type'>} [attributes]
+     * @returns {HTMLInputElement}
+     */
     const DateInput = (attributes) => Input({ type: 'date', ...attributes });
+
+    /**
+     * Creates an `<input type="time">` element.
+     * @param {Omit<InputAttributes, 'type'>} [attributes]
+     * @returns {HTMLInputElement}
+     */
     const TimeInput = (attributes) => Input({ type: 'time', ...attributes });
+
+    /**
+     * Creates an `<input type="datetime-local">` element.
+     * @param {Omit<InputAttributes, 'type'>} [attributes]
+     * @returns {HTMLInputElement}
+     */
     const DateTimeInput = (attributes) => Input({ type: 'datetime-local', ...attributes });
+
+    /**
+     * Creates an `<input type="week">` element.
+     * @param {Omit<InputAttributes, 'type'>} [attributes]
+     * @returns {HTMLInputElement}
+     */
     const WeekInput = (attributes) => Input({ type: 'week', ...attributes });
+
+    /**
+     * Creates an `<input type="month">` element.
+     * @param {Omit<InputAttributes, 'type'>} [attributes]
+     * @returns {HTMLInputElement}
+     */
     const MonthInput = (attributes) => Input({ type: 'month', ...attributes });
+
+    /**
+     * Creates an `<input type="search">` element.
+     * @param {Omit<InputAttributes, 'type'>} [attributes]
+     * @returns {HTMLInputElement}
+     */
     const SearchInput = (attributes) => Input({ type: 'search', ...attributes });
+
+    /**
+     * Creates an `<input type="tel">` element.
+     * @param {Omit<InputAttributes, 'type'>} [attributes]
+     * @returns {HTMLInputElement}
+     */
     const TelInput = (attributes) => Input({ type: 'tel', ...attributes });
+
+    /**
+     * Creates an `<input type="url">` element.
+     * @param {Omit<InputAttributes, 'type'>} [attributes]
+     * @returns {HTMLInputElement}
+     */
     const UrlInput = (attributes) => Input({ type: 'url', ...attributes });
+
+    /**
+     * Creates an `<input type="email">` element.
+     * @param {Omit<InputAttributes, 'type'>} [attributes]
+     * @returns {HTMLInputElement}
+     */
     const EmailInput = (attributes) => Input({ type: 'email', ...attributes });
+
+    /**
+     * Creates an `<input type="number">` element.
+     * @param {Omit<InputAttributes, 'type'>} [attributes]
+     * @returns {HTMLInputElement}
+     */
     const NumberInput = (attributes) => Input({ type: 'number', ...attributes });
 
-
+    /**
+     * Creates a `<button>` element.
+     * @type {function(ButtonAttributes=, NdChild|NdChild[]=): HTMLButtonElement}
+     */
     const Button = HtmlElementWrapper('button');
+
+    /**
+     * Creates a `<button type="button">` element.
+     * @param {NdChild|NdChild[]} [child]
+     * @param {Omit<ButtonAttributes, 'type'>} [attributes]
+     * @returns {HTMLButtonElement}
+     */
     const SimpleButton = (child, attributes) => Button(child, { type: 'button', ...attributes });
+
+    /**
+     * Creates a `<button type="submit">` element.
+     * @param {NdChild|NdChild[]} [child]
+     * @param {Omit<ButtonAttributes, 'type'>} [attributes]
+     * @returns {HTMLButtonElement}
+     */
     const SubmitButton = (child, attributes) => Button(child, { type: 'submit', ...attributes });
 
+    /**
+     * Creates a `<main>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Main = HtmlElementWrapper('main');
+
+    /**
+     * Creates a `<section>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Section = HtmlElementWrapper('section');
+
+    /**
+     * Creates an `<article>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Article = HtmlElementWrapper('article');
+
+    /**
+     * Creates an `<aside>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Aside = HtmlElementWrapper('aside');
+
+    /**
+     * Creates a `<nav>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Nav = HtmlElementWrapper('nav');
+
+    /**
+     * Creates a `<figure>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Figure = HtmlElementWrapper('figure');
+
+    /**
+     * Creates a `<figcaption>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const FigCaption = HtmlElementWrapper('figcaption');
 
+    /**
+     * Creates a `<header>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Header = HtmlElementWrapper('header');
+
+    /**
+     * Creates a `<footer>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Footer = HtmlElementWrapper('footer');
 
+    /**
+     * Creates an `<img>` element.
+     * @type {function(ImgAttributes=): HTMLImageElement}
+     */
     const BaseImage = HtmlElementWrapper('img');
+
+    /**
+     * Creates an `<img>` element.
+     * @param {Observable<string>|string} src
+     * @param {Omit<ImgAttributes, 'src'>} [attributes]
+     * @returns {HTMLImageElement}
+     */
     const Img = function(src, attributes) {
         return BaseImage({ src, ...attributes });
     };
 
     /**
-     *
-     * @param {string} src
-     * @param {string|null} defaultImage
-     * @param {Object} attributes
-     * @param {?Function} callback
-     * @returns {Image}
+     * Creates an `<img>` that loads asynchronously, showing a placeholder until the image is ready.
+     * Supports reactive `src` — automatically updates when the observable changes.
+     * @param {Observable<string>|string} src                                        - Final image URL
+     * @param {string|null}               defaultImage                               - Placeholder shown while loading
+     * @param {Omit<ImgAttributes, 'src'>} attributes
+     * @param {(error: NativeDocumentError|null, img: HTMLImageElement) => void} [callback]
+     * @returns {HTMLImageElement}
      */
     const AsyncImg = function(src, defaultImage, attributes, callback) {
         const defaultSrc = Validator.isObservable(src) ? src.val() : src;
@@ -4650,56 +5046,230 @@ var NativeDocument = (function (exports) {
     };
 
     /**
-     *
-     * @param {string} src
-     * @param {Object} attributes
-     * @returns {Image}
+     * Creates an `<img loading="lazy">` element.
+     * @param {Observable<string>|string}          src
+     * @param {Omit<ImgAttributes, 'src'|'loading'>} [attributes]
+     * @returns {HTMLImageElement}
      */
     const LazyImg = function(src, attributes) {
         return Img(src, { ...attributes, loading: 'lazy' });
     };
 
+    /**
+     * Creates a `<details>` element.
+     * @type {function(DetailsAttributes=, NdChild|NdChild[]=): HTMLDetailsElement}
+     */
     const Details = HtmlElementWrapper('details');
+
+    /**
+     * Creates a `<summary>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Summary = HtmlElementWrapper('summary');
+
+    /**
+     * Creates a `<dialog>` element.
+     * @type {function(DialogAttributes=, NdChild|NdChild[]=): HTMLDialogElement}
+     */
     const Dialog = HtmlElementWrapper('dialog');
+
+    /**
+     * Creates a `<menu>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLMenuElement}
+     */
     const Menu = HtmlElementWrapper('menu');
 
+    /**
+     * Creates an `<ol>` element.
+     * @type {function(OlAttributes=, NdChild|NdChild[]=): HTMLOListElement}
+     */
     const OrderedList = HtmlElementWrapper('ol');
+
+    /**
+     * Creates a `<ul>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLUListElement}
+     */
     const UnorderedList = HtmlElementWrapper('ul');
+
+    /**
+     * Creates a `<li>` element.
+     * @type {function(GlobalAttributes & { value?: number }=, NdChild|NdChild[]=): HTMLLIElement}
+     */
     const ListItem = HtmlElementWrapper('li');
 
+    /**
+     * Alias for {@link ListItem}.
+     * @type {typeof ListItem}
+     */
     const Li = ListItem;
+
+    /**
+     * Alias for {@link OrderedList}.
+     * @type {typeof OrderedList}
+     */
     const Ol = OrderedList;
+
+    /**
+     * Alias for {@link UnorderedList}.
+     * @type {typeof UnorderedList}
+     */
     const Ul = UnorderedList;
 
+    /**
+     * Creates an `<audio>` element.
+     * @type {function(AudioAttributes=, NdChild|NdChild[]=): HTMLAudioElement}
+     */
     const Audio = HtmlElementWrapper('audio');
+
+    /**
+     * Creates a `<video>` element.
+     * @type {function(VideoAttributes=, NdChild|NdChild[]=): HTMLVideoElement}
+     */
     const Video = HtmlElementWrapper('video');
+
+    /**
+     * Creates a `<source>` element.
+     * @type {function(SourceAttributes=): HTMLSourceElement}
+     */
     const Source = HtmlElementWrapper('source');
+
+    /**
+     * Creates a `<track>` element.
+     * @type {function(TrackAttributes=): HTMLTrackElement}
+     */
     const Track = HtmlElementWrapper('track');
+
+    /**
+     * Creates a `<canvas>` element.
+     * @type {function(CanvasAttributes=, NdChild|NdChild[]=): HTMLCanvasElement}
+     */
     const Canvas = HtmlElementWrapper('canvas');
+
+    /**
+     * Creates an `<svg>` element.
+     * @type {function(SvgAttributes=, NdChild|NdChild[]=): SVGSVGElement}
+     */
     const Svg = HtmlElementWrapper('svg');
 
+    /**
+     * Creates a `<time>` element.
+     * @type {function(TimeAttributes=, NdChild|NdChild[]=): HTMLTimeElement}
+     */
     const Time = HtmlElementWrapper('time');
+
+    /**
+     * Creates a `<data>` element.
+     * @type {function(GlobalAttributes & { value?: Observable<string>|string }=, NdChild|NdChild[]=): HTMLDataElement}
+     */
     const Data = HtmlElementWrapper('data');
+
+    /**
+     * Creates an `<address>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Address = HtmlElementWrapper('address');
+
+    /**
+     * Creates a `<kbd>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Kbd = HtmlElementWrapper('kbd');
+
+    /**
+     * Creates a `<samp>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Samp = HtmlElementWrapper('samp');
+
+    /**
+     * Creates a `<var>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+     */
     const Var = HtmlElementWrapper('var');
+
+    /**
+     * Creates a `<wbr>` element.
+     * @type {function(GlobalAttributes=): HTMLElement}
+     */
     const Wbr = HtmlElementWrapper('wbr');
 
+    /**
+     * Creates a `<caption>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLTableCaptionElement}
+     */
     const Caption = HtmlElementWrapper('caption');
+
+    /**
+     * Creates a `<table>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLTableElement}
+     */
     const Table = HtmlElementWrapper('table');
+
+    /**
+     * Creates a `<thead>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLTableSectionElement}
+     */
     const THead = HtmlElementWrapper('thead');
+
+    /**
+     * Creates a `<tfoot>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLTableSectionElement}
+     */
     const TFoot = HtmlElementWrapper('tfoot');
+
+    /**
+     * Creates a `<tbody>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLTableSectionElement}
+     */
     const TBody = HtmlElementWrapper('tbody');
+
+    /**
+     * Creates a `<tr>` element.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLTableRowElement}
+     */
     const Tr = HtmlElementWrapper('tr');
+
+    /**
+     * Alias for {@link Tr}.
+     * @type {typeof Tr}
+     */
     const TRow = Tr;
+
+    /**
+     * Creates a `<th>` element.
+     * @type {function(ThAttributes=, NdChild|NdChild[]=): HTMLTableCellElement}
+     */
     const Th = HtmlElementWrapper('th');
+
+    /**
+     * Alias for {@link Th}.
+     * @type {typeof Th}
+     */
     const THeadCell = Th;
+
+    /**
+     * Alias for {@link Th}.
+     * @type {typeof Th}
+     */
     const TFootCell = Th;
+
+    /**
+     * Creates a `<td>` element.
+     * @type {function(TdAttributes=, NdChild|NdChild[]=): HTMLTableCellElement}
+     */
     const Td = HtmlElementWrapper('td');
+
+    /**
+     * Alias for {@link Td}.
+     * @type {typeof Td}
+     */
     const TBodyCell = Td;
 
+    /**
+     * Creates an empty `DocumentFragment` wrapper.
+     * Useful for grouping elements without adding a DOM node.
+     * @type {function(GlobalAttributes=, NdChild|NdChild[]=): DocumentFragment}
+     */
     const Fragment = HtmlElementWrapper('');
 
     var elements = /*#__PURE__*/Object.freeze({
