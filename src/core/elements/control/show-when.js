@@ -8,13 +8,13 @@ import {ShowIf} from "./show-if.js";
  *
  * @overload
  * @param {ObservableWhen} observerWhenResult - Result from observable.when(value)
- * @param {ValidChild} view - Content to show when condition matches
+ * @param {NdChild|(() => NdChild)} view - Content to show when condition matches
  * @returns {AnchorDocumentFragment}
  *
  * @overload
  * @param {ObservableItem} observer - Observable to watch
  * @param {*} target - Value to match
- * @param {ValidChild} view - Content to show when observable equals target
+ * @param {NdChild|(() => NdChild)} view - Content to show when observable equals target
  * @returns {AnchorDocumentFragment}
  *
  * @example

@@ -28,10 +28,10 @@ function createHtmlElement($tagName, customWrapper, _attributes, _children = nul
 /**
  *
  * @param {string} name
- * @param {?Function} customWrapper
+ * @param {?Function=} customWrapper
  * @returns {Function}
  */
-export default function HtmlElementWrapper(name, customWrapper) {
+export default function HtmlElementWrapper(name, customWrapper = null) {
     return createHtmlElement.bind(null, name, customWrapper);
 };
 

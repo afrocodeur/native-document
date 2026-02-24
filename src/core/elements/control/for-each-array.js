@@ -9,7 +9,7 @@ import NativeDocumentError from "../../errors/NativeDocumentError";
  * Provides index observables and handles array mutations efficiently.
  *
  * @param {ObservableArray} data - ObservableArray to iterate over
- * @param {Function} callback - Function that renders each item (item, indexObservable) => ValidChild
+ * @param {(item: *, index: null|ObservableItem) => NdChild} callback - Function that renders each item (item, indexObservable) => ValidChild
  * @param {Object} [configs={}] - Configuration options
  * @param {boolean} [configs.shouldKeepItemsInCache] - Whether to cache rendered items
  * @param {boolean} [configs.isParentUniqueChild] - When it's the only child of the parent

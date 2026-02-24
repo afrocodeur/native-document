@@ -195,7 +195,7 @@ NDElement.extend = function(methods) {
     ]);
 
     for (const name in methods) {
-        if (!methods.hasOwnProperty(name)) {
+        if (!Object.hasOwn(methods, name)) {
             continue;
         }
 

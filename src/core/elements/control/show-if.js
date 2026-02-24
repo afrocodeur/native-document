@@ -9,7 +9,7 @@ import {ElementCreator} from "../../wrappers/ElementCreator";
  * The element is mounted/unmounted from the DOM as the condition changes.
  *
  * @param {ObservableItem<boolean>|ObservableChecker<boolean>|ObservableWhen} condition - Observable condition to watch
- * @param {ValidChild} child - Element or content to show/hide
+ * @param {NdChild|(() => NdChild)} child - Element or content to show/hide
  * @param {Object} [options={}] - Configuration options
  * @param {string|null} [options.comment=null] - Comment for debugging
  * @param {boolean} [options.shouldKeepInCache=true] - Whether to cache the element when hidden
@@ -57,7 +57,7 @@ export const ShowIf = function(condition, child, { comment = null, shouldKeepInC
  * Inverse of ShowIf - element is shown when condition is false.
  *
  * @param {ObservableItem<boolean>|ObservableChecker<boolean>} condition - Observable condition to watch
- * @param {ValidChild} child - Element or content to show/hide
+ * @param {NdChild|(() => NdChild)} child - Element or content to show/hide
  * @param {Object} [configs] - Configuration options
  * @param {string|null} [configs.comment] - Comment for debugging
  * @param {boolean} [configs.shouldKeepInCache] - Whether to cache element when hidden
@@ -78,7 +78,7 @@ export const HideIf = function(condition, child, configs) {
  * Same as ShowIf - element is shown when condition is true.
  *
  * @param {ObservableItem<boolean>|ObservableChecker<boolean>|ObservableWhen} condition - Observable condition to watch
- * @param {ValidChild} child - Element or content to show/hide
+ * @param {NdChild|(() => NdChild)} child - Element or content to show/hide
  * @param {Object} [configs] - Configuration options
  * @param {string|null} [configs.comment] - Comment for debugging
  * @param {boolean} [configs.shouldKeepInCache] - Whether to cache element when hidden

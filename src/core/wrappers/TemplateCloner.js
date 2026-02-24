@@ -51,7 +51,7 @@ const $hydrateFn = function(hydrateFunction, targetType, element, property) {
     hydrationState[targetType][property] = hydrateFunction;
 }
 
-const bindAttachMethods = function(node, bindDingData, data) {
+const bindAttachMethods = (node, bindDingData, data) => {
     if(!bindDingData.attach) {
         return null;
     }

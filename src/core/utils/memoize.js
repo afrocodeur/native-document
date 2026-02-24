@@ -3,7 +3,7 @@
 export const once = (fn) => {
     let result = null;
     return (...args) => {
-        if(result) {
+        if(result != null) {
             return result;
         }
         result = fn(...args);

@@ -16,6 +16,11 @@ export * from './medias';
 export * from './meta-data';
 export * from './table';
 
+/**
+ * Creates an empty `DocumentFragment` wrapper.
+ * Useful for grouping elements without adding a DOM node.
+ * @type {function(GlobalAttributes=, NdChild|NdChild[]=): DocumentFragment}
+ */
 export const Fragment = HtmlElementWrapper('');
 
 

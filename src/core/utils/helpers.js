@@ -75,7 +75,12 @@ export const trim = function(str, char) {
 }
 
 export const deepClone = (value, onObservableFound) => {
-    // Primitives
+    try {
+        if(window.structuredClone !== undefined) {
+            return window.structuredClone(value);
+        }
+    } catch (e){}
+
     if (value === null || typeof value !== 'object') {
         return value;
     }
@@ -99,7 +104,7 @@ export const deepClone = (value, onObservableFound) => {
     // Objects
     const cloned = {};
     for (const key in value) {
-        if (value.hasOwnProperty(key)) {
+        if (Object.hasOwn(value, key)) {
             cloned[key] = deepClone(value[key]);
         }
     }

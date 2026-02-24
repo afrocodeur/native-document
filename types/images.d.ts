@@ -1,16 +1,23 @@
 // Image components type definitions
-import {Attributes, ElementFunction, NDElement} from './elements';
-import {ObservableItem} from "./observable";
+import { ElementFunctionNoChildren, NdHTMLElement } from './elements';
+import { ImgAttributes } from './elements';
+import { ObservableItem } from "./observable";
 
+export declare const BaseImage: ElementFunctionNoChildren<ImgAttributes, HTMLImageElement>;
 
-export declare const BaseImage: ElementFunction;
+export declare const Img: (
+    src: string | ObservableItem<string>,
+    attributes?: Omit<ImgAttributes, 'src'>
+) => NdHTMLElement<HTMLImageElement>;
 
-// Image Elements
-export declare const Img: (src: string | ObservableItem<string>, attributes?: Attributes) => HTMLImageElement & { nd: NDElement };
 export declare const AsyncImg: (
     src: string | ObservableItem<string>,
-    defaultImage?: string,
-    attributes?: Attributes,
+    defaultImage?: string | null,
+    attributes?: Omit<ImgAttributes, 'src'>,
     callback?: (error: Error | null, img?: HTMLImageElement) => void
-) => HTMLImageElement & { nd: NDElement };
-export declare const LazyImg: (src: string | ObservableItem<string>, attributes?: Attributes) => HTMLImageElement & { nd: NDElement };
+) => NdHTMLElement<HTMLImageElement>;
+
+export declare const LazyImg: (
+    src: string | ObservableItem<string>,
+    attributes?: Omit<ImgAttributes, 'src' | 'loading'>
+) => NdHTMLElement<HTMLImageElement>;

@@ -1,51 +1,88 @@
 // Form elements type definitions
-import { Attributes, ValidChild } from './elements';
-import { NDElement} from "./nd-element";
-import {ElementFunction} from "./elements";
+import {
+    ValidChild,
+    ElementFunction,
+    ElementFunctionNoChildren,
+    NdHTMLElement,
+    GlobalAttributes,
+    Observable
+} from './elements';
+import {
+    FormAttributes,
+    InputAttributes,
+    TextAreaAttributes,
+    SelectAttributes,
+    OptionAttributes,
+    ButtonAttributes,
+    OutputAttributes,
+    ProgressAttributes,
+    MeterAttributes,
+    LabelAttributes,
+} from './elements';
 
-// Form Elements
-export declare const Form: ElementFunction & {
-    submit(action: string | ((event: Event) => void)): HTMLFormElement & { nd: NDElement };
-    multipartFormData(): HTMLFormElement & { nd: NDElement };
-    post(action: string): HTMLFormElement & { nd: NDElement };
-    get(action: string): HTMLFormElement & { nd: NDElement };
+// ─────────────────────────────────────────────
+// Form
+// ─────────────────────────────────────────────
+
+export declare const Form: (
+    attributes?: FormAttributes,
+    children?: ValidChild
+) => NdHTMLElement<HTMLFormElement> & {
+    submit:            (actionOrFn: string | ((e: SubmitEvent) => void)) => NdHTMLElement<HTMLFormElement>;
+    post:              (action: string) => NdHTMLElement<HTMLFormElement>;
+    get:               (action: string) => NdHTMLElement<HTMLFormElement>;
+    multipartFormData: () => NdHTMLElement<HTMLFormElement>;
 };
 
-export declare const Input: ElementFunction;
-export declare const TextArea: ElementFunction;
-export declare const Select: ElementFunction;
-export declare const Option: ElementFunction;
-export declare const Button: ElementFunction;
+// ─────────────────────────────────────────────
+// Input
+// ─────────────────────────────────────────────
 
-// Specialized Input Types
-export declare const HiddenInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
-export declare const FileInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
-export declare const PasswordInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
-export declare const Checkbox: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
-export declare const Radio: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
-export declare const NumberInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
-export declare const EmailInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
-export declare const DateInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
-export declare const TimeInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
-export declare const RangeInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
-export declare const ColorInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
+export declare const Input:         ElementFunctionNoChildren<InputAttributes, HTMLInputElement>;
+export declare const ReadonlyInput: (attributes?: Omit<InputAttributes, 'type' | 'readonly' | 'readOnly'>) => NdHTMLElement<HTMLInputElement>;
+export declare const HiddenInput:   (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
+export declare const FileInput:     (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
+export declare const PasswordInput: (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
+export declare const Checkbox:      (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
+export declare const Radio:         (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
+export declare const RangeInput:    (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
+export declare const ColorInput:    (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
+export declare const DateInput:     (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
+export declare const TimeInput:     (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
+export declare const DateTimeInput: (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
+export declare const WeekInput:     (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
+export declare const MonthInput:    (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
+export declare const SearchInput:   (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
+export declare const TelInput:      (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
+export declare const UrlInput:      (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
+export declare const EmailInput:    (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
+export declare const NumberInput:   (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
 
-export declare const ReadonlyInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
-export declare const DateTimeInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
-export declare const WeekInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
-export declare const MonthInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
-export declare const SearchInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
-export declare const TelInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
-export declare const UrlInput: (attributes?: Attributes) => HTMLInputElement & { nd: NDElement };
+// ─────────────────────────────────────────────
+// Textarea & Select
+// ─────────────────────────────────────────────
 
-export declare const TextInput: ElementFunction;
-export declare const FieldSet: ElementFunction;
-export declare const Legend: ElementFunction;
-export declare const Datalist: ElementFunction;
-export declare const Output: ElementFunction;
-export declare const Progress: ElementFunction;
-export declare const Meter: ElementFunction;
+export declare const TextArea:  ElementFunction<TextAreaAttributes, HTMLTextAreaElement>;
+export declare const TextInput: typeof TextArea;
+export declare const Select:    ElementFunction<SelectAttributes, HTMLSelectElement>;
+export declare const Option:    ElementFunction<OptionAttributes, HTMLOptionElement>;
 
-// Specialized Button Types
-export declare const SimpleButton: (child: ValidChild, attributes?: Attributes) => HTMLButtonElement & { nd: NDElement };
-export declare const SubmitButton: (child: ValidChild, attributes?: Attributes) => HTMLButtonElement & { nd: NDElement };
+// ─────────────────────────────────────────────
+// Button
+// ─────────────────────────────────────────────
+
+export declare const Button:       ElementFunction<ButtonAttributes, HTMLButtonElement>;
+export declare const SimpleButton: (children?: ValidChild, attributes?: Omit<ButtonAttributes, 'type'>) => NdHTMLElement<HTMLButtonElement>;
+export declare const SubmitButton: (children?: ValidChild, attributes?: Omit<ButtonAttributes, 'type'>) => NdHTMLElement<HTMLButtonElement>;
+
+// ─────────────────────────────────────────────
+// Other form elements
+// ─────────────────────────────────────────────
+
+export declare const FieldSet: ElementFunction<GlobalAttributes & { disabled?: Observable<boolean> }, HTMLFieldSetElement>;
+export declare const Legend:   ElementFunction<GlobalAttributes, HTMLLegendElement>;
+export declare const Label:    ElementFunction<LabelAttributes, HTMLLabelElement>;
+export declare const Datalist: ElementFunction<GlobalAttributes, HTMLDataListElement>;
+export declare const Output:   ElementFunction<OutputAttributes, HTMLOutputElement>;
+export declare const Progress: ElementFunction<ProgressAttributes, HTMLProgressElement>;
+export declare const Meter:    ElementFunction<MeterAttributes, HTMLMeterElement>;

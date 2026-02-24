@@ -11,7 +11,7 @@ import NativeDocumentError from "../../errors/NativeDocumentError";
  * Efficiently manages DOM updates by tracking items with keys.
  *
  * @param {ObservableItem<Array|Object>} data - Observable containing array or object to iterate over
- * @param {Function} callback - Function that renders each item (item, index) => ValidChild
+ * @param {(item: *, index: null|ObservableItem) => NdChild} callback - Function that renders each item (item, index) => ValidChild
  * @param {string|Function} [key] - Property name or function to generate unique keys for items
  * @param {Object} [options={}] - Configuration options
  * @param {boolean} [options.shouldKeepItemsInCache=false] - Whether to cache rendered items

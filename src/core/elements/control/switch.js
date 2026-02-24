@@ -10,7 +10,7 @@ import {ElementCreator} from "../../wrappers/ElementCreator";
  * Like a switch statement for UI - shows the content corresponding to current value.
  *
  * @param {ObservableItem|ObservableChecker} $condition - Observable to watch
- * @param {Object<string|number, ValidChild>} values - Map of values to their corresponding content
+ * @param {Object<string|number, NdChild|(() => NdChild)>} values - Map of values to their corresponding content
  * @param {boolean} [shouldKeepInCache=true] - Whether to cache rendered views
  * @returns {AnchorDocumentFragment & {add: Function, remove: Function}} Fragment with dynamic methods
  * @example
