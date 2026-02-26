@@ -1,10 +1,10 @@
 var NativeDocument = (function (exports) {
     'use strict';
 
-    let DebugManager = {};
+    let DebugManager$1 = {};
 
     {
-        DebugManager = {
+        DebugManager$1 = {
             enabled: false,
 
             enable() {
@@ -35,7 +35,7 @@ var NativeDocument = (function (exports) {
         };
 
     }
-    var DebugManager$1 = DebugManager;
+    var DebugManager = DebugManager$1;
 
     const MemoryManager = (function() {
 
@@ -84,7 +84,7 @@ var NativeDocument = (function (exports) {
                     }
                 }
                 if (cleanedCount > 0) {
-                    DebugManager$1.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
+                    DebugManager.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
                 }
             }
         };
@@ -191,10 +191,10 @@ var NativeDocument = (function (exports) {
         return this.observable.cleanup();
     };
 
-    let PluginsManager = null;
+    let PluginsManager$1 = null;
 
     {
-        PluginsManager = (function() {
+        PluginsManager$1 = (function() {
 
             const $plugins = new Map();
             const $pluginByEvents = new Map();
@@ -260,7 +260,7 @@ var NativeDocument = (function (exports) {
                             try{
                                 callback.call(plugin, ...data);
                             } catch (error) {
-                                DebugManager$1.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
+                                DebugManager.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
                             }
                         }
                     }
@@ -269,7 +269,7 @@ var NativeDocument = (function (exports) {
         }());
     }
 
-    var PluginsManager$1 = PluginsManager;
+    var PluginsManager = PluginsManager$1;
 
     /**
      * Creates an ObservableWhen that tracks whether an observable equals a specific value.
@@ -428,7 +428,7 @@ var NativeDocument = (function (exports) {
             }
         }
         {
-            PluginsManager$1.emit('CreateObservable', this);
+            PluginsManager.emit('CreateObservable', this);
         }
     }
 
@@ -532,12 +532,12 @@ var NativeDocument = (function (exports) {
         this.$previousValue = this.$currentValue;
         this.$currentValue = newValue;
         {
-            PluginsManager$1.emit('ObservableBeforeChange', this);
+            PluginsManager.emit('ObservableBeforeChange', this);
         }
         this.trigger();
         this.$previousValue = null;
         {
-            PluginsManager$1.emit('ObservableAfterChange', this);
+            PluginsManager.emit('ObservableAfterChange', this);
         }
     };
 
@@ -624,7 +624,7 @@ var NativeDocument = (function (exports) {
     ObservableItem.prototype.subscribe = function(callback) {
         {
             if (this.$isCleanedUp) {
-                DebugManager$1.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
+                DebugManager.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
                 return;
             }
             if (typeof callback !== 'function') {
@@ -636,7 +636,7 @@ var NativeDocument = (function (exports) {
         this.$listeners.push(callback);
         this.assocTrigger();
         {
-            PluginsManager$1.emit('ObservableSubscribe', this);
+            PluginsManager.emit('ObservableSubscribe', this);
         }
     };
 
@@ -747,7 +747,7 @@ var NativeDocument = (function (exports) {
         }
         this.assocTrigger();
         {
-            PluginsManager$1.emit('ObservableUnsubscribe', this);
+            PluginsManager.emit('ObservableUnsubscribe', this);
         }
     };
 
@@ -879,96 +879,168 @@ var NativeDocument = (function (exports) {
 
     const DocumentObserver = {
         mounted: new WeakMap(),
+        beforeUnmount: new WeakMap(),
         mountedSupposedSize: 0,
         unmounted: new WeakMap(),
         unmountedSupposedSize: 0,
         observer: null,
+
         executeMountedCallback(node) {
             const data = DocumentObserver.mounted.get(node);
             if(!data) {
                 return;
             }
             data.inDom = true;
-            data.mounted && data.mounted(node);
+            if(!data.mounted) {
+                return;
+            }
+            if(Array.isArray(data.mounted)) {
+                for(const cb of data.mounted) {
+                    cb(node);
+                }
+                return;
+            }
+            data.mounted(node);
         },
+
         executeUnmountedCallback(node) {
             const data = DocumentObserver.unmounted.get(node);
             if(!data) {
                 return;
             }
-
             data.inDom = false;
-            if(data.unmounted && data.unmounted(node) === true) {
+            if(!data.unmounted) {
+                return;
+            }
+
+            let shouldRemove = false;
+            if(Array.isArray(data.unmounted)) {
+                for(const cb of data.unmounted) {
+                    if(cb(node) === true) {
+                        shouldRemove = true;
+                    }
+                }
+            } else {
+                shouldRemove = data.unmounted(node) === true;
+            }
+
+            if(shouldRemove) {
                 data.disconnect();
                 node.nd?.remove();
             }
         },
+
         checkMutation: function(mutationsList) {
             for(const mutation of mutationsList) {
-                if(DocumentObserver.mountedSupposedSize > 0 ) {
+                if(DocumentObserver.mountedSupposedSize > 0) {
                     for(const node of mutation.addedNodes) {
                         DocumentObserver.executeMountedCallback(node);
                         if(!node.querySelectorAll) {
-                            return;
+                            continue;
                         }
                         const children = node.querySelectorAll('[data--nd-mounted]');
-                        if(!children.length) {
-                            return;
-                        }
-                        for(const node of children) {
-                            DocumentObserver.executeMountedCallback(node);
+                        for(const child of children) {
+                            DocumentObserver.executeMountedCallback(child);
                         }
                     }
                 }
 
-                if(DocumentObserver.unmountedSupposedSize > 0 ) {
-                    for(const node of mutation.removedNodes) {
+                if (DocumentObserver.unmountedSupposedSize > 0) {
+                    for (const node of mutation.removedNodes) {
                         DocumentObserver.executeUnmountedCallback(node);
                         if(!node.querySelectorAll) {
-                            return;
+                            continue;
                         }
                         const children = node.querySelectorAll('[data--nd-unmounted]');
-                        if(!children.length) {
-                            return;
-                        }
-                        for(const node of children) {
-                            DocumentObserver.executeUnmountedCallback(node);
+                        for(const child of children) {
+                            DocumentObserver.executeUnmountedCallback(child);
                         }
                     }
                 }
             }
         },
+
         /**
-         *
          * @param {HTMLElement} element
          * @param {boolean} inDom
-         * @returns {{watch: (function(): Map<any, any>), disconnect: (function(): boolean), mounted: (function(*): Set<any>), unmounted: (function(*): Set<any>)}}
+         * @returns {{ disconnect: Function, mounted: Function, unmounted: Function, off: Function }}
          */
         watch: function(element, inDom = false) {
+            let mountedRegistered   = false;
+            let unmountedRegistered = false;
+
             let data = {
                 inDom,
                 mounted: null,
                 unmounted: null,
                 disconnect: () => {
-                    DocumentObserver.mounted.delete(element);
-                    DocumentObserver.unmounted.delete(element);
-                    DocumentObserver.mountedSupposedSize--;
-                    DocumentObserver.unmountedSupposedSize--;
+                    if (mountedRegistered) {
+                        DocumentObserver.mounted.delete(element);
+                        DocumentObserver.mountedSupposedSize--;
+                    }
+                    if (unmountedRegistered) {
+                        DocumentObserver.unmounted.delete(element);
+                        DocumentObserver.unmountedSupposedSize--;
+                    }
                     data = null;
                 }
             };
 
+            const addListener = (type, callback) => {
+                if (!data[type]) {
+                    data[type] = callback;
+                    return;
+                }
+                if (!Array.isArray(data[type])) {
+                    data[type] = [data[type], callback];
+                    return;
+                }
+                data[type].push(callback);
+            };
+
+            const removeListener = (type, callback) => {
+                if(!data?.[type]) {
+                    return;
+                }
+                if(Array.isArray(data[type])) {
+                    const index = data[type].indexOf(callback);
+                    if(index > -1) {
+                        data[type].splice(index, 1);
+                    }
+                    if(data[type].length === 1) {
+                        data[type] = data[type][0];
+                    }
+                    if(data[type].length === 0) {
+                        data[type] = null;
+                    }
+                    return;
+                }
+                data[type] = null;
+            };
+
             return {
-                disconnect: data.disconnect,
+                disconnect: () => data?.disconnect(),
+
                 mounted: (callback) => {
-                    data.mounted = callback;
+                    addListener('mounted', callback);
                     DocumentObserver.mounted.set(element, data);
-                    DocumentObserver.mountedSupposedSize++;
+                    if (!mountedRegistered) {
+                        DocumentObserver.mountedSupposedSize++;
+                        mountedRegistered = true;
+                    }
                 },
+
                 unmounted: (callback) => {
-                    data.unmounted = callback;
+                    addListener('unmounted', callback);
                     DocumentObserver.unmounted.set(element, data);
-                    DocumentObserver.unmountedSupposedSize++;
+                    if (!unmountedRegistered) {
+                        DocumentObserver.unmountedSupposedSize++;
+                        unmountedRegistered = true;
+                    }
+                },
+
+                off: (type, callback) => {
+                    removeListener(type, callback);
                 }
             };
         }
@@ -984,7 +1056,7 @@ var NativeDocument = (function (exports) {
         this.$element = element;
         this.$observer = null;
         {
-            PluginsManager$1.emit('NDElementCreated', element, this);
+            PluginsManager.emit('NDElementCreated', element, this);
         }
     }
 
@@ -1048,6 +1120,37 @@ var NativeDocument = (function (exports) {
 
     NDElement.prototype.unmounted = function(callback) {
         return this.lifecycle({ unmounted: callback });
+    };
+
+    NDElement.prototype.beforeUnmount = function(id, callback) {
+        const el = this.$element;
+
+        if(!DocumentObserver.beforeUnmount.has(el)) {
+            DocumentObserver.beforeUnmount.set(el, new Map());
+            const originalRemove = el.remove.bind(el);
+
+            let  $isUnmounting = false;
+
+            el.remove = async () => {
+                if($isUnmounting) {
+                    return;
+                }
+                $isUnmounting = true;
+
+                try {
+                    const callbacks = DocumentObserver.beforeUnmount.get(el);
+                    for (const cb of callbacks.values()) {
+                        await cb.call(this, el);
+                    }
+                } finally {
+                    originalRemove();
+                    $isUnmounting = false;
+                }
+            };
+        }
+
+        DocumentObserver.beforeUnmount.get(el).set(id, callback);
+        return this;
     };
 
     NDElement.prototype.htmlElement = function() {
@@ -1128,7 +1231,7 @@ var NativeDocument = (function (exports) {
             }
             {
                 if (this[name] && !this.$localExtensions.has(name)) {
-                    DebugManager$1.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
+                    DebugManager.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
                 }
                 this.$localExtensions.set(name, method);
             }
@@ -1179,23 +1282,23 @@ var NativeDocument = (function (exports) {
             const method = methods[name];
 
             if (typeof method !== 'function') {
-                DebugManager$1.warn('NDElement.extend', `"${name}" is not a function, skipping`);
+                DebugManager.warn('NDElement.extend', `"${name}" is not a function, skipping`);
                 continue;
             }
 
             if (protectedMethods.has(name)) {
-                DebugManager$1.error('NDElement.extend', `Cannot override protected method "${name}"`);
+                DebugManager.error('NDElement.extend', `Cannot override protected method "${name}"`);
                 throw new NativeDocumentError(`Cannot override protected method "${name}"`);
             }
 
             if (NDElement.prototype[name]) {
-                DebugManager$1.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
+                DebugManager.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
             }
 
             NDElement.prototype[name] = method;
         }
         {
-            PluginsManager$1.emit('NDElementExtended', methods);
+            PluginsManager.emit('NDElementExtended', methods);
         }
 
         return NDElement;
@@ -1348,7 +1451,7 @@ var NativeDocument = (function (exports) {
             const foundReserved = Object.keys(attributes).filter(key => reserved.includes(key));
 
             if (foundReserved.length > 0) {
-                DebugManager$1.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
+                DebugManager.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
             }
 
             return attributes;
@@ -1367,6 +1470,7 @@ var NativeDocument = (function (exports) {
 
         anchorFragment.nativeInsertBefore = anchorFragment.insertBefore;
         anchorFragment.nativeAppendChild = anchorFragment.appendChild;
+        anchorFragment.nativeAppend = anchorFragment.append;
 
         const isParentUniqueChild = (parent) => (isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd));
 
@@ -1396,65 +1500,72 @@ var NativeDocument = (function (exports) {
         anchorFragment.appendChild = function(child, before = null) {
             const parent = anchorEnd.parentNode;
             if(!parent) {
-                DebugManager$1.error('Anchor', 'Anchor : parent not found', child);
+                DebugManager.error('Anchor', 'Anchor : parent not found', child);
                 return;
             }
             before = before ?? anchorEnd;
             insertBefore(parent, child, before);
         };
+
         anchorFragment.append = function(...args ) {
             return anchorFragment.appendChild(args);
         };
 
-        anchorFragment.removeChildren = function() {
+        anchorFragment.removeChildren = async function() {
             const parent = anchorEnd.parentNode;
             if(parent === anchorFragment) {
                 return;
             }
-            if(isParentUniqueChild(parent)) {
-                parent.replaceChildren(anchorStart, anchorEnd);
-                return;
-            }
+            // if(isParentUniqueChild(parent)) {
+            //     parent.replaceChildren(anchorStart, anchorEnd);
+            //     return;
+            // }
 
             let itemToRemove = anchorStart.nextSibling, tempItem;
-            const fragment = document.createDocumentFragment();
+            const removes = [];
             while(itemToRemove && itemToRemove !== anchorEnd) {
                 tempItem = itemToRemove.nextSibling;
-                fragment.append(itemToRemove);
+                removes.push(itemToRemove.remove());
                 itemToRemove =  tempItem;
             }
-            fragment.replaceChildren();
+            await Promise.all(removes);
         };
-        anchorFragment.remove = function() {
+
+        anchorFragment.remove = async function() {
             const parent = anchorEnd.parentNode;
             if(parent === anchorFragment) {
                 return;
             }
             let itemToRemove = anchorStart.nextSibling, tempItem;
+            const allItemToRemove = [];
+            const removes = [];
             while(itemToRemove && itemToRemove !== anchorEnd) {
                 tempItem = itemToRemove.nextSibling;
-                anchorFragment.nativeAppendChild(itemToRemove);
+                allItemToRemove.push(itemToRemove);
+                removes.push(itemToRemove.remove());
                 itemToRemove = tempItem;
             }
+            await Promise.all(removes);
+            anchorFragment.nativeAppend(...allItemToRemove);
         };
 
-        anchorFragment.removeWithAnchors = function() {
-            anchorFragment.removeChildren();
+        anchorFragment.removeWithAnchors = async function() {
+            await anchorFragment.removeChildren();
             anchorStart.remove();
             anchorEnd.remove();
         };
 
-        anchorFragment.replaceContent = function(child) {
+        anchorFragment.replaceContent = async function(child) {
             const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
             const parent = anchorEnd.parentNode;
             if(!parent) {
                 return;
             }
-            if(isParentUniqueChild(parent)) {
-                parent.replaceChildren(anchorStart, childElement, anchorEnd);
-                return;
-            }
-            anchorFragment.removeChildren();
+            // if(isParentUniqueChild(parent)) {
+            //     parent.replaceChildren(anchorStart, childElement, anchorEnd);
+            //     return;
+            // }
+            await anchorFragment.removeChildren();
             parent.insertBefore(childElement, anchorEnd);
         };
 
@@ -1789,13 +1900,95 @@ var NativeDocument = (function (exports) {
     Function.prototype.toNdElement = function () {
         const child = this;
         {
-            PluginsManager$1.emit('BeforeProcessComponent', child);
+            PluginsManager.emit('BeforeProcessComponent', child);
         }
         return ElementCreator.getChild(child());
     };
 
     TemplateBinding.prototype.toNdElement = function () {
         return ElementCreator.createHydratableNode(null, this);
+    };
+
+    /**
+     * @param {HTMLElement} el
+     * @param {number} timeout
+     */
+    const waitForVisualEnd = (el, timeout = 1000) => {
+        return new Promise((resolve) => {
+            let isResolved = false;
+
+            const cleanupAndResolve = (e) => {
+                if (e && e.target !== el) return;
+                if (isResolved) return;
+
+                isResolved = true;
+                el.removeEventListener('transitionend', cleanupAndResolve);
+                el.removeEventListener('animationend', cleanupAndResolve);
+                clearTimeout(timer);
+                resolve();
+            };
+
+            el.addEventListener('transitionend', cleanupAndResolve);
+            el.addEventListener('animationend', cleanupAndResolve);
+
+            const timer = setTimeout(cleanupAndResolve, timeout);
+
+            const style = window.getComputedStyle(el);
+            const hasTransition = style.transitionDuration !== '0s';
+            const hasAnimation = style.animationDuration !== '0s';
+
+            if (!hasTransition && !hasAnimation) {
+                cleanupAndResolve();
+            }
+        });
+    };
+
+    NDElement.prototype.transitionOut = function(transitionName) {
+        const exitClass = transitionName + '-exit';
+        this.beforeUnmount('transition-exit', async function() {
+            this.$element.classes.add(exitClass);
+            await waitForVisualEnd(this.$element);
+            this.$element.classes.remove(exitClass);
+        });
+        return this;
+    };
+
+    NDElement.prototype.transitionIn = function(transitionName) {
+        const startClass = transitionName + '-enter-from';
+        const endClass = transitionName + '-enter-to';
+
+        this.$element.classes.add(startClass);
+
+        this.mounted(() => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    this.$element.classes.remove(startClass);
+                    this.$element.classes.add(endClass);
+
+                    waitForVisualEnd(this.$element).then(() => {
+                        this.$element.classes.remove(endClass);
+                    });
+                });
+            });
+        });
+        return this;
+    };
+
+
+    NDElement.prototype.transition = function (transitionName) {
+        this.transitionIn(transitionName);
+        this.transitionOut(transitionName);
+        return this;
+    };
+
+    NDElement.prototype.animate = function(animationName) {
+        this.$element.classes.add(animationName);
+
+        waitForVisualEnd(this.$element).then(() => {
+            this.$element.classes.remove(animationName);
+        });
+
+        return this;
     };
 
     String.prototype.handleNdAttribute = function(element, attributeName) {
@@ -1895,15 +2088,19 @@ var NativeDocument = (function (exports) {
         processChildren(children, parent) {
             if(children === null) return;
             {
-                PluginsManager$1.emit('BeforeProcessChildren', parent);
+                PluginsManager.emit('BeforeProcessChildren', parent);
             }
             let child = this.getChild(children);
             if(child) {
                 parent.appendChild(child);
             }
             {
-                PluginsManager$1.emit('AfterProcessChildren', parent);
+                PluginsManager.emit('AfterProcessChildren', parent);
             }
+        },
+        async safeRemove(element) {
+            await element.remove();
+
         },
         getChild(child) {
             if(child == null) {
@@ -3154,7 +3351,7 @@ var NativeDocument = (function (exports) {
 
         ObservableItem.call(this, target, configs);
         {
-            PluginsManager$1.emit('CreateObservableArray', this);
+            PluginsManager.emit('CreateObservableArray', this);
         }
     };
 
@@ -3711,7 +3908,7 @@ var NativeDocument = (function (exports) {
         const observable = new ObservableItem(initialValue);
         const updatedValue = nextTick(() => observable.set(callback()));
         {
-            PluginsManager$1.emit('CreateObservableComputed', observable, dependencies);
+            PluginsManager.emit('CreateObservableComputed', observable, dependencies);
         }
 
         if(Validator.isFunction(dependencies)) {
@@ -3852,7 +4049,7 @@ var NativeDocument = (function (exports) {
                 }
                 const child = cacheItem.child?.deref();
                 if(parent && child) {
-                    parent.removeChild(child);
+                    child.remove();
                 }
                 cacheItem.indexObserver?.cleanup();
                 cacheItem.child = null;
@@ -3883,7 +4080,7 @@ var NativeDocument = (function (exports) {
                 }
                 cache.set(keyId, { keyId, isNew: true, child: new WeakRef(child), indexObserver});
             } catch (e) {
-                DebugManager$1.error('ForEach', `Error creating element for key ${keyId}` , e);
+                DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
                 throw e;
             }
             return keyId;
@@ -4253,7 +4450,7 @@ var NativeDocument = (function (exports) {
      */
     const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
         if(!(Validator.isObservable(condition)) && !Validator.isObservableWhenResult(condition)) {
-            return DebugManager$1.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
+            return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
         }
         const element = Anchor('Show if : '+(comment || ''));
 
@@ -5672,7 +5869,7 @@ var NativeDocument = (function (exports) {
                 window.history.pushState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, query, path);
             } catch (e) {
-                DebugManager$1.error('HistoryRouter', 'Error in pushState', e);
+                DebugManager.error('HistoryRouter', 'Error in pushState', e);
             }
         };
         /**
@@ -5685,7 +5882,7 @@ var NativeDocument = (function (exports) {
                 window.history.replaceState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, {}, path);
             } catch(e) {
-                DebugManager$1.error('HistoryRouter', 'Error in replaceState', e);
+                DebugManager.error('HistoryRouter', 'Error in replaceState', e);
             }
         };
         this.forward = function() {
@@ -5712,7 +5909,7 @@ var NativeDocument = (function (exports) {
                     }
                     this.handleRouteChange(route, params, query, path);
                 } catch(e) {
-                    DebugManager$1.error('HistoryRouter', 'Error in popstate event', e);
+                    DebugManager.error('HistoryRouter', 'Error in popstate event', e);
                 }
             });
             const { route, params, query, path } = this.resolve(defaultPath || (window.location.pathname+window.location.search));
@@ -5937,7 +6134,7 @@ var NativeDocument = (function (exports) {
                     listener(request);
                     next && next(request);
                 } catch (e) {
-                    DebugManager$1.warn('Route Listener', 'Error in listener:', e);
+                    DebugManager.warn('Route Listener', 'Error in listener:', e);
                 }
             }
         };
@@ -6115,7 +6312,7 @@ var NativeDocument = (function (exports) {
      */
     Router.create = function(options, callback) {
         if(!Validator.isFunction(callback)) {
-            DebugManager$1.error('Router', 'Callback must be a function');
+            DebugManager.error('Router', 'Callback must be a function');
             throw new RouterError('Callback must be a function');
         }
         const router = new Router(options);
@@ -6305,7 +6502,7 @@ var NativeDocument = (function (exports) {
     exports.HtmlElementWrapper = HtmlElementWrapper;
     exports.NDElement = NDElement;
     exports.Observable = Observable;
-    exports.PluginsManager = PluginsManager$1;
+    exports.PluginsManager = PluginsManager;
     exports.SingletonView = SingletonView;
     exports.Store = Store;
     exports.TemplateCloner = TemplateCloner;

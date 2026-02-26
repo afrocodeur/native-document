@@ -50,7 +50,7 @@ export function ForEach(data, callback, key, { shouldKeepItemsInCache = false } 
             }
             const child = cacheItem.child?.deref();
             if(parent && child) {
-                parent.removeChild(child);
+                child.remove();
             }
             cacheItem.indexObserver?.cleanup();
             cacheItem.child = null;

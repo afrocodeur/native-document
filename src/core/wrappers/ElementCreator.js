@@ -3,6 +3,7 @@ import Validator from "../utils/validator";
 import AttributesWrapper from "./AttributesWrapper";
 import PluginsManager from "../utils/plugins-manager";
 import './prototypes/nd-element-extensions';
+import './prototypes/nd-element.transition.extensions';
 import './prototypes/attributes-extensions';
 
 const $nodeCache = new Map();
@@ -94,6 +95,10 @@ export const ElementCreator = {
         if(process.env.NODE_ENV === 'development') {
             PluginsManager.emit('AfterProcessChildren', parent);
         }
+    },
+    async safeRemove(element) {
+        await element.remove();
+
     },
     getChild(child) {
         if(child == null) {

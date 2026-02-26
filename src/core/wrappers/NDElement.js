@@ -73,6 +73,37 @@ NDElement.prototype.unmounted = function(callback) {
     return this.lifecycle({ unmounted: callback });
 };
 
+NDElement.prototype.beforeUnmount = function(id, callback) {
+    const el = this.$element;
+
+    if(!DocumentObserver.beforeUnmount.has(el)) {
+        DocumentObserver.beforeUnmount.set(el, new Map());
+        const originalRemove = el.remove.bind(el);
+
+        let  $isUnmounting = false
+
+        el.remove = async () => {
+            if($isUnmounting) {
+                return;
+            }
+            $isUnmounting = true;
+
+            try {
+                const callbacks = DocumentObserver.beforeUnmount.get(el);
+                for (const cb of callbacks.values()) {
+                    await cb.call(this, el);
+                }
+            } finally {
+                originalRemove();
+                $isUnmounting = false;
+            }
+        };
+    }
+
+    DocumentObserver.beforeUnmount.get(el).set(id, callback);
+    return this;
+};
+
 NDElement.prototype.htmlElement = function() {
     return this.$element;
 };
@@ -160,7 +191,7 @@ NDElement.prototype.with = function(methods) {
     }
 
     return this;
-}
+};
 
 /**
  * Extends the NDElement prototype with new methods available to all NDElement instances.

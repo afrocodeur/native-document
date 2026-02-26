@@ -15,6 +15,7 @@ export default function Anchor(name, isUniqueChild = false) {
 
     anchorFragment.nativeInsertBefore = anchorFragment.insertBefore;
     anchorFragment.nativeAppendChild = anchorFragment.appendChild;
+    anchorFragment.nativeAppend = anchorFragment.append;
 
     const isParentUniqueChild = (parent) => (isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd))
 
@@ -50,59 +51,66 @@ export default function Anchor(name, isUniqueChild = false) {
         before = before ?? anchorEnd;
         insertBefore(parent, child, before);
     };
+
     anchorFragment.append = function(...args ) {
         return anchorFragment.appendChild(args);
-    }
-
-    anchorFragment.removeChildren = function() {
-        const parent = anchorEnd.parentNode;
-        if(parent === anchorFragment) {
-            return;
-        }
-        if(isParentUniqueChild(parent)) {
-            parent.replaceChildren(anchorStart, anchorEnd);
-            return;
-        }
-
-        let itemToRemove = anchorStart.nextSibling, tempItem;
-        const fragment = document.createDocumentFragment();
-        while(itemToRemove && itemToRemove !== anchorEnd) {
-            tempItem = itemToRemove.nextSibling;
-            fragment.append(itemToRemove);
-            itemToRemove =  tempItem;
-        }
-        fragment.replaceChildren();
-    }
-    anchorFragment.remove = function() {
-        const parent = anchorEnd.parentNode;
-        if(parent === anchorFragment) {
-            return;
-        }
-        let itemToRemove = anchorStart.nextSibling, tempItem;
-        while(itemToRemove && itemToRemove !== anchorEnd) {
-            tempItem = itemToRemove.nextSibling;
-            anchorFragment.nativeAppendChild(itemToRemove);
-            itemToRemove = tempItem;
-        }
     };
 
-    anchorFragment.removeWithAnchors = function() {
-        anchorFragment.removeChildren();
+    anchorFragment.removeChildren = async function() {
+        const parent = anchorEnd.parentNode;
+        if(parent === anchorFragment) {
+            return;
+        }
+        // if(isParentUniqueChild(parent)) {
+        //     parent.replaceChildren(anchorStart, anchorEnd);
+        //     return;
+        // }
+
+        let itemToRemove = anchorStart.nextSibling, tempItem;
+        const removes = [];
+        while(itemToRemove && itemToRemove !== anchorEnd) {
+            tempItem = itemToRemove.nextSibling;
+            removes.push(itemToRemove.remove());
+            itemToRemove =  tempItem;
+        }
+        await Promise.all(removes);
+    };
+
+    anchorFragment.remove = async function() {
+        const parent = anchorEnd.parentNode;
+        if(parent === anchorFragment) {
+            return;
+        }
+        let itemToRemove = anchorStart.nextSibling, tempItem;
+        const allItemToRemove = [];
+        const removes = [];
+        while(itemToRemove && itemToRemove !== anchorEnd) {
+            tempItem = itemToRemove.nextSibling;
+            allItemToRemove.push(itemToRemove);
+            removes.push(itemToRemove.remove());
+            itemToRemove = tempItem;
+        }
+        await Promise.all(removes);
+        anchorFragment.nativeAppend(...allItemToRemove);
+    };
+
+    anchorFragment.removeWithAnchors = async function() {
+        await anchorFragment.removeChildren();
         anchorStart.remove();
         anchorEnd.remove();
     };
 
-    anchorFragment.replaceContent = function(child) {
+    anchorFragment.replaceContent = async function(child) {
         const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
         const parent = anchorEnd.parentNode;
         if(!parent) {
             return;
         }
-        if(isParentUniqueChild(parent)) {
-            parent.replaceChildren(anchorStart, childElement, anchorEnd);
-            return;
-        }
-        anchorFragment.removeChildren();
+        // if(isParentUniqueChild(parent)) {
+        //     parent.replaceChildren(anchorStart, childElement, anchorEnd);
+        //     return;
+        // }
+        await anchorFragment.removeChildren();
         parent.insertBefore(childElement, anchorEnd);
     };
 

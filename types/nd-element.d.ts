@@ -33,6 +33,12 @@ export interface NDElement {
     mounted(callback: (node: HTMLElement) => void): this;
     unmounted(callback: (node: HTMLElement) => boolean | void): this;
 
+    beforeUnmount(id: string, callback: (this: NDElement, el: HTMLElement) => void | Promise<void>): this;
+    transition(transitionName: string): this;
+    transitionIn(transitionName: string): this;
+    transitionOut(transitionName: string): this;
+    animate(animationName: string): this;
+
     htmlElement(): HTMLElement;
     node(): HTMLElement;
     shadow(mode: ShadowMode, style?: string | null): this;
