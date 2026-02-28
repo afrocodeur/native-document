@@ -36,11 +36,14 @@ export default function NativeFetch($baseUrl) {
                 configs.body = params;
             }
             else {
-                configs.headers['Content-Type'] = 'application/json';
                 if(method !== 'GET') {
+                    configs.headers['Content-Type'] = 'application/json';
                     configs.body = JSON.stringify(params);
                 } else {
-                    configs.params = params;
+                    const queryString = new URLSearchParams(params).toString();
+                    if (queryString) {
+                        endpoint = endpoint + (endpoint.includes('?') ? '&' : '?') + queryString;
+                    }
                 }
             }
         }

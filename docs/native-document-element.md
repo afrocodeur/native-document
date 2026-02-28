@@ -172,6 +172,53 @@ Div("Content").nd.mounted(element => {
 });
 ```
 
+### `unmounted(callback)`
+Shortcut to define only the unmount callback.
+```javascript
+Div("Content").nd.unmounted(element => {
+    console.log("Element removed from DOM!");
+});
+```
+
+### `beforeUnmount(id, callback)`
+Registers a callback executed before the element is removed from the DOM.
+Useful for exit animations or cleanup before removal.
+```javascript
+Div("Content").nd.beforeUnmount('my-cleanup', async () => {
+    await saveData();
+});
+```
+
+## Transitions
+
+### `transition(name)`
+Applies both enter and exit transitions using CSS classes.
+```javascript
+Div("Content").nd.transition('fade');
+// On mount  : adds 'fade-enter-from', then 'fade-enter-to'
+// On unmount: adds 'fade-exit'
+```
+
+### `transitionIn(name)`
+Applies only the enter transition.
+```javascript
+Div("Content").nd.transitionIn('slide');
+```
+
+### `transitionOut(name)`
+Applies only the exit transition.
+```javascript
+Div("Content").nd.transitionOut('slide');
+```
+
+### `animate(name)`
+Triggers a one-shot CSS animation by adding then automatically removing a class.
+```javascript
+Button("Click").nd.onClick(function() {
+    this.nd.animate('bounce');
+});
+```
+
 ## Practical Examples
 
 ### Custom Event Handler
@@ -210,7 +257,7 @@ const todoForm = Form([
     Input({ type: 'text', value: newTodo })
         .nd.onEnter(addTodo),
     
-    Button('Add', { type: 'submit' })
+    Button({ type: 'submit' }, 'Add')
 ]).nd.onPreventSubmit(addTodo);
 ```
 
@@ -222,19 +269,6 @@ element.nd.on('customEvent', callback, options)
 
 // Example with options
 element.nd.on('scroll', callback, { passive: true })
-```
-
-### Batch Event Registration
-
-Register multiple events at once:
-```javascript
-// Register multiple events in one call
-Input()
-    .nd.on({
-        focus: e => console.log('Focused'),
-        blur: e => console.log('Blurred'),
-        input: e => console.log('Value:', e.target.value)
-    });
 ```
 
 ### Reference Management
@@ -278,7 +312,9 @@ Div([
 
 ## Limitations
 
-- Event handlers are not automatically removed (manual management required if needed)
+- Event handlers added via .nd.onXxx() are not automatically removed.
+  Use the native removeEventListener() on .$element if needed,
+  or rely on .nd.remove() which cleans up the element entirely.
 - Access to native HTML element is still necessary for advanced APIs
 
 NDElement thus provides a practical abstraction layer while preserving the power and performance of native DOM.

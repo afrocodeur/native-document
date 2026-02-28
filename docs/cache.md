@@ -259,7 +259,7 @@ await API.posts.get('456');
 
 ### Key Concepts
 
-1. **Property name becomes the key**: `API.users` → `key = 'users'`
+1. **Property name becomes the key**: `API.users` -> `key = 'users'`
 2. **Function executed per unique key**: First access creates instance
 3. **Results cached by key**: Subsequent accesses return same instance
 4. **Each key has its own instance**: `API.users` ≠ `API.posts`

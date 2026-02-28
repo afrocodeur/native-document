@@ -317,4 +317,4 @@ Thanks to all contributors and the JavaScript community for inspiration.
 
 ---
 
-**Ready to build with native simplicity?** [Get Started →](docs/getting-started.md)
+**Ready to build with native simplicity?** [Get Started ->](docs/getting-started.md)

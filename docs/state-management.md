@@ -53,22 +53,61 @@ const cartStore = Store.create('cart', {
 });
 ```
 
-### Store with Computed Values
+### Resettable Store
 
+Use `createResettable()` when the store needs to return to its initial value — for example on logout or route change.
 ```javascript
-const cartStore = Store.create('cart', {
-    items: [],
-    taxRate: 0.08
+const userStore = Store.createResettable('user', {
+    id: null,
+    name: '',
+    email: '',
+    isLoggedIn: false
 });
 
-// Computed total that updates automatically
+// Reset to initial value at any time
+Store.reset('user');
+// -> { id: null, name: '', email: '', isLoggedIn: false }
+// -> all subscribers are notified automatically
+
+// Standard create() does not support reset
+Store.reset('theme'); // ❌ throws : this store is not resettable
+```
+
+### Store with Computed Values
+
+### Store with Computed Values
+
+For a computed value that stays local, use `Observable.computed()` :
+```javascript
 const cartTotal = Observable.computed(() => {
-    const cart = cartStore.$value;
+    const cart = cartStore.val();
     const subtotal = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const tax = subtotal * cart.taxRate;
-    return subtotal + tax;
+    return subtotal + (subtotal * cart.taxRate);
 }, [cartStore]);
 ```
+
+For a computed value that must be accessible globally via the Store registry, use `createComposed()` :
+```javascript
+Store.create('products', [{ id: 1, price: 10 }]);
+Store.create('cart', [{ productId: 1, quantity: 2 }]);
+
+Store.createComposed('total', () => {
+    const products = Store.get('products').val();
+    const cart     = Store.get('cart').val();
+    return cart.reduce((sum, item) => {
+        const product = products.find(p => p.id === item.productId);
+        return sum + (product.price * item.quantity);
+    }, 0);
+}, ['products', 'cart']);
+
+// Access like any other store — read-only
+const total = Store.follow('total');
+total.val(); // -> 20
+
+// Store.use('total') -> ❌ throws : composed stores are read-only
+// Store.reset('total') -> ❌ throws : composed stores cannot be reset
+```
+
 
 ## Using Stores
 
@@ -107,8 +146,11 @@ const UserMenu = () => {
 
 ```javascript
 const NotificationBadge = () => {
-    // Follow is alias for use
+    // Follow returns a read-only reference — any attempt to call
+    // .set(), .toggle() or .reset() will throw a NativeDocumentError.
+    // Use this when a component should only read from the store.
     const notifications = Store.follow('notifications');
+    // notifications.set(...) -> ❌ throws NativeDocumentError
     
     return ShowIf(notifications.check(list => list.length > 0),
         () => Span({ class: 'badge' }, notifications.$value.length)
@@ -215,6 +257,20 @@ userStore.subscribe(newUser => {
 });
 ```
 
+### Checking Store Existence
+```javascript
+// Check if a store exists before accessing it
+if (Store.has('cart')) {
+    const cart = Store.use('cart');
+    // ...
+}
+
+// Typical use case : dynamic module initialization
+if (!Store.has('cart')) {
+    Store.create('cart', { items: [], total: 0 });
+}
+```
+
 ## Real-World Examples
 
 ## Store Cleanup
@@ -229,7 +285,10 @@ Store.delete('temporaryStore');
 
 // Clean up specific subscriber
 const userStore = Store.use('user');
-userStore.destroy(); // Clean up this subscriber instance
+userStore.destroy(); // unsubscribes this follower only — store remains active
+
+// To fully remove the store and all its followers :
+Store.delete('user');
 ```
 
 ## Performance Considerations
@@ -402,13 +461,11 @@ const createAppState = () => {
     const settings = Store.create('settings', defaultSettings);
     
     // Computed store that combines others
-    const appStatus = Observable.computed(() => {
-        return {
-            isLoggedIn: auth.$value.user !== null,
-            cartItems: cart.$value.items.length,
-            theme: settings.$value.theme
-        };
-    }, [auth, cart, settings]);
+    Store.createComposed('appStatus', () => ({
+        isLoggedIn: Store.get('auth').val().user !== null,
+        cartItems:  Store.get('cart').val().items.length,
+        theme:      Store.get('settings').val().theme
+    }), ['auth', 'cart', 'settings']);
     
     return { auth, cart, settings, appStatus };
 };

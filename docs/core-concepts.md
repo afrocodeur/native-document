@@ -211,7 +211,7 @@ const list = ForEach(items, (item) =>
     Div([
         item,
         Button('Remove').nd.onClick(() => {
-            // User action → State change → UI update
+            // User action → State change -> UI update
             const index = items.val().indexOf(item);
             items.splice(index, 1);
         })
