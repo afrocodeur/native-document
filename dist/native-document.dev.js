@@ -760,6 +760,11 @@ var NativeDocument = (function (exports) {
         return new ObservableChecker(this, callback)
     };
 
+    ObservableItem.prototype.transform = ObservableItem.prototype.check;
+    ObservableItem.prototype.pluck = ObservableItem.prototype.check;
+    ObservableItem.prototype.is = ObservableItem.prototype.check;
+    ObservableItem.prototype.select = ObservableItem.prototype.check;
+
     /**
      * Gets a property value from the observable's current value.
      * If the property is an observable, returns its value.
@@ -3932,9 +3937,10 @@ var NativeDocument = (function (exports) {
         return observable;
     };
 
-    const Store = (function() {
+    const StoreFactory = function() {
 
         const $stores = new Map();
+        const $followersCache = new Map();
 
         /**
          * Internal helper — retrieves a store entry or throws if not found.
@@ -3975,7 +3981,7 @@ var NativeDocument = (function (exports) {
             return Observable(value, options);
         };
 
-        return {
+        const $api = {
             /**
              * Create a new state and return the observer.
              * Throws if a store with the same name already exists.
@@ -4061,6 +4067,9 @@ var NativeDocument = (function (exports) {
 
                 // Resolve dependency observers
                 const depObservers = dependencies.map(depName => {
+                    if(typeof depName !== 'string') {
+                        return depName;
+                    }
                     const depItem = $stores.get(depName);
                     if (!depItem) {
                         DebugManager$1.error('Store', `Store.createComposed('${name}') : dependency '${depName}' not found. Create it first.`);
@@ -4221,9 +4230,88 @@ var NativeDocument = (function (exports) {
                 item.observer.cleanup();
                 $stores.delete(name);
             },
+            /**
+             * Creates an isolated store group with its own state namespace.
+             * Each group is a fully independent StoreFactory instance —
+             * no key conflicts, no shared state with the parent store.
+             *
+             * @param {string | ((group: ReturnType<typeof StoreFactory>) => void)} name - Group name for debugging, or setup callback if no name is provided
+             * @param {((group: ReturnType<typeof StoreFactory>) => void)} [callback] - Setup function receiving the isolated store instance
+             * @returns {ReturnType<typeof StoreFactory>}
+             *
+             * @example
+             * // With name (recommended)
+             * const EventStore = Store.group('events', (group) => {
+             *     group.create('catalog', []);
+             *     group.create('filters', { category: null, date: null });
+             *     group.createResettable('selected', null);
+             *     group.createComposed('filtered', () => {
+             *         const catalog = EventStore.get('catalog').val();
+             *         const filters = EventStore.get('filters').val();
+             *         return catalog.filter(event => {
+             *             if (filters.category && event.category !== filters.category) return false;
+             *             return true;
+             *         });
+             *     }, ['catalog', 'filters']);
+             * });
+             *
+             * // Without name
+             * const CartStore = Store.group((group) => {
+             *     group.create('items', []);
+             * });
+             *
+             * // Usage
+             * EventStore.use('catalog'); // two-way follower
+             * EventStore.follow('filtered'); // read-only follower
+             * EventStore.get('filters'); // raw observable
+             *
+             * // Cross-group composed
+             * const OrderStore = Store.group('orders', (group) => {
+             *     group.createComposed('summary', () => {
+             *         const items = CartStore.get('items').val();
+             *         const events = EventStore.get('catalog').val();
+             *         return { items, events };
+             *     }, [CartStore.get('items'), EventStore.get('catalog')]);
+             * });
+             */
+            group(name, callback) {
+                if (typeof name === 'function') {
+                    callback = name;
+                    name = 'anonymous';
+                }
+                const store = StoreFactory();
+                callback && callback(store);
+                return store;
+            }
         };
 
-    }());
+
+        return new Proxy($api, {
+            get(target, prop) {
+                if (typeof prop === 'symbol' || prop.startsWith('$') || prop in target) {
+                    return target[prop];
+                }
+                if (target.has(prop)) {
+                    if ($followersCache.has(prop)) {
+                        return $followersCache.get(prop);
+                    }
+                    const follower = target.follow(prop);
+                    $followersCache.set(prop, follower);
+                    return follower;
+                }
+                return undefined;
+            },
+            set(target, prop, value) {
+                DebugManager$1.error('Store', `Forbidden: You cannot overwrite the store key '${String(prop)}'. Use .use('${String(prop)}').set(value) instead.`);
+                throw new NativeDocumentError(`Store structure is immutable. Use .set() on the observable.`);
+            },
+            deleteProperty(target, prop) {
+                throw new NativeDocumentError(`Store keys cannot be deleted.`);
+            }
+        });
+    };
+
+    const Store = StoreFactory();
 
     /**
      * Renders a list of items from an observable array or object, automatically updating when data changes.
@@ -6728,6 +6816,7 @@ var NativeDocument = (function (exports) {
     exports.PluginsManager = PluginsManager$1;
     exports.SingletonView = SingletonView;
     exports.Store = Store;
+    exports.StoreFactory = StoreFactory;
     exports.TemplateCloner = TemplateCloner;
     exports.Validator = Validator;
     exports.autoMemoize = autoMemoize;

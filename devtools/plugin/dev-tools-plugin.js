@@ -6,10 +6,10 @@ export const DevToolService = {
 
 
 export const DevToolsPlugin = {
+    $name: 'DevTools',
     name: 'DevTools',
     onCreateObservable(observable) {
         DevToolService.createdObservable.set((last) => ++last);
-        console.log('Création Capturé', observable);
+        console.log('Création Capturé', observable.$value);
     }
-
 };

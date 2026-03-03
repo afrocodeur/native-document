@@ -1,4 +1,4 @@
-import {NDElement} from "./elements";
+import {NDElement} from "./nd-element";
 import {ObservableItem} from "./observable";
 import { Map} from "./polyfill";
 

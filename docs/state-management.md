@@ -75,8 +75,6 @@ Store.reset('theme'); // ❌ throws : this store is not resettable
 
 ### Store with Computed Values
 
-### Store with Computed Values
-
 For a computed value that stays local, use `Observable.computed()` :
 ```javascript
 const cartTotal = Observable.computed(() => {
@@ -107,6 +105,76 @@ total.val(); // -> 20
 // Store.use('total') -> ❌ throws : composed stores are read-only
 // Store.reset('total') -> ❌ throws : composed stores cannot be reset
 ```
+### Store Groups
+
+Use `Store.group()` to create an isolated store namespace. Each group is a fully independent `StoreFactory` instance — no key conflicts, no shared state with the parent store.
+```javascript
+const EventStore = Store.group('events', (group) => {
+    group.create('catalog', []);
+    group.create('filters', { category: null, date: null, city: null });
+    
+    group.createResettable('selected', null);
+    
+    group.createComposed('filtered', () => {
+        const catalog = EventStore.get('catalog').val();
+        const filters = EventStore.get('filters').val();
+        return catalog.filter(event => {
+            if (filters.category && event.category !== filters.category) return false;
+            if (filters.city     && event.city     !== filters.city)     return false;
+            return true;
+        });
+    }, ['catalog', 'filters']);
+});
+
+// Usage — same API as Store
+EventStore.use('catalog');      // two-way follower
+EventStore.follow('filtered');  // read-only follower
+EventStore.get('filters');      // raw observable
+
+// Direct property access — raw observable, always read-only
+EventStore.catalog;
+EventStore.filters;
+```
+
+Groups can reference each other in `createComposed()` for cross-group derived state:
+```javascript
+const CartStore = Store.group('cart', (group) => {
+    group.create('items', []);
+    
+    group.createComposed('total', () => {
+        return CartStore.get('items').val()
+            .reduce((sum, item) => sum + item.price * item.qty, 0);
+    }, ['items']);
+});
+
+const OrderStore = Store.group('orders', (group) => {
+    group.createComposed('summary', () => {
+        const items  = CartStore.get('items').val();
+        const events = EventStore.get('catalog').val();
+        return { items, events };
+    }, [CartStore.get('items'), EventStore.get('catalog')]);
+});
+```
+
+Groups can also be created without a name:
+```javascript
+const CartStore = Store.group((group) => {
+    group.create('items', []);
+});
+```
+
+### Use Groups to Organize Domain State
+```javascript
+// Good: domain-driven grouping
+const UserStore  = Store.group('user',   (g) => { g.create('session', null); });
+const EventStore = Store.group('events', (g) => { g.create('catalog', []); });
+const CartStore  = Store.group('cart',   (g) => { g.create('items', []); });
+
+// Avoid: flat global stores for everything
+Store.create('userSession',   null);
+Store.create('eventCatalog',  []);
+Store.create('cartItems',     []);
+```
 
 
 ## Using Stores
@@ -121,8 +189,8 @@ const UserProfile = () => {
     const user = Store.use('user');
     
     return Div([
-        H1(['User Profile: ', user.check(u => u.name)]),
-        P(['Email: ', user.check(u => u.email)]),
+        H1(['User Profile: ', user.name]),
+        P(['Email: ', user.email]),
         P(['Status: ', user.check(u => u.isLoggedIn ? 'Online' : 'Offline')])
     ]);
 };
@@ -142,7 +210,7 @@ const UserMenu = () => {
 };
 ```
 
-### Store.follow() - Alternative Access
+### Store.follow() - Read-only Access
 
 ```javascript
 const NotificationBadge = () => {
@@ -156,6 +224,38 @@ const NotificationBadge = () => {
         () => Span({ class: 'badge' }, notifications.$value.length)
     );
 };
+```
+
+### Store.get() - Raw Access
+
+Returns the raw store observable directly — no follower, no cleanup contract. Use this for direct read access when you don't need to unsubscribe.
+
+> **Warning:** mutations on this observer impact all subscribers immediately.
+```javascript
+const userStore = Store.get('user');
+
+if (userStore.$value.isLoggedIn) {
+    console.log('User is logged in');
+}
+
+userStore.subscribe(newUser => {
+    console.log('User changed:', newUser);
+});
+```
+
+### Direct Property Access
+
+Stores and groups expose their observables as direct properties via a Proxy. Property access returns the raw observable — equivalent to calling `Store.get()`. Any attempt to assign or delete a property will throw.
+```javascript
+// Equivalent to Store.get('catalog')
+EventStore.catalog;
+
+// For a read-only follower, use follow() explicitly
+EventStore.follow('catalog');
+
+// Direct assignment is forbidden
+EventStore.catalog = []; // ❌ throws : Store structure is immutable
+delete EventStore.catalog; // ❌ throws : Store keys cannot be deleted
 ```
 
 ## Updating Store State
@@ -189,7 +289,7 @@ const LoginForm = () => {
             ...user.$value,
             email: email.$value,
             isLoggedIn: true,
-            name: 'User Name' // This would come from API
+            name: 'User Name' // ...
         });
     };
     
@@ -269,186 +369,6 @@ if (Store.has('cart')) {
 if (!Store.has('cart')) {
     Store.create('cart', { items: [], total: 0 });
 }
-```
-
-## Real-World Examples
-
-## Store Cleanup
-
-Properly clean up stores when they're no longer needed:
-
-### Manual Cleanup
-
-```javascript
-// Remove store and all its subscribers
-Store.delete('temporaryStore');
-
-// Clean up specific subscriber
-const userStore = Store.use('user');
-userStore.destroy(); // unsubscribes this follower only — store remains active
-
-// To fully remove the store and all its followers :
-Store.delete('user');
-```
-
-## Performance Considerations
-
-### Efficient Store Updates
-
-```javascript
-// Good: Batch related updates
-const updateUserProfile = (name, email, preferences) => {
-    const user = Store.use('user');
-    user.set({
-        ...user.$value,
-        name,
-        email,
-        preferences: {
-            ...user.$value.preferences,
-            ...preferences
-        }
-    });
-};
-
-// Less efficient: Multiple separate updates
-const updateUserProfileSlow = (name, email, preferences) => {
-    const user = Store.use('user');
-    user.set({ ...user.$value, name });        // Triggers update
-    user.set({ ...user.$value, email });       // Triggers update
-    user.set({ ...user.$value, preferences }); // Triggers update
-};
-```
-
-### Selective Subscriptions
-
-```javascript
-// Subscribe to specific parts of store
-const UserName = () => {
-    const user = Store.use('user');
-    
-    // Only re-render when name changes
-    const userName = user.check(u => u.name);
-    
-    return Span(userName);
-};
-
-// More efficient than re-rendering entire user profile
-// when only name is needed
-```
-
-## Best Practices
-
-### 1. Use Descriptive Store Names
-
-```javascript
-// Good: Clear, descriptive names
-const userAuthStore = Store.create('userAuth', defaultUser);
-const shoppingCartStore = Store.create('shoppingCart', defaultCart);
-const appSettingsStore = Store.create('appSettings', defaultSettings);
-
-// Less clear: Generic names
-const store1 = Store.create('data', {});
-const state = Store.create('state', {});
-```
-
-### 2. Initialize with Complete Data Structures
-
-```javascript
-// Good: Complete initial structure
-const userStore = Store.create('user', {
-    id: null,
-    name: '',
-    email: '',
-    preferences: {
-        theme: 'light',
-        notifications: true
-    },
-    isLoggedIn: false
-});
-
-// Problematic: Incomplete structure
-const userStore = Store.create('user', {});
-// Later code might fail when accessing user.preferences.theme
-```
-
-### 3. Create Service Objects for Complex Operations
-
-```javascript
-// Good: Organized actions
-const AuthService= (function() {
-    const authUser = Store.create('user', {});
-  
-    return {
-        login: (credentials) => { /* ... */ },
-        logout: () => { /* ... */ },
-        updateProfile: (data) => { /* ... */ },
-        updatePreferences: (prefs) => { /* ... */ }
-    };
-}());
-
-// Instead of scattered update logic throughout components
-```
-
-### 4. Use Store for Cross-Component State Only
-
-```javascript
-// Good: Local state for component-specific data
-const ContactForm = () => {
-    const name = Observable('');     // Local state
-    const email = Observable('');    // Local state
-    const user = Store.use('user');  // Global state
-    
-    return Form([/* ... */]);
-};
-
-// Avoid: Putting everything in stores
-// Don't store form input state globally unless shared
-```
-
-## Debugging Stores
-
-### Store State Inspection
-
-```javascript
-// Log current store state
-console.log('Current user:', Store.get('user').$value);
-
-// Monitor store changes
-Store.get('user').subscribe(newUser => {
-    console.log('User changed:', newUser);
-});
-
-// Check all followers of a store
-const userData = Store.getWithSubscribers('user');
-console.log('Store value:', userData.observer.$value);
-console.log('Followers count:', userData.subscribers.size);
-```
-
-## Common Patterns
-
-### Persistent Store
-
-```javascript
-const createPersistentStore = (name, defaultValue, storageKey) => {
-    // Load from localStorage
-    const saved = localStorage.getItem(storageKey);
-    const initialValue = saved ? JSON.parse(saved) : defaultValue;
-    
-    const store = Store.create(name, initialValue);
-    
-    // Save changes to localStorage
-    store.subscribe(newValue => {
-        localStorage.setItem(storageKey, JSON.stringify(newValue));
-    });
-    
-    return store;
-};
-
-// Usage
-createPersistentStore('userPreferences', {
-    theme: 'light',
-    language: 'en'
-}, 'app_preferences');
 ```
 
 ### Store Composition

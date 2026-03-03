@@ -368,6 +368,11 @@ ObservableItem.prototype.check = function(callback) {
     return new ObservableChecker(this, callback)
 };
 
+ObservableItem.prototype.transform = ObservableItem.prototype.check;
+ObservableItem.prototype.pluck = ObservableItem.prototype.check;
+ObservableItem.prototype.is = ObservableItem.prototype.check;
+ObservableItem.prototype.select = ObservableItem.prototype.check;
+
 /**
  * Gets a property value from the observable's current value.
  * If the property is an observable, returns its value.

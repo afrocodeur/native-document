@@ -22,7 +22,11 @@ export interface ObservableItem<T = any> {
     on(value: T, callback: ObservableItem<boolean> | ((isActive: boolean) => void)): () => void;
 
     check<U>(callback: (value: T) => U): ObservableChecker<U>;
-    get<U>(callback: (value: T) => U): ObservableChecker<U>;
+    transform<U>(callback: (value: T) => U): ObservableChecker<U>;
+    is<U>(callback: (value: T) => U): ObservableChecker<U>;
+    select<U>(callback: (value: T) => U): ObservableChecker<U>;
+    pluck<U>(callback: (value: T) => U): ObservableChecker<U>;
+    get(key: string | number): any;
     when(value: T): ObservableWhen<T>;
     off(value: T, callback?: Function): void;
     once(predicate: T | ((value: T) => boolean), callback: (value: T) => void): void;
