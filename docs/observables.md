@@ -291,7 +291,7 @@ userProxy.name.set("Bob");
 
 // Get all values as plain object
 console.log(userProxy.$value);           // { name: "Bob", age: 25 }
-console.log(Observable.value(userProxy)); // { name: "Bob", age: 25 }
+console.log(userProxy.val()); // { name: "Bob", age: 25 }
 
 // Observable(object) creates a SINGLE observable containing the whole object
 const userSingle = Observable({
@@ -328,7 +328,7 @@ user.age.$value = 30;
 
 // Get the complete object value
 console.log(user.$value);             // { name: "Bob", age: 30, email: "alice@example.com" }
-console.log(Observable.value(user));  // Same as above
+console.log(user.val());  // Same as above
 
 // Listen to individual property changes
 user.name.subscribe(newName => {
@@ -336,7 +336,7 @@ user.name.subscribe(newName => {
 });
 
 // Update multiple properties at once
-Observable.update(user, {
+user.set({
     name: "Charlie",
     age: 35
 });
@@ -352,6 +352,20 @@ todos.push("Clean house");
 todos.pop();
 
 const completed = todos.filter(todo => todo.includes("✓"));
+```
+
+### Subscribing to an Observable Object
+
+Subscribing to an `Observable.object()` reacts to changes on any individual property — you don't need to subscribe to each property separately.
+```javascript
+const user = Observable.object({ name: 'Alice', age: 25 });
+
+user.subscribe(value => {
+    console.log('User changed:', value); // { name: 'Bob', age: 25 }
+});
+
+user.name.set('Bob'); // triggers the parent subscribe
+user.age.set(30);     // triggers the parent subscribe
 ```
 
 ## Computed Observables
@@ -611,7 +625,7 @@ data.trigger();
 
 // Extract values from any observable structure
 const complexData = Observable.object({ user: "John", items: [1, 2, 3] });
-console.log(Observable.value(complexData)); // Plain object with extracted values
+console.log(complexData.val()); // Plain object with extracted values
 ```
 
 ## Utility Methods

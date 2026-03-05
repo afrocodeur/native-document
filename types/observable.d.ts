@@ -1,4 +1,4 @@
-import {FilterResult, PredicateMap} from "./filters/types";
+import {FilterResult, PredicateMap} from "./filters";
 
 export type Unsubscribe = () => void;
 
@@ -40,6 +40,7 @@ export interface FormattersStatic {
 }
 
 export declare const Formatters: FormattersStatic;
+
 
 // Observable system type definitions
 export interface ObservableItem<T = any> {
@@ -151,35 +152,42 @@ export interface ObservableArray<T> extends ObservableItem<T[]> {
     whereEvery<K extends keyof T>(fields: K[], filter: FilterResult<T[K]>): ObservableArray<T>;
 }
 
-export type ObservableProxy<T extends Record<string, any>> = {
+export type ObservableObject<T extends Record<string, any>> = ObservableItem<T> & {
+    readonly __$isObservableObject: true;
     readonly __isProxy__: true;
-    readonly $value: T;
+    readonly $observables: { [K in keyof T]: ObservableItem<T[K]> };
     readonly configs: ObservableConfig | null;
+
+    $load(initialValue: Partial<T>): void;
     $val(): T;
     val(): T;
-    $get(key: string): any;
     get(key: string): any;
-    $clone(): ObservableProxy<T>;
-    clone(): ObservableProxy<T>;
-    $updateWith(values: Partial<T>): void;
-    $set(values: Partial<T>): void;
+    $get(key: string): any;
     set(values: Partial<T>): void;
+    $set(values: Partial<T>): void;
+    $updateWith(values: Partial<T>): void;
+    update(values: Partial<T>): void;
     reset(): void;
+    clone(): ObservableObject<T>;
+    $clone(): ObservableObject<T>;
     keys(): string[];
+    $keys(): string[];
+    observables(): ObservableItem<any>[];
 } & {
     [K in keyof T]: T[K] extends (infer U)[]
         ? ObservableArray<U>
         : T[K] extends Record<string, any>
-            ? ObservableProxy<T[K]>
+            ? ObservableObject<T[K]>
             : ObservableItem<T[K]>;
 };
+
 
 export interface BatchFunction<TArgs extends any[] = any[], TReturn = any> {
     (...args: TArgs): TReturn;
     readonly $observer: ObservableItem<number>;
 }
 
-export type ValidComputedDependencies = Array<ObservableItem | ObservableArray<any> | ObservableChecker | ObservableProxy<any>>;
+export type ValidComputedDependencies = Array<ObservableItem | ObservableArray<any> | ObservableChecker | ObservableObject<any>>;
 
 export interface AutoCleanupOptions {
     interval?: number;
@@ -196,9 +204,9 @@ export interface ObservableStatic {
     <T>(value: T, configs?: ObservableConfig | null): ObservableItem<T>;
     array<T>(target: T[] | null, configs?: ObservableConfig | null): ObservableArray<T>;
 
-    init<T extends Record<string, any>>(value: T, configs?: ObservableConfig | null): ObservableProxy<T>;
-    object<T extends Record<string, any>>(value: T, configs?: ObservableConfig | null): ObservableProxy<T>;
-    json<T extends Record<string, any>>(value: T, configs?: ObservableConfig | null): ObservableProxy<T>;
+    init<T extends Record<string, any>>(value: T, configs?: ObservableConfig | null): ObservableObject<T>;
+    object<T extends Record<string, any>>(value: T, configs?: ObservableConfig | null): ObservableObject<T>;
+    json<T extends Record<string, any>>(value: T, configs?: ObservableConfig | null): ObservableObject<T>;
 
     computed<T>(callback: () => T, dependencies?: ValidComputedDependencies | BatchFunction): ObservableItem<T>;
     computed<T>(callback: () => T, batchFunction?: BatchFunction): ObservableItem<T>;
@@ -213,5 +221,5 @@ export interface ObservableStatic {
     getById(id: number): ObservableItem | null;
     cleanup(observable: ObservableItem): void;
     autoCleanup(enable?: boolean, options?: AutoCleanupOptions): void;
-    arrayOfObject<T extends Record<string, any>>(data: T[]): ObservableProxy<T>[];
+    arrayOfObject<T extends Record<string, any>>(data: T[]): ObservableObject<T>[];
 }
