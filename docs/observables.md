@@ -147,6 +147,7 @@ const element = Div({
 | `.on(value, callback)` | ✅ Minimal — single listener per value | Specific value watching | void                       |
 | `.check(callback)` | ❌ Creates new ObservableChecker | Complex conditions | ObservableChecker instance |
 | `.subscribe(callback)` | ❌ Creates listener for all changes | General change detection | void                       |
+| `.persist(key, options?)` | ✅ No new observable | localStorage binding | `this` (chainable) |
 
 ## Observable Checkers
 
@@ -181,6 +182,99 @@ const email = user.select(u => u.email);
 const label = status.transform(s => s.toUpperCase());
 const name  = user.pluck(u => u.name);
 ```
+## Observable.format()
+
+Creates a derived observable that formats the current value using `Intl`.
+Automatically reacts to both value changes and locale changes via `Store.setLocale()`.
+```javascript
+const price = Observable(15000);
+const date  = Observable(new Date());
+const count = Observable(3);
+
+// Currency
+price.format('currency')                           // "15 000 FCFA"
+price.format('currency', { currency: 'EUR' })      // "15 000,00 €"
+price.format('currency', { notation: 'compact' })  // "15 K FCFA"
+
+// Number
+price.format('number')                             // "15 000"
+
+// Percent
+Observable(0.15).format('percent')                 // "15,0 %"
+Observable(0.15).format('percent', { decimals: 2}) // "15,00 %"
+
+// Date
+date.format('date')                                // "3 mars 2026"
+date.format('date', { dateStyle: 'full' })         // "mardi 3 mars 2026"
+date.format('date', { format: 'DD/MM/YYYY' })      // "03/03/2026"
+date.format('date', { format: 'DD MMM YYYY' })     // "03 mar 2026"
+date.format('date', { format: 'DD MMMM YYYY' })    // "03 mars 2026"
+
+// Time
+date.format('time')                                // "20:30"
+date.format('time', { second: '2-digit' })         // "20:30:00"
+date.format('time', { format: 'HH:mm:ss' })        // "20:30:00"
+
+// Datetime
+date.format('datetime')                            // "3 mars 2026, 20:30"
+date.format('datetime', { dateStyle: 'full' })     // "mardi 3 mars 2026, 20:30"
+date.format('datetime', { format: 'DD/MM/YYYY HH:mm' }) // "03/03/2026 20:30"
+
+// Relative
+date.format('relative')                            // "dans 11 jours"
+date.format('relative', { unit: 'month' })         // "dans 1 mois"
+
+// Plural
+count.format('plural', { singular: 'billet', plural: 'billets' }) // "3 billets"
+
+// Custom formatter — works like transform()
+price.format(value => `${value.toLocaleString()} FCFA`)
+```
+
+### Locale Reactivity
+
+All formatted observables automatically recalculate when the locale changes:
+```javascript
+const price = Observable(15000);
+const label = price.format('currency', { currency: 'XOF' });
+
+label.val();               // "15 000 FCFA"
+
+Store.get('locale').set('en-US');
+label.val();               // "$15,000.00"
+
+Store.get('locale').set('fr-TG');
+label.val();               // "15 000 FCFA"
+```
+
+### Extending Formatters
+
+Add custom format types via `Formatters`:
+```javascript
+import { Formatters } from 'native-document';
+
+Formatters.duration = (value, locale) => {
+    const hours   = Math.floor(value / 3600);
+    const minutes = Math.floor((value % 3600) / 60);
+    return `${hours}h${minutes < 10 ? '0' : ''}${minutes}`;
+};
+
+const duration = Observable(3661);
+duration.format('duration'); // "1h01"
+```
+
+### Available Format Types
+
+| Type | Input | Options |
+|------|-------|---------|
+| `currency` | `number` | `currency`, `notation`, `minimumFractionDigits`, `maximumFractionDigits` |
+| `number` | `number` | `notation`, `minimumFractionDigits`, `maximumFractionDigits` |
+| `percent` | `number` | `decimals` |
+| `date` | `Date \| number` | `dateStyle`, `format` |
+| `time` | `Date \| number` | `hour`, `minute`, `second`, `format` |
+| `datetime` | `Date \| number` | `dateStyle`, `hour`, `minute`, `second`, `format` |
+| `relative` | `Date \| number` | `unit`, `numeric` |
+| `plural` | `number` | `singular`, `plural` |
 
 ## Observable Objects vs Simple Objects
 
@@ -618,6 +712,44 @@ username.intercept((value) => value.toLowerCase().trim());
 
 username.set("  JohnDoe  ");
 console.log(username.val()); // "johndoe"
+```
+
+### `persist(key, options?)` — Persist to localStorage
+
+Binds an observable to localStorage. The value is automatically restored on load and saved on every change.
+```javascript
+// Simple persistence — key defaults to the variable name
+const theme = Observable('light').persist('theme');
+theme.set('dark'); // saved to localStorage automatically
+
+// On next page load
+const theme = Observable('light').persist('theme');
+theme.val(); // "dark" — restored from localStorage
+```
+
+With transform options — useful when the stored format differs from the runtime format:
+```javascript
+// Store as ISO string, restore as Date object
+const selectedDate = Observable(new Date()).persist('event:date', {
+    get: value => new Date(value),   // transform on load
+    set: value => value.toISOString() // transform on save
+});
+
+// Store only the user id, restore the full object later
+const user = Observable(null).persist('session:user', {
+    get: value => value ? JSON.parse(value) : null,
+    set: value => value ? JSON.stringify(value) : null
+});
+```
+
+**Without Store** — use `.persist()` directly on any observable for component-level persistence without polluting the global store:
+```javascript
+const FiltersPanel = () => {
+    const expanded = Observable(false).persist('filters:expanded');
+    const columns  = Observable(['name', 'date']).persist('table:columns');
+
+    return Div([/* ... */]);
+};
 ```
 
 ## Best Practices

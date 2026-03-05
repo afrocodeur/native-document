@@ -1,6 +1,7 @@
 import { Observable } from "./Observable";
 import NativeDocumentError from "../errors/NativeDocumentError";
 import DebugManager from "../utils/debug-manager";
+import {$getFromStorage, $saveToStorage, LocalStorage} from "../utils/localstorage";
 
 export const StoreFactory = function() {
 
@@ -347,6 +348,28 @@ export const StoreFactory = function() {
             const store = StoreFactory();
             callback && callback(store);
             return store;
+        },
+        createPersistent(name, value, localstorage_key) {
+            localstorage_key = localstorage_key || name;
+            const observer = this.create(name, $getFromStorage(localstorage_key, value));
+            const saver = $saveToStorage(value)
+
+            observer.subscribe((val) => saver(localstorage_key, val));
+            return observer;
+        },
+        createPersistentResettable(name, value, localstorage_key) {
+            localstorage_key = localstorage_key || name;
+            const observer = this.createResettable(name, $getFromStorage(localstorage_key, value));
+            const saver = $saveToStorage(value)
+            observer.subscribe((val) => saver(localstorage_key, val));
+
+            const originalReset = observer.reset.bind(observer);
+            observer.reset = () => {
+                LocalStorage.remove(localstorage_key);
+                originalReset();
+            };
+
+            return observer;
         }
     };
 
@@ -377,3 +400,5 @@ export const StoreFactory = function() {
 };
 
 export const Store = StoreFactory();
+
+Store.create('locale', 'fr')

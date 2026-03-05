@@ -13,6 +13,8 @@ export interface StoreStatic {
         computation: () => T,
         dependencies: (string | ObservableItem<any>)[]
     ): ObservableItem<T>;
+    createPersistent<T>(name: string, value: T, localStorageKey?: string): ObservableItem<T>;
+    createPersistentResettable<T>(name: string, value: T, localStorageKey?: string): ObservableItem<T>;
 
     has(name: string): boolean;
     get<T>(name: string): ObservableItem<T> | null;

@@ -2,6 +2,45 @@ import {FilterResult, PredicateMap} from "./filters/types";
 
 export type Unsubscribe = () => void;
 
+export type FormatType = 'currency' | 'number' | 'percent' | 'date' | 'time' | 'datetime' | 'relative' | 'plural';
+
+export interface FormatOptions {
+    // currency
+    currency?: string;
+    notation?: 'standard' | 'scientific' | 'engineering' | 'compact';
+    minimumFractionDigits?: number;
+    maximumFractionDigits?: number;
+    // percent
+    decimals?: number;
+    // date / datetime
+    dateStyle?: 'full' | 'long' | 'medium' | 'short';
+    format?: string;
+    // time / datetime
+    hour?: '2-digit' | 'numeric';
+    minute?: '2-digit' | 'numeric';
+    second?: '2-digit' | 'numeric';
+    // relative
+    unit?: 'day' | 'week' | 'month' | 'year' | 'hour' | 'minute' | 'second';
+    numeric?: 'always' | 'auto';
+    // plural
+    singular?: string;
+    plural?: string;
+}
+
+export interface FormattersStatic {
+    currency(value: number, locale: string, options?: FormatOptions): string;
+    number(value: number, locale: string, options?: FormatOptions): string;
+    percent(value: number, locale: string, options?: FormatOptions): string;
+    date(value: Date | number, locale: string, options?: FormatOptions): string;
+    time(value: Date | number, locale: string, options?: FormatOptions): string;
+    datetime(value: Date | number, locale: string, options?: FormatOptions): string;
+    relative(value: Date | number, locale: string, options?: FormatOptions): string;
+    plural(value: number, locale: string, options?: FormatOptions): string;
+    [key: string]: (value: any, locale: string, options?: FormatOptions) => string;
+}
+
+export declare const Formatters: FormattersStatic;
+
 // Observable system type definitions
 export interface ObservableItem<T = any> {
     readonly $currentValue: T;
@@ -26,12 +65,17 @@ export interface ObservableItem<T = any> {
     is<U>(callback: (value: T) => U): ObservableChecker<U>;
     select<U>(callback: (value: T) => U): ObservableChecker<U>;
     pluck<U>(callback: (value: T) => U): ObservableChecker<U>;
+    format(type: FormatType | ((value: T) => string), options?: FormatOptions): ObservableItem<string>;
     get(key: string | number): any;
     when(value: T): ObservableWhen<T>;
     off(value: T, callback?: Function): void;
     once(predicate: T | ((value: T) => boolean), callback: (value: T) => void): void;
     onCleanup(callback: () => void): void;
     intercept(callback: (newValue: T, currentValue: T) => T | undefined): this;
+    persist(key: string, options?: {
+        get?: (value: any) => T;
+        set?: (value: T) => any;
+    }): this;
     disconnectAll(): void;
 
     toString(): string;

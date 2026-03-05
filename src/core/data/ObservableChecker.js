@@ -10,6 +10,8 @@ export default function ObservableChecker($observable, $checker) {
     this.unSubscriptions = [];
 }
 
+export const ObservablePipe = ObservableChecker;
+
 ObservableChecker.prototype.__$isObservableChecker = true;
 
 /**

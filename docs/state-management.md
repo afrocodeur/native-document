@@ -105,6 +105,34 @@ total.val(); // -> 20
 // Store.use('total') -> ❌ throws : composed stores are read-only
 // Store.reset('total') -> ❌ throws : composed stores cannot be reset
 ```
+
+### Persistent Store
+
+Use `createPersistent()` when the store needs to survive page reloads. The value is automatically restored from localStorage on load and saved on every change.
+```javascript
+const theme = Store.createPersistent('theme', 'light');
+theme.set('dark'); // saved to localStorage automatically
+
+// On next page load — restored automatically
+Store.get('theme').val(); // "dark"
+```
+
+Use `createPersistentResettable()` when you need both persistence and reset capability. Reset clears the localStorage entry and restores the default value.
+```javascript
+const session = Store.createPersistentResettable('session', { id: null, name: '' });
+session.set({ id: 1, name: 'John' }); // saved
+
+Store.reset('session');
+// -> { id: null, name: '' }
+// -> localStorage entry removed
+```
+
+Both methods accept an optional custom localStorage key — useful when the store name conflicts with existing keys:
+```javascript
+Store.createPersistent('theme', 'light', 'app:theme');
+Store.createPersistentResettable('session', null, 'app:session');
+```
+
 ### Store Groups
 
 Use `Store.group()` to create an isolated store namespace. Each group is a fully independent `StoreFactory` instance — no key conflicts, no shared state with the parent store.

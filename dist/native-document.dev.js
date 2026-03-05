@@ -1,10 +1,10 @@
 var NativeDocument = (function (exports) {
     'use strict';
 
-    let DebugManager = {};
+    let DebugManager$1 = {};
 
     {
-        DebugManager = {
+        DebugManager$1 = {
             enabled: false,
 
             enable() {
@@ -35,60 +35,7 @@ var NativeDocument = (function (exports) {
         };
 
     }
-    var DebugManager$1 = DebugManager;
-
-    const MemoryManager = (function() {
-
-        let $nextObserverId = 0;
-        const $observables = new Map();
-
-        return {
-            /**
-             * Register an observable and return an id.
-             *
-             * @param {ObservableItem} observable
-             * @param {Function} getListeners
-             * @returns {number}
-             */
-            register(observable) {
-                const id = ++$nextObserverId;
-                $observables.set(id, new WeakRef(observable));
-                return id;
-            },
-            unregister(id) {
-                $observables.delete(id);
-            },
-            getObservableById(id) {
-                return $observables.get(id)?.deref();
-            },
-            cleanup() {
-                for (const [_, weakObservableRef] of $observables) {
-                    const observable = weakObservableRef.deref();
-                    if (observable) {
-                        observable.cleanup();
-                    }
-                }
-                $observables.clear();
-            },
-            /**
-             * Clean observables that are not referenced anymore.
-             * @param {number} threshold
-             */
-            cleanObservables(threshold) {
-                if($observables.size < threshold) return;
-                let cleanedCount = 0;
-                for (const [id, weakObservableRef] of $observables) {
-                    if (!weakObservableRef.deref()) {
-                        $observables.delete(id);
-                        cleanedCount++;
-                    }
-                }
-                if (cleanedCount > 0) {
-                    DebugManager$1.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
-                }
-            }
-        };
-    }());
+    var DebugManager = DebugManager$1;
 
     class NativeDocumentError extends Error {
         constructor(message, context = {}) {
@@ -189,697 +136,6 @@ var NativeDocument = (function (exports) {
      */
     ObservableChecker.prototype.cleanup = function() {
         return this.observable.cleanup();
-    };
-
-    let PluginsManager = null;
-
-    {
-        PluginsManager = (function() {
-
-            const $plugins = new Map();
-            const $pluginByEvents = new Map();
-
-            return {
-                list() {
-                    return $pluginByEvents;
-                },
-                add(plugin, name){
-                    if (!plugin || typeof plugin !== 'object') {
-                        throw new Error(`Plugin ${name} must be an object`);
-                    }
-                    name = name || plugin.name;
-                    if (!name || typeof name !== 'string') {
-                        throw new Error(`Please, provide a valid plugin name`);
-                    }
-                    if($plugins.has(name)) {
-                        return;
-                    }
-
-                    plugin.$name = name;
-                    $plugins.set(name ,plugin);
-                    if(typeof plugin?.init === 'function') {
-                        plugin.init();
-                    }
-                    for(const methodName in plugin) {
-                        if(/^on[A-Z]/.test(methodName)) {
-                            const eventName = methodName.replace(/^on/, '');
-                            if(!$pluginByEvents.has(eventName)) {
-                                $pluginByEvents.set(eventName, new Set());
-                            }
-                            $pluginByEvents.get(eventName).add(plugin);
-                        }
-                    }
-                },
-                remove(pluginName){
-                    if(!$plugins.has(pluginName)) {
-                        return;
-                    }
-                    const plugin = $plugins.get(pluginName);
-                    if(typeof plugin.cleanup === 'function') {
-                        plugin.cleanup();
-                    }
-                    for(const [name, sets] of $pluginByEvents.entries() ) {
-                        if(sets.has(plugin)) {
-                            sets.delete(plugin);
-                        }
-                        if(sets.size === 0) {
-                            $pluginByEvents.delete(name);
-                        }
-                    }
-                    $plugins.delete(pluginName);
-                },
-                emit(eventName, ...data) {
-                    if(!$pluginByEvents.has(eventName)) {
-                        return;
-                    }
-                    const plugins = $pluginByEvents.get(eventName);
-
-                    for(const plugin of plugins) {
-                        const callback = plugin['on'+eventName];
-                        if(typeof callback === 'function') {
-                            try{
-                                callback.call(plugin, ...data);
-                            } catch (error) {
-                                DebugManager$1.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
-                            }
-                        }
-                    }
-                }
-            };
-        }());
-    }
-
-    var PluginsManager$1 = PluginsManager;
-
-    /**
-     * Creates an ObservableWhen that tracks whether an observable equals a specific value.
-     *
-     * @param {ObservableItem} observer - The observable to watch
-     * @param {*} value - The value to compare against
-     * @class ObservableWhen
-     */
-    const ObservableWhen = function(observer, value) {
-        this.$target = value;
-        this.$observer = observer;
-    };
-
-    ObservableWhen.prototype.__$isObservableWhen = true;
-
-    /**
-     * Subscribes to changes in the match status (true when observable equals target value).
-     *
-     * @param {Function} callback - Function called with boolean indicating if values match
-     * @returns {Function} Unsubscribe function
-     * @example
-     * const status = Observable('idle');
-     * const isLoading = status.when('loading');
-     * isLoading.subscribe(active => console.log('Loading:', active));
-     */
-    ObservableWhen.prototype.subscribe = function(callback) {
-        return this.$observer.on(this.$target, callback);
-    };
-
-    /**
-     * Returns true if the observable's current value equals the target value.
-     *
-     * @returns {boolean} True if observable value matches target value
-     */
-    ObservableWhen.prototype.val = function() {
-        return this.$observer.$currentValue === this.$target;
-    };
-
-    /**
-     * Returns true if the observable's current value equals the target value.
-     * Alias for val().
-     *
-     * @returns {boolean} True if observable value matches target value
-     */
-    ObservableWhen.prototype.isMatch = ObservableWhen.prototype.val;
-
-    /**
-     * Returns true if the observable's current value equals the target value.
-     * Alias for val().
-     *
-     * @returns {boolean} True if observable value matches target value
-     */
-    ObservableWhen.prototype.isActive = ObservableWhen.prototype.val;
-
-    const nextTick = function(fn) {
-        let pending = false;
-        return function(...args) {
-            if (pending) return;
-            pending = true;
-
-            Promise.resolve().then(() => {
-                fn.apply(this, args);
-                pending = false;
-            });
-        };
-    };
-
-    /**
-     *
-     * @param {*} item
-     * @param {string|null} defaultKey
-     * @param {?Function} key
-     * @returns {*}
-     */
-    const getKey = (item, defaultKey, key) => {
-        if (Validator.isString(key)) {
-            const val = Validator.isObservable(item) ? item.val() : item;
-            const result = val?.[key];
-            return Validator.isObservable(result) ? result.val() : (result ?? defaultKey);
-        }
-
-        if (Validator.isFunction(key)) {
-            return key(item, defaultKey);
-        }
-
-        const val = Validator.isObservable(item) ? item.val() : item;
-        return val ?? defaultKey;
-    };
-
-    const trim = function(str, char) {
-        return str.replace(new RegExp(`^[${char}]+|[${char}]+$`, 'g'), '');
-    };
-
-    const deepClone = (value, onObservableFound) => {
-        try {
-            if(window.structuredClone !== undefined) {
-                return window.structuredClone(value);
-            }
-        } catch (e){}
-
-        if (value === null || typeof value !== 'object') {
-            return value;
-        }
-
-        // Dates
-        if (value instanceof Date) {
-            return new Date(value.getTime());
-        }
-
-        // Arrays
-        if (Array.isArray(value)) {
-            return value.map(item => deepClone(item));
-        }
-
-        // Observables - keep the référence
-        if (Validator.isObservable(value)) {
-            onObservableFound && onObservableFound(value);
-            return value;
-        }
-
-        // Objects
-        const cloned = {};
-        for (const key in value) {
-            if (Object.hasOwn(value, key)) {
-                cloned[key] = deepClone(value[key]);
-            }
-        }
-        return cloned;
-    };
-
-    /**
-     *
-     * @param {*} value
-     * @param {{ propagation: boolean, reset: boolean} | null} configs
-     * @class ObservableItem
-     */
-    function ObservableItem(value, configs = null) {
-        value = Validator.isObservable(value) ? value.val() : value;
-
-        this.$previousValue = null;
-        this.$currentValue = value;
-        {
-            this.$isCleanedUp = false;
-        }
-
-        this.$firstListener = null;
-        this.$listeners = null;
-        this.$watchers = null;
-
-        this.$memoryId = null;
-
-        if(configs) {
-            this.configs = configs;
-            if(configs.reset) {
-                this.$initialValue = Validator.isObject(value) ? deepClone(value) : value;
-            }
-        }
-        {
-            PluginsManager$1.emit('CreateObservable', this);
-        }
-    }
-
-    Object.defineProperty(ObservableItem.prototype, '$value', {
-        get() {
-            return this.$currentValue;
-        },
-        set(value) {
-            this.set(value);
-        },
-        configurable: true,
-    });
-
-    ObservableItem.prototype.__$isObservable = true;
-    const noneTrigger = function() {};
-
-    /**
-     * Intercepts and transforms values before they are set on the observable.
-     * The interceptor can modify the value or return undefined to use the original value.
-     *
-     * @param {(value) => any} callback - Interceptor function that receives (newValue, currentValue) and returns the transformed value or undefined
-     * @returns {ObservableItem} The observable instance for chaining
-     * @example
-     * const count = Observable(0);
-     * count.intercept((newVal, oldVal) => Math.max(0, newVal)); // Prevent negative values
-     */
-    ObservableItem.prototype.intercept = function(callback) {
-        this.$interceptor = callback;
-        this.set = this.$setWithInterceptor;
-        return this;
-    };
-
-    ObservableItem.prototype.triggerFirstListener = function(operations) {
-        this.$firstListener(this.$currentValue, this.$previousValue, operations);
-    };
-
-    ObservableItem.prototype.triggerListeners = function(operations) {
-        const $listeners = this.$listeners;
-        const $previousValue = this.$previousValue;
-        const $currentValue = this.$currentValue;
-
-        for(let i = 0, length = $listeners.length; i < length; i++) {
-            $listeners[i]($currentValue, $previousValue, operations);
-        }
-    };
-
-    ObservableItem.prototype.triggerWatchers = function(operations) {
-        const $watchers = this.$watchers;
-        const $previousValue = this.$previousValue;
-        const $currentValue = this.$currentValue;
-
-        const $currentValueCallbacks = $watchers.get($currentValue);
-        const $previousValueCallbacks = $watchers.get($previousValue);
-        if($currentValueCallbacks) {
-            $currentValueCallbacks(true, $previousValue, operations);
-        }
-        if($previousValueCallbacks) {
-            $previousValueCallbacks(false, $currentValue, operations);
-        }
-    };
-
-    ObservableItem.prototype.triggerAll = function(operations) {
-        this.triggerWatchers(operations);
-        this.triggerListeners(operations);
-    };
-
-    ObservableItem.prototype.triggerWatchersAndFirstListener = function(operations) {
-        this.triggerWatchers(operations);
-        this.triggerFirstListener(operations);
-    };
-
-    ObservableItem.prototype.assocTrigger = function() {
-        this.$firstListener = null;
-        if(this.$watchers?.size && this.$listeners?.length) {
-            this.trigger = (this.$listeners.length === 1) ? this.triggerWatchersAndFirstListener : this.triggerAll;
-            return;
-        }
-        if(this.$listeners?.length) {
-            if(this.$listeners.length === 1) {
-                this.$firstListener = this.$listeners[0];
-                this.trigger = this.triggerFirstListener;
-            }
-            else {
-                this.trigger = this.triggerListeners;
-            }
-            return;
-        }
-        if(this.$watchers?.size) {
-            this.trigger = this.triggerWatchers;
-            return;
-        }
-        this.trigger = noneTrigger;
-    };
-    ObservableItem.prototype.trigger = noneTrigger;
-
-    ObservableItem.prototype.$updateWithNewValue = function(newValue) {
-        newValue = newValue?.__$isObservable ? newValue.val() : newValue;
-        if(this.$currentValue === newValue) {
-            return;
-        }
-        this.$previousValue = this.$currentValue;
-        this.$currentValue = newValue;
-        {
-            PluginsManager$1.emit('ObservableBeforeChange', this);
-        }
-        this.trigger();
-        this.$previousValue = null;
-        {
-            PluginsManager$1.emit('ObservableAfterChange', this);
-        }
-    };
-
-    /**
-     * @param {*} data
-     */
-    ObservableItem.prototype.$setWithInterceptor = function(data) {
-        let newValue = (typeof data === 'function') ? data(this.$currentValue) : data;
-        const result = this.$interceptor(newValue, this.$currentValue);
-
-        if (result !== undefined) {
-            newValue = result;
-        }
-
-        this.$updateWithNewValue(newValue);
-    };
-
-    /**
-     * @param {*} data
-     */
-    ObservableItem.prototype.$basicSet = function(data) {
-        let newValue = (typeof data === 'function') ? data(this.$currentValue) : data;
-        this.$updateWithNewValue(newValue);
-    };
-
-    ObservableItem.prototype.set = ObservableItem.prototype.$basicSet;
-
-    ObservableItem.prototype.val = function() {
-        return this.$currentValue;
-    };
-
-    ObservableItem.prototype.disconnectAll = function() {
-        this.$listeners?.splice(0);
-        this.$previousValue = null;
-        this.$currentValue = null;
-        if(this.$watchers) {
-            for (const [_, watchValueList] of this.$watchers) {
-                if(Validator.isArray(watchValueList)) {
-                    watchValueList.splice(0);
-                }
-            }
-        }
-        this.$watchers?.clear();
-        this.$listeners = null;
-        this.$watchers = null;
-        this.trigger = noneTrigger;
-    };
-
-    /**
-     * Registers a cleanup callback that will be executed when the observable is cleaned up.
-     * Useful for disposing resources, removing event listeners, or other cleanup tasks.
-     *
-     * @param {Function} callback - Cleanup function to execute on observable disposal
-     * @example
-     * const obs = Observable(0);
-     * obs.onCleanup(() => console.log('Cleaned up!'));
-     * obs.cleanup(); // Logs: "Cleaned up!"
-     */
-    ObservableItem.prototype.onCleanup = function(callback) {
-        this.$cleanupListeners = this.$cleanupListeners ?? [];
-        this.$cleanupListeners.push(callback);
-    };
-
-    ObservableItem.prototype.cleanup = function() {
-        if (this.$cleanupListeners) {
-            for (let i = 0; i < this.$cleanupListeners.length; i++) {
-                this.$cleanupListeners[i]();
-            }
-            this.$cleanupListeners = null;
-        }
-        MemoryManager.unregister(this.$memoryId);
-        this.disconnectAll();
-        {
-            this.$isCleanedUp = true;
-        }
-        delete this.$value;
-    };
-
-    /**
-     *
-     * @param {Function} callback
-     * @returns {(function(): void)}
-     */
-    ObservableItem.prototype.subscribe = function(callback) {
-        {
-            if (this.$isCleanedUp) {
-                DebugManager$1.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
-                return;
-            }
-            if (typeof callback !== 'function') {
-                throw new NativeDocumentError('Callback must be a function');
-            }
-        }
-        this.$listeners = this.$listeners ?? [];
-
-        this.$listeners.push(callback);
-        this.assocTrigger();
-        {
-            PluginsManager$1.emit('ObservableSubscribe', this);
-        }
-    };
-
-    /**
-     * Watches for a specific value and executes callback when the observable equals that value.
-     * Creates a watcher that only triggers when the observable changes to the specified value.
-     *
-     * @param {*} value - The value to watch for
-     * @param {(value) => void|ObservableItem} callback - Callback function or observable to set when value matches
-     * @example
-     * const status = Observable('idle');
-     * status.on('loading', () => console.log('Started loading'));
-     * status.on('error', isError); // Set another observable
-     */
-    ObservableItem.prototype.on = function(value, callback) {
-        this.$watchers = this.$watchers ?? new Map();
-
-        let watchValueList = this.$watchers.get(value);
-
-        if(callback.__$isObservable) {
-            callback = callback.set.bind(callback);
-        }
-
-        if(!watchValueList) {
-            watchValueList = callback;
-            this.$watchers.set(value, callback);
-        } else if(!Validator.isArray(watchValueList.list)) {
-            watchValueList = [watchValueList, callback];
-            callback = (value) => {
-                for(let i = 0, length = watchValueList.length; i < length; i++) {
-                    watchValueList[i](value);
-                }
-            };
-            callback.list = watchValueList;
-            this.$watchers.set(value, callback);
-        } else {
-            watchValueList.list.push(callback);
-        }
-
-        this.assocTrigger();
-    };
-
-    /**
-     * Removes a watcher for a specific value. If no callback is provided, removes all watchers for that value.
-     *
-     * @param {*} value - The value to stop watching
-     * @param {Function} [callback] - Specific callback to remove. If omitted, removes all watchers for this value
-     * @example
-     * const status = Observable('idle');
-     * const handler = () => console.log('Loading');
-     * status.on('loading', handler);
-     * status.off('loading', handler); // Remove specific handler
-     * status.off('loading'); // Remove all handlers for 'loading'
-     */
-    ObservableItem.prototype.off = function(value, callback) {
-        if(!this.$watchers) return;
-
-        const watchValueList = this.$watchers.get(value);
-        if(!watchValueList) return;
-
-        if(!callback || !Array.isArray(watchValueList.list)) {
-            this.$watchers?.delete(value);
-            this.assocTrigger();
-            return;
-        }
-        const index = watchValueList.indexOf(callback);
-        watchValueList?.splice(index, 1);
-        if(watchValueList.length === 1) {
-            this.$watchers.set(value, watchValueList[0]);
-        }
-        else if(watchValueList.length === 0) {
-            this.$watchers?.delete(value);
-        }
-        this.assocTrigger();
-    };
-
-    /**
-     * Subscribes to the observable but automatically unsubscribes after the first time the predicate matches.
-     *
-     * @param {(value) => Boolean|any} predicate - Value to match or function that returns true when condition is met
-     * @param {(value) => void} callback - Callback to execute when predicate matches, receives the matched value
-     * @example
-     * const status = Observable('loading');
-     * status.once('ready', (val) => console.log('Ready!'));
-     * status.once(val => val === 'error', (val) => console.log('Error occurred'));
-     */
-    ObservableItem.prototype.once = function(predicate, callback) {
-        const fn = typeof predicate === 'function' ? predicate : (v) => v === predicate;
-
-        const handler = (val) => {
-            if (fn(val)) {
-                this.unsubscribe(handler);
-                callback(val);
-            }
-        };
-        this.subscribe(handler);
-    };
-
-    /**
-     * Unsubscribe from an observable.
-     * @param {Function} callback
-     */
-    ObservableItem.prototype.unsubscribe = function(callback) {
-        if(!this.$listeners) return;
-        const index = this.$listeners.indexOf(callback);
-        if (index > -1) {
-            this.$listeners.splice(index, 1);
-        }
-        this.assocTrigger();
-        {
-            PluginsManager$1.emit('ObservableUnsubscribe', this);
-        }
-    };
-
-    /**
-     * Create an Observable checker instance
-     * @param callback
-     * @returns {ObservableChecker}
-     */
-    ObservableItem.prototype.check = function(callback) {
-        return new ObservableChecker(this, callback)
-    };
-
-    ObservableItem.prototype.transform = ObservableItem.prototype.check;
-    ObservableItem.prototype.pluck = ObservableItem.prototype.check;
-    ObservableItem.prototype.is = ObservableItem.prototype.check;
-    ObservableItem.prototype.select = ObservableItem.prototype.check;
-
-    /**
-     * Gets a property value from the observable's current value.
-     * If the property is an observable, returns its value.
-     *
-     * @param {string|number} key - Property key to retrieve
-     * @returns {*} The value of the property, unwrapped if it's an observable
-     * @example
-     * const user = Observable({ name: 'John', age: Observable(25) });
-     * user.get('name'); // 'John'
-     * user.get('age'); // 25 (unwrapped from observable)
-     */
-    ObservableItem.prototype.get = function(key) {
-        const item = this.$currentValue[key];
-        return Validator.isObservable(item) ? item.val() : item;
-    };
-
-    /**
-     * Creates an ObservableWhen that represents whether the observable equals a specific value.
-     * Returns an object that can be subscribed to and will emit true/false.
-     *
-     * @param {*} value - The value to compare against
-     * @returns {ObservableWhen} An ObservableWhen instance that tracks when the observable equals the value
-     * @example
-     * const status = Observable('idle');
-     * const isLoading = status.when('loading');
-     * isLoading.subscribe(active => console.log('Loading:', active));
-     * status.set('loading'); // Logs: "Loading: true"
-     */
-    ObservableItem.prototype.when = function(value) {
-        return new ObservableWhen(this, value);
-    };
-
-    /**
-     * Compares the observable's current value with another value or observable.
-     *
-     * @param {*|ObservableItem} other - Value or observable to compare against
-     * @returns {boolean} True if values are equal
-     * @example
-     * const a = Observable(5);
-     * const b = Observable(5);
-     * a.equals(5);  // true
-     * a.equals(b);  // true
-     * a.equals(10); // false
-     */
-    ObservableItem.prototype.equals = function(other) {
-        if(Validator.isObservable(other)) {
-            return this.$currentValue === other.$currentValue;
-        }
-        return this.$currentValue === other;
-    };
-
-    /**
-     * Converts the observable's current value to a boolean.
-     *
-     * @returns {boolean} The boolean representation of the current value
-     * @example
-     * const count = Observable(0);
-     * count.toBool(); // false
-     * count.set(5);
-     * count.toBool(); // true
-     */
-    ObservableItem.prototype.toBool = function() {
-        return !!this.$currentValue;
-    };
-
-    /**
-     * Toggles the boolean value of the observable (false becomes true, true becomes false).
-     *
-     * @example
-     * const isOpen = Observable(false);
-     * isOpen.toggle(); // Now true
-     * isOpen.toggle(); // Now false
-     */
-    ObservableItem.prototype.toggle = function() {
-        this.set(!this.$currentValue);
-    };
-
-    /**
-     * Resets the observable to its initial value.
-     * Only works if the observable was created with { reset: true } config.
-     *
-     * @example
-     * const count = Observable(0, { reset: true });
-     * count.set(10);
-     * count.reset(); // Back to 0
-     */
-    ObservableItem.prototype.reset = function() {
-        if(!this.configs?.reset) {
-            return;
-        }
-        const resetValue = (Validator.isObject(this.$initialValue))
-            ? deepClone(this.$initialValue, (observable) => {
-                observable.reset();
-            })
-            : this.$initialValue;
-        this.set(resetValue);
-    };
-
-    /**
-     * Returns a string representation of the observable's current value.
-     *
-     * @returns {string} String representation of the current value
-     */
-    ObservableItem.prototype.toString = function() {
-        return String(this.$currentValue);
-    };
-
-    /**
-     * Returns the primitive value of the observable (its current value).
-     * Called automatically in type coercion contexts.
-     *
-     * @returns {*} The current value of the observable
-     */
-    ObservableItem.prototype.valueOf = function() {
-        return this.$currentValue;
     };
 
     const DocumentObserver = {
@@ -1057,11 +313,91 @@ var NativeDocument = (function (exports) {
         subtree: true,
     });
 
+    let PluginsManager$1 = null;
+
+    {
+        PluginsManager$1 = (function() {
+
+            const $plugins = new Map();
+            const $pluginByEvents = new Map();
+
+            return {
+                list() {
+                    return $pluginByEvents;
+                },
+                add(plugin, name){
+                    if (!plugin || typeof plugin !== 'object') {
+                        throw new Error(`Plugin ${name} must be an object`);
+                    }
+                    name = name || plugin.name;
+                    if (!name || typeof name !== 'string') {
+                        throw new Error(`Please, provide a valid plugin name`);
+                    }
+                    if($plugins.has(name)) {
+                        return;
+                    }
+
+                    plugin.$name = name;
+                    $plugins.set(name ,plugin);
+                    if(typeof plugin?.init === 'function') {
+                        plugin.init();
+                    }
+                    for(const methodName in plugin) {
+                        if(/^on[A-Z]/.test(methodName)) {
+                            const eventName = methodName.replace(/^on/, '');
+                            if(!$pluginByEvents.has(eventName)) {
+                                $pluginByEvents.set(eventName, new Set());
+                            }
+                            $pluginByEvents.get(eventName).add(plugin);
+                        }
+                    }
+                },
+                remove(pluginName){
+                    if(!$plugins.has(pluginName)) {
+                        return;
+                    }
+                    const plugin = $plugins.get(pluginName);
+                    if(typeof plugin.cleanup === 'function') {
+                        plugin.cleanup();
+                    }
+                    for(const [name, sets] of $pluginByEvents.entries() ) {
+                        if(sets.has(plugin)) {
+                            sets.delete(plugin);
+                        }
+                        if(sets.size === 0) {
+                            $pluginByEvents.delete(name);
+                        }
+                    }
+                    $plugins.delete(pluginName);
+                },
+                emit(eventName, ...data) {
+                    if(!$pluginByEvents.has(eventName)) {
+                        return;
+                    }
+                    const plugins = $pluginByEvents.get(eventName);
+
+                    for(const plugin of plugins) {
+                        const callback = plugin['on'+eventName];
+                        if(typeof callback === 'function') {
+                            try{
+                                callback.call(plugin, ...data);
+                            } catch (error) {
+                                DebugManager.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
+                            }
+                        }
+                    }
+                }
+            };
+        }());
+    }
+
+    var PluginsManager = PluginsManager$1;
+
     function NDElement(element) {
         this.$element = element;
         this.$observer = null;
         {
-            PluginsManager$1.emit('NDElementCreated', element, this);
+            PluginsManager.emit('NDElementCreated', element, this);
         }
     }
 
@@ -1236,7 +572,7 @@ var NativeDocument = (function (exports) {
             }
             {
                 if (this[name] && !this.$localExtensions.has(name)) {
-                    DebugManager$1.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
+                    DebugManager.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
                 }
                 this.$localExtensions.set(name, method);
             }
@@ -1287,33 +623,27 @@ var NativeDocument = (function (exports) {
             const method = methods[name];
 
             if (typeof method !== 'function') {
-                DebugManager$1.warn('NDElement.extend', `"${name}" is not a function, skipping`);
+                DebugManager.warn('NDElement.extend', `"${name}" is not a function, skipping`);
                 continue;
             }
 
             if (protectedMethods.has(name)) {
-                DebugManager$1.error('NDElement.extend', `Cannot override protected method "${name}"`);
+                DebugManager.error('NDElement.extend', `Cannot override protected method "${name}"`);
                 throw new NativeDocumentError(`Cannot override protected method "${name}"`);
             }
 
             if (NDElement.prototype[name]) {
-                DebugManager$1.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
+                DebugManager.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
             }
 
             NDElement.prototype[name] = method;
         }
         {
-            PluginsManager$1.emit('NDElementExtended', methods);
+            PluginsManager.emit('NDElementExtended', methods);
         }
 
         return NDElement;
     };
-
-    function TemplateBinding(hydrate) {
-        this.$hydrate = hydrate;
-    }
-
-    TemplateBinding.prototype.__$isTemplateBinding = true;
 
     const COMMON_NODE_TYPES = {
         ELEMENT: 1,
@@ -1456,7 +786,7 @@ var NativeDocument = (function (exports) {
             const foundReserved = Object.keys(attributes).filter(key => reserved.includes(key));
 
             if (foundReserved.length > 0) {
-                DebugManager$1.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
+                DebugManager.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
             }
 
             return attributes;
@@ -1505,7 +835,7 @@ var NativeDocument = (function (exports) {
         anchorFragment.appendChild = function(child, before = null) {
             const parent = anchorEnd.parentNode;
             if(!parent) {
-                DebugManager$1.error('Anchor', 'Anchor : parent not found', child);
+                DebugManager.error('Anchor', 'Anchor : parent not found', child);
                 return;
             }
             before = before ?? anchorEnd;
@@ -1656,6 +986,1306 @@ var NativeDocument = (function (exports) {
         'playsinline'
     ]);
 
+    const MemoryManager = (function() {
+
+        let $nextObserverId = 0;
+        const $observables = new Map();
+
+        return {
+            /**
+             * Register an observable and return an id.
+             *
+             * @param {ObservableItem} observable
+             * @param {Function} getListeners
+             * @returns {number}
+             */
+            register(observable) {
+                const id = ++$nextObserverId;
+                $observables.set(id, new WeakRef(observable));
+                return id;
+            },
+            unregister(id) {
+                $observables.delete(id);
+            },
+            getObservableById(id) {
+                return $observables.get(id)?.deref();
+            },
+            cleanup() {
+                for (const [_, weakObservableRef] of $observables) {
+                    const observable = weakObservableRef.deref();
+                    if (observable) {
+                        observable.cleanup();
+                    }
+                }
+                $observables.clear();
+            },
+            /**
+             * Clean observables that are not referenced anymore.
+             * @param {number} threshold
+             */
+            cleanObservables(threshold) {
+                if($observables.size < threshold) return;
+                let cleanedCount = 0;
+                for (const [id, weakObservableRef] of $observables) {
+                    if (!weakObservableRef.deref()) {
+                        $observables.delete(id);
+                        cleanedCount++;
+                    }
+                }
+                if (cleanedCount > 0) {
+                    DebugManager.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
+                }
+            }
+        };
+    }());
+
+    /**
+     * Creates an ObservableWhen that tracks whether an observable equals a specific value.
+     *
+     * @param {ObservableItem} observer - The observable to watch
+     * @param {*} value - The value to compare against
+     * @class ObservableWhen
+     */
+    const ObservableWhen = function(observer, value) {
+        this.$target = value;
+        this.$observer = observer;
+    };
+
+    ObservableWhen.prototype.__$isObservableWhen = true;
+
+    /**
+     * Subscribes to changes in the match status (true when observable equals target value).
+     *
+     * @param {Function} callback - Function called with boolean indicating if values match
+     * @returns {Function} Unsubscribe function
+     * @example
+     * const status = Observable('idle');
+     * const isLoading = status.when('loading');
+     * isLoading.subscribe(active => console.log('Loading:', active));
+     */
+    ObservableWhen.prototype.subscribe = function(callback) {
+        return this.$observer.on(this.$target, callback);
+    };
+
+    /**
+     * Returns true if the observable's current value equals the target value.
+     *
+     * @returns {boolean} True if observable value matches target value
+     */
+    ObservableWhen.prototype.val = function() {
+        return this.$observer.$currentValue === this.$target;
+    };
+
+    /**
+     * Returns true if the observable's current value equals the target value.
+     * Alias for val().
+     *
+     * @returns {boolean} True if observable value matches target value
+     */
+    ObservableWhen.prototype.isMatch = ObservableWhen.prototype.val;
+
+    /**
+     * Returns true if the observable's current value equals the target value.
+     * Alias for val().
+     *
+     * @returns {boolean} True if observable value matches target value
+     */
+    ObservableWhen.prototype.isActive = ObservableWhen.prototype.val;
+
+    const nextTick = function(fn) {
+        let pending = false;
+        return function(...args) {
+            if (pending) return;
+            pending = true;
+
+            Promise.resolve().then(() => {
+                fn.apply(this, args);
+                pending = false;
+            });
+        };
+    };
+
+    /**
+     *
+     * @param {*} item
+     * @param {string|null} defaultKey
+     * @param {?Function} key
+     * @returns {*}
+     */
+    const getKey = (item, defaultKey, key) => {
+        if (Validator.isString(key)) {
+            const val = Validator.isObservable(item) ? item.val() : item;
+            const result = val?.[key];
+            return Validator.isObservable(result) ? result.val() : (result ?? defaultKey);
+        }
+
+        if (Validator.isFunction(key)) {
+            return key(item, defaultKey);
+        }
+
+        const val = Validator.isObservable(item) ? item.val() : item;
+        return val ?? defaultKey;
+    };
+
+    const trim = function(str, char) {
+        return str.replace(new RegExp(`^[${char}]+|[${char}]+$`, 'g'), '');
+    };
+
+    const deepClone = (value, onObservableFound) => {
+        try {
+            if(window.structuredClone !== undefined) {
+                return window.structuredClone(value);
+            }
+        } catch (e){}
+
+        if (value === null || typeof value !== 'object') {
+            return value;
+        }
+
+        // Dates
+        if (value instanceof Date) {
+            return new Date(value.getTime());
+        }
+
+        // Arrays
+        if (Array.isArray(value)) {
+            return value.map(item => deepClone(item));
+        }
+
+        // Observables - keep the référence
+        if (Validator.isObservable(value)) {
+            onObservableFound && onObservableFound(value);
+            return value;
+        }
+
+        // Objects
+        const cloned = {};
+        for (const key in value) {
+            if (Object.hasOwn(value, key)) {
+                cloned[key] = deepClone(value[key]);
+            }
+        }
+        return cloned;
+    };
+
+    const LocalStorage$1 = {
+        getJson(key) {
+            let value = localStorage.getItem(key);
+            try {
+                return JSON.parse(value);
+            } catch (e) {
+                throw new NativeDocumentError('invalid_json:'+key);
+            }
+        },
+        getNumber(key) {
+            return Number(this.get(key));
+        },
+        getBool(key) {
+            const value = this.get(key);
+            return value === 'true' || value === '1';
+        },
+        setJson(key, value) {
+            localStorage.setItem(key, JSON.stringify(value));
+        },
+        setBool(key, value) {
+            localStorage.setItem(key, value ? 'true' : 'false');
+        },
+        get(key, defaultValue = null) {
+            return localStorage.getItem(key) || defaultValue;
+        },
+        set(key, value) {
+            return localStorage.setItem(key, value);
+        },
+        remove(key) {
+            localStorage.removeItem(key);
+        },
+        has(key) {
+            return localStorage.getItem(key) != null;
+        }
+    };
+
+    const $getFromStorage$1 = (key, value) => {
+        if(!LocalStorage$1.has(key)) {
+            return value;
+        }
+        switch (typeof value) {
+            case 'object': return LocalStorage$1.getJson(key) ?? value;
+            case 'boolean': return LocalStorage$1.getBool(key) ?? value;
+            case 'number': return LocalStorage$1.getNumber(key) ?? value;
+            default: return LocalStorage$1.get(key, value) ?? value;
+        }
+    };
+
+    const $saveToStorage$1 = (value) => {
+        switch (typeof value) {
+            case 'object': return LocalStorage$1.setJson;
+            case 'boolean': return LocalStorage$1.setBool;
+            default: return LocalStorage$1.set;
+        }
+    };
+
+    const StoreFactory = function() {
+
+        const $stores = new Map();
+        const $followersCache = new Map();
+
+        /**
+         * Internal helper — retrieves a store entry or throws if not found.
+         */
+        const $getStoreOrThrow = (method, name) => {
+            const item = $stores.get(name);
+            if (!item) {
+                DebugManager.error('Store', `Store.${method}('${name}') : store not found. Did you call Store.create('${name}') first?`);
+                throw new NativeDocumentError(
+                    `Store.${method}('${name}') : store not found.`
+                );
+            }
+            return item;
+        };
+
+        /**
+         * Internal helper — blocks write operations on a read-only observer.
+         */
+        const $applyReadOnly = (observer, name, context) => {
+            const readOnlyError = (method) => () => {
+                DebugManager.error('Store', `Store.${context}('${name}') is read-only. '${method}()' is not allowed.`);
+                throw new NativeDocumentError(
+                    `Store.${context}('${name}') is read-only.`
+                );
+            };
+            observer.set    = readOnlyError('set');
+            observer.toggle = readOnlyError('toggle');
+            observer.reset  = readOnlyError('reset');
+        };
+
+        const $createObservable = (value, options = {}) => {
+            if(Array.isArray(value)) {
+                return Observable$1.array(value, options);
+            }
+            if(typeof value === 'object') {
+                return Observable$1.object(value, options);
+            }
+            return Observable$1(value, options);
+        };
+
+        const $api = {
+            /**
+             * Create a new state and return the observer.
+             * Throws if a store with the same name already exists.
+             *
+             * @param {string} name
+             * @param {*} value
+             * @returns {ObservableItem}
+             */
+            create(name, value) {
+                if ($stores.has(name)) {
+                    DebugManager.warn('Store', `Store.create('${name}') : a store with this name already exists. Use Store.get('${name}') to retrieve it.`);
+                    throw new NativeDocumentError(
+                        `Store.create('${name}') : a store with this name already exists.`
+                    );
+                }
+                const observer = $createObservable(value);
+                $stores.set(name, { observer, subscribers: new Set(), resettable: false, composed: false });
+                return observer;
+            },
+
+            /**
+             * Create a new resettable state and return the observer.
+             * The store can be reset to its initial value via Store.reset(name).
+             * Throws if a store with the same name already exists.
+             *
+             * @param {string} name
+             * @param {*} value
+             * @returns {ObservableItem}
+             */
+            createResettable(name, value) {
+                if ($stores.has(name)) {
+                    DebugManager.warn('Store', `Store.createResettable('${name}') : a store with this name already exists.`);
+                    throw new NativeDocumentError(
+                        `Store.createResettable('${name}') : a store with this name already exists.`
+                    );
+                }
+                const observer = $createObservable(value, { reset: true });
+                $stores.set(name, { observer, subscribers: new Set(), resettable: true, composed: false });
+                return observer;
+            },
+
+            /**
+             * Create a computed store derived from other stores.
+             * The value is automatically recalculated when any dependency changes.
+             * This store is read-only — Store.use() and Store.set() will throw.
+             * Throws if a store with the same name already exists.
+             *
+             * @param {string} name
+             * @param {() => *} computation - Function that returns the computed value
+             * @param {string[]} dependencies - Names of the stores to watch
+             * @returns {ObservableItem}
+             *
+             * @example
+             * Store.create('products', [{ id: 1, price: 10 }]);
+             * Store.create('cart', [{ productId: 1, quantity: 2 }]);
+             *
+             * Store.createComposed('total', () => {
+             *     const products = Store.get('products').val();
+             *     const cart     = Store.get('cart').val();
+             *     return cart.reduce((sum, item) => {
+             *         const product = products.find(p => p.id === item.productId);
+             *         return sum + (product.price * item.quantity);
+             *     }, 0);
+             * }, ['products', 'cart']);
+             */
+            createComposed(name, computation, dependencies) {
+                if ($stores.has(name)) {
+                    DebugManager.warn('Store', `Store.createComposed('${name}') : a store with this name already exists.`);
+                    throw new NativeDocumentError(
+                        `Store.createComposed('${name}') : a store with this name already exists.`
+                    );
+                }
+                if (typeof computation !== 'function') {
+                    throw new NativeDocumentError(
+                        `Store.createComposed('${name}') : computation must be a function.`
+                    );
+                }
+                if (!Array.isArray(dependencies) || dependencies.length === 0) {
+                    throw new NativeDocumentError(
+                        `Store.createComposed('${name}') : dependencies must be a non-empty array of store names.`
+                    );
+                }
+
+                // Resolve dependency observers
+                const depObservers = dependencies.map(depName => {
+                    if(typeof depName !== 'string') {
+                        return depName;
+                    }
+                    const depItem = $stores.get(depName);
+                    if (!depItem) {
+                        DebugManager.error('Store', `Store.createComposed('${name}') : dependency '${depName}' not found. Create it first.`);
+                        throw new NativeDocumentError(
+                            `Store.createComposed('${name}') : dependency store '${depName}' not found.`
+                        );
+                    }
+                    return depItem.observer;
+                });
+
+                // Create computed observable from dependency observers
+                const observer = Observable$1.computed(computation, depObservers);
+
+                $stores.set(name, { observer, subscribers: new Set(), resettable: false, composed: true });
+                return observer;
+            },
+
+            /**
+             * Returns true if a store with the given name exists.
+             *
+             * @param {string} name
+             * @returns {boolean}
+             */
+            has(name) {
+                return $stores.has(name);
+            },
+
+            /**
+             * Resets a resettable store to its initial value and notifies all subscribers.
+             * Throws if the store was not created with createResettable().
+             *
+             * @param {string} name
+             */
+            reset(name) {
+                const item = $getStoreOrThrow('reset', name);
+                if (item.composed) {
+                    DebugManager.error('Store', `Store.reset('${name}') : composed stores cannot be reset. Their value is derived from dependencies.`);
+                    throw new NativeDocumentError(
+                        `Store.reset('${name}') : composed stores cannot be reset.`
+                    );
+                }
+                if (!item.resettable) {
+                    DebugManager.error('Store', `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`);
+                    throw new NativeDocumentError(
+                        `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`
+                    );
+                }
+                item.observer.reset();
+            },
+
+            /**
+             * Returns a two-way synchronized follower of the store.
+             * Writing to the follower propagates the value back to the store and all its subscribers.
+             * Throws if called on a composed store — use Store.follow() instead.
+             * Call follower.destroy() or follower.dispose() to unsubscribe.
+             *
+             * @param {string} name
+             * @returns {ObservableItem}
+             */
+            use(name) {
+                const item = $getStoreOrThrow('use', name);
+
+                if (item.composed) {
+                    DebugManager.error('Store', `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`);
+                    throw new NativeDocumentError(
+                        `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`
+                    );
+                }
+
+                const { observer: originalObserver, subscribers } = item;
+                const observerFollower = $createObservable(originalObserver.val());
+
+                const onStoreChange    = value => observerFollower.set(value);
+                const onFollowerChange = value => originalObserver.set(value);
+
+                originalObserver.subscribe(onStoreChange);
+                observerFollower.subscribe(onFollowerChange);
+
+                observerFollower.destroy = () => {
+                    originalObserver.unsubscribe(onStoreChange);
+                    observerFollower.unsubscribe(onFollowerChange);
+                    subscribers.delete(observerFollower);
+                    observerFollower.cleanup();
+                };
+                observerFollower.dispose = observerFollower.destroy;
+
+                subscribers.add(observerFollower);
+                return observerFollower;
+            },
+
+            /**
+             * Returns a read-only follower of the store.
+             * The follower reflects store changes but cannot write back to the store.
+             * Any attempt to call .set(), .toggle() or .reset() will throw.
+             * Call follower.destroy() or follower.dispose() to unsubscribe.
+             *
+             * @param {string} name
+             * @returns {ObservableItem}
+             */
+            follow(name) {
+                const { observer: originalObserver, subscribers } = $getStoreOrThrow('follow', name);
+                const observerFollower = $createObservable(originalObserver.val());
+
+                const onStoreChange = value => observerFollower.set(value);
+                originalObserver.subscribe(onStoreChange);
+
+                $applyReadOnly(observerFollower, name, 'follow');
+
+                observerFollower.destroy = () => {
+                    originalObserver.unsubscribe(onStoreChange);
+                    subscribers.delete(observerFollower);
+                    observerFollower.cleanup();
+                };
+                observerFollower.dispose = observerFollower.destroy;
+
+                subscribers.add(observerFollower);
+                return observerFollower;
+            },
+
+            /**
+             * Returns the raw store observer directly (no follower, no cleanup contract).
+             * Use this for direct read access when you don't need to unsubscribe.
+             * WARNING : mutations on this observer impact all subscribers immediately.
+             *
+             * @param {string} name
+             * @returns {ObservableItem|null}
+             */
+            get(name) {
+                const item = $stores.get(name);
+                if (!item) {
+                    DebugManager.warn('Store', `Store.get('${name}') : store not found.`);
+                    return null;
+                }
+                return item.observer;
+            },
+
+            /**
+             * @param {string} name
+             * @returns {{ observer: ObservableItem, subscribers: Set } | null}
+             */
+            getWithSubscribers(name) {
+                return $stores.get(name) ?? null;
+            },
+
+            /**
+             * Destroys a store : cleans up the observer, destroys all followers, and removes the entry.
+             *
+             * @param {string} name
+             */
+            delete(name) {
+                const item = $stores.get(name);
+                if (!item) {
+                    DebugManager.warn('Store', `Store.delete('${name}') : store not found, nothing to delete.`);
+                    return;
+                }
+                item.subscribers.forEach(follower => follower.destroy());
+                item.subscribers.clear();
+                item.observer.cleanup();
+                $stores.delete(name);
+            },
+            /**
+             * Creates an isolated store group with its own state namespace.
+             * Each group is a fully independent StoreFactory instance —
+             * no key conflicts, no shared state with the parent store.
+             *
+             * @param {string | ((group: ReturnType<typeof StoreFactory>) => void)} name - Group name for debugging, or setup callback if no name is provided
+             * @param {((group: ReturnType<typeof StoreFactory>) => void)} [callback] - Setup function receiving the isolated store instance
+             * @returns {ReturnType<typeof StoreFactory>}
+             *
+             * @example
+             * // With name (recommended)
+             * const EventStore = Store.group('events', (group) => {
+             *     group.create('catalog', []);
+             *     group.create('filters', { category: null, date: null });
+             *     group.createResettable('selected', null);
+             *     group.createComposed('filtered', () => {
+             *         const catalog = EventStore.get('catalog').val();
+             *         const filters = EventStore.get('filters').val();
+             *         return catalog.filter(event => {
+             *             if (filters.category && event.category !== filters.category) return false;
+             *             return true;
+             *         });
+             *     }, ['catalog', 'filters']);
+             * });
+             *
+             * // Without name
+             * const CartStore = Store.group((group) => {
+             *     group.create('items', []);
+             * });
+             *
+             * // Usage
+             * EventStore.use('catalog'); // two-way follower
+             * EventStore.follow('filtered'); // read-only follower
+             * EventStore.get('filters'); // raw observable
+             *
+             * // Cross-group composed
+             * const OrderStore = Store.group('orders', (group) => {
+             *     group.createComposed('summary', () => {
+             *         const items = CartStore.get('items').val();
+             *         const events = EventStore.get('catalog').val();
+             *         return { items, events };
+             *     }, [CartStore.get('items'), EventStore.get('catalog')]);
+             * });
+             */
+            group(name, callback) {
+                if (typeof name === 'function') {
+                    callback = name;
+                    name = 'anonymous';
+                }
+                const store = StoreFactory();
+                callback && callback(store);
+                return store;
+            },
+            createPersistent(name, value, localstorage_key) {
+                localstorage_key = localstorage_key || name;
+                const observer = this.create(name, $getFromStorage$1(localstorage_key, value));
+                const saver = $saveToStorage$1(value);
+
+                observer.subscribe((val) => saver(localstorage_key, val));
+                return observer;
+            },
+            createPersistentResettable(name, value, localstorage_key) {
+                localstorage_key = localstorage_key || name;
+                const observer = this.createResettable(name, $getFromStorage$1(localstorage_key, value));
+                const saver = $saveToStorage$1(value);
+                observer.subscribe((val) => saver(localstorage_key, val));
+
+                const originalReset = observer.reset.bind(observer);
+                observer.reset = () => {
+                    LocalStorage$1.remove(localstorage_key);
+                    originalReset();
+                };
+
+                return observer;
+            }
+        };
+
+
+        return new Proxy($api, {
+            get(target, prop) {
+                if (typeof prop === 'symbol' || prop.startsWith('$') || prop in target) {
+                    return target[prop];
+                }
+                if (target.has(prop)) {
+                    if ($followersCache.has(prop)) {
+                        return $followersCache.get(prop);
+                    }
+                    const follower = target.follow(prop);
+                    $followersCache.set(prop, follower);
+                    return follower;
+                }
+                return undefined;
+            },
+            set(target, prop, value) {
+                DebugManager.error('Store', `Forbidden: You cannot overwrite the store key '${String(prop)}'. Use .use('${String(prop)}').set(value) instead.`);
+                throw new NativeDocumentError(`Store structure is immutable. Use .set() on the observable.`);
+            },
+            deleteProperty(target, prop) {
+                throw new NativeDocumentError(`Store keys cannot be deleted.`);
+            }
+        });
+    };
+
+    const Store = StoreFactory();
+
+    Store.create('locale', 'fr');
+
+    const $parseDateParts = (value, locale) => {
+        const d = new Date(value);
+        return {
+            d,
+            parts: new Intl.DateTimeFormat(locale, {
+                year:   'numeric',
+                month:  'long',
+                day:    '2-digit',
+                hour:   '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+            }).formatToParts(d).reduce((acc, { type, value }) => {
+                acc[type] = value;
+                return acc;
+            }, {})
+        };
+    };
+
+    const $applyDatePattern = (pattern, d, parts) => {
+        const pad = n => String(n).padStart(2, '0');
+        return pattern
+            .replace('YYYY', parts.year)
+            .replace('YY',   parts.year.slice(-2))
+            .replace('MMMM', parts.month)
+            .replace('MMM',  parts.month.slice(0, 3))
+            .replace('MM',   pad(d.getMonth() + 1))
+            .replace('DD',   pad(d.getDate()))
+            .replace('D',    d.getDate())
+            .replace('HH',   parts.hour)
+            .replace('mm',   parts.minute)
+            .replace('ss',   parts.second);
+    };
+
+    const Formatters = {
+
+        currency: (value, locale, { currency = 'XOF', notation, minimumFractionDigits, maximumFractionDigits } = {}) =>
+            new Intl.NumberFormat(locale, {
+                style: 'currency',
+                currency,
+                notation,
+                minimumFractionDigits,
+                maximumFractionDigits
+            }).format(value),
+
+        number: (value, locale, { notation, minimumFractionDigits, maximumFractionDigits } = {}) =>
+            new Intl.NumberFormat(locale, {
+                notation,
+                minimumFractionDigits,
+                maximumFractionDigits
+            }).format(value),
+
+        percent: (value, locale, { decimals = 1 } = {}) =>
+            new Intl.NumberFormat(locale, {
+                style:                'percent',
+                maximumFractionDigits: decimals
+            }).format(value),
+
+        date: (value, locale, { format, dateStyle = 'long' } = {}) => {
+            if (format) {
+                const { d, parts } = $parseDateParts(value, locale);
+                return $applyDatePattern(format, d, parts);
+            }
+            return new Intl.DateTimeFormat(locale, { dateStyle }).format(new Date(value));
+        },
+
+        time: (value, locale, { format, hour = '2-digit', minute = '2-digit', second } = {}) => {
+            if (format) {
+                const { d, parts } = $parseDateParts(value, locale);
+                return $applyDatePattern(format, d, parts);
+            }
+            return new Intl.DateTimeFormat(locale, { hour, minute, second }).format(new Date(value));
+        },
+
+        datetime: (value, locale, { format, dateStyle = 'long', hour = '2-digit', minute = '2-digit', second } = {}) => {
+            if (format) {
+                const { d, parts } = $parseDateParts(value, locale);
+                return $applyDatePattern(format, d, parts);
+            }
+            return new Intl.DateTimeFormat(locale, { dateStyle, hour, minute, second }).format(new Date(value));
+        },
+
+        relative: (value, locale, { unit = 'day', numeric = 'auto' } = {}) => {
+            const diff = Math.round((value - Date.now()) / (1000 * 60 * 60 * 24));
+            return new Intl.RelativeTimeFormat(locale, { numeric }).format(diff, unit);
+        },
+
+        plural: (value, locale, { singular, plural } = {}) => {
+            const rule = new Intl.PluralRules(locale).select(value);
+            return `${value} ${rule === 'one' ? singular : plural}`;
+        },
+    };
+
+    /**
+     *
+     * @param {*} value
+     * @param {{ propagation: boolean, reset: boolean} | null} configs
+     * @class ObservableItem
+     */
+    function ObservableItem(value, configs = null) {
+        value = Validator.isObservable(value) ? value.val() : value;
+
+        this.$previousValue = null;
+        this.$currentValue = value;
+        {
+            this.$isCleanedUp = false;
+        }
+
+        this.$firstListener = null;
+        this.$listeners = null;
+        this.$watchers = null;
+
+        this.$memoryId = null;
+
+        if(configs) {
+            this.configs = configs;
+            if(configs.reset) {
+                this.$initialValue = Validator.isObject(value) ? deepClone(value) : value;
+            }
+        }
+        {
+            PluginsManager.emit('CreateObservable', this);
+        }
+    }
+
+    Object.defineProperty(ObservableItem.prototype, '$value', {
+        get() {
+            return this.$currentValue;
+        },
+        set(value) {
+            this.set(value);
+        },
+        configurable: true,
+    });
+
+    ObservableItem.prototype.__$isObservable = true;
+    const noneTrigger = function() {};
+
+    /**
+     * Intercepts and transforms values before they are set on the observable.
+     * The interceptor can modify the value or return undefined to use the original value.
+     *
+     * @param {(value) => any} callback - Interceptor function that receives (newValue, currentValue) and returns the transformed value or undefined
+     * @returns {ObservableItem} The observable instance for chaining
+     * @example
+     * const count = Observable(0);
+     * count.intercept((newVal, oldVal) => Math.max(0, newVal)); // Prevent negative values
+     */
+    ObservableItem.prototype.intercept = function(callback) {
+        this.$interceptor = callback;
+        this.set = this.$setWithInterceptor;
+        return this;
+    };
+
+    ObservableItem.prototype.triggerFirstListener = function(operations) {
+        this.$firstListener(this.$currentValue, this.$previousValue, operations);
+    };
+
+    ObservableItem.prototype.triggerListeners = function(operations) {
+        const $listeners = this.$listeners;
+        const $previousValue = this.$previousValue;
+        const $currentValue = this.$currentValue;
+
+        for(let i = 0, length = $listeners.length; i < length; i++) {
+            $listeners[i]($currentValue, $previousValue, operations);
+        }
+    };
+
+    ObservableItem.prototype.triggerWatchers = function(operations) {
+        const $watchers = this.$watchers;
+        const $previousValue = this.$previousValue;
+        const $currentValue = this.$currentValue;
+
+        const $currentValueCallbacks = $watchers.get($currentValue);
+        const $previousValueCallbacks = $watchers.get($previousValue);
+        if($currentValueCallbacks) {
+            $currentValueCallbacks(true, $previousValue, operations);
+        }
+        if($previousValueCallbacks) {
+            $previousValueCallbacks(false, $currentValue, operations);
+        }
+    };
+
+    ObservableItem.prototype.triggerAll = function(operations) {
+        this.triggerWatchers(operations);
+        this.triggerListeners(operations);
+    };
+
+    ObservableItem.prototype.triggerWatchersAndFirstListener = function(operations) {
+        this.triggerWatchers(operations);
+        this.triggerFirstListener(operations);
+    };
+
+    ObservableItem.prototype.assocTrigger = function() {
+        this.$firstListener = null;
+        if(this.$watchers?.size && this.$listeners?.length) {
+            this.trigger = (this.$listeners.length === 1) ? this.triggerWatchersAndFirstListener : this.triggerAll;
+            return;
+        }
+        if(this.$listeners?.length) {
+            if(this.$listeners.length === 1) {
+                this.$firstListener = this.$listeners[0];
+                this.trigger = this.triggerFirstListener;
+            }
+            else {
+                this.trigger = this.triggerListeners;
+            }
+            return;
+        }
+        if(this.$watchers?.size) {
+            this.trigger = this.triggerWatchers;
+            return;
+        }
+        this.trigger = noneTrigger;
+    };
+    ObservableItem.prototype.trigger = noneTrigger;
+
+    ObservableItem.prototype.$updateWithNewValue = function(newValue) {
+        newValue = newValue?.__$isObservable ? newValue.val() : newValue;
+        if(this.$currentValue === newValue) {
+            return;
+        }
+        this.$previousValue = this.$currentValue;
+        this.$currentValue = newValue;
+        {
+            PluginsManager.emit('ObservableBeforeChange', this);
+        }
+        this.trigger();
+        this.$previousValue = null;
+        {
+            PluginsManager.emit('ObservableAfterChange', this);
+        }
+    };
+
+    /**
+     * @param {*} data
+     */
+    ObservableItem.prototype.$setWithInterceptor = function(data) {
+        let newValue = (typeof data === 'function') ? data(this.$currentValue) : data;
+        const result = this.$interceptor(newValue, this.$currentValue);
+
+        if (result !== undefined) {
+            newValue = result;
+        }
+
+        this.$updateWithNewValue(newValue);
+    };
+
+    /**
+     * @param {*} data
+     */
+    ObservableItem.prototype.$basicSet = function(data) {
+        let newValue = (typeof data === 'function') ? data(this.$currentValue) : data;
+        this.$updateWithNewValue(newValue);
+    };
+
+    ObservableItem.prototype.set = ObservableItem.prototype.$basicSet;
+
+    ObservableItem.prototype.val = function() {
+        return this.$currentValue;
+    };
+
+    ObservableItem.prototype.disconnectAll = function() {
+        this.$listeners?.splice(0);
+        this.$previousValue = null;
+        this.$currentValue = null;
+        if(this.$watchers) {
+            for (const [_, watchValueList] of this.$watchers) {
+                if(Validator.isArray(watchValueList)) {
+                    watchValueList.splice(0);
+                }
+            }
+        }
+        this.$watchers?.clear();
+        this.$listeners = null;
+        this.$watchers = null;
+        this.trigger = noneTrigger;
+    };
+
+    /**
+     * Registers a cleanup callback that will be executed when the observable is cleaned up.
+     * Useful for disposing resources, removing event listeners, or other cleanup tasks.
+     *
+     * @param {Function} callback - Cleanup function to execute on observable disposal
+     * @example
+     * const obs = Observable(0);
+     * obs.onCleanup(() => console.log('Cleaned up!'));
+     * obs.cleanup(); // Logs: "Cleaned up!"
+     */
+    ObservableItem.prototype.onCleanup = function(callback) {
+        this.$cleanupListeners = this.$cleanupListeners ?? [];
+        this.$cleanupListeners.push(callback);
+    };
+
+    ObservableItem.prototype.cleanup = function() {
+        if (this.$cleanupListeners) {
+            for (let i = 0; i < this.$cleanupListeners.length; i++) {
+                this.$cleanupListeners[i]();
+            }
+            this.$cleanupListeners = null;
+        }
+        MemoryManager.unregister(this.$memoryId);
+        this.disconnectAll();
+        {
+            this.$isCleanedUp = true;
+        }
+        delete this.$value;
+    };
+
+    /**
+     *
+     * @param {Function} callback
+     * @returns {(function(): void)}
+     */
+    ObservableItem.prototype.subscribe = function(callback) {
+        {
+            if (this.$isCleanedUp) {
+                DebugManager.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
+                return;
+            }
+            if (typeof callback !== 'function') {
+                throw new NativeDocumentError('Callback must be a function');
+            }
+        }
+        this.$listeners = this.$listeners ?? [];
+
+        this.$listeners.push(callback);
+        this.assocTrigger();
+        {
+            PluginsManager.emit('ObservableSubscribe', this);
+        }
+    };
+
+    /**
+     * Watches for a specific value and executes callback when the observable equals that value.
+     * Creates a watcher that only triggers when the observable changes to the specified value.
+     *
+     * @param {*} value - The value to watch for
+     * @param {(value) => void|ObservableItem} callback - Callback function or observable to set when value matches
+     * @example
+     * const status = Observable('idle');
+     * status.on('loading', () => console.log('Started loading'));
+     * status.on('error', isError); // Set another observable
+     */
+    ObservableItem.prototype.on = function(value, callback) {
+        this.$watchers = this.$watchers ?? new Map();
+
+        let watchValueList = this.$watchers.get(value);
+
+        if(callback.__$isObservable) {
+            callback = callback.set.bind(callback);
+        }
+
+        if(!watchValueList) {
+            watchValueList = callback;
+            this.$watchers.set(value, callback);
+        } else if(!Validator.isArray(watchValueList.list)) {
+            watchValueList = [watchValueList, callback];
+            callback = (value) => {
+                for(let i = 0, length = watchValueList.length; i < length; i++) {
+                    watchValueList[i](value);
+                }
+            };
+            callback.list = watchValueList;
+            this.$watchers.set(value, callback);
+        } else {
+            watchValueList.list.push(callback);
+        }
+
+        this.assocTrigger();
+    };
+
+    /**
+     * Removes a watcher for a specific value. If no callback is provided, removes all watchers for that value.
+     *
+     * @param {*} value - The value to stop watching
+     * @param {Function} [callback] - Specific callback to remove. If omitted, removes all watchers for this value
+     * @example
+     * const status = Observable('idle');
+     * const handler = () => console.log('Loading');
+     * status.on('loading', handler);
+     * status.off('loading', handler); // Remove specific handler
+     * status.off('loading'); // Remove all handlers for 'loading'
+     */
+    ObservableItem.prototype.off = function(value, callback) {
+        if(!this.$watchers) return;
+
+        const watchValueList = this.$watchers.get(value);
+        if(!watchValueList) return;
+
+        if(!callback || !Array.isArray(watchValueList.list)) {
+            this.$watchers?.delete(value);
+            this.assocTrigger();
+            return;
+        }
+        const index = watchValueList.indexOf(callback);
+        watchValueList?.splice(index, 1);
+        if(watchValueList.length === 1) {
+            this.$watchers.set(value, watchValueList[0]);
+        }
+        else if(watchValueList.length === 0) {
+            this.$watchers?.delete(value);
+        }
+        this.assocTrigger();
+    };
+
+    /**
+     * Subscribes to the observable but automatically unsubscribes after the first time the predicate matches.
+     *
+     * @param {(value) => Boolean|any} predicate - Value to match or function that returns true when condition is met
+     * @param {(value) => void} callback - Callback to execute when predicate matches, receives the matched value
+     * @example
+     * const status = Observable('loading');
+     * status.once('ready', (val) => console.log('Ready!'));
+     * status.once(val => val === 'error', (val) => console.log('Error occurred'));
+     */
+    ObservableItem.prototype.once = function(predicate, callback) {
+        const fn = typeof predicate === 'function' ? predicate : (v) => v === predicate;
+
+        const handler = (val) => {
+            if (fn(val)) {
+                this.unsubscribe(handler);
+                callback(val);
+            }
+        };
+        this.subscribe(handler);
+    };
+
+    /**
+     * Unsubscribe from an observable.
+     * @param {Function} callback
+     */
+    ObservableItem.prototype.unsubscribe = function(callback) {
+        if(!this.$listeners) return;
+        const index = this.$listeners.indexOf(callback);
+        if (index > -1) {
+            this.$listeners.splice(index, 1);
+        }
+        this.assocTrigger();
+        {
+            PluginsManager.emit('ObservableUnsubscribe', this);
+        }
+    };
+
+    /**
+     * Create an Observable checker instance
+     * @param callback
+     * @returns {ObservableChecker}
+     */
+    ObservableItem.prototype.check = function(callback) {
+        return new ObservableChecker(this, callback)
+    };
+
+    ObservableItem.prototype.transform = ObservableItem.prototype.check;
+    ObservableItem.prototype.pluck = ObservableItem.prototype.check;
+    ObservableItem.prototype.is = ObservableItem.prototype.check;
+    ObservableItem.prototype.select = ObservableItem.prototype.check;
+
+    /**
+     * Gets a property value from the observable's current value.
+     * If the property is an observable, returns its value.
+     *
+     * @param {string|number} key - Property key to retrieve
+     * @returns {*} The value of the property, unwrapped if it's an observable
+     * @example
+     * const user = Observable({ name: 'John', age: Observable(25) });
+     * user.get('name'); // 'John'
+     * user.get('age'); // 25 (unwrapped from observable)
+     */
+    ObservableItem.prototype.get = function(key) {
+        const item = this.$currentValue[key];
+        return Validator.isObservable(item) ? item.val() : item;
+    };
+
+    /**
+     * Creates an ObservableWhen that represents whether the observable equals a specific value.
+     * Returns an object that can be subscribed to and will emit true/false.
+     *
+     * @param {*} value - The value to compare against
+     * @returns {ObservableWhen} An ObservableWhen instance that tracks when the observable equals the value
+     * @example
+     * const status = Observable('idle');
+     * const isLoading = status.when('loading');
+     * isLoading.subscribe(active => console.log('Loading:', active));
+     * status.set('loading'); // Logs: "Loading: true"
+     */
+    ObservableItem.prototype.when = function(value) {
+        return new ObservableWhen(this, value);
+    };
+
+    /**
+     * Compares the observable's current value with another value or observable.
+     *
+     * @param {*|ObservableItem} other - Value or observable to compare against
+     * @returns {boolean} True if values are equal
+     * @example
+     * const a = Observable(5);
+     * const b = Observable(5);
+     * a.equals(5);  // true
+     * a.equals(b);  // true
+     * a.equals(10); // false
+     */
+    ObservableItem.prototype.equals = function(other) {
+        if(Validator.isObservable(other)) {
+            return this.$currentValue === other.$currentValue;
+        }
+        return this.$currentValue === other;
+    };
+
+    /**
+     * Converts the observable's current value to a boolean.
+     *
+     * @returns {boolean} The boolean representation of the current value
+     * @example
+     * const count = Observable(0);
+     * count.toBool(); // false
+     * count.set(5);
+     * count.toBool(); // true
+     */
+    ObservableItem.prototype.toBool = function() {
+        return !!this.$currentValue;
+    };
+
+    /**
+     * Toggles the boolean value of the observable (false becomes true, true becomes false).
+     *
+     * @example
+     * const isOpen = Observable(false);
+     * isOpen.toggle(); // Now true
+     * isOpen.toggle(); // Now false
+     */
+    ObservableItem.prototype.toggle = function() {
+        this.set(!this.$currentValue);
+    };
+
+    /**
+     * Resets the observable to its initial value.
+     * Only works if the observable was created with { reset: true } config.
+     *
+     * @example
+     * const count = Observable(0, { reset: true });
+     * count.set(10);
+     * count.reset(); // Back to 0
+     */
+    ObservableItem.prototype.reset = function() {
+        if(!this.configs?.reset) {
+            return;
+        }
+        const resetValue = (Validator.isObject(this.$initialValue))
+            ? deepClone(this.$initialValue, (observable) => {
+                observable.reset();
+            })
+            : this.$initialValue;
+        this.set(resetValue);
+    };
+
+    /**
+     * Returns a string representation of the observable's current value.
+     *
+     * @returns {string} String representation of the current value
+     */
+    ObservableItem.prototype.toString = function() {
+        return String(this.$currentValue);
+    };
+
+    /**
+     * Returns the primitive value of the observable (its current value).
+     * Called automatically in type coercion contexts.
+     *
+     * @returns {*} The current value of the observable
+     */
+    ObservableItem.prototype.valueOf = function() {
+        return this.$currentValue;
+    };
+
+
+    /**
+     * Creates a derived observable that formats the current value using Intl.
+     * Automatically reacts to both value changes and locale changes (Store.__nd.locale).
+     *
+     * @param {string | Function} type - Format type or custom formatter function
+     * @param {Object} [options={}] - Options passed to the formatter
+     * @returns {ObservableItem<string>}
+     *
+     * @example
+     * // Currency
+     * price.format('currency')                                      // "15 000 FCFA"
+     * price.format('currency', { currency: 'EUR' })                 // "15 000,00 €"
+     * price.format('currency', { notation: 'compact' })             // "15 K FCFA"
+     *
+     * // Number
+     * count.format('number')                                        // "15 000"
+     *
+     * // Percent
+     * rate.format('percent')                                        // "15,0 %"
+     * rate.format('percent', { decimals: 2 })                       // "15,00 %"
+     *
+     * // Date
+     * date.format('date')                                           // "3 mars 2026"
+     * date.format('date', { dateStyle: 'full' })                    // "mardi 3 mars 2026"
+     * date.format('date', { format: 'DD/MM/YYYY' })                 // "03/03/2026"
+     * date.format('date', { format: 'DD MMM YYYY' })                // "03 mar 2026"
+     * date.format('date', { format: 'DD MMMM YYYY' })               // "03 mars 2026"
+     *
+     * // Time
+     * date.format('time')                                           // "20:30"
+     * date.format('time', { second: '2-digit' })                    // "20:30:00"
+     * date.format('time', { format: 'HH:mm:ss' })                   // "20:30:00"
+     *
+     * // Datetime
+     * date.format('datetime')                                       // "3 mars 2026, 20:30"
+     * date.format('datetime', { dateStyle: 'full' })                // "mardi 3 mars 2026, 20:30"
+     * date.format('datetime', { format: 'DD/MM/YYYY HH:mm' })       // "03/03/2026 20:30"
+     *
+     * // Relative
+     * date.format('relative')                                       // "dans 11 jours"
+     * date.format('relative', { unit: 'month' })                    // "dans 1 mois"
+     *
+     * // Plural
+     * count.format('plural', { singular: 'billet', plural: 'billets' }) // "3 billets"
+     *
+     * // Custom formatter
+     * price.format(value => `${value.toLocaleString()} FCFA`)
+     *
+     * // Reacts to locale changes automatically
+     * Store.setLocale('en-US');
+     */
+    ObservableItem.prototype.format = function(type, options = {}) {
+        const self = this;
+
+        if (typeof type === 'function') {
+            return new ObservableChecker(self, type);
+        }
+
+        {
+            if (!Formatters[type]) {
+                throw new NativeDocumentError(
+                    `Observable.format : unknown type '${type}'. Available : ${Object.keys(Formatters).join(', ')}.`
+                );
+            }
+        }
+
+        const formatter = Formatters[type];
+        const localeObservable = Store.follow('locale');
+
+        return Observable$1.computed(() => formatter(self.val(), localeObservable.val(), options),
+            [self, localeObservable]
+        );
+    };
+
+    ObservableItem.prototype.persist = function(key, options = {}) {
+        let value = $getFromStorage$1(key, this.$currentValue);
+        if(options.get) {
+            value = options.get(value);
+        }
+        this.set(value);
+        const saver = $saveToStorage$1(this.$currentValue);
+        this.subscribe((newValue) => {
+            saver(key, options.set ? options.set(newValue) : newValue);
+        });
+        return this;
+    };
+
     /**
      *
      * @param {*} value
@@ -1663,18 +2293,18 @@ var NativeDocument = (function (exports) {
      * @returns {ObservableItem}
      * @constructor
      */
-    function Observable(value, configs = null) {
+    function Observable$1(value, configs = null) {
         return new ObservableItem(value, configs);
     }
 
-    const $ = Observable;
-    const obs = Observable;
+    const $ = Observable$1;
+    const obs = Observable$1;
 
     /**
      *
      * @param {string} propertyName
      */
-    Observable.useValueProperty = function(propertyName = 'value') {
+    Observable$1.useValueProperty = function(propertyName = 'value') {
         Object.defineProperty(ObservableItem.prototype, propertyName, {
             get() {
                 return this.$currentValue;
@@ -1692,7 +2322,7 @@ var NativeDocument = (function (exports) {
      * @param id
      * @returns {ObservableItem|null}
      */
-    Observable.getById = function(id) {
+    Observable$1.getById = function(id) {
         const item = MemoryManager.getObservableById(parseInt(id));
         if(!item) {
             throw new NativeDocumentError('Observable.getById : No observable found with id ' + id);
@@ -1704,7 +2334,7 @@ var NativeDocument = (function (exports) {
      *
      * @param {ObservableItem} observable
      */
-    Observable.cleanup = function(observable) {
+    Observable$1.cleanup = function(observable) {
         observable.cleanup();
     };
 
@@ -1713,7 +2343,7 @@ var NativeDocument = (function (exports) {
      * @param {Boolean} enable
      * @param {{interval:Boolean, threshold:number}} options
      */
-    Observable.autoCleanup = function(enable = false, options = {}) {
+    Observable$1.autoCleanup = function(enable = false, options = {}) {
         if(!enable) {
             return;
         }
@@ -1858,6 +2488,12 @@ var NativeDocument = (function (exports) {
         return element;
     }
 
+    function TemplateBinding(hydrate) {
+        this.$hydrate = hydrate;
+    }
+
+    TemplateBinding.prototype.__$isTemplateBinding = true;
+
     String.prototype.toNdElement = function () {
         const formattedChild = this.resolveObservableTemplate ? this.resolveObservableTemplate() : this;
         if(Validator.isString(formattedChild)) {
@@ -1905,7 +2541,7 @@ var NativeDocument = (function (exports) {
     Function.prototype.toNdElement = function () {
         const child = this;
         {
-            PluginsManager$1.emit('BeforeProcessComponent', child);
+            PluginsManager.emit('BeforeProcessComponent', child);
         }
         return ElementCreator.getChild(child());
     };
@@ -2093,14 +2729,14 @@ var NativeDocument = (function (exports) {
         processChildren(children, parent) {
             if(children === null) return;
             {
-                PluginsManager$1.emit('BeforeProcessChildren', parent);
+                PluginsManager.emit('BeforeProcessChildren', parent);
             }
             let child = this.getChild(children);
             if(child) {
                 parent.appendChild(child);
             }
             {
-                PluginsManager$1.emit('AfterProcessChildren', parent);
+                PluginsManager.emit('AfterProcessChildren', parent);
             }
         },
         async safeRemove(element) {
@@ -2861,7 +3497,7 @@ var NativeDocument = (function (exports) {
     String.prototype.use = function(args) {
         const value = this;
 
-        return Observable.computed(() => {
+        return Observable$1.computed(() => {
             return value.replace(/\$\{(.*?)}/g, (match, key) => {
                 const data = args[key];
                 if(Validator.isObservable(data)) {
@@ -2881,7 +3517,7 @@ var NativeDocument = (function (exports) {
                 return value;
             }
             const [_, id] = value.match(/\{\{#ObItem::\(([0-9]+)\)\}\}/);
-            return Observable.getById(id);
+            return Observable$1.getById(id);
         });
     };
 
@@ -3356,7 +3992,7 @@ var NativeDocument = (function (exports) {
 
         ObservableItem.call(this, target, configs);
         {
-            PluginsManager$1.emit('CreateObservableArray', this);
+            PluginsManager.emit('CreateObservableArray', this);
         }
     };
 
@@ -3574,7 +4210,7 @@ var NativeDocument = (function (exports) {
             }
         }
 
-        const viewArray = Observable.array();
+        const viewArray = Observable$1.array();
 
         const filters = Object.entries(filterCallbacks);
         const updateView = () => {
@@ -3660,7 +4296,7 @@ var NativeDocument = (function (exports) {
      * items.push(4); // Triggers update
      * items.subscribe((arr) => console.log(arr));
      */
-    Observable.array = function(target = [], configs = null) {
+    Observable$1.array = function(target = [], configs = null) {
         return new ObservableArray(target, configs);
     };
 
@@ -3669,8 +4305,8 @@ var NativeDocument = (function (exports) {
      * @param {Function} callback
      * @returns {Function}
      */
-    Observable.batch = function(callback) {
-        const $observer = Observable(0);
+    Observable$1.batch = function(callback) {
+        const $observer = Observable$1(0);
         const batch = function() {
             if(Validator.isAsyncFunction(callback)) {
                 return (callback(...arguments)).then(() => {
@@ -3744,7 +4380,7 @@ var NativeDocument = (function (exports) {
      * user.name = 'Jane X'
      * user.age.subscribe(val => console.log('Age:', val));
      */
-    Observable.init = function(initialValue, configs = null) {
+    Observable$1.init = function(initialValue, configs = null) {
         const data = {};
         for(const key in initialValue) {
             const itemValue = initialValue[key];
@@ -3752,24 +4388,24 @@ var NativeDocument = (function (exports) {
                 if(configs?.deep !== false) {
                     const mappedItemValue = itemValue.map(item => {
                         if(Validator.isJson(item)) {
-                            return Observable.json(item, configs);
+                            return Observable$1.json(item, configs);
                         }
                         if(Validator.isArray(item)) {
-                            return Observable.array(item, configs);
+                            return Observable$1.array(item, configs);
                         }
-                        return Observable(item, configs);
+                        return Observable$1(item, configs);
                     });
-                    data[key] = Observable.array(mappedItemValue, configs);
+                    data[key] = Observable$1.array(mappedItemValue, configs);
                     continue;
                 }
-                data[key] = Observable.array(itemValue, configs);
+                data[key] = Observable$1.array(itemValue, configs);
                 continue;
             }
             if(Validator.isObservable(itemValue) || Validator.isProxy(itemValue)) {
                 data[key] = itemValue;
                 continue;
             }
-            data[key] = Observable(itemValue, configs);
+            data[key] = Observable$1(itemValue, configs);
         }
 
         const $reset = () => {
@@ -3781,10 +4417,10 @@ var NativeDocument = (function (exports) {
 
         const $val = () => ObservableObjectValue(data);
 
-        const $clone = () => Observable.init($val(), configs);
+        const $clone = () => Observable$1.init($val(), configs);
 
         const $updateWith = (values) => {
-            Observable.update(proxy, values);
+            Observable$1.update(proxy, values);
         };
 
         const $get = (key) => ObservableGet(data, key);
@@ -3822,8 +4458,8 @@ var NativeDocument = (function (exports) {
      * @param {any[]} data
      * @return Proxy[]
      */
-    Observable.arrayOfObject = function(data) {
-        return data.map(item => Observable.object(item));
+    Observable$1.arrayOfObject = function(data) {
+        return data.map(item => Observable$1.object(item));
     };
 
     /**
@@ -3831,7 +4467,7 @@ var NativeDocument = (function (exports) {
      * @param {ObservableItem|Object<ObservableItem>} data
      * @returns {{}|*|null}
      */
-    Observable.value = function(data) {
+    Observable$1.value = function(data) {
         if(Validator.isObservable(data)) {
             return data.val();
         }
@@ -3842,7 +4478,7 @@ var NativeDocument = (function (exports) {
             const result = [];
             for(let i = 0, length = data.length; i < length; i++) {
                 const item = data[i];
-                result.push(Observable.value(item));
+                result.push(Observable$1.value(item));
             }
             return result;
         }
@@ -3850,7 +4486,7 @@ var NativeDocument = (function (exports) {
     };
 
 
-    Observable.update = function($target, newData) {
+    Observable$1.update = function($target, newData) {
         const data = Validator.isProxy(newData) ? newData.$value : newData;
         const configs = $target.configs;
 
@@ -3865,9 +4501,9 @@ var NativeDocument = (function (exports) {
                     if(Validator.isObservable(firstElementFromOriginalValue) || Validator.isProxy(firstElementFromOriginalValue)) {
                         const newValues = newValue.map(item => {
                             if(Validator.isProxy(firstElementFromOriginalValue)) {
-                                return Observable.init(item, configs);
+                                return Observable$1.init(item, configs);
                             }
-                            return Observable(item, configs);
+                            return Observable$1(item, configs);
                         });
                         targetItem.set(newValues);
                         continue;
@@ -3879,15 +4515,15 @@ var NativeDocument = (function (exports) {
                 continue;
             }
             if(Validator.isProxy(targetItem)) {
-                Observable.update(targetItem, newValue);
+                Observable$1.update(targetItem, newValue);
                 continue;
             }
             $target[key] = newValue;
         }
     };
 
-    Observable.object = Observable.init;
-    Observable.json = Observable.init;
+    Observable$1.object = Observable$1.init;
+    Observable$1.json = Observable$1.init;
 
     /**
      * Creates a computed observable that automatically updates when its dependencies change.
@@ -3908,12 +4544,12 @@ var NativeDocument = (function (exports) {
      * const batch = Observable.batch(() => { ...  });
      * const computed = Observable.computed(() => { ... }, batch);
     */
-    Observable.computed = function(callback, dependencies = []) {
+    Observable$1.computed = function(callback, dependencies = []) {
         const initialValue = callback();
         const observable = new ObservableItem(initialValue);
         const updatedValue = nextTick(() => observable.set(callback()));
         {
-            PluginsManager$1.emit('CreateObservableComputed', observable, dependencies);
+            PluginsManager.emit('CreateObservableComputed', observable, dependencies);
         }
 
         if(Validator.isFunction(dependencies)) {
@@ -3936,382 +4572,6 @@ var NativeDocument = (function (exports) {
 
         return observable;
     };
-
-    const StoreFactory = function() {
-
-        const $stores = new Map();
-        const $followersCache = new Map();
-
-        /**
-         * Internal helper — retrieves a store entry or throws if not found.
-         */
-        const $getStoreOrThrow = (method, name) => {
-            const item = $stores.get(name);
-            if (!item) {
-                DebugManager$1.error('Store', `Store.${method}('${name}') : store not found. Did you call Store.create('${name}') first?`);
-                throw new NativeDocumentError(
-                    `Store.${method}('${name}') : store not found.`
-                );
-            }
-            return item;
-        };
-
-        /**
-         * Internal helper — blocks write operations on a read-only observer.
-         */
-        const $applyReadOnly = (observer, name, context) => {
-            const readOnlyError = (method) => () => {
-                DebugManager$1.error('Store', `Store.${context}('${name}') is read-only. '${method}()' is not allowed.`);
-                throw new NativeDocumentError(
-                    `Store.${context}('${name}') is read-only.`
-                );
-            };
-            observer.set    = readOnlyError('set');
-            observer.toggle = readOnlyError('toggle');
-            observer.reset  = readOnlyError('reset');
-        };
-
-        const $createObservable = (value, options = {}) => {
-            if(Array.isArray(value)) {
-                return Observable.array(value, options);
-            }
-            if(typeof value === 'object') {
-                return Observable.object(value, options);
-            }
-            return Observable(value, options);
-        };
-
-        const $api = {
-            /**
-             * Create a new state and return the observer.
-             * Throws if a store with the same name already exists.
-             *
-             * @param {string} name
-             * @param {*} value
-             * @returns {ObservableItem}
-             */
-            create(name, value) {
-                if ($stores.has(name)) {
-                    DebugManager$1.warn('Store', `Store.create('${name}') : a store with this name already exists. Use Store.get('${name}') to retrieve it.`);
-                    throw new NativeDocumentError(
-                        `Store.create('${name}') : a store with this name already exists.`
-                    );
-                }
-                const observer = $createObservable(value);
-                $stores.set(name, { observer, subscribers: new Set(), resettable: false, composed: false });
-                return observer;
-            },
-
-            /**
-             * Create a new resettable state and return the observer.
-             * The store can be reset to its initial value via Store.reset(name).
-             * Throws if a store with the same name already exists.
-             *
-             * @param {string} name
-             * @param {*} value
-             * @returns {ObservableItem}
-             */
-            createResettable(name, value) {
-                if ($stores.has(name)) {
-                    DebugManager$1.warn('Store', `Store.createResettable('${name}') : a store with this name already exists.`);
-                    throw new NativeDocumentError(
-                        `Store.createResettable('${name}') : a store with this name already exists.`
-                    );
-                }
-                const observer = $createObservable(value, { reset: true });
-                $stores.set(name, { observer, subscribers: new Set(), resettable: true, composed: false });
-                return observer;
-            },
-
-            /**
-             * Create a computed store derived from other stores.
-             * The value is automatically recalculated when any dependency changes.
-             * This store is read-only — Store.use() and Store.set() will throw.
-             * Throws if a store with the same name already exists.
-             *
-             * @param {string} name
-             * @param {() => *} computation - Function that returns the computed value
-             * @param {string[]} dependencies - Names of the stores to watch
-             * @returns {ObservableItem}
-             *
-             * @example
-             * Store.create('products', [{ id: 1, price: 10 }]);
-             * Store.create('cart', [{ productId: 1, quantity: 2 }]);
-             *
-             * Store.createComposed('total', () => {
-             *     const products = Store.get('products').val();
-             *     const cart     = Store.get('cart').val();
-             *     return cart.reduce((sum, item) => {
-             *         const product = products.find(p => p.id === item.productId);
-             *         return sum + (product.price * item.quantity);
-             *     }, 0);
-             * }, ['products', 'cart']);
-             */
-            createComposed(name, computation, dependencies) {
-                if ($stores.has(name)) {
-                    DebugManager$1.warn('Store', `Store.createComposed('${name}') : a store with this name already exists.`);
-                    throw new NativeDocumentError(
-                        `Store.createComposed('${name}') : a store with this name already exists.`
-                    );
-                }
-                if (typeof computation !== 'function') {
-                    throw new NativeDocumentError(
-                        `Store.createComposed('${name}') : computation must be a function.`
-                    );
-                }
-                if (!Array.isArray(dependencies) || dependencies.length === 0) {
-                    throw new NativeDocumentError(
-                        `Store.createComposed('${name}') : dependencies must be a non-empty array of store names.`
-                    );
-                }
-
-                // Resolve dependency observers
-                const depObservers = dependencies.map(depName => {
-                    if(typeof depName !== 'string') {
-                        return depName;
-                    }
-                    const depItem = $stores.get(depName);
-                    if (!depItem) {
-                        DebugManager$1.error('Store', `Store.createComposed('${name}') : dependency '${depName}' not found. Create it first.`);
-                        throw new NativeDocumentError(
-                            `Store.createComposed('${name}') : dependency store '${depName}' not found.`
-                        );
-                    }
-                    return depItem.observer;
-                });
-
-                // Create computed observable from dependency observers
-                const observer = Observable.computed(computation, depObservers);
-
-                $stores.set(name, { observer, subscribers: new Set(), resettable: false, composed: true });
-                return observer;
-            },
-
-            /**
-             * Returns true if a store with the given name exists.
-             *
-             * @param {string} name
-             * @returns {boolean}
-             */
-            has(name) {
-                return $stores.has(name);
-            },
-
-            /**
-             * Resets a resettable store to its initial value and notifies all subscribers.
-             * Throws if the store was not created with createResettable().
-             *
-             * @param {string} name
-             */
-            reset(name) {
-                const item = $getStoreOrThrow('reset', name);
-                if (item.composed) {
-                    DebugManager$1.error('Store', `Store.reset('${name}') : composed stores cannot be reset. Their value is derived from dependencies.`);
-                    throw new NativeDocumentError(
-                        `Store.reset('${name}') : composed stores cannot be reset.`
-                    );
-                }
-                if (!item.resettable) {
-                    DebugManager$1.error('Store', `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`);
-                    throw new NativeDocumentError(
-                        `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`
-                    );
-                }
-                item.observer.reset();
-            },
-
-            /**
-             * Returns a two-way synchronized follower of the store.
-             * Writing to the follower propagates the value back to the store and all its subscribers.
-             * Throws if called on a composed store — use Store.follow() instead.
-             * Call follower.destroy() or follower.dispose() to unsubscribe.
-             *
-             * @param {string} name
-             * @returns {ObservableItem}
-             */
-            use(name) {
-                const item = $getStoreOrThrow('use', name);
-
-                if (item.composed) {
-                    DebugManager$1.error('Store', `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`);
-                    throw new NativeDocumentError(
-                        `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`
-                    );
-                }
-
-                const { observer: originalObserver, subscribers } = item;
-                const observerFollower = $createObservable(originalObserver.val());
-
-                const onStoreChange    = value => observerFollower.set(value);
-                const onFollowerChange = value => originalObserver.set(value);
-
-                originalObserver.subscribe(onStoreChange);
-                observerFollower.subscribe(onFollowerChange);
-
-                observerFollower.destroy = () => {
-                    originalObserver.unsubscribe(onStoreChange);
-                    observerFollower.unsubscribe(onFollowerChange);
-                    subscribers.delete(observerFollower);
-                    observerFollower.cleanup();
-                };
-                observerFollower.dispose = observerFollower.destroy;
-
-                subscribers.add(observerFollower);
-                return observerFollower;
-            },
-
-            /**
-             * Returns a read-only follower of the store.
-             * The follower reflects store changes but cannot write back to the store.
-             * Any attempt to call .set(), .toggle() or .reset() will throw.
-             * Call follower.destroy() or follower.dispose() to unsubscribe.
-             *
-             * @param {string} name
-             * @returns {ObservableItem}
-             */
-            follow(name) {
-                const { observer: originalObserver, subscribers } = $getStoreOrThrow('follow', name);
-                const observerFollower = $createObservable(originalObserver.val());
-
-                const onStoreChange = value => observerFollower.set(value);
-                originalObserver.subscribe(onStoreChange);
-
-                $applyReadOnly(observerFollower, name, 'follow');
-
-                observerFollower.destroy = () => {
-                    originalObserver.unsubscribe(onStoreChange);
-                    subscribers.delete(observerFollower);
-                    observerFollower.cleanup();
-                };
-                observerFollower.dispose = observerFollower.destroy;
-
-                subscribers.add(observerFollower);
-                return observerFollower;
-            },
-
-            /**
-             * Returns the raw store observer directly (no follower, no cleanup contract).
-             * Use this for direct read access when you don't need to unsubscribe.
-             * WARNING : mutations on this observer impact all subscribers immediately.
-             *
-             * @param {string} name
-             * @returns {ObservableItem|null}
-             */
-            get(name) {
-                const item = $stores.get(name);
-                if (!item) {
-                    DebugManager$1.warn('Store', `Store.get('${name}') : store not found.`);
-                    return null;
-                }
-                return item.observer;
-            },
-
-            /**
-             * @param {string} name
-             * @returns {{ observer: ObservableItem, subscribers: Set } | null}
-             */
-            getWithSubscribers(name) {
-                return $stores.get(name) ?? null;
-            },
-
-            /**
-             * Destroys a store : cleans up the observer, destroys all followers, and removes the entry.
-             *
-             * @param {string} name
-             */
-            delete(name) {
-                const item = $stores.get(name);
-                if (!item) {
-                    DebugManager$1.warn('Store', `Store.delete('${name}') : store not found, nothing to delete.`);
-                    return;
-                }
-                item.subscribers.forEach(follower => follower.destroy());
-                item.subscribers.clear();
-                item.observer.cleanup();
-                $stores.delete(name);
-            },
-            /**
-             * Creates an isolated store group with its own state namespace.
-             * Each group is a fully independent StoreFactory instance —
-             * no key conflicts, no shared state with the parent store.
-             *
-             * @param {string | ((group: ReturnType<typeof StoreFactory>) => void)} name - Group name for debugging, or setup callback if no name is provided
-             * @param {((group: ReturnType<typeof StoreFactory>) => void)} [callback] - Setup function receiving the isolated store instance
-             * @returns {ReturnType<typeof StoreFactory>}
-             *
-             * @example
-             * // With name (recommended)
-             * const EventStore = Store.group('events', (group) => {
-             *     group.create('catalog', []);
-             *     group.create('filters', { category: null, date: null });
-             *     group.createResettable('selected', null);
-             *     group.createComposed('filtered', () => {
-             *         const catalog = EventStore.get('catalog').val();
-             *         const filters = EventStore.get('filters').val();
-             *         return catalog.filter(event => {
-             *             if (filters.category && event.category !== filters.category) return false;
-             *             return true;
-             *         });
-             *     }, ['catalog', 'filters']);
-             * });
-             *
-             * // Without name
-             * const CartStore = Store.group((group) => {
-             *     group.create('items', []);
-             * });
-             *
-             * // Usage
-             * EventStore.use('catalog'); // two-way follower
-             * EventStore.follow('filtered'); // read-only follower
-             * EventStore.get('filters'); // raw observable
-             *
-             * // Cross-group composed
-             * const OrderStore = Store.group('orders', (group) => {
-             *     group.createComposed('summary', () => {
-             *         const items = CartStore.get('items').val();
-             *         const events = EventStore.get('catalog').val();
-             *         return { items, events };
-             *     }, [CartStore.get('items'), EventStore.get('catalog')]);
-             * });
-             */
-            group(name, callback) {
-                if (typeof name === 'function') {
-                    callback = name;
-                    name = 'anonymous';
-                }
-                const store = StoreFactory();
-                callback && callback(store);
-                return store;
-            }
-        };
-
-
-        return new Proxy($api, {
-            get(target, prop) {
-                if (typeof prop === 'symbol' || prop.startsWith('$') || prop in target) {
-                    return target[prop];
-                }
-                if (target.has(prop)) {
-                    if ($followersCache.has(prop)) {
-                        return $followersCache.get(prop);
-                    }
-                    const follower = target.follow(prop);
-                    $followersCache.set(prop, follower);
-                    return follower;
-                }
-                return undefined;
-            },
-            set(target, prop, value) {
-                DebugManager$1.error('Store', `Forbidden: You cannot overwrite the store key '${String(prop)}'. Use .use('${String(prop)}').set(value) instead.`);
-                throw new NativeDocumentError(`Store structure is immutable. Use .set() on the observable.`);
-            },
-            deleteProperty(target, prop) {
-                throw new NativeDocumentError(`Store keys cannot be deleted.`);
-            }
-        });
-    };
-
-    const Store = StoreFactory();
 
     /**
      * Renders a list of items from an observable array or object, automatically updating when data changes.
@@ -4381,14 +4641,14 @@ var NativeDocument = (function (exports) {
             }
 
             try {
-                const indexObserver = callback.length >= 2 ? Observable(indexKey) : null;
+                const indexObserver = callback.length >= 2 ? Observable$1(indexKey) : null;
                 let child = ElementCreator.getChild(callback(item, indexObserver));
                 if(!child) {
                     throw new NativeDocumentError("ForEach child can't be null or undefined!");
                 }
                 cache.set(keyId, { keyId, isNew: true, child: new WeakRef(child), indexObserver});
             } catch (e) {
-                DebugManager$1.error('ForEach', `Error creating element for key ${keyId}` , e);
+                DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
                 throw e;
             }
             return keyId;
@@ -4563,7 +4823,7 @@ var NativeDocument = (function (exports) {
                 cache.delete(item);
             }
 
-            const indexObserver = isIndexRequired ? Observable(indexKey) : null;
+            const indexObserver = isIndexRequired ? Observable$1(indexKey) : null;
             let child = ElementCreator.getChild(callback(item, indexObserver));
             if(child) {
                 cache.set(item, {
@@ -4758,7 +5018,7 @@ var NativeDocument = (function (exports) {
      */
     const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
         if(!(Validator.isObservable(condition)) && !Validator.isObservableWhenResult(condition)) {
-            return DebugManager$1.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
+            return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
         }
         const element = Anchor('Show if : '+(comment || ''));
 
@@ -4805,7 +5065,7 @@ var NativeDocument = (function (exports) {
      * HideIf(hasError, Div({}, 'Content'));
      */
     const HideIf = function(condition, child, configs) {
-        const hideCondition = Observable(!condition.val());
+        const hideCondition = Observable$1(!condition.val());
         condition.subscribe(value => hideCondition.set(!value));
 
         return ShowIf(hideCondition, child, configs);
@@ -6177,7 +6437,7 @@ var NativeDocument = (function (exports) {
                 window.history.pushState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, query, path);
             } catch (e) {
-                DebugManager$1.error('HistoryRouter', 'Error in pushState', e);
+                DebugManager.error('HistoryRouter', 'Error in pushState', e);
             }
         };
         /**
@@ -6190,7 +6450,7 @@ var NativeDocument = (function (exports) {
                 window.history.replaceState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, {}, path);
             } catch(e) {
-                DebugManager$1.error('HistoryRouter', 'Error in replaceState', e);
+                DebugManager.error('HistoryRouter', 'Error in replaceState', e);
             }
         };
         this.forward = function() {
@@ -6217,7 +6477,7 @@ var NativeDocument = (function (exports) {
                     }
                     this.handleRouteChange(route, params, query, path);
                 } catch(e) {
-                    DebugManager$1.error('HistoryRouter', 'Error in popstate event', e);
+                    DebugManager.error('HistoryRouter', 'Error in popstate event', e);
                 }
             });
             const { route, params, query, path } = this.resolve(defaultPath || (window.location.pathname+window.location.search));
@@ -6442,7 +6702,7 @@ var NativeDocument = (function (exports) {
                     listener(request);
                     next && next(request);
                 } catch (e) {
-                    DebugManager$1.warn('Route Listener', 'Error in listener:', e);
+                    DebugManager.warn('Route Listener', 'Error in listener:', e);
                 }
             }
         };
@@ -6620,7 +6880,7 @@ var NativeDocument = (function (exports) {
      */
     Router.create = function(options, callback) {
         if(!Validator.isFunction(callback)) {
-            DebugManager$1.error('Router', 'Callback must be a function');
+            DebugManager.error('Router', 'Callback must be a function');
             throw new RouterError('Callback must be a function');
         }
         const router = new Router(options);
@@ -6812,8 +7072,8 @@ var NativeDocument = (function (exports) {
     exports.ElementCreator = ElementCreator;
     exports.HtmlElementWrapper = HtmlElementWrapper;
     exports.NDElement = NDElement;
-    exports.Observable = Observable;
-    exports.PluginsManager = PluginsManager$1;
+    exports.Observable = Observable$1;
+    exports.PluginsManager = PluginsManager;
     exports.SingletonView = SingletonView;
     exports.Store = Store;
     exports.StoreFactory = StoreFactory;
