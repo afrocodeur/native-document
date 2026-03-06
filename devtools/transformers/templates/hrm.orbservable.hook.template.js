@@ -1,5 +1,9 @@
 
 function Observable(name, instance, value, ...args) {
+    if(value === undefined) {
+        value = name;
+        name = 'unknown';
+    }
     if(!instance?.context) {
         return __OriginalObservable__(value, ...args);
     }
@@ -21,6 +25,10 @@ function Observable(name, instance, value, ...args) {
 };
 
 Observable.init = function(name, instance, value, ...args) {
+    if(value === undefined) {
+        value = name;
+        name = 'unknown';
+    }
     if(!instance?.context) {
         return __OriginalObservable__.init(value, ...args);
     }

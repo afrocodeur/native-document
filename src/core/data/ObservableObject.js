@@ -60,7 +60,7 @@ ObservableObject.prototype.$load = function(initialValue) {
             this.$observables[key] = itemValue;
             continue;
         }
-        this.$observables[key] = Observable(itemValue, configs);
+        this.$observables[key] = (typeof itemValue === 'object') ? Observable.object(itemValue, configs) : Observable(itemValue, configs);
     }
 };
 
@@ -163,15 +163,16 @@ ObservableObject.prototype.reset = function() {
 ObservableObject.prototype.originalSubscribe = ObservableObject.prototype.subscribe;
 ObservableObject.prototype.subscribe = function(callback) {
     const observables = this.observables();
-    const updatedValue = nextTick(() => {
-        this.$currentValue = this.val();
-        this.trigger()
-    });
+    const updatedValue = nextTick(() => this.trigger());
 
     this.originalSubscribe(callback);
 
-    for(let i = 0, length = observables.length; i < length; i++) {
+    for (let i = 0, length = observables.length; i < length; i++) {
         const observable = observables[i];
+        if (observable.__$isObservableArray) {
+            observable.deepSubscribe(updatedValue);
+            continue
+        }
         observable.subscribe(updatedValue);
     }
 };

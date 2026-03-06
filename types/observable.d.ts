@@ -150,6 +150,8 @@ export interface ObservableArray<T> extends ObservableItem<T[]> {
     where(predicates: PredicateMap<T>): ObservableArray<T>;
     whereSome<K extends keyof T>(fields: K[], filter: FilterResult<T[K]>): ObservableArray<T>;
     whereEvery<K extends keyof T>(fields: K[], filter: FilterResult<T[K]>): ObservableArray<T>;
+
+    deepSubscribe(callback: (value: T[]) => void): () => void;
 }
 
 export type ObservableObject<T extends Record<string, any>> = ObservableItem<T> & {

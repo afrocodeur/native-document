@@ -309,7 +309,7 @@ userSingle.set({ name: "Bob", age: 30 });
 Observable.object(data) === Observable.json(data) === Observable.init(data)
 ```
 
-## Working with Observable Proxies
+## Working with Object Observable
 
 ```javascript
 const user = Observable.object({
@@ -603,7 +603,6 @@ const greeting = Observable("Hello");
 const user     = Observable("Marie");
 
 const element = Div(null, `${greeting} ${user}!`);
-// Updates when greeting or user changes
 ```
 
 ## Memory Management
@@ -766,17 +765,32 @@ const FiltersPanel = () => {
 };
 ```
 
+### `deepSubscribe(callback)` — Deep Change Detection
+
+Reacts to changes at any depth — array mutations, and property changes on nested observables.
+```javascript
+const tags = Observable.array([{ label: 'admin' }]);
+
+const unsub = tags.deepSubscribe(value => console.log('changed:', value));
+
+tags.push({ label: 'editor' });      // ✅ déclenche
+tags[0].label.set('superadmin');     // ✅ déclenche
+tags.splice(0, 1);                   // ✅ déclenche + cleanup du listener
+
+// Cleanup
+unsub();
+```
+
 ## Best Practices
 
 1. **Use descriptive names** for your observables
 2. **Understand the difference**: `Observable(object)` vs `Observable.object(object)`
-3. **Use proxies for convenience**: `obs.$value` instead of `obs.val()`
-4. **Group related data** with `Observable.object()` for individual property reactivity
-5. **Use `Observable.value()`** to extract plain values from complex structures
-6. **Prefer computed** for derived values
-7. **Clean up** unused observables to prevent memory leaks
-8. **Use `trigger()`** when you need to force updates without value changes
-9. **Avoid** direct modifications in subscription callbacks
+3. **Group related data** with `Observable.object()` for individual property reactivity
+4. **Use `Observable.value()`** to extract plain values from complex structures
+5. **Prefer computed** for derived values
+6. **Clean up** unused observables to prevent memory leaks
+7. **Use `trigger()`** when you need to force updates without value changes
+8. **Avoid** direct modifications in subscription callbacks
 
 ## Next Steps
 

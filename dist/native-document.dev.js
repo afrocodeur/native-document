@@ -1168,7 +1168,7 @@ var NativeDocument = (function (exports) {
         return cloned;
     };
 
-    const LocalStorage$1 = {
+    const LocalStorage = {
         getJson(key) {
             let value = localStorage.getItem(key);
             try {
@@ -1204,23 +1204,23 @@ var NativeDocument = (function (exports) {
         }
     };
 
-    const $getFromStorage$1 = (key, value) => {
-        if(!LocalStorage$1.has(key)) {
+    const $getFromStorage = (key, value) => {
+        if(!LocalStorage.has(key)) {
             return value;
         }
         switch (typeof value) {
-            case 'object': return LocalStorage$1.getJson(key) ?? value;
-            case 'boolean': return LocalStorage$1.getBool(key) ?? value;
-            case 'number': return LocalStorage$1.getNumber(key) ?? value;
-            default: return LocalStorage$1.get(key, value) ?? value;
+            case 'object': return LocalStorage.getJson(key) ?? value;
+            case 'boolean': return LocalStorage.getBool(key) ?? value;
+            case 'number': return LocalStorage.getNumber(key) ?? value;
+            default: return LocalStorage.get(key, value) ?? value;
         }
     };
 
-    const $saveToStorage$1 = (value) => {
+    const $saveToStorage = (value) => {
         switch (typeof value) {
-            case 'object': return LocalStorage$1.setJson;
-            case 'boolean': return LocalStorage$1.setBool;
-            default: return LocalStorage$1.set;
+            case 'object': return LocalStorage.setJson;
+            case 'boolean': return LocalStorage.setBool;
+            default: return LocalStorage.set;
         }
     };
 
@@ -1260,12 +1260,12 @@ var NativeDocument = (function (exports) {
 
         const $createObservable = (value, options = {}) => {
             if(Array.isArray(value)) {
-                return Observable$1.array(value, options);
+                return Observable.array(value, options);
             }
             if(typeof value === 'object') {
-                return Observable$1.object(value, options);
+                return Observable.object(value, options);
             }
-            return Observable$1(value, options);
+            return Observable(value, options);
         };
 
         const $api = {
@@ -1368,7 +1368,7 @@ var NativeDocument = (function (exports) {
                 });
 
                 // Create computed observable from dependency observers
-                const observer = Observable$1.computed(computation, depObservers);
+                const observer = Observable.computed(computation, depObservers);
 
                 $stores.set(name, { observer, subscribers: new Set(), resettable: false, composed: true });
                 return observer;
@@ -1572,21 +1572,21 @@ var NativeDocument = (function (exports) {
             },
             createPersistent(name, value, localstorage_key) {
                 localstorage_key = localstorage_key || name;
-                const observer = this.create(name, $getFromStorage$1(localstorage_key, value));
-                const saver = $saveToStorage$1(value);
+                const observer = this.create(name, $getFromStorage(localstorage_key, value));
+                const saver = $saveToStorage(value);
 
                 observer.subscribe((val) => saver(localstorage_key, val));
                 return observer;
             },
             createPersistentResettable(name, value, localstorage_key) {
                 localstorage_key = localstorage_key || name;
-                const observer = this.createResettable(name, $getFromStorage$1(localstorage_key, value));
-                const saver = $saveToStorage$1(value);
+                const observer = this.createResettable(name, $getFromStorage(localstorage_key, value));
+                const saver = $saveToStorage(value);
                 observer.subscribe((val) => saver(localstorage_key, val));
 
                 const originalReset = observer.reset.bind(observer);
                 observer.reset = () => {
-                    LocalStorage$1.remove(localstorage_key);
+                    LocalStorage.remove(localstorage_key);
                     originalReset();
                 };
 
@@ -2268,18 +2268,18 @@ var NativeDocument = (function (exports) {
         const formatter = Formatters[type];
         const localeObservable = Store.follow('locale');
 
-        return Observable$1.computed(() => formatter(self.val(), localeObservable.val(), options),
+        return Observable.computed(() => formatter(self.val(), localeObservable.val(), options),
             [self, localeObservable]
         );
     };
 
     ObservableItem.prototype.persist = function(key, options = {}) {
-        let value = $getFromStorage$1(key, this.$currentValue);
+        let value = $getFromStorage(key, this.$currentValue);
         if(options.get) {
             value = options.get(value);
         }
         this.set(value);
-        const saver = $saveToStorage$1(this.$currentValue);
+        const saver = $saveToStorage(this.$currentValue);
         this.subscribe((newValue) => {
             saver(key, options.set ? options.set(newValue) : newValue);
         });
@@ -2293,18 +2293,18 @@ var NativeDocument = (function (exports) {
      * @returns {ObservableItem}
      * @constructor
      */
-    function Observable$1(value, configs = null) {
+    function Observable(value, configs = null) {
         return new ObservableItem(value, configs);
     }
 
-    const $ = Observable$1;
-    const obs = Observable$1;
+    const $ = Observable;
+    const obs = Observable;
 
     /**
      *
      * @param {string} propertyName
      */
-    Observable$1.useValueProperty = function(propertyName = 'value') {
+    Observable.useValueProperty = function(propertyName = 'value') {
         Object.defineProperty(ObservableItem.prototype, propertyName, {
             get() {
                 return this.$currentValue;
@@ -2322,7 +2322,7 @@ var NativeDocument = (function (exports) {
      * @param id
      * @returns {ObservableItem|null}
      */
-    Observable$1.getById = function(id) {
+    Observable.getById = function(id) {
         const item = MemoryManager.getObservableById(parseInt(id));
         if(!item) {
             throw new NativeDocumentError('Observable.getById : No observable found with id ' + id);
@@ -2334,7 +2334,7 @@ var NativeDocument = (function (exports) {
      *
      * @param {ObservableItem} observable
      */
-    Observable$1.cleanup = function(observable) {
+    Observable.cleanup = function(observable) {
         observable.cleanup();
     };
 
@@ -2343,7 +2343,7 @@ var NativeDocument = (function (exports) {
      * @param {Boolean} enable
      * @param {{interval:Boolean, threshold:number}} options
      */
-    Observable$1.autoCleanup = function(enable = false, options = {}) {
+    Observable.autoCleanup = function(enable = false, options = {}) {
         if(!enable) {
             return;
         }
@@ -3497,7 +3497,7 @@ var NativeDocument = (function (exports) {
     String.prototype.use = function(args) {
         const value = this;
 
-        return Observable$1.computed(() => {
+        return Observable.computed(() => {
             return value.replace(/\$\{(.*?)}/g, (match, key) => {
                 const data = args[key];
                 if(Validator.isObservable(data)) {
@@ -3517,7 +3517,7 @@ var NativeDocument = (function (exports) {
                 return value;
             }
             const [_, id] = value.match(/\{\{#ObItem::\(([0-9]+)\)\}\}/);
-            return Observable$1.getById(id);
+            return Observable.getById(id);
         });
     };
 
@@ -4210,7 +4210,7 @@ var NativeDocument = (function (exports) {
             }
         }
 
-        const viewArray = Observable$1.array();
+        const viewArray = Observable.array();
 
         const filters = Object.entries(filterCallbacks);
         const updateView = () => {
@@ -4281,6 +4281,68 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    ObservableArray.prototype.deepSubscribe = function(callback) {
+        const updatedValue = nextTick(() => callback(this.val()));
+        const $listeners = new WeakMap();
+
+        const bindItem = (item) => {
+            if ($listeners.has(item)) {
+                return;
+            }
+            if (item?.__$isObservableArray) {
+                $listeners.set(item, item.deepSubscribe(updatedValue));
+                return;
+            }
+            if (item?.__$isObservable) {
+                item.subscribe(updatedValue);
+                $listeners.set(item, () => item.unsubscribe(updatedValue));
+            }
+        };
+
+        const unbindItem = (item) => {
+            const unsub = $listeners.get(item);
+            if (unsub) {
+                unsub();
+                $listeners.delete(item);
+            }
+        };
+
+        this.$currentValue.forEach(bindItem);
+        this.subscribe(updatedValue);
+
+        this.subscribe((items, _, operations) => {
+            switch (operations?.action) {
+                case 'push':
+                case 'unshift':
+                    operations.args.forEach(bindItem);
+                    break;
+
+                case 'splice': {
+                    const [start, deleteCount, ...newItems] = operations.args;
+                    operations.result?.forEach(unbindItem);
+                    newItems.forEach(bindItem);
+                    break;
+                }
+
+                case 'remove':
+                    unbindItem(operations.result);
+                    break;
+
+                case 'merge':
+                    operations.args.forEach(bindItem);
+                    break;
+
+                case 'clear':
+                    this.$currentValue.forEach(unbindItem);
+                    break;
+            }
+        });
+
+        return () => {
+            this.$currentValue.forEach(unbindItem);
+        };
+    };
+
     /**
      * Creates an observable array with reactive array methods.
      * All mutations trigger updates automatically.
@@ -4296,7 +4358,7 @@ var NativeDocument = (function (exports) {
      * items.push(4); // Triggers update
      * items.subscribe((arr) => console.log(arr));
      */
-    Observable$1.array = function(target = [], configs = null) {
+    Observable.array = function(target = [], configs = null) {
         return new ObservableArray(target, configs);
     };
 
@@ -4305,8 +4367,8 @@ var NativeDocument = (function (exports) {
      * @param {Function} callback
      * @returns {Function}
      */
-    Observable$1.batch = function(callback) {
-        const $observer = Observable$1(0);
+    Observable.batch = function(callback) {
+        const $observer = Observable(0);
         const batch = function() {
             if(Validator.isAsyncFunction(callback)) {
                 return (callback(...arguments)).then(() => {
@@ -4360,24 +4422,24 @@ var NativeDocument = (function (exports) {
                 if(configs?.deep !== false) {
                     const mappedItemValue = itemValue.map(item => {
                         if(Validator.isJson(item)) {
-                            return Observable$1.json(item, configs);
+                            return Observable.json(item, configs);
                         }
                         if(Validator.isArray(item)) {
-                            return Observable$1.array(item, configs);
+                            return Observable.array(item, configs);
                         }
-                        return Observable$1(item, configs);
+                        return Observable(item, configs);
                     });
-                    this.$observables[key] = Observable$1.array(mappedItemValue, configs);
+                    this.$observables[key] = Observable.array(mappedItemValue, configs);
                     continue;
                 }
-                this.$observables[key] = Observable$1.array(itemValue, configs);
+                this.$observables[key] = Observable.array(itemValue, configs);
                 continue;
             }
             if(Validator.isObservable(itemValue) || Validator.isProxy(itemValue)) {
                 this.$observables[key] = itemValue;
                 continue;
             }
-            this.$observables[key] = Observable$1(itemValue, configs);
+            this.$observables[key] = (typeof itemValue === 'object') ? Observable.object(itemValue, configs) : Observable(itemValue, configs);
         }
     };
 
@@ -4439,9 +4501,9 @@ var NativeDocument = (function (exports) {
                 if(Validator.isObservable(firstElementFromOriginalValue) || Validator.isProxy(firstElementFromOriginalValue)) {
                     const newValues = newValue.map(item => {
                         if(Validator.isProxy(firstElementFromOriginalValue)) {
-                            return Observable$1.init(item, configs);
+                            return Observable.init(item, configs);
                         }
-                        return Observable$1(item, configs);
+                        return Observable(item, configs);
                     });
                     targetItem.set(newValues);
                     continue;
@@ -4469,7 +4531,7 @@ var NativeDocument = (function (exports) {
     };
     ObservableObject.prototype.$keys = ObservableObject.prototype.keys;
     ObservableObject.prototype.clone = function() {
-        return Observable$1.init(this.val(), this.configs);
+        return Observable.init(this.val(), this.configs);
     };
     ObservableObject.prototype.$clone = ObservableObject.prototype.clone;
     ObservableObject.prototype.reset = function() {
@@ -4480,15 +4542,16 @@ var NativeDocument = (function (exports) {
     ObservableObject.prototype.originalSubscribe = ObservableObject.prototype.subscribe;
     ObservableObject.prototype.subscribe = function(callback) {
         const observables = this.observables();
-        const updatedValue = nextTick(() => {
-            this.$currentValue = this.val();
-            this.trigger();
-        });
+        const updatedValue = nextTick(() => this.trigger());
 
         this.originalSubscribe(callback);
 
-        for(let i = 0, length = observables.length; i < length; i++) {
+        for (let i = 0, length = observables.length; i < length; i++) {
             const observable = observables[i];
+            if (observable.__$isObservableArray) {
+                observable.deepSubscribe(updatedValue);
+                continue
+            }
             observable.subscribe(updatedValue);
         }
     };
@@ -4498,7 +4561,7 @@ var NativeDocument = (function (exports) {
 
     ObservableObject.prototype.update = ObservableObject.prototype.set;
 
-    Observable$1.init = function(initialValue, configs = null) {
+    Observable.init = function(initialValue, configs = null) {
         return new ObservableObject(initialValue, configs)
     };
 
@@ -4507,8 +4570,8 @@ var NativeDocument = (function (exports) {
      * @param {any[]} data
      * @return Proxy[]
      */
-    Observable$1.arrayOfObject = function(data) {
-        return data.map(item => Observable$1.object(item));
+    Observable.arrayOfObject = function(data) {
+        return data.map(item => Observable.object(item));
     };
 
     /**
@@ -4516,7 +4579,7 @@ var NativeDocument = (function (exports) {
      * @param {ObservableItem|Object<ObservableItem>} data
      * @returns {{}|*|null}
      */
-    Observable$1.value = function(data) {
+    Observable.value = function(data) {
         if(Validator.isObservable(data)) {
             return data.val();
         }
@@ -4527,15 +4590,15 @@ var NativeDocument = (function (exports) {
             const result = [];
             for(let i = 0, length = data.length; i < length; i++) {
                 const item = data[i];
-                result.push(Observable$1.value(item));
+                result.push(Observable.value(item));
             }
             return result;
         }
         return data;
     };
 
-    Observable$1.object = Observable$1.init;
-    Observable$1.json = Observable$1.init;
+    Observable.object = Observable.init;
+    Observable.json = Observable.init;
 
     /**
      * Creates a computed observable that automatically updates when its dependencies change.
@@ -4556,7 +4619,7 @@ var NativeDocument = (function (exports) {
      * const batch = Observable.batch(() => { ...  });
      * const computed = Observable.computed(() => { ... }, batch);
     */
-    Observable$1.computed = function(callback, dependencies = []) {
+    Observable.computed = function(callback, dependencies = []) {
         const initialValue = callback();
         const observable = new ObservableItem(initialValue);
         const updatedValue = nextTick(() => observable.set(callback()));
@@ -4653,7 +4716,7 @@ var NativeDocument = (function (exports) {
             }
 
             try {
-                const indexObserver = callback.length >= 2 ? Observable$1(indexKey) : null;
+                const indexObserver = callback.length >= 2 ? Observable(indexKey) : null;
                 let child = ElementCreator.getChild(callback(item, indexObserver));
                 if(!child) {
                     throw new NativeDocumentError("ForEach child can't be null or undefined!");
@@ -4835,7 +4898,7 @@ var NativeDocument = (function (exports) {
                 cache.delete(item);
             }
 
-            const indexObserver = isIndexRequired ? Observable$1(indexKey) : null;
+            const indexObserver = isIndexRequired ? Observable(indexKey) : null;
             let child = ElementCreator.getChild(callback(item, indexObserver));
             if(child) {
                 cache.set(item, {
@@ -5077,7 +5140,7 @@ var NativeDocument = (function (exports) {
      * HideIf(hasError, Div({}, 'Content'));
      */
     const HideIf = function(condition, child, configs) {
-        const hideCondition = Observable$1(!condition.val());
+        const hideCondition = Observable(!condition.val());
         condition.subscribe(value => hideCondition.set(!value));
 
         return ShowIf(hideCondition, child, configs);
@@ -7084,7 +7147,7 @@ var NativeDocument = (function (exports) {
     exports.ElementCreator = ElementCreator;
     exports.HtmlElementWrapper = HtmlElementWrapper;
     exports.NDElement = NDElement;
-    exports.Observable = Observable$1;
+    exports.Observable = Observable;
     exports.PluginsManager = PluginsManager;
     exports.SingletonView = SingletonView;
     exports.Store = Store;

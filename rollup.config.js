@@ -44,7 +44,7 @@ export default [
     },
     {
         input: {
-            main: 'src/devtools/index.js'
+            main: 'devtools/index.js'
         },
         output: {
             dir: 'dist',

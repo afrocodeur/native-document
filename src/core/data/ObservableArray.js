@@ -4,6 +4,7 @@ import ObservableItem from "./ObservableItem.js";
 import {Observable} from "./Observable.js";
 import PluginsManager from "../utils/plugins-manager.js";
 import NativeDocumentError from "../errors/NativeDocumentError.js";
+import {nextTick} from "../utils/helpers";
 
 const mutationMethods = ['push', 'pop', 'shift', 'unshift', 'reverse', 'sort', 'splice'];
 const noMutationMethods = ['map', 'forEach', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex', 'concat', 'includes', 'indexOf'];
@@ -309,6 +310,72 @@ ObservableArray.prototype.whereEvery = function(fields, filter) {
             callback: (item) => fields.every(field => filter.callback(item[field]))
         }
     });
+};
+
+ObservableArray.prototype.deepSubscribe = function(callback) {
+    const updatedValue = nextTick(() => callback(this.val()));
+    const $listeners = new WeakMap();
+
+    const bindItem = (item) => {
+        if ($listeners.has(item)) {
+            return;
+        }
+        if (item?.__$isObservableArray) {
+            $listeners.set(item, item.deepSubscribe(updatedValue));
+            return;
+        }
+        if (item?.__$isObservable) {
+            item.subscribe(updatedValue);
+            $listeners.set(item, () => item.unsubscribe(updatedValue));
+        }
+    };
+
+    const unbindItem = (item) => {
+        const unsub = $listeners.get(item);
+        if (unsub) {
+            unsub();
+            $listeners.delete(item);
+        }
+    };
+
+    this.$currentValue.forEach(bindItem);
+    this.subscribe(updatedValue);
+
+    this.subscribe((items, _, operations) => {
+        switch (operations?.action) {
+            case 'push':
+            case 'unshift':
+                operations.args.forEach(bindItem);
+                break;
+
+            case 'splice': {
+                const [start, deleteCount, ...newItems] = operations.args;
+                operations.result?.forEach(unbindItem);
+                newItems.forEach(bindItem);
+                break;
+            }
+
+            case 'remove':
+                unbindItem(operations.result);
+                break;
+
+            case 'merge':
+                operations.args.forEach(bindItem);
+                break;
+
+            case 'clear':
+                this.$currentValue.forEach(unbindItem);
+                break;
+
+            case 'sort':
+            case 'reverse':
+                break;
+        }
+    });
+
+    return () => {
+        this.$currentValue.forEach(unbindItem);
+    };
 };
 
 export default ObservableArray;
