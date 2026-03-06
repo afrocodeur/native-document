@@ -562,7 +562,7 @@ ObservableItem.prototype.format = function(type, options = {}) {
     }
 
     const formatter = Formatters[type];
-    const localeObservable = Store.follow('locale');
+    const localeObservable = Formatters.locale;
 
     return Observable.computed(() => formatter(self.val(), localeObservable.val(), options),
         [self, localeObservable]

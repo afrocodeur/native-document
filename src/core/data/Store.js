@@ -401,4 +401,4 @@ export const StoreFactory = function() {
 
 export const Store = StoreFactory();
 
-Store.create('locale', 'fr')
+Store.create('locale', navigator.language.split('-')[0] || 'en');

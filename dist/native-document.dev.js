@@ -1,10 +1,10 @@
 var NativeDocument = (function (exports) {
     'use strict';
 
-    let DebugManager$1 = {};
+    let DebugManager = {};
 
     {
-        DebugManager$1 = {
+        DebugManager = {
             enabled: false,
 
             enable() {
@@ -35,7 +35,7 @@ var NativeDocument = (function (exports) {
         };
 
     }
-    var DebugManager = DebugManager$1;
+    var DebugManager$1 = DebugManager;
 
     class NativeDocumentError extends Error {
         constructor(message, context = {}) {
@@ -313,10 +313,10 @@ var NativeDocument = (function (exports) {
         subtree: true,
     });
 
-    let PluginsManager$1 = null;
+    let PluginsManager = null;
 
     {
-        PluginsManager$1 = (function() {
+        PluginsManager = (function() {
 
             const $plugins = new Map();
             const $pluginByEvents = new Map();
@@ -382,7 +382,7 @@ var NativeDocument = (function (exports) {
                             try{
                                 callback.call(plugin, ...data);
                             } catch (error) {
-                                DebugManager.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
+                                DebugManager$1.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
                             }
                         }
                     }
@@ -391,13 +391,13 @@ var NativeDocument = (function (exports) {
         }());
     }
 
-    var PluginsManager = PluginsManager$1;
+    var PluginsManager$1 = PluginsManager;
 
     function NDElement(element) {
         this.$element = element;
         this.$observer = null;
         {
-            PluginsManager.emit('NDElementCreated', element, this);
+            PluginsManager$1.emit('NDElementCreated', element, this);
         }
     }
 
@@ -572,7 +572,7 @@ var NativeDocument = (function (exports) {
             }
             {
                 if (this[name] && !this.$localExtensions.has(name)) {
-                    DebugManager.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
+                    DebugManager$1.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
                 }
                 this.$localExtensions.set(name, method);
             }
@@ -623,23 +623,23 @@ var NativeDocument = (function (exports) {
             const method = methods[name];
 
             if (typeof method !== 'function') {
-                DebugManager.warn('NDElement.extend', `"${name}" is not a function, skipping`);
+                DebugManager$1.warn('NDElement.extend', `"${name}" is not a function, skipping`);
                 continue;
             }
 
             if (protectedMethods.has(name)) {
-                DebugManager.error('NDElement.extend', `Cannot override protected method "${name}"`);
+                DebugManager$1.error('NDElement.extend', `Cannot override protected method "${name}"`);
                 throw new NativeDocumentError(`Cannot override protected method "${name}"`);
             }
 
             if (NDElement.prototype[name]) {
-                DebugManager.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
+                DebugManager$1.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
             }
 
             NDElement.prototype[name] = method;
         }
         {
-            PluginsManager.emit('NDElementExtended', methods);
+            PluginsManager$1.emit('NDElementExtended', methods);
         }
 
         return NDElement;
@@ -786,7 +786,7 @@ var NativeDocument = (function (exports) {
             const foundReserved = Object.keys(attributes).filter(key => reserved.includes(key));
 
             if (foundReserved.length > 0) {
-                DebugManager.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
+                DebugManager$1.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
             }
 
             return attributes;
@@ -835,7 +835,7 @@ var NativeDocument = (function (exports) {
         anchorFragment.appendChild = function(child, before = null) {
             const parent = anchorEnd.parentNode;
             if(!parent) {
-                DebugManager.error('Anchor', 'Anchor : parent not found', child);
+                DebugManager$1.error('Anchor', 'Anchor : parent not found', child);
                 return;
             }
             before = before ?? anchorEnd;
@@ -1033,7 +1033,7 @@ var NativeDocument = (function (exports) {
                     }
                 }
                 if (cleanedCount > 0) {
-                    DebugManager.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
+                    DebugManager$1.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
                 }
             }
         };
@@ -1235,7 +1235,7 @@ var NativeDocument = (function (exports) {
         const $getStoreOrThrow = (method, name) => {
             const item = $stores.get(name);
             if (!item) {
-                DebugManager.error('Store', `Store.${method}('${name}') : store not found. Did you call Store.create('${name}') first?`);
+                DebugManager$1.error('Store', `Store.${method}('${name}') : store not found. Did you call Store.create('${name}') first?`);
                 throw new NativeDocumentError(
                     `Store.${method}('${name}') : store not found.`
                 );
@@ -1248,7 +1248,7 @@ var NativeDocument = (function (exports) {
          */
         const $applyReadOnly = (observer, name, context) => {
             const readOnlyError = (method) => () => {
-                DebugManager.error('Store', `Store.${context}('${name}') is read-only. '${method}()' is not allowed.`);
+                DebugManager$1.error('Store', `Store.${context}('${name}') is read-only. '${method}()' is not allowed.`);
                 throw new NativeDocumentError(
                     `Store.${context}('${name}') is read-only.`
                 );
@@ -1279,7 +1279,7 @@ var NativeDocument = (function (exports) {
              */
             create(name, value) {
                 if ($stores.has(name)) {
-                    DebugManager.warn('Store', `Store.create('${name}') : a store with this name already exists. Use Store.get('${name}') to retrieve it.`);
+                    DebugManager$1.warn('Store', `Store.create('${name}') : a store with this name already exists. Use Store.get('${name}') to retrieve it.`);
                     throw new NativeDocumentError(
                         `Store.create('${name}') : a store with this name already exists.`
                     );
@@ -1300,7 +1300,7 @@ var NativeDocument = (function (exports) {
              */
             createResettable(name, value) {
                 if ($stores.has(name)) {
-                    DebugManager.warn('Store', `Store.createResettable('${name}') : a store with this name already exists.`);
+                    DebugManager$1.warn('Store', `Store.createResettable('${name}') : a store with this name already exists.`);
                     throw new NativeDocumentError(
                         `Store.createResettable('${name}') : a store with this name already exists.`
                     );
@@ -1336,7 +1336,7 @@ var NativeDocument = (function (exports) {
              */
             createComposed(name, computation, dependencies) {
                 if ($stores.has(name)) {
-                    DebugManager.warn('Store', `Store.createComposed('${name}') : a store with this name already exists.`);
+                    DebugManager$1.warn('Store', `Store.createComposed('${name}') : a store with this name already exists.`);
                     throw new NativeDocumentError(
                         `Store.createComposed('${name}') : a store with this name already exists.`
                     );
@@ -1359,7 +1359,7 @@ var NativeDocument = (function (exports) {
                     }
                     const depItem = $stores.get(depName);
                     if (!depItem) {
-                        DebugManager.error('Store', `Store.createComposed('${name}') : dependency '${depName}' not found. Create it first.`);
+                        DebugManager$1.error('Store', `Store.createComposed('${name}') : dependency '${depName}' not found. Create it first.`);
                         throw new NativeDocumentError(
                             `Store.createComposed('${name}') : dependency store '${depName}' not found.`
                         );
@@ -1393,13 +1393,13 @@ var NativeDocument = (function (exports) {
             reset(name) {
                 const item = $getStoreOrThrow('reset', name);
                 if (item.composed) {
-                    DebugManager.error('Store', `Store.reset('${name}') : composed stores cannot be reset. Their value is derived from dependencies.`);
+                    DebugManager$1.error('Store', `Store.reset('${name}') : composed stores cannot be reset. Their value is derived from dependencies.`);
                     throw new NativeDocumentError(
                         `Store.reset('${name}') : composed stores cannot be reset.`
                     );
                 }
                 if (!item.resettable) {
-                    DebugManager.error('Store', `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`);
+                    DebugManager$1.error('Store', `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`);
                     throw new NativeDocumentError(
                         `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`
                     );
@@ -1420,7 +1420,7 @@ var NativeDocument = (function (exports) {
                 const item = $getStoreOrThrow('use', name);
 
                 if (item.composed) {
-                    DebugManager.error('Store', `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`);
+                    DebugManager$1.error('Store', `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`);
                     throw new NativeDocumentError(
                         `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`
                     );
@@ -1487,7 +1487,7 @@ var NativeDocument = (function (exports) {
             get(name) {
                 const item = $stores.get(name);
                 if (!item) {
-                    DebugManager.warn('Store', `Store.get('${name}') : store not found.`);
+                    DebugManager$1.warn('Store', `Store.get('${name}') : store not found.`);
                     return null;
                 }
                 return item.observer;
@@ -1509,7 +1509,7 @@ var NativeDocument = (function (exports) {
             delete(name) {
                 const item = $stores.get(name);
                 if (!item) {
-                    DebugManager.warn('Store', `Store.delete('${name}') : store not found, nothing to delete.`);
+                    DebugManager$1.warn('Store', `Store.delete('${name}') : store not found, nothing to delete.`);
                     return;
                 }
                 item.subscribers.forEach(follower => follower.destroy());
@@ -1611,7 +1611,7 @@ var NativeDocument = (function (exports) {
                 return undefined;
             },
             set(target, prop, value) {
-                DebugManager.error('Store', `Forbidden: You cannot overwrite the store key '${String(prop)}'. Use .use('${String(prop)}').set(value) instead.`);
+                DebugManager$1.error('Store', `Forbidden: You cannot overwrite the store key '${String(prop)}'. Use .use('${String(prop)}').set(value) instead.`);
                 throw new NativeDocumentError(`Store structure is immutable. Use .set() on the observable.`);
             },
             deleteProperty(target, prop) {
@@ -1622,7 +1622,7 @@ var NativeDocument = (function (exports) {
 
     const Store = StoreFactory();
 
-    Store.create('locale', 'fr');
+    Store.create('locale', navigator.language.split('-')[0] || 'en');
 
     const $parseDateParts = (value, locale) => {
         const d = new Date(value);
@@ -1658,7 +1658,6 @@ var NativeDocument = (function (exports) {
     };
 
     const Formatters = {
-
         currency: (value, locale, { currency = 'XOF', notation, minimumFractionDigits, maximumFractionDigits } = {}) =>
             new Intl.NumberFormat(locale, {
                 style: 'currency',
@@ -1744,7 +1743,7 @@ var NativeDocument = (function (exports) {
             }
         }
         {
-            PluginsManager.emit('CreateObservable', this);
+            PluginsManager$1.emit('CreateObservable', this);
         }
     }
 
@@ -1848,12 +1847,12 @@ var NativeDocument = (function (exports) {
         this.$previousValue = this.$currentValue;
         this.$currentValue = newValue;
         {
-            PluginsManager.emit('ObservableBeforeChange', this);
+            PluginsManager$1.emit('ObservableBeforeChange', this);
         }
         this.trigger();
         this.$previousValue = null;
         {
-            PluginsManager.emit('ObservableAfterChange', this);
+            PluginsManager$1.emit('ObservableAfterChange', this);
         }
     };
 
@@ -1940,7 +1939,7 @@ var NativeDocument = (function (exports) {
     ObservableItem.prototype.subscribe = function(callback) {
         {
             if (this.$isCleanedUp) {
-                DebugManager.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
+                DebugManager$1.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
                 return;
             }
             if (typeof callback !== 'function') {
@@ -1952,7 +1951,7 @@ var NativeDocument = (function (exports) {
         this.$listeners.push(callback);
         this.assocTrigger();
         {
-            PluginsManager.emit('ObservableSubscribe', this);
+            PluginsManager$1.emit('ObservableSubscribe', this);
         }
     };
 
@@ -2063,7 +2062,7 @@ var NativeDocument = (function (exports) {
         }
         this.assocTrigger();
         {
-            PluginsManager.emit('ObservableUnsubscribe', this);
+            PluginsManager$1.emit('ObservableUnsubscribe', this);
         }
     };
 
@@ -2266,7 +2265,7 @@ var NativeDocument = (function (exports) {
         }
 
         const formatter = Formatters[type];
-        const localeObservable = Store.follow('locale');
+        const localeObservable = Formatters.locale;
 
         return Observable.computed(() => formatter(self.val(), localeObservable.val(), options),
             [self, localeObservable]
@@ -2541,7 +2540,7 @@ var NativeDocument = (function (exports) {
     Function.prototype.toNdElement = function () {
         const child = this;
         {
-            PluginsManager.emit('BeforeProcessComponent', child);
+            PluginsManager$1.emit('BeforeProcessComponent', child);
         }
         return ElementCreator.getChild(child());
     };
@@ -2729,14 +2728,14 @@ var NativeDocument = (function (exports) {
         processChildren(children, parent) {
             if(children === null) return;
             {
-                PluginsManager.emit('BeforeProcessChildren', parent);
+                PluginsManager$1.emit('BeforeProcessChildren', parent);
             }
             let child = this.getChild(children);
             if(child) {
                 parent.appendChild(child);
             }
             {
-                PluginsManager.emit('AfterProcessChildren', parent);
+                PluginsManager$1.emit('AfterProcessChildren', parent);
             }
         },
         async safeRemove(element) {
@@ -3992,7 +3991,7 @@ var NativeDocument = (function (exports) {
 
         ObservableItem.call(this, target, configs);
         {
-            PluginsManager.emit('CreateObservableArray', this);
+            PluginsManager$1.emit('CreateObservableArray', this);
         }
     };
 
@@ -4624,7 +4623,7 @@ var NativeDocument = (function (exports) {
         const observable = new ObservableItem(initialValue);
         const updatedValue = nextTick(() => observable.set(callback()));
         {
-            PluginsManager.emit('CreateObservableComputed', observable, dependencies);
+            PluginsManager$1.emit('CreateObservableComputed', observable, dependencies);
         }
 
         if(Validator.isFunction(dependencies)) {
@@ -4723,7 +4722,7 @@ var NativeDocument = (function (exports) {
                 }
                 cache.set(keyId, { keyId, isNew: true, child: new WeakRef(child), indexObserver});
             } catch (e) {
-                DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
+                DebugManager$1.error('ForEach', `Error creating element for key ${keyId}` , e);
                 throw e;
             }
             return keyId;
@@ -5093,7 +5092,7 @@ var NativeDocument = (function (exports) {
      */
     const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
         if(!(Validator.isObservable(condition)) && !Validator.isObservableWhenResult(condition)) {
-            return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
+            return DebugManager$1.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
         }
         const element = Anchor('Show if : '+(comment || ''));
 
@@ -6512,7 +6511,7 @@ var NativeDocument = (function (exports) {
                 window.history.pushState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, query, path);
             } catch (e) {
-                DebugManager.error('HistoryRouter', 'Error in pushState', e);
+                DebugManager$1.error('HistoryRouter', 'Error in pushState', e);
             }
         };
         /**
@@ -6525,7 +6524,7 @@ var NativeDocument = (function (exports) {
                 window.history.replaceState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, {}, path);
             } catch(e) {
-                DebugManager.error('HistoryRouter', 'Error in replaceState', e);
+                DebugManager$1.error('HistoryRouter', 'Error in replaceState', e);
             }
         };
         this.forward = function() {
@@ -6552,7 +6551,7 @@ var NativeDocument = (function (exports) {
                     }
                     this.handleRouteChange(route, params, query, path);
                 } catch(e) {
-                    DebugManager.error('HistoryRouter', 'Error in popstate event', e);
+                    DebugManager$1.error('HistoryRouter', 'Error in popstate event', e);
                 }
             });
             const { route, params, query, path } = this.resolve(defaultPath || (window.location.pathname+window.location.search));
@@ -6777,7 +6776,7 @@ var NativeDocument = (function (exports) {
                     listener(request);
                     next && next(request);
                 } catch (e) {
-                    DebugManager.warn('Route Listener', 'Error in listener:', e);
+                    DebugManager$1.warn('Route Listener', 'Error in listener:', e);
                 }
             }
         };
@@ -6955,7 +6954,7 @@ var NativeDocument = (function (exports) {
      */
     Router.create = function(options, callback) {
         if(!Validator.isFunction(callback)) {
-            DebugManager.error('Router', 'Callback must be a function');
+            DebugManager$1.error('Router', 'Callback must be a function');
             throw new RouterError('Callback must be a function');
         }
         const router = new Router(options);
@@ -7148,7 +7147,7 @@ var NativeDocument = (function (exports) {
     exports.HtmlElementWrapper = HtmlElementWrapper;
     exports.NDElement = NDElement;
     exports.Observable = Observable;
-    exports.PluginsManager = PluginsManager;
+    exports.PluginsManager = PluginsManager$1;
     exports.SingletonView = SingletonView;
     exports.Store = Store;
     exports.StoreFactory = StoreFactory;

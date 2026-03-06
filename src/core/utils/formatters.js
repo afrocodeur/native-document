@@ -32,7 +32,6 @@ const $applyDatePattern = (pattern, d, parts) => {
 };
 
 export const Formatters = {
-
     currency: (value, locale, { currency = 'XOF', notation, minimumFractionDigits, maximumFractionDigits } = {}) =>
         new Intl.NumberFormat(locale, {
             style: 'currency',
