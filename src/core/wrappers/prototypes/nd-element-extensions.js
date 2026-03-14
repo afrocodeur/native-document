@@ -7,11 +7,7 @@ import Validator from "../../utils/validator";
 import ObservableChecker from "../../data/ObservableChecker";
 
 String.prototype.toNdElement = function () {
-    const formattedChild = this.resolveObservableTemplate ? this.resolveObservableTemplate() : this;
-    if(Validator.isString(formattedChild)) {
-        return ElementCreator.createStaticTextNode(null, formattedChild);
-    }
-    return ElementCreator.getChild(null, formattedChild);
+    return ElementCreator.createStaticTextNode(null, this);
 };
 
 Element.prototype.toNdElement = function () {

@@ -182,17 +182,8 @@ ObservableItem.prototype.val = function() {
 };
 
 ObservableItem.prototype.disconnectAll = function() {
-    this.$listeners?.splice(0);
     this.$previousValue = null;
     this.$currentValue = null;
-    if(this.$watchers) {
-        for (const [_, watchValueList] of this.$watchers) {
-            if(Validator.isArray(watchValueList)) {
-                watchValueList.splice(0);
-            }
-        }
-    }
-    this.$watchers?.clear();
     this.$listeners = null;
     this.$watchers = null;
     this.trigger = noneTrigger;

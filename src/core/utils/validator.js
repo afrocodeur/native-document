@@ -11,6 +11,13 @@ const COMMON_NODE_TYPES = {
     DOCUMENT_FRAGMENT: 11
 };
 
+const VALID_TYPES = {
+    [COMMON_NODE_TYPES.ELEMENT]: true,
+    [COMMON_NODE_TYPES.TEXT]: true,
+    [COMMON_NODE_TYPES.DOCUMENT_FRAGMENT]: true,
+    [COMMON_NODE_TYPES.COMMENT]: true
+};
+
 const Validator = {
     isObservable(value) {
         return  value?.__$isObservable;
@@ -61,12 +68,10 @@ const Validator = {
         return !(typeof value !== 'object' || value === null || Array.isArray(value) || value.constructor.name !== 'Object')
     },
     isElement(value) {
-        return value && (
-            value.nodeType === COMMON_NODE_TYPES.ELEMENT ||
-            value.nodeType === COMMON_NODE_TYPES.TEXT ||
-            value.nodeType === COMMON_NODE_TYPES.DOCUMENT_FRAGMENT ||
-            value.nodeType === COMMON_NODE_TYPES.COMMENT
-        );
+        return value && VALID_TYPES[value.nodeType];
+    },
+    isDOMNode(value) {
+        return VALID_TYPES[value.nodeType];
     },
     isFragment(value) {
         return value?.nodeType === COMMON_NODE_TYPES.DOCUMENT_FRAGMENT;

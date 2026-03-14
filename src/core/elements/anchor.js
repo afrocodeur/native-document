@@ -17,7 +17,9 @@ export default function Anchor(name, isUniqueChild = false) {
     anchorFragment.nativeAppendChild = anchorFragment.appendChild;
     anchorFragment.nativeAppend = anchorFragment.append;
 
-    const isParentUniqueChild = (parent) => (isUniqueChild || (parent.firstChild === anchorStart && parent.lastChild === anchorEnd))
+    const isParentUniqueChild = isUniqueChild
+        ? () => true
+        : (parent) => (parent.firstChild === anchorStart && parent.lastChild === anchorEnd)
 
     const insertBefore = function(parent, child, target) {
         const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
@@ -56,61 +58,58 @@ export default function Anchor(name, isUniqueChild = false) {
         return anchorFragment.appendChild(args);
     };
 
-    anchorFragment.removeChildren = async function() {
+    anchorFragment.removeChildren = function() {
         const parent = anchorEnd.parentNode;
         if(parent === anchorFragment) {
             return;
         }
-        // if(isParentUniqueChild(parent)) {
-        //     parent.replaceChildren(anchorStart, anchorEnd);
-        //     return;
-        // }
+        if(isParentUniqueChild(parent)) {
+            parent.replaceChildren(anchorStart, anchorEnd);
+            return;
+        }
 
         let itemToRemove = anchorStart.nextSibling, tempItem;
-        const removes = [];
         while(itemToRemove && itemToRemove !== anchorEnd) {
             tempItem = itemToRemove.nextSibling;
-            removes.push(itemToRemove.remove());
+            itemToRemove.remove();
             itemToRemove =  tempItem;
         }
-        await Promise.all(removes);
     };
 
-    anchorFragment.remove = async function() {
+    anchorFragment.remove = function() {
         const parent = anchorEnd.parentNode;
         if(parent === anchorFragment) {
             return;
         }
+        if(isParentUniqueChild(parent)) {
+            parent.replaceChildren(anchorStart, anchorEnd);
+            return;
+        }
         let itemToRemove = anchorStart.nextSibling, tempItem;
-        const allItemToRemove = [];
-        const removes = [];
         while(itemToRemove && itemToRemove !== anchorEnd) {
             tempItem = itemToRemove.nextSibling;
-            allItemToRemove.push(itemToRemove);
-            removes.push(itemToRemove.remove());
+            anchorFragment.nativeAppend(itemToRemove);
             itemToRemove = tempItem;
         }
-        await Promise.all(removes);
-        anchorFragment.nativeAppend(...allItemToRemove);
     };
 
-    anchorFragment.removeWithAnchors = async function() {
-        await anchorFragment.removeChildren();
+    anchorFragment.removeWithAnchors = function() {
+        anchorFragment.removeChildren();
         anchorStart.remove();
         anchorEnd.remove();
     };
 
-    anchorFragment.replaceContent = async function(child) {
+    anchorFragment.replaceContent = function(child) {
         const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
         const parent = anchorEnd.parentNode;
         if(!parent) {
             return;
         }
-        // if(isParentUniqueChild(parent)) {
-        //     parent.replaceChildren(anchorStart, childElement, anchorEnd);
-        //     return;
-        // }
-        await anchorFragment.removeChildren();
+        if(isParentUniqueChild(parent)) {
+            parent.replaceChildren(anchorStart, childElement, anchorEnd);
+            return;
+        }
+        anchorFragment.removeChildren();
         parent.insertBefore(childElement, anchorEnd);
     };
 
@@ -119,7 +118,6 @@ export default function Anchor(name, isUniqueChild = false) {
     anchorFragment.insertBefore = function(child, anchor = null) {
         anchorFragment.appendChild(child, anchor);
     };
-
 
     anchorFragment.endElement = function() {
         return anchorEnd;

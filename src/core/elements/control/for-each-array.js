@@ -4,6 +4,9 @@ import Validator from "../../utils/validator";
 import { ElementCreator } from "../../wrappers/ElementCreator";
 import NativeDocumentError from "../../errors/NativeDocumentError";
 
+
+const CREATE_AND_CACHE_ACTIONS = new Set(['clear', 'push', 'unshift', 'replace']);
+
 /**
  * Renders items from an ObservableArray with optimized array-specific updates.
  * Provides index observables and handles array mutations efficiently.
@@ -64,50 +67,67 @@ export function ForEachArray(data, callback, configs = {}) {
         if(removeChild) {
             const child = cacheItem.child;
             child?.remove();
-            cache.delete(cacheItem.keyId);
+            cache.delete(item);
         }
         cacheItem.indexObserver?.cleanup();
     };
 
-    const cleanCache = (items) => {
-        if(configs.shouldKeepItemsInCache) {
+    const createAndCache = (item) => {
+        const child = ElementCreator.getChild(callback(item, null));
+        if(process.env.NODE_ENV === 'development') {
+            if(!child) {
+                throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
+            }
+        }
+        cache.set(item, { child, indexObserver: null });
+        return child;
+    };
+
+    const createWithIndexAndCache = (item, indexKey) => {
+        const indexObserver = Observable(indexKey);
+        const child = ElementCreator.getChild(callback(item, indexObserver));
+        if(process.env.NODE_ENV === 'development') {
+            if(!child) {
+                throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
+            }
+        }
+        cache.set(item, { child, indexObserver  });
+        return child;
+    };
+
+    const getOrCreate = (item, indexKey) => {
+        const cacheItem = cache.get(item);
+        if(cacheItem) {
+            cacheItem.indexObserver?.set(indexKey);
+            return cacheItem.child;
+        }
+        return createAndCache(item, indexKey);
+    };
+
+    let buildItem = createAndCache;
+    const selectBuildStrategy = (action = null) => {
+        if(CREATE_AND_CACHE_ACTIONS.includes(action)) {
+            buildItem = isIndexRequired ? createWithIndexAndCache : createAndCache;
             return;
         }
+        buildItem = cache.size ? getOrCreate : (isIndexRequired ? createWithIndexAndCache : createAndCache);
+    };
+
+
+    const cleanCache = (items) => {
         if(!isIndexRequired) {
             cache.clear();
             return;
         }
+        if(configs.shouldKeepItemsInCache) {
+            return;
+        }
         for (const [itemAsKey, _] of cache.entries()) {
-            if(items && items.contains(itemAsKey)) {
+            if(items && items.includes(itemAsKey)) {
                 continue;
             }
             removeCacheItem(itemAsKey, false);
         }
-        cache.clear();
-    }
-
-    const buildItem = (item, indexKey) => {
-        const cacheItem = cache.get(item);
-        if(cacheItem) {
-            cacheItem.indexObserver?.set(indexKey);
-            const child = cacheItem.child;
-            if(child) {
-                return child;
-            }
-            cache.delete(item);
-        }
-
-        const indexObserver = isIndexRequired ? Observable(indexKey) : null;
-        let child = ElementCreator.getChild(callback(item, indexObserver));
-        if(child) {
-            cache.set(item, {
-                child,
-                indexObserver
-            });
-            return child;
-        }
-
-        throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
     };
 
     const removeByItem = function(item, fragment) {
@@ -125,10 +145,10 @@ export function ForEachArray(data, callback, configs = {}) {
             return;
         }
         child.remove();
-    }
+    };
 
     const Actions = {
-        toFragment(items, startIndexFrom = 0){
+        toFragment(items){
             const fragment = document.createDocumentFragment();
             for(let i = 0, length = items.length; i < length; i++) {
                 fragment.appendChild(buildItem(items[i], lastNumberOfItems));
@@ -136,7 +156,7 @@ export function ForEachArray(data, callback, configs = {}) {
             }
             return fragment;
         },
-        add(items, delay = 2) {
+        add(items) {
             element.appendElement(Actions.toFragment(items));
         },
         replace(items) {
@@ -251,6 +271,7 @@ export function ForEachArray(data, callback, configs = {}) {
             clear();
             return;
         }
+        selectBuildStrategy(operations?.action);
 
         if(!operations?.action) {
             if(lastNumberOfItems === 0) {
