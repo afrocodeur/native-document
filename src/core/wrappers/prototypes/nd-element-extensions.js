@@ -3,7 +3,6 @@ import {NDElement} from "../NDElement";
 import TemplateBinding from "../TemplateBinding";
 import {ElementCreator} from "../ElementCreator";
 import PluginsManager from "../../utils/plugins-manager";
-import Validator from "../../utils/validator";
 import ObservableChecker from "../../data/ObservableChecker";
 
 String.prototype.toNdElement = function () {

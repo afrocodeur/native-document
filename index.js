@@ -1,7 +1,7 @@
 export { default as HtmlElementWrapper, createTextNode } from './src/core/wrappers/HtmlElementWrapper'
 export { ElementCreator } from './src/core/wrappers/ElementCreator';
 export { NDElement } from './src/core/wrappers/NDElement';
-export { TemplateCloner, useCache } from './src/core/wrappers/TemplateCloner';
+export { TemplateCloner, useCache } from './src/core/wrappers/template-cloner/TemplateCloner';
 export { SingletonView, useSingleton } from './src/core/wrappers/SingletonView';
 export { default as PluginsManager } from './src/core/utils/plugins-manager';
 export { default as Validator } from './src/core/utils/validator';

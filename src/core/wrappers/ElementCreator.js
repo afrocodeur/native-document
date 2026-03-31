@@ -1,6 +1,6 @@
 import Anchor from "../elements/anchor";
 import Validator from "../utils/validator";
-import AttributesWrapper from "./AttributesWrapper";
+import AttributesWrapper, { bindClassAttribute, bindStyleAttribute } from "./AttributesWrapper";
 import PluginsManager from "../utils/plugins-manager";
 import './prototypes/nd-element-extensions';
 import './prototypes/nd-element.transition.extensions';
@@ -13,6 +13,7 @@ export const ElementCreator = {
     createTextNode() {
         if(!$textNodeCache) {
             $textNodeCache = document.createTextNode('');
+            ElementCreator.createTextNode = () => $textNodeCache.cloneNode();
         }
         return $textNodeCache.cloneNode();
     },
@@ -22,7 +23,7 @@ export const ElementCreator = {
      * @param {ObservableItem} observable
      * @returns {Text}
      */
-    createObservableNode(parent, observable) {
+    createObservableNode: (parent, observable) => {
         const text = ElementCreator.createTextNode();
         observable.subscribe(value => text.nodeValue = value);
         text.nodeValue = observable.val();
@@ -58,7 +59,7 @@ export const ElementCreator = {
      * @param {string} name
      * @returns {HTMLElement|DocumentFragment}
      */
-    createElement(name)  {
+    createElement: (name) => {
         if(name) {
             const cacheNode = $nodeCache.get(name);
             if(cacheNode) {
@@ -70,7 +71,7 @@ export const ElementCreator = {
         }
         return Anchor('Fragment');
     },
-    bindTextNode(textNode, value) {
+    bindTextNode: (textNode, value) => {
         if(value?.__$isObservable) {
             value.subscribe(newValue => textNode.nodeValue = newValue);
             textNode.nodeValue = value.val();
@@ -100,7 +101,7 @@ export const ElementCreator = {
         await element.remove();
 
     },
-    getChild(child) {
+    getChild: (child) => {
         if(child == null) {
             return null;
         }
@@ -120,9 +121,17 @@ export const ElementCreator = {
      * @param {HTMLElement} element
      * @param {Object} attributes
      */
-    processAttributes(element, attributes) {
+    processAttributes: (element, attributes) => {
         if (attributes) {
             AttributesWrapper(element, attributes);
         }
-    }
+    },
+    /**
+     *
+     * @param {HTMLElement} element
+     * @param {Object} attributes
+     */
+    processAttributesDirect: AttributesWrapper,
+    processClassAttribute: bindClassAttribute,
+    processStyleAttribute: bindStyleAttribute,
 };

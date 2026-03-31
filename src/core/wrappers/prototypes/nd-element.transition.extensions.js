@@ -36,10 +36,11 @@ const waitForVisualEnd = (el, timeout = 1000) => {
 
 NDElement.prototype.transitionOut = function(transitionName) {
     const exitClass = transitionName + '-exit';
+    const el = this.$element;
     this.beforeUnmount('transition-exit', async function() {
-        this.$element.classes.add(exitClass);
-        await waitForVisualEnd(this.$element);
-        this.$element.classes.remove(exitClass);
+        el.classes.add(exitClass);
+        await waitForVisualEnd(el);
+        el.classes.remove(exitClass);
     });
     return this;
 };
@@ -48,16 +49,18 @@ NDElement.prototype.transitionIn = function(transitionName) {
     const startClass = transitionName + '-enter-from';
     const endClass = transitionName + '-enter-to';
 
-    this.$element.classes.add(startClass);
+    const el = this.$element;
+
+    el.classes.add(startClass);
 
     this.mounted(() => {
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                this.$element.classes.remove(startClass);
-                this.$element.classes.add(endClass);
+                el.classes.remove(startClass);
+                el.classes.add(endClass);
 
-                waitForVisualEnd(this.$element).then(() => {
-                    this.$element.classes.remove(endClass);
+                waitForVisualEnd(el).then(() => {
+                    el.classes.remove(endClass);
                 });
             });
         });
@@ -73,10 +76,11 @@ NDElement.prototype.transition = function (transitionName) {
 };
 
 NDElement.prototype.animate = function(animationName) {
-    this.$element.classes.add(animationName);
+    const el = this.$element;
+    el.classes.add(animationName);
 
-    waitForVisualEnd(this.$element).then(() => {
-        this.$element.classes.remove(animationName);
+    waitForVisualEnd(el).then(() => {
+        el.classes.remove(animationName);
     });
 
     return this;

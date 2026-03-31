@@ -1,5 +1,6 @@
 import Validator from "../core/utils/validator";
 import {Anchor} from "../../elements";
+import {ElementCreator} from "../core/wrappers/ElementCreator";
 
 /**
  *
@@ -73,7 +74,7 @@ export function RouterComponent(router, container) {
         cleanContainer();
         const anchor = getNodeAnchorForLayout(nodeToInsert, path);
 
-        $currentLayout = layout(anchor);
+        $currentLayout = ElementCreator.getChild(layout(anchor));
         $layoutCache.set(nodeToInsert, $currentLayout);
         container.appendChild($currentLayout);
     }

@@ -106,7 +106,7 @@ export function ForEachArray(data, callback, configs = {}) {
 
     let buildItem = createAndCache;
     const selectBuildStrategy = (action = null) => {
-        if(CREATE_AND_CACHE_ACTIONS.includes(action)) {
+        if(CREATE_AND_CACHE_ACTIONS.has(action)) {
             buildItem = isIndexRequired ? createWithIndexAndCache : createAndCache;
             return;
         }
@@ -130,7 +130,7 @@ export function ForEachArray(data, callback, configs = {}) {
         }
     };
 
-    const removeByItem = function(item, fragment) {
+    const removeByItem = (item, fragment) => {
         const cacheItem = cache.get(item);
         if(!cacheItem) {
             return null;

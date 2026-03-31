@@ -395,7 +395,6 @@ var NativeDocument = (function (exports) {
 
     function NDElement(element) {
         this.$element = element;
-        this.$observer = null;
         {
             PluginsManager.emit('NDElementCreated', element, this);
         }
@@ -413,7 +412,7 @@ var NativeDocument = (function (exports) {
     };
 
     NDElement.prototype.refSelf = function(target, name) {
-        target[name] = this;
+        target[name] = new NDElement(this.$element);
         return this;
     };
 
@@ -434,23 +433,28 @@ var NativeDocument = (function (exports) {
         let element = this.$element;
         element.nd.unmountChildren();
         element.$ndProx = null;
-        delete element.nd?.on?.prevent;
-        delete element.nd?.on;
-        delete element.nd;
+
+        $lifeCycleObservers.delete(element);
+
         element = null;
         return this;
     };
 
+    const $lifeCycleObservers = new WeakMap();
     NDElement.prototype.lifecycle = function(states) {
-        this.$observer = this.$observer || DocumentObserver.watch(this.$element);
+        const el = this.$element;
+        if (!$lifeCycleObservers.has(el)) {
+            $lifeCycleObservers.set(el, DocumentObserver.watch(el));
+        }
+        const observer = $lifeCycleObservers.get(el);
 
         if(states.mounted) {
             this.$element.setAttribute('data--nd-mounted', '1');
-            this.$observer.mounted(states.mounted);
+            observer.mounted(states.mounted);
         }
         if(states.unmounted) {
             this.$element.setAttribute('data--nd-unmounted', '1');
-            this.$observer.unmounted(states.unmounted);
+            observer.unmounted(states.unmounted);
         }
         return this;
     };
@@ -652,12 +656,11 @@ var NativeDocument = (function (exports) {
         DOCUMENT_FRAGMENT: 11
     };
 
-    const VALID_TYPES = {
-        [COMMON_NODE_TYPES.ELEMENT]: true,
-        [COMMON_NODE_TYPES.TEXT]: true,
-        [COMMON_NODE_TYPES.DOCUMENT_FRAGMENT]: true,
-        [COMMON_NODE_TYPES.COMMENT]: true
-    };
+    const VALID_TYPES = [];
+    VALID_TYPES[COMMON_NODE_TYPES.ELEMENT] = true;
+    VALID_TYPES[COMMON_NODE_TYPES.TEXT] = true;
+    VALID_TYPES[COMMON_NODE_TYPES.DOCUMENT_FRAGMENT] = true;
+    VALID_TYPES[COMMON_NODE_TYPES.COMMENT] = true;
 
     const Validator = {
         isObservable(value) {
@@ -2354,7 +2357,7 @@ var NativeDocument = (function (exports) {
      * @param {HTMLElement} element
      * @param {Object} data
      */
-    function bindClassAttribute(element, data) {
+    const bindClassAttribute = (element, data) => {
         for(const className in data) {
             const value = data[className];
             if(value.__$isObservable) {
@@ -2374,14 +2377,14 @@ var NativeDocument = (function (exports) {
             element.classes.toggle(className, value);
         }
         data = null;
-    }
+    };
 
     /**
      *
      * @param {HTMLElement} element
      * @param {Object} data
      */
-    function bindStyleAttribute(element, data) {
+    const bindStyleAttribute = (element, data) => {
         for(const styleName in data) {
             const value = data[styleName];
             if(value.__$isObservable) {
@@ -2391,7 +2394,7 @@ var NativeDocument = (function (exports) {
             }
             element.style[styleName] = value;
         }
-    }
+    };
 
     /**
      *
@@ -2399,7 +2402,7 @@ var NativeDocument = (function (exports) {
      * @param {string} attributeName
      * @param {boolean|number|Observable} value
      */
-    function bindBooleanAttribute(element, attributeName, value) {
+    const bindBooleanAttribute = (element, attributeName, value) => {
         const isObservable = value.__$isObservable;
         const defaultValue = isObservable? value.val() : value;
         if(Validator.isBoolean(defaultValue)) {
@@ -2421,7 +2424,7 @@ var NativeDocument = (function (exports) {
             }
             value.subscribe((newValue) => element[attributeName] = (newValue === element.value));
         }
-    }
+    };
 
 
     /**
@@ -2430,7 +2433,7 @@ var NativeDocument = (function (exports) {
      * @param {string} attributeName
      * @param {Observable} value
      */
-    function bindAttributeWithObservable(element, attributeName, value) {
+    const bindAttributeWithObservable = (element, attributeName, value) => {
         const applyValue = attributeName === 'value' ? (newValue) => element.value = newValue : (newValue) => element.setAttribute(attributeName, newValue);
         value.subscribe(applyValue);
 
@@ -2440,16 +2443,18 @@ var NativeDocument = (function (exports) {
             return;
         }
         element.setAttribute(attributeName, value.val());
-    }
+    };
 
     /**
      *
      * @param {HTMLElement} element
      * @param {Object} attributes
      */
-    function AttributesWrapper(element, attributes) {
+    const AttributesWrapper = (element, attributes) => {
 
-        Validator.validateAttributes(attributes);
+        {
+            Validator.validateAttributes(attributes);
+        }
 
         for(const originalAttributeName in attributes) {
             const attributeName = originalAttributeName.toLowerCase();
@@ -2479,7 +2484,7 @@ var NativeDocument = (function (exports) {
             element.setAttribute(attributeName, value);
         }
         return element;
-    }
+    };
 
     function TemplateBinding(hydrate) {
         this.$hydrate = hydrate;
@@ -2575,10 +2580,11 @@ var NativeDocument = (function (exports) {
 
     NDElement.prototype.transitionOut = function(transitionName) {
         const exitClass = transitionName + '-exit';
+        const el = this.$element;
         this.beforeUnmount('transition-exit', async function() {
-            this.$element.classes.add(exitClass);
-            await waitForVisualEnd(this.$element);
-            this.$element.classes.remove(exitClass);
+            el.classes.add(exitClass);
+            await waitForVisualEnd(el);
+            el.classes.remove(exitClass);
         });
         return this;
     };
@@ -2587,16 +2593,18 @@ var NativeDocument = (function (exports) {
         const startClass = transitionName + '-enter-from';
         const endClass = transitionName + '-enter-to';
 
-        this.$element.classes.add(startClass);
+        const el = this.$element;
+
+        el.classes.add(startClass);
 
         this.mounted(() => {
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
-                    this.$element.classes.remove(startClass);
-                    this.$element.classes.add(endClass);
+                    el.classes.remove(startClass);
+                    el.classes.add(endClass);
 
-                    waitForVisualEnd(this.$element).then(() => {
-                        this.$element.classes.remove(endClass);
+                    waitForVisualEnd(el).then(() => {
+                        el.classes.remove(endClass);
                     });
                 });
             });
@@ -2612,10 +2620,11 @@ var NativeDocument = (function (exports) {
     };
 
     NDElement.prototype.animate = function(animationName) {
-        this.$element.classes.add(animationName);
+        const el = this.$element;
+        el.classes.add(animationName);
 
-        waitForVisualEnd(this.$element).then(() => {
-            this.$element.classes.remove(animationName);
+        waitForVisualEnd(el).then(() => {
+            el.classes.remove(animationName);
         });
 
         return this;
@@ -2645,6 +2654,7 @@ var NativeDocument = (function (exports) {
         createTextNode() {
             if(!$textNodeCache) {
                 $textNodeCache = document.createTextNode('');
+                ElementCreator.createTextNode = () => $textNodeCache.cloneNode();
             }
             return $textNodeCache.cloneNode();
         },
@@ -2654,7 +2664,7 @@ var NativeDocument = (function (exports) {
          * @param {ObservableItem} observable
          * @returns {Text}
          */
-        createObservableNode(parent, observable) {
+        createObservableNode: (parent, observable) => {
             const text = ElementCreator.createTextNode();
             observable.subscribe(value => text.nodeValue = value);
             text.nodeValue = observable.val();
@@ -2690,7 +2700,7 @@ var NativeDocument = (function (exports) {
          * @param {string} name
          * @returns {HTMLElement|DocumentFragment}
          */
-        createElement(name)  {
+        createElement: (name) => {
             if(name) {
                 const cacheNode = $nodeCache.get(name);
                 if(cacheNode) {
@@ -2702,7 +2712,7 @@ var NativeDocument = (function (exports) {
             }
             return Anchor('Fragment');
         },
-        bindTextNode(textNode, value) {
+        bindTextNode: (textNode, value) => {
             if(value?.__$isObservable) {
                 value.subscribe(newValue => textNode.nodeValue = newValue);
                 textNode.nodeValue = value.val();
@@ -2732,7 +2742,7 @@ var NativeDocument = (function (exports) {
             await element.remove();
 
         },
-        getChild(child) {
+        getChild: (child) => {
             if(child == null) {
                 return null;
             }
@@ -2752,11 +2762,19 @@ var NativeDocument = (function (exports) {
          * @param {HTMLElement} element
          * @param {Object} attributes
          */
-        processAttributes(element, attributes) {
+        processAttributes: (element, attributes) => {
             if (attributes) {
                 AttributesWrapper(element, attributes);
             }
-        }
+        },
+        /**
+         *
+         * @param {HTMLElement} element
+         * @param {Object} attributes
+         */
+        processAttributesDirect: AttributesWrapper,
+        processClassAttribute: bindClassAttribute,
+        processStyleAttribute: bindStyleAttribute,
     };
 
     const EVENTS = [
@@ -3202,48 +3220,90 @@ var NativeDocument = (function (exports) {
 
     const cloneBindingsDataCache = new WeakMap();
 
+    const pathProcess = (target, path, data) => {
+        if(path.HYDRATE_TEXT) {
+            const value = path.value;
+            ElementCreator.bindTextNode(target, path.isString ? data[0][value] : value.apply(null, data));
+            return;
+        }
+        if(path.ATTACH_METHOD) {
+            const bindingData = path.bindingData;
+            for(let i = 0, length = bindingData._attachLength; i < length; i++) {
+                const method = bindingData.attach[i];
+                target.nd[method.methodName](function() {
+                    method.fn.call(this, ...data, ...arguments);
+                });
+            }
+        }
+        if(path.HYDRATE_ATTRIBUTES) {
+            path.hydrator(target, path.bindingData, data);
+        }
+    };
 
-    const bindAttributes = (node, bindDingData, data) => {
-        let attributes = null;
+    const buildAttributesCache = (bindDingData) => {
+        const cache = { };
+        if(bindDingData.attributes) cache.attributes = {};
+        if(bindDingData.classes)    cache.class = {};
+        if(bindDingData.styles)     cache.style = {};
+        bindDingData._cache = cache;
+    };
+
+    const prepareBindingMetadata = (bindDingData) => {
+        const attributes = [];
+        const classAndStyles = [];
+
         if(bindDingData.attributes) {
-            attributes = {};
             for (const attr in bindDingData.attributes) {
-                attributes[attr] = bindDingData.attributes[attr].apply(null, data);
+                attributes.push({
+                    name: attr,
+                    value: bindDingData.attributes[attr]
+                });
             }
         }
 
         if(bindDingData.classes) {
-            attributes = attributes || {};
-            attributes.class = {};
             for (const className in bindDingData.classes) {
-                attributes.class[className] = bindDingData.classes[className].apply(null, data);
+                bindDingData._hasClassAttribute = true;
+                classAndStyles.push({
+                    name: 'class',
+                    key: className,
+                    value: bindDingData.classes[className]
+                });
             }
         }
 
         if(bindDingData.styles) {
-            attributes = attributes || {};
-            attributes.style = {};
             for (const property in bindDingData.styles) {
-                attributes.style[property] = bindDingData.styles[property].apply(null, data);
+                bindDingData._hasStyleAttribute = true;
+                classAndStyles.push({
+                    name: 'style',
+                    key: property,
+                    value: bindDingData.styles[property]
+                });
             }
         }
 
-        if(attributes) {
-            ElementCreator.processAttributes(node, attributes);
-            return true;
-        }
-
-        return null;
+        bindDingData._flatAttributes = attributes;
+        bindDingData._flatAttributesLength = attributes.length;
+        bindDingData._flatDynamique = classAndStyles;
+        bindDingData._flatDynamiqueLength = classAndStyles.length;
+        bindDingData._attachLength = bindDingData.attach.length;
     };
+
 
     const $hydrateFn = function(hydrateFunction, targetType, element, property) {
         if(!cloneBindingsDataCache.has(element)) {
-            // { classes, styles, attributes, value, attach }
-            cloneBindingsDataCache.set(element, {});
+            cloneBindingsDataCache.set(element, { attach: [] });
         }
         const hydrationState = cloneBindingsDataCache.get(element);
+
         if(targetType === 'value') {
             hydrationState.value = hydrateFunction;
+            return;
+        }
+        if(targetType === 'attach') {
+            hydrationState.attach = hydrationState.attach || [];
+            hydrationState.attach.push({ methodName: property, fn: hydrateFunction});
             return;
         }
         hydrationState[targetType] = hydrationState[targetType] || {};
@@ -3251,82 +3311,205 @@ var NativeDocument = (function (exports) {
     };
 
     const bindAttachMethods = (node, bindDingData, data) => {
-        if(!bindDingData.attach) {
-            return null;
-        }
-        for(const methodName in bindDingData.attach) {
-            node.nd[methodName](function(...args) {
-                bindDingData.attach[methodName].apply(this, [...args, ...data]);
+        for(let i = 0, length = bindDingData._attachLength; i < length; i++) {
+            const method = bindDingData.attach[i];
+            node.nd[method.methodName](function() {
+                method.fn.call(this, ...data, ...arguments);
             });
         }
     };
 
+    const optimizeBindingData = (bindDingData) => {
+        buildAttributesCache(bindDingData);
+        prepareBindingMetadata(bindDingData);
+    };
 
-    const applyBindingTreePath = (root, target, data, path) => {
-        if(path.fn) {
-            if(typeof path.fn === 'string') {
-                ElementCreator.bindTextNode(target, data[0][path.fn]);
+
+    const $applyBindingParents = [];
+    const hydrateClonedNode = (root, data, paths, pathSize) => {
+        const rootPath = paths[pathSize];
+        $applyBindingParents[rootPath.id] = root;
+        pathProcess(root, rootPath, data);
+
+        let target = null, path = null;
+        for(let i = 0; i < pathSize; i++) {
+            path = paths[i];
+            target = $applyBindingParents[path.parentId].childNodes[path.index];
+            $applyBindingParents[path.id] = target;
+
+            if(path.HYDRATE_TEXT) {
+                const value = path.value;
+                ElementCreator.bindTextNode(target, path.isString ? data[0][value] : value.apply(null, data));
+                continue;
             }
-            else {
-                path.fn(data, target, root);
+            if(path.ATTACH_METHOD) {
+                const bindingData = path.bindingData;
+                for(let i = 0, length = bindingData._attachLength; i < length; i++) {
+                    const method = bindingData.attach[i];
+                    target.nd[method.methodName](function() {
+                        method.fn.call(this, ...data, ...arguments);
+                    });
+                }
+            }
+            if(path.HYDRATE_ATTRIBUTES) {
+                path.hydrator(target, path.bindingData, data);
             }
         }
-        if(path.children) {
-            for(let i = 0, length = path.children.length; i < length; i++) {
-                const currentPath = path.children[i];
-                const pathTargetNode = target.childNodes[currentPath.index];
-                applyBindingTreePath(root, pathTargetNode, data, currentPath);
-            }
+
+        for (let i = 0; i <= pathSize; i++) {
+            $applyBindingParents[i] = null;
         }
+    };
+
+    const hydrateFull = (node, bindDingData, data) => {
+        const cacheAttributes = bindDingData._cache;
+
+        for(let i = 0, length = bindDingData._flatAttributesLength; i < length; i++) {
+            const attr = bindDingData._flatAttributes[i];
+            cacheAttributes[attr.name] = attr.value.apply(null, data);
+        }
+
+        for(let i = 0, length = bindDingData._flatDynamiqueLength; i < length; i++) {
+            const dyn = bindDingData._flatDynamique[i];
+            cacheAttributes[dyn.name][dyn.key] = dyn.value.apply(null, data);
+        }
+
+        ElementCreator.processAttributesDirect(node, cacheAttributes);
+        return true;
+    };
+
+    const hydrateDynamic = (node, bindDingData, data) => {
+        const cacheAttributes = bindDingData._cache;
+
+        for(let i = 0, length = bindDingData._flatDynamiqueLength; i < length; i++) {
+            const dyn = bindDingData._flatDynamique[i];
+            cacheAttributes[dyn.name][dyn.key] = dyn.value.apply(null, data);
+        }
+
+        ElementCreator.processClassAttribute(node, cacheAttributes.class);
+        ElementCreator.processStyleAttribute(node, cacheAttributes.style);
+        return true;
+    };
+
+    const hydrateClassAttribute = (node, bindDingData, data) => {
+        const classAttributes = bindDingData._cache.class;
+
+        for(let i = 0, length = bindDingData._flatDynamiqueLength; i < length; i++) {
+            const dyn = bindDingData._flatDynamique[i];
+            classAttributes[dyn.key] = dyn.value.apply(null, data);
+        }
+
+        ElementCreator.processClassAttribute(node, classAttributes);
+        return true;
+    };
+
+    const hydrateStyleAttribute = (node, bindDingData, data) => {
+        const styleAttributes = bindDingData._cache;
+
+        for(let i = 0, length = bindDingData._flatDynamiqueLength; i < length; i++) {
+            const dyn = bindDingData._flatDynamique[i];
+            styleAttributes[dyn.key] = dyn.value.apply(null, data);
+        }
+
+        ElementCreator.processStyleAttribute(node, styleAttributes);
+        return true;
+    };
+
+    const hydrateAttributes = (node, bindDingData, data) => {
+        const cacheAttributes = bindDingData._cache;
+
+        for(let i = 0, length = bindDingData._flatAttributesLength; i < length; i++) {
+            const attr = bindDingData._flatAttributes[i];
+            cacheAttributes[attr.name] = attr.value.apply(null, data);
+        }
+
+        ElementCreator.processAttributesDirect(node, cacheAttributes);
+        return true;
+    };
+
+    const getHydrator = (bindDingData) => {
+        if(!bindDingData._cache) {
+            return noUpdate;
+        }
+        if(bindDingData._flatAttributesLength && bindDingData._flatDynamiqueLength) {
+            return hydrateFull;
+        }
+        if(bindDingData._flatAttributesLength) {
+            return hydrateAttributes;
+        }
+        if(bindDingData._hasClassAttribute && bindDingData._hasStyleAttribute) {
+            return hydrateDynamic;
+        }
+        if(bindDingData._hasClassAttribute) {
+            return hydrateClassAttribute;
+        }
+        return hydrateStyleAttribute;
     };
 
     function TemplateCloner($fn) {
         let $node = null;
         let $hasBindingData = false;
 
-        const $bindingTreePath = {
-            fn: null,
-            children: [],
-        };
+        let $bindingTreePathSize = 0;
+        const $bindingTreePath = [
+            {
+                id: 0,
+                parentId: null
+            }
+        ];
 
+        let pathCounter = 0;
         const clone = (node, data, currentPath) => {
             const bindDingData = cloneBindingsDataCache.get(node);
+            if(bindDingData) {
+                optimizeBindingData(bindDingData);
+            }
             if(node.nodeType === 3) {
                 if(bindDingData && bindDingData.value) {
-                    currentPath.fn = bindDingData.value;
+                    const value = bindDingData.value;
                     const textNode = node.cloneNode();
-                    if(typeof bindDingData.value === 'string') {
-                        ElementCreator.bindTextNode(textNode, data[0][bindDingData.value]);
-                        return textNode;
-                    }
-                    bindDingData.value(data, textNode);
+                    currentPath.value = value;
+                    currentPath.HYDRATE_TEXT = true;
+                    currentPath.operation = true;
+                    currentPath.isString = (typeof value === 'string');
+                    ElementCreator.bindTextNode(textNode, (currentPath.isString ? data[0][value] : value.apply(null, data)));
                     return textNode;
                 }
                 return node.cloneNode(true);
             }
             const nodeCloned = node.cloneNode();
             if(bindDingData) {
-                bindAttributes(nodeCloned, bindDingData, data);
+                const hydrator = getHydrator(bindDingData);
+                hydrator(nodeCloned, bindDingData, data);
                 bindAttachMethods(nodeCloned, bindDingData, data);
-                currentPath.fn = (data, targetNode) => {
-                    bindAttributes(targetNode, bindDingData, data);
-                    bindAttachMethods(targetNode, bindDingData, data);
-                };
+
+                const hasAttributes = bindDingData.classes || bindDingData.styles || bindDingData.attributes;
+                const hasAttachMethods = bindDingData.attach.length;
+
+                currentPath.bindingData = bindDingData;
+                currentPath.hydrator = hydrator;
+
+                if(hasAttributes) {
+                    currentPath.HYDRATE_ATTRIBUTES = true;
+                    currentPath.operation = true;
+                }
+                if(hasAttachMethods) {
+                    currentPath.ATTACH_METHOD = true;
+                    currentPath.operation = true;
+                }
             }
             const childNodes = node.childNodes;
-            const bindingPathChildren = [];
+            const parentId = currentPath.id;
+
             for(let i = 0, length = childNodes.length; i < length; i++) {
                 const childNode = childNodes[i];
-                const path = { index: i, fn: null };
+                const path = { parentId, id: ++pathCounter,  index: i };
                 const childNodeCloned = clone(childNode, data, path);
-                if(path.children || path.fn) {
-                    bindingPathChildren.push(path);
+                if(path.hasChildren || path.operation) {
+                    $bindingTreePath.push(path);
+                    currentPath.hasChildren = true;
                 }
                 nodeCloned.appendChild(childNodeCloned);
-            }
-            if(bindingPathChildren.length) {
-                currentPath.children = currentPath.children || [];
-                currentPath.children = bindingPathChildren;
             }
             return nodeCloned;
         };
@@ -3334,18 +3517,22 @@ var NativeDocument = (function (exports) {
         const cloneWithBindingPaths = (data) => {
             let root = $node.cloneNode(true);
 
-            applyBindingTreePath(root, root, data, $bindingTreePath);
+            hydrateClonedNode(root, data, $bindingTreePath, $bindingTreePathSize);
             return root;
         };
 
         this.clone = (data) => {
-            $node = $fn(this);
+            const binder = createTemplateCloner(this);
+            $node = $fn(binder);
             if(!$hasBindingData) {
                 this.clone = () => $node.cloneNode(true);
                 return $node.cloneNode(true);
             }
 
-            const firstClone = clone($node, data, $bindingTreePath);
+            const firstClone = clone($node, data, $bindingTreePath[0]);
+            $bindingTreePath.reverse();
+            $bindingTreePathSize = $bindingTreePath.length - 1;
+
             this.clone = cloneWithBindingPaths;
             return firstClone;
         };
@@ -3368,38 +3555,49 @@ var NativeDocument = (function (exports) {
             return this.value(propertyName);
         };
         this.value = (callbackOrProperty) => {
-            if(typeof callbackOrProperty !== 'function') {
-                return createBinding(callbackOrProperty, 'value');
-            }
-            return createBinding((data, textNode) => {
-                ElementCreator.bindTextNode(textNode, callbackOrProperty(...data));
-            }, 'value');
+            return createBinding(callbackOrProperty, 'value');
         };
+        this.text = this.value;
         this.attr = (fn) => {
             return createBinding(fn, 'attributes');
         };
         this.attach = (fn) => {
             return createBinding(fn, 'attach');
         };
-
+        this.callback = this.attach;
     }
+
+
+    const createTemplateCloner = ($binder) => {
+        return new Proxy($binder, {
+            get(target, prop) {
+                if(prop in target) {
+                    return target[prop];
+                }
+                if (typeof prop === 'symbol') return target[prop];
+                return target.value(prop);
+            }
+        });
+    };
 
     function useCache(fn) {
         let $cache = null;
 
-        const wrapper = function(args) {
-            if(!$cache) {
-                $cache = new TemplateCloner(fn);
-            }
+        let wrapper = (args) => {
+            $cache = new TemplateCloner(fn);
+
+            wrapper = (args) => {
+                return $cache.clone(args);
+            };
             return $cache.clone(args);
         };
 
         if(fn.length < 2) {
-            return function(...args) {
+            return (...args) => {
                 return wrapper(args);
             };
         }
-        return function(_, __, ...args) {
+        return (_, __, ...args) => {
             return wrapper([_, __, ...args]);
         };
     }
@@ -4895,7 +5093,7 @@ var NativeDocument = (function (exports) {
 
         let buildItem = createAndCache;
         const selectBuildStrategy = (action = null) => {
-            if(CREATE_AND_CACHE_ACTIONS.includes(action)) {
+            if(CREATE_AND_CACHE_ACTIONS.has(action)) {
                 buildItem = isIndexRequired ? createWithIndexAndCache : createAndCache;
                 return;
             }
@@ -4919,7 +5117,7 @@ var NativeDocument = (function (exports) {
             }
         };
 
-        const removeByItem = function(item, fragment) {
+        const removeByItem = (item, fragment) => {
             const cacheItem = cache.get(item);
             if(!cacheItem) {
                 return null;
@@ -6713,7 +6911,7 @@ var NativeDocument = (function (exports) {
             cleanContainer();
             const anchor = getNodeAnchorForLayout(nodeToInsert, path);
 
-            $currentLayout = layout(anchor);
+            $currentLayout = ElementCreator.getChild(layout(anchor));
             $layoutCache.set(nodeToInsert, $currentLayout);
             container.appendChild($currentLayout);
         };
@@ -7011,6 +7209,17 @@ var NativeDocument = (function (exports) {
     };
     Router.back = function(name = null) {
         return Router.get(name).back();
+    };
+
+    Router.redirectTo = function(pathOrRouteName, params = null, name = null) {
+        let target = pathOrRouteName;
+        const router = Router.get(name);
+        const route = router.resolve({ name: pathOrRouteName, params });
+        if(route) {
+            target = { name: pathOrRouteName, params};
+        }
+        console.log(target);
+        return router.push(target);
     };
 
     function Link(options, children){

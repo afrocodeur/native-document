@@ -37,6 +37,7 @@ export declare class TemplateCloner {
     property(fn: (...data: any[]) => any): BindingHydrator;
 
     attach(fn: (element: Element, ...data: any[]) => void): BindingHydrator;
+    callback(fn: (element: Element, ...data: any[]) => void): BindingHydrator;
 }
 
 export declare function useCache(fn: TemplateBuilder): CachedTemplateFunction;

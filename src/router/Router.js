@@ -268,3 +268,14 @@ Router.forward = function(name = null) {
 Router.back = function(name = null) {
     return Router.get(name).back();
 };
+
+Router.redirectTo = function(pathOrRouteName, params = null, name = null) {
+    let target = pathOrRouteName;
+    const router = Router.get(name);
+    const route = router.resolve({ name: pathOrRouteName, params });
+    if(route) {
+        target = { name: pathOrRouteName, params}
+    }
+    console.log(target);
+    return router.push(target);
+};

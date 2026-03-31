@@ -8,7 +8,7 @@ import {Observable} from "../data/Observable";
  * @param {HTMLElement} element
  * @param {Object} data
  */
-export function bindClassAttribute(element, data) {
+export const bindClassAttribute = (element, data) => {
     for(const className in data) {
         const value = data[className];
         if(value.__$isObservable) {
@@ -35,7 +35,7 @@ export function bindClassAttribute(element, data) {
  * @param {HTMLElement} element
  * @param {Object} data
  */
-export function bindStyleAttribute(element, data) {
+export const bindStyleAttribute = (element, data) => {
     for(const styleName in data) {
         const value = data[styleName];
         if(value.__$isObservable) {
@@ -53,7 +53,7 @@ export function bindStyleAttribute(element, data) {
  * @param {string} attributeName
  * @param {boolean|number|Observable} value
  */
-export function bindBooleanAttribute(element, attributeName, value) {
+export const bindBooleanAttribute = (element, attributeName, value) => {
     const isObservable = value.__$isObservable;
     const defaultValue = isObservable? value.val() : value;
     if(Validator.isBoolean(defaultValue)) {
@@ -75,7 +75,7 @@ export function bindBooleanAttribute(element, attributeName, value) {
         }
         value.subscribe((newValue) => element[attributeName] = (newValue === element.value));
     }
-}
+};
 
 
 /**
@@ -84,7 +84,7 @@ export function bindBooleanAttribute(element, attributeName, value) {
  * @param {string} attributeName
  * @param {Observable} value
  */
-export function bindAttributeWithObservable(element, attributeName, value) {
+export const bindAttributeWithObservable = (element, attributeName, value) => {
     const applyValue = attributeName === 'value' ? (newValue) => element.value = newValue : (newValue) => element.setAttribute(attributeName, newValue);
     value.subscribe(applyValue);
 
@@ -101,9 +101,11 @@ export function bindAttributeWithObservable(element, attributeName, value) {
  * @param {HTMLElement} element
  * @param {Object} attributes
  */
-export default function AttributesWrapper(element, attributes) {
+const AttributesWrapper = (element, attributes) => {
 
-    Validator.validateAttributes(attributes);
+    if(process.env.NODE_ENV === 'development') {
+        Validator.validateAttributes(attributes);
+    }
 
     for(const originalAttributeName in attributes) {
         const attributeName = originalAttributeName.toLowerCase();
@@ -134,3 +136,5 @@ export default function AttributesWrapper(element, attributes) {
     }
     return element;
 }
+
+export default AttributesWrapper;

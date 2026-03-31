@@ -5,7 +5,6 @@ import DebugManager from "../utils/debug-manager.js";
 
 export function NDElement(element) {
     this.$element = element;
-    this.$observer = null;
     if(process.env.NODE_ENV === 'development') {
         PluginsManager.emit('NDElementCreated', element, this);
     }
@@ -23,7 +22,7 @@ NDElement.prototype.ref = function(target, name) {
 };
 
 NDElement.prototype.refSelf = function(target, name) {
-    target[name] = this;
+    target[name] = new NDElement(this.$element);
     return this;
 };
 
@@ -44,23 +43,28 @@ NDElement.prototype.remove = function() {
     let element = this.$element;
     element.nd.unmountChildren();
     element.$ndProx = null;
-    delete element.nd?.on?.prevent;
-    delete element.nd?.on;
-    delete element.nd;
+
+    $lifeCycleObservers.delete(element);
+
     element = null;
     return this;
 };
 
+const $lifeCycleObservers = new WeakMap();
 NDElement.prototype.lifecycle = function(states) {
-    this.$observer = this.$observer || DocumentObserver.watch(this.$element);
+    const el = this.$element;
+    if (!$lifeCycleObservers.has(el)) {
+        $lifeCycleObservers.set(el, DocumentObserver.watch(el));
+    }
+    const observer = $lifeCycleObservers.get(el);
 
     if(states.mounted) {
         this.$element.setAttribute('data--nd-mounted', '1');
-        this.$observer.mounted(states.mounted);
+        observer.mounted(states.mounted);
     }
     if(states.unmounted) {
         this.$element.setAttribute('data--nd-unmounted', '1');
-        this.$observer.unmounted(states.unmounted);
+        observer.unmounted(states.unmounted);
     }
     return this;
 };
