@@ -3,7 +3,7 @@ import BaseComponent from "../BaseComponent";
 
 export default function ContextMenu(config = {}) {
     if(!(this instanceof ContextMenu)) {
-        return ContextMenu(config);
+        return new ContextMenu(config);
     }
     Menu.call(this, config);
 

@@ -7,7 +7,7 @@ export const cssPropertyAccumulator = function(initialValue = {}) {
     return {
         add(key, value) {
             if(isArray) {
-                data.push(key+' :  '+value);
+                data.push(key+':  '+value);
                 return;
             }
             data[key] = value;

@@ -1,12 +1,11 @@
-import {bindAttributeWithObservable, bindBooleanAttribute} from "../AttributesWrapper";
+import {
+    bindAttributeWithObservable,
+    bindBooleanAttribute
+} from "../AttributesWrapper";
 import ObservableItem from "../../data/ObservableItem";
 import TemplateBinding from "../TemplateBinding";
 import {BOOLEAN_ATTRIBUTES} from "../constants";
 
-
-String.prototype.handleNdAttribute = function(element, attributeName) {
-    element.setAttribute(attributeName, this);
-};
 
 ObservableItem.prototype.handleNdAttribute = function(element, attributeName) {
     if(BOOLEAN_ATTRIBUTES.has(attributeName)) {

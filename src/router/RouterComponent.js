@@ -36,6 +36,7 @@ export function RouterComponent(router, container) {
             $lastNodeInserted.remove();
         }
     };
+
     const cleanContainer = () => {
         container.nodeValue = '';
         removeLastNodeInserted();
@@ -61,10 +62,12 @@ export function RouterComponent(router, container) {
             if(cachedLayout === $currentLayout) {
                 const layoutAnchor = getNodeAnchorForLayout(nodeToInsert, path);
                 removeLastNodeInserted();
+                $lastNodeInserted = nodeToInsert;
                 layoutAnchor.replaceContent(nodeToInsert);
                 return;
             }
             cleanContainer();
+            $lastNodeInserted = nodeToInsert;
             $currentLayout = cachedLayout;
             const layoutAnchor = getNodeAnchorForLayout(nodeToInsert, path);
             layoutAnchor.replaceContent(nodeToInsert);
@@ -72,6 +75,7 @@ export function RouterComponent(router, container) {
             return;
         }
         cleanContainer();
+        $lastNodeInserted = nodeToInsert;
         const anchor = getNodeAnchorForLayout(nodeToInsert, path);
 
         $currentLayout = ElementCreator.getChild(layout(anchor));

@@ -1,112 +1,74 @@
-import {ElementCreator} from "../ElementCreator";
 import TemplateBinding from "../TemplateBinding";
-import { hydrateClonedNode, optimizeBindingData, $hydrateFn, bindAttachMethods, cloneBindingsDataCache } from './utils';
-import { getHydrator } from './attributes-hydrator';
+import { $hydrateFn} from './utils';
+import NodeCloner from "./NodeCloner";
 
 export function TemplateCloner($fn) {
     let $node = null;
-    let $hasBindingData = false;
 
-    let $bindingTreePathSize = 0;
-    const $bindingTreePath = [
-        {
-            id: 0,
-            parentId: null
-        }
-    ];
-
-    let pathCounter = 0;
-    const clone = (node, data, currentPath) => {
-        const bindDingData = cloneBindingsDataCache.get(node);
-        if(bindDingData) {
-            optimizeBindingData(bindDingData);
-        }
-        if(node.nodeType === 3) {
-            if(bindDingData && bindDingData.value) {
-                const value = bindDingData.value;
-                const textNode = node.cloneNode();
-                currentPath.value = value;
-                currentPath.HYDRATE_TEXT = true;
-                currentPath.operation = true;
-                currentPath.isString = (typeof value === 'string');
-                ElementCreator.bindTextNode(textNode, (currentPath.isString ? data[0][value] : value.apply(null, data)));
-                return textNode;
+    const assignClonerToNode = ($node) => {
+        const childNodes = $node.childNodes;
+        let containDynamicNode = !!$node.nodeCloner;
+        const childNodesLength = childNodes.length;
+        for(let i = 0; i < childNodesLength; i++) {
+            const child = childNodes[i];
+            if(child.nodeCloner) {
+                containDynamicNode = true;
             }
-            return node.cloneNode(true);
-        }
-        const nodeCloned = node.cloneNode();
-        if(bindDingData) {
-            const hydrator = getHydrator(bindDingData);
-            hydrator(nodeCloned, bindDingData, data);
-            bindAttachMethods(nodeCloned, bindDingData, data);
-
-            const hasAttributes = bindDingData.classes || bindDingData.styles || bindDingData.attributes;
-            const hasAttachMethods = bindDingData.attach.length;
-
-            currentPath.bindingData = bindDingData;
-            currentPath.hydrator = hydrator;
-
-            if(hasAttributes) {
-                currentPath.HYDRATE_ATTRIBUTES = true;
-                currentPath.operation = true;
-            }
-            if(hasAttachMethods) {
-                currentPath.ATTACH_METHOD = true;
-                currentPath.operation = true;
+            const localContainDynamicNode = assignClonerToNode(child);
+            if(localContainDynamicNode) {
+                containDynamicNode = true;
             }
         }
-        const childNodes = node.childNodes;
-        const parentId = currentPath.id;
 
-        for(let i = 0, length = childNodes.length; i < length; i++) {
-            const childNode = childNodes[i];
-            const path = { parentId, id: ++pathCounter,  index: i };
-            const childNodeCloned = clone(childNode, data, path);
-            if(path.hasChildren || path.operation) {
-                $bindingTreePath.push(path);
-                currentPath.hasChildren = true;
+        if(!containDynamicNode) {
+            $node.dynamicCloneNode = $node.cloneNode.bind($node, true);
+        } else {
+            if($node.nodeCloner) {
+                $node.nodeCloner.resolve();
+                $node.dynamicCloneNode = (data) => {
+                    const clonedNode = $node.nodeCloner.cloneNode(data);
+                    for(let i = 0; i < childNodesLength; i++) {
+                        clonedNode.appendChild(childNodes[i].dynamicCloneNode(data));
+                    }
+                    return clonedNode;
+                };
+            } else {
+                $node.dynamicCloneNode = (data) => {
+                    const clonedNode = $node.cloneNode();
+                    for(let i = 0; i < childNodesLength; i++) {
+                        clonedNode.appendChild(childNodes[i].dynamicCloneNode(data));
+                    }
+                    return clonedNode;
+                };
             }
-            nodeCloned.appendChild(childNodeCloned);
         }
-        return nodeCloned;
-    };
 
-    const cloneWithBindingPaths = (data) => {
-        let root = $node.cloneNode(true);
-
-        hydrateClonedNode(root, data, $bindingTreePath, $bindingTreePathSize);
-        return root;
+        return containDynamicNode;
     };
 
     this.clone = (data) => {
         const binder = createTemplateCloner(this);
         $node = $fn(binder);
-        if(!$hasBindingData) {
-            this.clone = () => $node.cloneNode(true);
-            return $node.cloneNode(true);
+        if(!$node.nodeCloner) {
+            $node.nodeCloner = new NodeCloner($node);
         }
-
-        const firstClone = clone($node, data, $bindingTreePath[0]);
-        $bindingTreePath.reverse();
-        $bindingTreePathSize = $bindingTreePath.length - 1;
-
-        this.clone = cloneWithBindingPaths;
-        return firstClone;
+        assignClonerToNode($node);
+        this.clone = $node.dynamicCloneNode;
+        return $node.dynamicCloneNode(data);
     };
 
 
     const createBinding = (hydrateFunction, targetType) => {
         return new TemplateBinding((element, property) => {
-            $hasBindingData = true;
             $hydrateFn(hydrateFunction, targetType, element, property)
         });
     };
 
     this.style = (fn) => {
-        return createBinding(fn, 'styles');
+        return createBinding(fn, 'style');
     };
     this.class = (fn) => {
-        return createBinding(fn, 'classes');
+        return createBinding(fn, 'class');
     };
     this.property = (propertyName) => {
         return this.value(propertyName);
@@ -143,10 +105,9 @@ export function useCache(fn) {
     let wrapper = (args) => {
         $cache = new TemplateCloner(fn);
 
-        wrapper = (args) => {
-            return $cache.clone(args);
-        };
-        return $cache.clone(args);
+        const node = $cache.clone(args);
+        wrapper = $cache.clone;
+        return node;
     };
 
     if(fn.length < 2) {
@@ -158,3 +119,5 @@ export function useCache(fn) {
         return wrapper([_, __, ...args]);
     };
 }
+
+export const template = useCache;

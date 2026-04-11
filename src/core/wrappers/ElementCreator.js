@@ -1,10 +1,11 @@
-import Anchor from "../elements/anchor";
+import Anchor from "../elements/anchor/anchor";
 import Validator from "../utils/validator";
 import AttributesWrapper, { bindClassAttribute, bindStyleAttribute } from "./AttributesWrapper";
 import PluginsManager from "../utils/plugins-manager";
 import './prototypes/nd-element-extensions';
 import './prototypes/nd-element.transition.extensions';
 import './prototypes/attributes-extensions';
+import './prototypes/bind-class-extensions';
 
 const $nodeCache = new Map();
 let $textNodeCache = null;
@@ -36,7 +37,7 @@ export const ElementCreator = {
      * @param {{$hydrate: Function}} item
      * @returns {Text}
      */
-    createHydratableNode(parent, item) {
+    createHydratableNode: (parent, item) => {
         const text = ElementCreator.createTextNode();
         item.$hydrate(text);
         return text;
@@ -48,7 +49,7 @@ export const ElementCreator = {
      * @param {*} value
      * @returns {Text}
      */
-    createStaticTextNode(parent, value) {
+    createStaticTextNode: (parent, value) => {
         let text = ElementCreator.createTextNode();
         text.nodeValue = value;
         parent && parent.appendChild(text);
@@ -60,15 +61,10 @@ export const ElementCreator = {
      * @returns {HTMLElement|DocumentFragment}
      */
     createElement: (name) => {
-        if(name) {
-            const cacheNode = $nodeCache.get(name);
-            if(cacheNode) {
-                return cacheNode.cloneNode();
-            }
-            const node = document.createElement(name);
-            $nodeCache.set(name, node);
-            return node.cloneNode();
-        }
+        const node = document.createElement(name);
+        return node.cloneNode();
+    },
+    createFragment: (name) => {
         return Anchor('Fragment');
     },
     bindTextNode: (textNode, value) => {
@@ -84,12 +80,12 @@ export const ElementCreator = {
      * @param {*} children
      * @param {HTMLElement|DocumentFragment} parent
      */
-    processChildren(children, parent) {
+    processChildren: (children, parent) => {
         if(children === null) return;
         if(process.env.NODE_ENV === 'development') {
             PluginsManager.emit('BeforeProcessChildren', parent);
         }
-        let child = this.getChild(children);
+        let child = ElementCreator.getChild(children);
         if(child) {
             parent.appendChild(child);
         }

@@ -52,6 +52,8 @@ noMutationMethods.forEach((method) => {
     };
 });
 
+const $clearEvent = { action: 'clear' };
+
 /**
  * Removes all items from the array and triggers an update.
  *
@@ -65,7 +67,7 @@ ObservableArray.prototype.clear = function() {
         return;
     }
     this.$currentValue.length = 0;
-    this.trigger({ action: 'clear' });
+    this.trigger($clearEvent);
     return true;
 };
 

@@ -12,6 +12,7 @@ export default function ObservableChecker($observable, $checker) {
 
 export const ObservablePipe = ObservableChecker;
 
+ObservableChecker.prototype.__$Observable = true;
 ObservableChecker.prototype.__$isObservableChecker = true;
 
 /**

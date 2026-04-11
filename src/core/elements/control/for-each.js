@@ -1,6 +1,6 @@
 import {Observable} from "../../data/Observable";
 import Validator from "../../utils/validator";
-import Anchor from "../../elements/anchor";
+import Anchor from "../anchor/anchor";
 import DebugManager from "../../utils/debug-manager";
 import {getKey} from "../../utils/helpers";
 import { ElementCreator } from "../../wrappers/ElementCreator";

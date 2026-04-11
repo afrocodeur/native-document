@@ -1,4 +1,4 @@
-import Anchor from "../../elements/anchor";
+import Anchor from "../anchor/anchor";
 import {Observable} from "../../data/Observable";
 import Validator from "../../utils/validator";
 import { ElementCreator } from "../../wrappers/ElementCreator";
@@ -28,7 +28,6 @@ const CREATE_AND_CACHE_ACTIONS = new Set(['clear', 'push', 'unshift', 'replace']
 export function ForEachArray(data, callback, configs = {}) {
     const element = Anchor('ForEach Array', configs.isParentUniqueChild);
     const blockEnd = element.endElement();
-    const blockStart = element.startElement();
 
     let cache = new Map();
     let lastNumberOfItems = 0;
@@ -114,21 +113,23 @@ export function ForEachArray(data, callback, configs = {}) {
     };
 
 
-    const cleanCache = (items) => {
-        if(!isIndexRequired) {
-            cache.clear();
-            return;
-        }
-        if(configs.shouldKeepItemsInCache) {
-            return;
-        }
-        for (const [itemAsKey, _] of cache.entries()) {
-            if(items && items.includes(itemAsKey)) {
-                continue;
+    let cleanCache;
+
+    if(!isIndexRequired) {
+        cleanCache = cache.clear.bind(cache);
+    }
+    else if(configs.shouldKeepItemsInCache) {
+        cleanCache = () => {};
+    } else {
+        cleanCache = (items) => {
+            for (const [itemAsKey, _] of cache.entries()) {
+                if(items && items.includes(itemAsKey)) {
+                    continue;
+                }
+                removeCacheItem(itemAsKey, false);
             }
-            removeCacheItem(itemAsKey, false);
-        }
-    };
+        };
+    }
 
     const removeByItem = (item, fragment) => {
         const cacheItem = cache.get(item);
@@ -148,7 +149,7 @@ export function ForEachArray(data, callback, configs = {}) {
     };
 
     const Actions = {
-        toFragment(items){
+        toFragment: (items) =>{
             const fragment = document.createDocumentFragment();
             for(let i = 0, length = items.length; i < length; i++) {
                 fragment.appendChild(buildItem(items[i], lastNumberOfItems));
@@ -156,14 +157,19 @@ export function ForEachArray(data, callback, configs = {}) {
             }
             return fragment;
         },
-        add(items) {
-            element.appendElement(Actions.toFragment(items));
+        add: (items) => {
+            element.appendChildRaw(Actions.toFragment(items));
         },
-        replace(items) {
+        replace: (items) => {
             clear(items);
-            Actions.add(items);
+            element.appendChildRaw(Actions.toFragment(items));
         },
-        reOrder(items) {
+        set: () => {
+            const items = data.val();
+            clear(items);
+            element.appendChildRaw(Actions.toFragment(items));
+        },
+        reOrder: (items) => {
             let child = null;
             const fragment = document.createDocumentFragment();
             for(const item of items) {
@@ -173,24 +179,13 @@ export function ForEachArray(data, callback, configs = {}) {
                 }
             }
             child = null;
-            element.appendElement(fragment, blockEnd);
+            element.appendElementRaw(fragment);
         },
-        removeOne(element, index) {
+        removeOne: (element, index) => {
             removeCacheItem(element, true);
         },
         clear,
-        merge(items) {
-            Actions.add(items);
-        },
-        push(items) {
-            let delay = 0;
-            if(configs.pushDelay) {
-                delay = configs.pushDelay(items) ?? 0;
-            }
-
-            Actions.add(items, delay);
-        },
-        populate([target, iteration, callback]) {
+        populate: ([target, iteration, callback]) => {
             const fragment = document.createDocumentFragment();
             for (let i = 0; i < iteration; i++) {
                 const data = callback(i);
@@ -198,13 +193,13 @@ export function ForEachArray(data, callback, configs = {}) {
                 fragment.append(buildItem(data, i));
                 lastNumberOfItems++;
             }
-            element.appendChild(fragment);
+            element.appendChildRaw(fragment);
             fragment.replaceChildren();
         },
-        unshift(values){
-            element.insertBefore(Actions.toFragment(values), blockStart.nextSibling);
+        unshift: (values) => {
+            element.insertAtStartRaw(Actions.toFragment(values));
         },
-        splice(args, deleted) {
+        splice: (args, deleted) => {
             const [start, deleteCount, ...values] = args;
             let elementBeforeFirst = null;
             const garbageFragment = document.createDocumentFragment();
@@ -227,27 +222,27 @@ export function ForEachArray(data, callback, configs = {}) {
             garbageFragment.replaceChildren();
 
             if(values && values.length && elementBeforeFirst) {
-                element.insertBefore(Actions.toFragment(values), elementBeforeFirst.nextSibling);
+                element.insertBeforeRaw(Actions.toFragment(values), elementBeforeFirst.nextSibling);
             }
 
         },
-        reverse(_, reversed) {
+        reverse: (_, reversed) => {
             Actions.reOrder(reversed);
         },
-        sort(_, sorted) {
+        sort: (_, sorted) => {
             Actions.reOrder(sorted);
         },
-        remove(_, deleted) {
+        remove: (_, deleted)=> {
             Actions.removeOne(deleted);
         },
-        pop(_, deleted) {
+        pop: (_, deleted) => {
             Actions.removeOne(deleted);
         },
-        shift(_, deleted) {
+        shift: (_, deleted) => {
             Actions.removeOne(deleted);
         },
-        swap(args, elements) {
-            const parent = blockEnd.parentNode;
+        swap: (args, elements) => {
+            const parent = element.getParent();
 
             let childA = getItemChild(elements[0]);
             let childB = getItemChild(elements[1]);
@@ -262,37 +257,22 @@ export function ForEachArray(data, callback, configs = {}) {
             childB = null;
         }
     };
+    Actions.merge = Actions.add;
+    Actions.push = Actions.add;
 
-    const buildContent = (items, _, operations) => {
-        if(operations?.action === 'clear' || !items.length) {
-            if(lastNumberOfItems === 0) {
-                return;
-            }
-            clear();
-            return;
-        }
-        selectBuildStrategy(operations?.action);
+    const buildContent = (items, _, operations = {}) => {
+        selectBuildStrategy(operations.action);
 
-        if(!operations?.action) {
-            if(lastNumberOfItems === 0) {
-                Actions.add(items);
-                return;
-            }
-            Actions.replace(items);
-        }
-        else if(Actions[operations.action]) {
+        if(Actions[operations.action]) {
             Actions[operations.action](operations.args, operations.result);
         }
-
         updateIndexObservers(items, 0);
     };
 
     if(data.val().length) {
         buildContent(data.val(), null, {action: null});
     }
-    if(Validator.isObservable(data)) {
-        data.subscribe(buildContent);
-    }
+    data.subscribe(buildContent);
 
     return element;
 }

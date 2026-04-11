@@ -1,7 +1,5 @@
 import { ElementCreator } from "../ElementCreator";
-
-
-export const cloneBindingsDataCache = new WeakMap();
+import NodeCloner from "./NodeCloner";
 
 const pathProcess = (target, path, data) => {
     if(path.HYDRATE_TEXT) {
@@ -74,23 +72,17 @@ const prepareBindingMetadata = (bindDingData) => {
 };
 
 
-export const $hydrateFn = function(hydrateFunction, targetType, element, property) {
-    if(!cloneBindingsDataCache.has(element)) {
-        cloneBindingsDataCache.set(element, { attach: [] });
-    }
-    const hydrationState = cloneBindingsDataCache.get(element);
-
+export const $hydrateFn = function(value, targetType, element, property) {
+    element.nodeCloner = element.nodeCloner || new NodeCloner(element);
     if(targetType === 'value') {
-        hydrationState.value = hydrateFunction;
+        element.nodeCloner.text(value);
         return;
     }
     if(targetType === 'attach') {
-        hydrationState.attach = hydrationState.attach || [];
-        hydrationState.attach.push({ methodName: property, fn: hydrateFunction});
+        element.nodeCloner.attach(property, value);
         return;
     }
-    hydrationState[targetType] = hydrationState[targetType] || {};
-    hydrationState[targetType][property] = hydrateFunction;
+    element.nodeCloner.attr(targetType, { property, value });
 };
 
 export const bindAttachMethods = (node, bindDingData, data) => {

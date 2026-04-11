@@ -1,6 +1,6 @@
 import NativeDocumentError from "../../errors/NativeDocumentError";
 import Validator from "../../utils/validator";
-import Anchor from "../../elements/anchor";
+import Anchor from "../anchor/anchor";
 import {ElementCreator} from "../../wrappers/ElementCreator";
 
 

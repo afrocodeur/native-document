@@ -11,7 +11,7 @@ Object.defineProperty( BaseComponent.prototype, 'nd', {
         if(this.$element) {
             return this.$element.nd;
         }
-        this.$storeElement(this.node());
+        this.$storeElement(this.toNdElement());
         return this.$element?.nd;
     }
 });
@@ -26,6 +26,10 @@ BaseComponent.extends = function(Component, ...parents) {
         }
     }
     Component.prototype.constructor = Component;
+};
+
+BaseComponent.obs = (value) => {
+    return value.__$Observable ? value : Observable(value);
 };
 
 BaseComponent.prototype.$storeElement = function(element) {

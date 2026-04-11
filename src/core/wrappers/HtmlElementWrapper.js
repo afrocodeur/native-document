@@ -1,4 +1,5 @@
 import Validator from "../utils/validator";
+import Anchor from "../elements/anchor/anchor";
 import {ElementCreator} from "./ElementCreator";
 import './NdPrototype';
 import {normalizeComponentArgs} from "../utils/args-types";
@@ -8,21 +9,20 @@ import {normalizeComponentArgs} from "../utils/args-types";
  * @param {*} value
  * @returns {Text}
  */
-export const createTextNode = function(value) {
-    return (Validator.isObservable(value))
-        ? ElementCreator.createObservableNode(null, value)
-        : ElementCreator.createStaticTextNode(null, value);
+export const createTextNode = (value) => {
+    if(value) {
+        return value.toNdElement();
+    }
+    return ElementCreator.createTextNode();
 };
 
 
-function createHtmlElement($tagName, customWrapper, _attributes, _children = null) {
+const createHtmlElement = (element, _attributes, _children = null) => {
     let { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
-    let element = ElementCreator.createElement($tagName);
-    let finalElement = (customWrapper && typeof customWrapper === 'function') ? customWrapper(element) : element;
 
-    ElementCreator.processAttributes(finalElement, attributes);
-    ElementCreator.processChildren(children, finalElement);
-    return finalElement;
+    ElementCreator.processAttributes(element, attributes);
+    ElementCreator.processChildren(children, element);
+    return element;
 }
 
 /**
@@ -32,6 +32,35 @@ function createHtmlElement($tagName, customWrapper, _attributes, _children = nul
  * @returns {Function}
  */
 export default function HtmlElementWrapper(name, customWrapper = null) {
-    return createHtmlElement.bind(null, name, customWrapper);
+    if(name) {
+        if(customWrapper) {
+            let node = null;
+            let createElement = (attr, children) => {
+                node = document.createElement(name);
+                createElement = (attr, children) => {
+                    return createHtmlElement(customWrapper(node.cloneNode()), attr, children);
+                };
+                return createHtmlElement(customWrapper(node.cloneNode()), attr, children);;
+            };
+
+            return (attr, children) => createElement(attr, children)
+        }
+
+        let node = null;
+        let createElement = (attr, children) => {
+            node = document.createElement(name);
+            createElement = (attr, children) => {
+                return createHtmlElement(node.cloneNode(), attr, children);
+            };
+            return createHtmlElement(node.cloneNode(), attr, children);
+        };
+
+        return (attr, children) => createElement(attr, children)
+    }
+    return (children, name = '') => {
+        const anchor = Anchor(name);
+        anchor.append(children);
+        return anchor;
+    };
 };
 

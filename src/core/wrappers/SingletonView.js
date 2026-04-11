@@ -1,4 +1,4 @@
-import Anchor from "../elements/anchor";
+import Anchor from "../elements/anchor/anchor";
 
 
 export function SingletonView($viewCreator) {

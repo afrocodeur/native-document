@@ -9,6 +9,10 @@ String.prototype.toNdElement = function () {
     return ElementCreator.createStaticTextNode(null, this);
 };
 
+Number.prototype.toNdElement = function () {
+    return ElementCreator.createStaticTextNode(null, this.toString());
+};
+
 Element.prototype.toNdElement = function () {
     return this;
 };

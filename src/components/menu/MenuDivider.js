@@ -2,7 +2,7 @@ import BaseComponent from "../BaseComponent";
 
 
 export default function MenuDivider() {
-    if(!this instanceof MenuDivider) {
+    if(!(this instanceof MenuDivider)) {
         return new MenuDivider();
     }
 

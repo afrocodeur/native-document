@@ -11,6 +11,7 @@ export const ObservableWhen = function(observer, value) {
     this.$observer = observer;
 };
 
+ObservableWhen.prototype.__$Observable = true;
 ObservableWhen.prototype.__$isObservableWhen = true;
 
 /**

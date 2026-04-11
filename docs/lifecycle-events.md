@@ -55,7 +55,7 @@ const timer = Div("Timer: 0")
 ```javascript
 const focusInput = Input({ placeholder: "Auto-focused" })
   .nd.mounted(element => {
-      Òelement.focus();
+      element.focus();
   });
 ```
 

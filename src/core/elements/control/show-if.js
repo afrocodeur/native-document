@@ -1,7 +1,7 @@
 import { Observable } from "../../data/Observable";
 import Validator from "../../utils/validator";
 import DebugManager from "../../utils/debug-manager.js";
-import Anchor from "../../elements/anchor";
+import Anchor from "../anchor/anchor";
 import {ElementCreator} from "../../wrappers/ElementCreator";
 
 /**

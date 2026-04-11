@@ -128,7 +128,10 @@ if(process.env.NODE_ENV === 'production') {
 }
 
 export const normalizeComponentArgs = function(props, children = null) {
-    if(Array.isArray(props) || typeof props !== 'object' || props === null || props.constructor.name !== 'Object' ||  props.$hydrate) { // IF it's not a JSON
+    if(props && children) {
+        return { props, children };
+    }
+    if(typeof props !== 'object' || Array.isArray(props) || props === null || props.constructor.name !== 'Object' ||  props.$hydrate) { // IF it's not a JSON
         return { props: children, children: props }
     }
     return { props, children };

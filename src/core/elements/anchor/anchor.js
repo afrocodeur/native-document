@@ -1,47 +1,53 @@
-import Validator from "../utils/validator";
-import DebugManager from "../utils/debug-manager";
-import {ElementCreator} from "../wrappers/ElementCreator";
-
+import Validator from "../../utils/validator";
+import {ElementCreator} from "../../wrappers/ElementCreator";
+import AnchorWithSentinel from "./anchor-with-sentinel";
+import oneChildAnchorOverwriting from "./one-child-anchor-overwriting";
 
 export default function Anchor(name, isUniqueChild = false) {
-    const anchorFragment = document.createDocumentFragment();
+    const anchorFragment = new AnchorWithSentinel(name);
+
+    anchorFragment.onConnectedOnce((parent) => {
+        if(isUniqueChild) {
+            oneChildAnchorOverwriting(anchorFragment, parent);
+        }
+    });
+
     anchorFragment.__Anchor__ = true;
 
-    const anchorStart = document.createComment('Anchor Start : '+name);
-    const anchorEnd = document.createComment('/ Anchor End '+name);
-
-    anchorFragment.appendChild(anchorStart);
-    anchorFragment.appendChild(anchorEnd);
+    const anchorStart = anchorFragment.$start;
+    const anchorEnd = anchorFragment.$end;
 
     anchorFragment.nativeInsertBefore = anchorFragment.insertBefore;
     anchorFragment.nativeAppendChild = anchorFragment.appendChild;
     anchorFragment.nativeAppend = anchorFragment.append;
 
     const isParentUniqueChild = isUniqueChild
-        ? () => true
-        : (parent) => (parent.firstChild === anchorStart && parent.lastChild === anchorEnd)
+        ? () => true: (parent) => (parent.firstChild === anchorStart && parent.lastChild === anchorEnd)
 
     const insertBefore = function(parent, child, target) {
         const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+        insertBeforeRaw(parent, childElement, target);
+    };
+
+    const insertBeforeRaw = function(parent, child, target) {
         if(parent === anchorFragment) {
-            parent.nativeInsertBefore(childElement, target);
+            parent.nativeInsertBefore(child, target);
             return;
         }
         if(isParentUniqueChild(parent) && target === anchorEnd) {
-            parent.append(childElement,  target);
+            parent.append(child,  target);
             return;
         }
-        parent.insertBefore(childElement, target);
+        parent.insertBefore(child, target);
     };
 
-    anchorFragment.appendElement = function(child, before = null) {
+    anchorFragment.appendElement = function(child) {
         const parentNode = anchorStart.parentNode;
-        const targetBefore = before || anchorEnd;
         if(parentNode === anchorFragment) {
-            parentNode.nativeInsertBefore(child, targetBefore);
+            parentNode.nativeInsertBefore(child, anchorEnd);
             return;
         }
-        parentNode?.insertBefore(child, targetBefore);
+        parentNode.insertBefore(child, anchorEnd);
     };
 
     anchorFragment.appendChild = function(child, before = null) {
@@ -54,8 +60,32 @@ export default function Anchor(name, isUniqueChild = false) {
         insertBefore(parent, child, before);
     };
 
-    anchorFragment.append = function(...args ) {
-        return anchorFragment.appendChild(args);
+    anchorFragment.appendChildRaw = function(child, before = null) {
+        const parent = anchorEnd.parentNode;
+        if(!parent) {
+            DebugManager.error('Anchor', 'Anchor : parent not found', child);
+            return;
+        }
+        before = before ?? anchorEnd;
+        insertBeforeRaw(parent, child, before);
+    };
+
+    anchorFragment.getParent = () => anchorEnd.parentNode;
+    anchorFragment.append = anchorFragment.appendChild;
+    anchorFragment.appendRaw = anchorFragment.appendChildRaw;
+
+    anchorFragment.insertAtStart = function(child) {
+        child = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+        anchorFragment.insertAtStartRaw(child);
+    };
+
+    anchorFragment.insertAtStartRaw = function(child) {
+        const parentNode = anchorStart.parentNode;
+        if(parentNode === anchorFragment) {
+            parentNode.nativeInsertBefore(child, anchorStart);
+            return;
+        }
+        parentNode.insertBefore(child, anchorStart);
     };
 
     anchorFragment.removeChildren = function() {
@@ -82,6 +112,7 @@ export default function Anchor(name, isUniqueChild = false) {
             return;
         }
         if(isParentUniqueChild(parent)) {
+            anchorFragment.nativeAppend.apply(anchorFragment, parent.childNodes);
             parent.replaceChildren(anchorStart, anchorEnd);
             return;
         }
@@ -101,23 +132,27 @@ export default function Anchor(name, isUniqueChild = false) {
 
     anchorFragment.replaceContent = function(child) {
         const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+        anchorFragment.replaceContentRaw(childElement);
+    };
+
+    anchorFragment.replaceContentRaw = function(child) {
         const parent = anchorEnd.parentNode;
         if(!parent) {
             return;
         }
         if(isParentUniqueChild(parent)) {
-            parent.replaceChildren(anchorStart, childElement, anchorEnd);
+            parent.replaceChildren(anchorStart, child, anchorEnd);
             return;
         }
         anchorFragment.removeChildren();
-        parent.insertBefore(childElement, anchorEnd);
+        parent.insertBefore(child, anchorEnd);
     };
 
     anchorFragment.setContent = anchorFragment.replaceContent;
+    anchorFragment.setContentRaw = anchorFragment.replaceContentRaw;
 
-    anchorFragment.insertBefore = function(child, anchor = null) {
-        anchorFragment.appendChild(child, anchor);
-    };
+    anchorFragment.insertBefore = anchorFragment.appendChild;
+    anchorFragment.insertBeforeRaw = anchorFragment.appendChildRaw;
 
     anchorFragment.endElement = function() {
         return anchorEnd;
@@ -126,9 +161,11 @@ export default function Anchor(name, isUniqueChild = false) {
     anchorFragment.startElement = function() {
         return anchorStart;
     };
+
     anchorFragment.restore = function() {
         anchorFragment.appendChild(anchorFragment);
     };
+
     anchorFragment.clear = anchorFragment.remove;
     anchorFragment.detach = anchorFragment.remove;
 

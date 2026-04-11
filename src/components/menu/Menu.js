@@ -29,6 +29,11 @@ Menu.use = function(template) {
     Menu.defaultTemplate = template.menu;
 };
 
+Menu.prototype.title = function(title) {
+    this.$description.title = title;
+    return this;
+};
+
 Menu.prototype.orientation = function(orientation) {
     this.$description.orientation = orientation;
     return this;

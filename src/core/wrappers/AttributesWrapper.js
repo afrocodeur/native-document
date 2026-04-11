@@ -11,13 +11,8 @@ import {Observable} from "../data/Observable";
 export const bindClassAttribute = (element, data) => {
     for(const className in data) {
         const value = data[className];
-        if(value.__$isObservable) {
+        if(value.__$Observable) {
             element.classes.toggle(className, value.val());
-            value.subscribe((shouldAdd) => element.classes.toggle(className, shouldAdd));
-            continue;
-        }
-        if(value.__$isObservableWhen) {
-            element.classes.toggle(className, value.isActive());
             value.subscribe((shouldAdd) => element.classes.toggle(className, shouldAdd));
             continue;
         }
@@ -27,7 +22,6 @@ export const bindClassAttribute = (element, data) => {
         }
         element.classes.toggle(className, value)
     }
-    data = null;
 }
 
 /**

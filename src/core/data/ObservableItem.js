@@ -6,7 +6,6 @@ import PluginsManager from "../../core/utils/plugins-manager";
 import Validator from "../../core/utils/validator";
 import {ObservableWhen} from "./ObservableWhen";
 import {deepClone} from "../utils/helpers";
-import {Store} from "./Store";
 import { Formatters} from "../utils/formatters";
 import {Observable} from "./Observable";
 import {$getFromStorage, $saveToStorage} from "../utils/localstorage";
@@ -53,6 +52,7 @@ Object.defineProperty(ObservableItem.prototype, '$value', {
     configurable: true,
 });
 
+ObservableItem.prototype.__$Observable = true;
 ObservableItem.prototype.__$isObservable = true;
 const DEFAULT_OPERATIONS = {};
 const noneTrigger = function() {};
@@ -121,7 +121,7 @@ ObservableItem.prototype.assocTrigger = function() {
     if(this.$listeners?.length) {
         if(this.$listeners.length === 1) {
             this.$firstListener = this.$listeners[0];
-            this.trigger = this.triggerFirstListener
+            this.trigger = this.$firstListener.length === 0 ? this.$firstListener : this.triggerFirstListener
         }
         else {
             this.trigger = this.triggerListeners;
@@ -136,6 +136,8 @@ ObservableItem.prototype.assocTrigger = function() {
 };
 ObservableItem.prototype.trigger = noneTrigger;
 
+
+const $setOperation = { action: 'set' };
 ObservableItem.prototype.$updateWithNewValue = function(newValue) {
     newValue = newValue?.__$isObservable ? newValue.val() : newValue;
     if(this.$currentValue === newValue) {
@@ -146,7 +148,7 @@ ObservableItem.prototype.$updateWithNewValue = function(newValue) {
     if(process.env.NODE_ENV === 'development') {
         PluginsManager.emit('ObservableBeforeChange', this);
     }
-    this.trigger();
+    this.trigger($setOperation);
     this.$previousValue = null;
     if(process.env.NODE_ENV === 'development') {
         PluginsManager.emit('ObservableAfterChange', this);

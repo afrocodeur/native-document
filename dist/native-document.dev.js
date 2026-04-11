@@ -1,10 +1,10 @@
 var NativeDocument = (function (exports) {
     'use strict';
 
-    let DebugManager$1 = {};
+    let DebugManager$2 = {};
 
     {
-        DebugManager$1 = {
+        DebugManager$2 = {
             enabled: false,
 
             enable() {
@@ -35,7 +35,7 @@ var NativeDocument = (function (exports) {
         };
 
     }
-    var DebugManager = DebugManager$1;
+    var DebugManager$1 = DebugManager$2;
 
     class NativeDocumentError extends Error {
         constructor(message, context = {}) {
@@ -58,6 +58,7 @@ var NativeDocument = (function (exports) {
         this.unSubscriptions = [];
     }
 
+    ObservableChecker.prototype.__$Observable = true;
     ObservableChecker.prototype.__$isObservableChecker = true;
 
     /**
@@ -145,6 +146,16 @@ var NativeDocument = (function (exports) {
         unmounted: new WeakMap(),
         unmountedSupposedSize: 0,
         observer: null,
+        initObserver: () => {
+            if(DocumentObserver.observer) {
+                return;
+            }
+            DocumentObserver.observer = new MutationObserver(DocumentObserver.checkMutation);
+            DocumentObserver.observer.observe(document.body, {
+                childList: true,
+                subtree: true,
+            });
+        },
 
         executeMountedCallback(node) {
             const data = DocumentObserver.mounted.get(node);
@@ -192,6 +203,7 @@ var NativeDocument = (function (exports) {
         },
 
         checkMutation: function(mutationsList) {
+            console.log('mutationsList', mutationsList);
             for(const mutation of mutationsList) {
                 if(DocumentObserver.mountedSupposedSize > 0) {
                     for(const node of mutation.addedNodes) {
@@ -229,6 +241,8 @@ var NativeDocument = (function (exports) {
         watch: function(element, inDom = false) {
             let mountedRegistered   = false;
             let unmountedRegistered = false;
+
+            DocumentObserver.initObserver();
 
             let data = {
                 inDom,
@@ -307,12 +321,6 @@ var NativeDocument = (function (exports) {
         }
     };
 
-    DocumentObserver.observer = new MutationObserver(DocumentObserver.checkMutation);
-    DocumentObserver.observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-    });
-
     let PluginsManager$1 = null;
 
     {
@@ -382,7 +390,7 @@ var NativeDocument = (function (exports) {
                             try{
                                 callback.call(plugin, ...data);
                             } catch (error) {
-                                DebugManager.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
+                                DebugManager$1.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
                             }
                         }
                     }
@@ -529,21 +537,6 @@ var NativeDocument = (function (exports) {
     };
 
     /**
-     * Attaches a template binding to the element by hydrating it with the specified method.
-     *
-     * @param {string} methodName - Name of the hydration method to call
-     * @param {BindingHydrator} bindingHydrator - Template binding with $hydrate method
-     * @returns {HTMLElement} The underlying HTML element
-     * @example
-     * const onClick = $binder.attach((event, data) => console.log(data));
-     * element.nd.attach('onClick', onClick);
-     */
-    NDElement.prototype.attach = function(methodName, bindingHydrator) {
-        bindingHydrator.$hydrate(this.$element, methodName);
-        return this.$element;
-    };
-
-    /**
      * Extends the current NDElement instance with custom methods.
      * Methods are bound to the instance and available for chaining.
      *
@@ -576,7 +569,7 @@ var NativeDocument = (function (exports) {
             }
             {
                 if (this[name] && !this.$localExtensions.has(name)) {
-                    DebugManager.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
+                    DebugManager$1.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
                 }
                 this.$localExtensions.set(name, method);
             }
@@ -627,17 +620,17 @@ var NativeDocument = (function (exports) {
             const method = methods[name];
 
             if (typeof method !== 'function') {
-                DebugManager.warn('NDElement.extend', `"${name}" is not a function, skipping`);
+                DebugManager$1.warn('NDElement.extend', `"${name}" is not a function, skipping`);
                 continue;
             }
 
             if (protectedMethods.has(name)) {
-                DebugManager.error('NDElement.extend', `Cannot override protected method "${name}"`);
+                DebugManager$1.error('NDElement.extend', `Cannot override protected method "${name}"`);
                 throw new NativeDocumentError(`Cannot override protected method "${name}"`);
             }
 
             if (NDElement.prototype[name]) {
-                DebugManager.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
+                DebugManager$1.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
             }
 
             NDElement.prototype[name] = method;
@@ -794,170 +787,12 @@ var NativeDocument = (function (exports) {
             const foundReserved = Object.keys(attributes).filter(key => reserved.includes(key));
 
             if (foundReserved.length > 0) {
-                DebugManager.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
+                DebugManager$1.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
             }
 
             return attributes;
         };
     }
-
-    function Anchor(name, isUniqueChild = false) {
-        const anchorFragment = document.createDocumentFragment();
-        anchorFragment.__Anchor__ = true;
-
-        const anchorStart = document.createComment('Anchor Start : '+name);
-        const anchorEnd = document.createComment('/ Anchor End '+name);
-
-        anchorFragment.appendChild(anchorStart);
-        anchorFragment.appendChild(anchorEnd);
-
-        anchorFragment.nativeInsertBefore = anchorFragment.insertBefore;
-        anchorFragment.nativeAppendChild = anchorFragment.appendChild;
-        anchorFragment.nativeAppend = anchorFragment.append;
-
-        const isParentUniqueChild = isUniqueChild
-            ? () => true
-            : (parent) => (parent.firstChild === anchorStart && parent.lastChild === anchorEnd);
-
-        const insertBefore = function(parent, child, target) {
-            const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
-            if(parent === anchorFragment) {
-                parent.nativeInsertBefore(childElement, target);
-                return;
-            }
-            if(isParentUniqueChild(parent) && target === anchorEnd) {
-                parent.append(childElement,  target);
-                return;
-            }
-            parent.insertBefore(childElement, target);
-        };
-
-        anchorFragment.appendElement = function(child, before = null) {
-            const parentNode = anchorStart.parentNode;
-            const targetBefore = before || anchorEnd;
-            if(parentNode === anchorFragment) {
-                parentNode.nativeInsertBefore(child, targetBefore);
-                return;
-            }
-            parentNode?.insertBefore(child, targetBefore);
-        };
-
-        anchorFragment.appendChild = function(child, before = null) {
-            const parent = anchorEnd.parentNode;
-            if(!parent) {
-                DebugManager.error('Anchor', 'Anchor : parent not found', child);
-                return;
-            }
-            before = before ?? anchorEnd;
-            insertBefore(parent, child, before);
-        };
-
-        anchorFragment.append = function(...args ) {
-            return anchorFragment.appendChild(args);
-        };
-
-        anchorFragment.removeChildren = function() {
-            const parent = anchorEnd.parentNode;
-            if(parent === anchorFragment) {
-                return;
-            }
-            if(isParentUniqueChild(parent)) {
-                parent.replaceChildren(anchorStart, anchorEnd);
-                return;
-            }
-
-            let itemToRemove = anchorStart.nextSibling, tempItem;
-            while(itemToRemove && itemToRemove !== anchorEnd) {
-                tempItem = itemToRemove.nextSibling;
-                itemToRemove.remove();
-                itemToRemove =  tempItem;
-            }
-        };
-
-        anchorFragment.remove = function() {
-            const parent = anchorEnd.parentNode;
-            if(parent === anchorFragment) {
-                return;
-            }
-            if(isParentUniqueChild(parent)) {
-                parent.replaceChildren(anchorStart, anchorEnd);
-                return;
-            }
-            let itemToRemove = anchorStart.nextSibling, tempItem;
-            while(itemToRemove && itemToRemove !== anchorEnd) {
-                tempItem = itemToRemove.nextSibling;
-                anchorFragment.nativeAppend(itemToRemove);
-                itemToRemove = tempItem;
-            }
-        };
-
-        anchorFragment.removeWithAnchors = function() {
-            anchorFragment.removeChildren();
-            anchorStart.remove();
-            anchorEnd.remove();
-        };
-
-        anchorFragment.replaceContent = function(child) {
-            const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
-            const parent = anchorEnd.parentNode;
-            if(!parent) {
-                return;
-            }
-            if(isParentUniqueChild(parent)) {
-                parent.replaceChildren(anchorStart, childElement, anchorEnd);
-                return;
-            }
-            anchorFragment.removeChildren();
-            parent.insertBefore(childElement, anchorEnd);
-        };
-
-        anchorFragment.setContent = anchorFragment.replaceContent;
-
-        anchorFragment.insertBefore = function(child, anchor = null) {
-            anchorFragment.appendChild(child, anchor);
-        };
-
-        anchorFragment.endElement = function() {
-            return anchorEnd;
-        };
-
-        anchorFragment.startElement = function() {
-            return anchorStart;
-        };
-        anchorFragment.restore = function() {
-            anchorFragment.appendChild(anchorFragment);
-        };
-        anchorFragment.clear = anchorFragment.remove;
-        anchorFragment.detach = anchorFragment.remove;
-
-        anchorFragment.getByIndex = function(index) {
-            let currentNode = anchorStart;
-            for(let i = 0; i <= index; i++) {
-                if(!currentNode.nextSibling) {
-                    return null;
-                }
-                currentNode = currentNode.nextSibling;
-            }
-            return currentNode !== anchorStart ? currentNode : null;
-        };
-
-        return anchorFragment;
-    }
-    /**
-     *
-     * @param {HTMLElement|DocumentFragment|Text|String|Array} children
-     * @param {{ parent?: HTMLElement, name?: String}} configs
-     * @returns {DocumentFragment}
-     */
-    function createPortal(children, { parent, name = 'unnamed' } = {}) {
-        const anchor = Anchor('Portal '+name);
-        anchor.appendChild(ElementCreator.getChild(children));
-
-        (parent || document.body).appendChild(anchor);
-        return anchor;
-    }
-
-    DocumentFragment.prototype.setAttribute = () => {};
 
     const BOOLEAN_ATTRIBUTES = new Set([
         'checked',
@@ -1039,7 +874,7 @@ var NativeDocument = (function (exports) {
                     }
                 }
                 if (cleanedCount > 0) {
-                    DebugManager.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
+                    DebugManager$1.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
                 }
             }
         };
@@ -1057,6 +892,7 @@ var NativeDocument = (function (exports) {
         this.$observer = observer;
     };
 
+    ObservableWhen.prototype.__$Observable = true;
     ObservableWhen.prototype.__$isObservableWhen = true;
 
     /**
@@ -1174,462 +1010,6 @@ var NativeDocument = (function (exports) {
         return cloned;
     };
 
-    const LocalStorage = {
-        getJson(key) {
-            let value = localStorage.getItem(key);
-            try {
-                return JSON.parse(value);
-            } catch (e) {
-                throw new NativeDocumentError('invalid_json:'+key);
-            }
-        },
-        getNumber(key) {
-            return Number(this.get(key));
-        },
-        getBool(key) {
-            const value = this.get(key);
-            return value === 'true' || value === '1';
-        },
-        setJson(key, value) {
-            localStorage.setItem(key, JSON.stringify(value));
-        },
-        setBool(key, value) {
-            localStorage.setItem(key, value ? 'true' : 'false');
-        },
-        get(key, defaultValue = null) {
-            return localStorage.getItem(key) || defaultValue;
-        },
-        set(key, value) {
-            return localStorage.setItem(key, value);
-        },
-        remove(key) {
-            localStorage.removeItem(key);
-        },
-        has(key) {
-            return localStorage.getItem(key) != null;
-        }
-    };
-
-    const $getFromStorage = (key, value) => {
-        if(!LocalStorage.has(key)) {
-            return value;
-        }
-        switch (typeof value) {
-            case 'object': return LocalStorage.getJson(key) ?? value;
-            case 'boolean': return LocalStorage.getBool(key) ?? value;
-            case 'number': return LocalStorage.getNumber(key) ?? value;
-            default: return LocalStorage.get(key, value) ?? value;
-        }
-    };
-
-    const $saveToStorage = (value) => {
-        switch (typeof value) {
-            case 'object': return LocalStorage.setJson;
-            case 'boolean': return LocalStorage.setBool;
-            default: return LocalStorage.set;
-        }
-    };
-
-    const StoreFactory = function() {
-
-        const $stores = new Map();
-        const $followersCache = new Map();
-
-        /**
-         * Internal helper — retrieves a store entry or throws if not found.
-         */
-        const $getStoreOrThrow = (method, name) => {
-            const item = $stores.get(name);
-            if (!item) {
-                DebugManager.error('Store', `Store.${method}('${name}') : store not found. Did you call Store.create('${name}') first?`);
-                throw new NativeDocumentError(
-                    `Store.${method}('${name}') : store not found.`
-                );
-            }
-            return item;
-        };
-
-        /**
-         * Internal helper — blocks write operations on a read-only observer.
-         */
-        const $applyReadOnly = (observer, name, context) => {
-            const readOnlyError = (method) => () => {
-                DebugManager.error('Store', `Store.${context}('${name}') is read-only. '${method}()' is not allowed.`);
-                throw new NativeDocumentError(
-                    `Store.${context}('${name}') is read-only.`
-                );
-            };
-            observer.set    = readOnlyError('set');
-            observer.toggle = readOnlyError('toggle');
-            observer.reset  = readOnlyError('reset');
-        };
-
-        const $createObservable = (value, options = {}) => {
-            if(Array.isArray(value)) {
-                return Observable.array(value, options);
-            }
-            if(typeof value === 'object') {
-                return Observable.object(value, options);
-            }
-            return Observable(value, options);
-        };
-
-        const $api = {
-            /**
-             * Create a new state and return the observer.
-             * Throws if a store with the same name already exists.
-             *
-             * @param {string} name
-             * @param {*} value
-             * @returns {ObservableItem}
-             */
-            create(name, value) {
-                if ($stores.has(name)) {
-                    DebugManager.warn('Store', `Store.create('${name}') : a store with this name already exists. Use Store.get('${name}') to retrieve it.`);
-                    throw new NativeDocumentError(
-                        `Store.create('${name}') : a store with this name already exists.`
-                    );
-                }
-                const observer = $createObservable(value);
-                $stores.set(name, { observer, subscribers: new Set(), resettable: false, composed: false });
-                return observer;
-            },
-
-            /**
-             * Create a new resettable state and return the observer.
-             * The store can be reset to its initial value via Store.reset(name).
-             * Throws if a store with the same name already exists.
-             *
-             * @param {string} name
-             * @param {*} value
-             * @returns {ObservableItem}
-             */
-            createResettable(name, value) {
-                if ($stores.has(name)) {
-                    DebugManager.warn('Store', `Store.createResettable('${name}') : a store with this name already exists.`);
-                    throw new NativeDocumentError(
-                        `Store.createResettable('${name}') : a store with this name already exists.`
-                    );
-                }
-                const observer = $createObservable(value, { reset: true });
-                $stores.set(name, { observer, subscribers: new Set(), resettable: true, composed: false });
-                return observer;
-            },
-
-            /**
-             * Create a computed store derived from other stores.
-             * The value is automatically recalculated when any dependency changes.
-             * This store is read-only — Store.use() and Store.set() will throw.
-             * Throws if a store with the same name already exists.
-             *
-             * @param {string} name
-             * @param {() => *} computation - Function that returns the computed value
-             * @param {string[]} dependencies - Names of the stores to watch
-             * @returns {ObservableItem}
-             *
-             * @example
-             * Store.create('products', [{ id: 1, price: 10 }]);
-             * Store.create('cart', [{ productId: 1, quantity: 2 }]);
-             *
-             * Store.createComposed('total', () => {
-             *     const products = Store.get('products').val();
-             *     const cart     = Store.get('cart').val();
-             *     return cart.reduce((sum, item) => {
-             *         const product = products.find(p => p.id === item.productId);
-             *         return sum + (product.price * item.quantity);
-             *     }, 0);
-             * }, ['products', 'cart']);
-             */
-            createComposed(name, computation, dependencies) {
-                if ($stores.has(name)) {
-                    DebugManager.warn('Store', `Store.createComposed('${name}') : a store with this name already exists.`);
-                    throw new NativeDocumentError(
-                        `Store.createComposed('${name}') : a store with this name already exists.`
-                    );
-                }
-                if (typeof computation !== 'function') {
-                    throw new NativeDocumentError(
-                        `Store.createComposed('${name}') : computation must be a function.`
-                    );
-                }
-                if (!Array.isArray(dependencies) || dependencies.length === 0) {
-                    throw new NativeDocumentError(
-                        `Store.createComposed('${name}') : dependencies must be a non-empty array of store names.`
-                    );
-                }
-
-                // Resolve dependency observers
-                const depObservers = dependencies.map(depName => {
-                    if(typeof depName !== 'string') {
-                        return depName;
-                    }
-                    const depItem = $stores.get(depName);
-                    if (!depItem) {
-                        DebugManager.error('Store', `Store.createComposed('${name}') : dependency '${depName}' not found. Create it first.`);
-                        throw new NativeDocumentError(
-                            `Store.createComposed('${name}') : dependency store '${depName}' not found.`
-                        );
-                    }
-                    return depItem.observer;
-                });
-
-                // Create computed observable from dependency observers
-                const observer = Observable.computed(computation, depObservers);
-
-                $stores.set(name, { observer, subscribers: new Set(), resettable: false, composed: true });
-                return observer;
-            },
-
-            /**
-             * Returns true if a store with the given name exists.
-             *
-             * @param {string} name
-             * @returns {boolean}
-             */
-            has(name) {
-                return $stores.has(name);
-            },
-
-            /**
-             * Resets a resettable store to its initial value and notifies all subscribers.
-             * Throws if the store was not created with createResettable().
-             *
-             * @param {string} name
-             */
-            reset(name) {
-                const item = $getStoreOrThrow('reset', name);
-                if (item.composed) {
-                    DebugManager.error('Store', `Store.reset('${name}') : composed stores cannot be reset. Their value is derived from dependencies.`);
-                    throw new NativeDocumentError(
-                        `Store.reset('${name}') : composed stores cannot be reset.`
-                    );
-                }
-                if (!item.resettable) {
-                    DebugManager.error('Store', `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`);
-                    throw new NativeDocumentError(
-                        `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`
-                    );
-                }
-                item.observer.reset();
-            },
-
-            /**
-             * Returns a two-way synchronized follower of the store.
-             * Writing to the follower propagates the value back to the store and all its subscribers.
-             * Throws if called on a composed store — use Store.follow() instead.
-             * Call follower.destroy() or follower.dispose() to unsubscribe.
-             *
-             * @param {string} name
-             * @returns {ObservableItem}
-             */
-            use(name) {
-                const item = $getStoreOrThrow('use', name);
-
-                if (item.composed) {
-                    DebugManager.error('Store', `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`);
-                    throw new NativeDocumentError(
-                        `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`
-                    );
-                }
-
-                const { observer: originalObserver, subscribers } = item;
-                const observerFollower = $createObservable(originalObserver.val());
-
-                const onStoreChange    = value => observerFollower.set(value);
-                const onFollowerChange = value => originalObserver.set(value);
-
-                originalObserver.subscribe(onStoreChange);
-                observerFollower.subscribe(onFollowerChange);
-
-                observerFollower.destroy = () => {
-                    originalObserver.unsubscribe(onStoreChange);
-                    observerFollower.unsubscribe(onFollowerChange);
-                    subscribers.delete(observerFollower);
-                    observerFollower.cleanup();
-                };
-                observerFollower.dispose = observerFollower.destroy;
-
-                subscribers.add(observerFollower);
-                return observerFollower;
-            },
-
-            /**
-             * Returns a read-only follower of the store.
-             * The follower reflects store changes but cannot write back to the store.
-             * Any attempt to call .set(), .toggle() or .reset() will throw.
-             * Call follower.destroy() or follower.dispose() to unsubscribe.
-             *
-             * @param {string} name
-             * @returns {ObservableItem}
-             */
-            follow(name) {
-                const { observer: originalObserver, subscribers } = $getStoreOrThrow('follow', name);
-                const observerFollower = $createObservable(originalObserver.val());
-
-                const onStoreChange = value => observerFollower.set(value);
-                originalObserver.subscribe(onStoreChange);
-
-                $applyReadOnly(observerFollower, name, 'follow');
-
-                observerFollower.destroy = () => {
-                    originalObserver.unsubscribe(onStoreChange);
-                    subscribers.delete(observerFollower);
-                    observerFollower.cleanup();
-                };
-                observerFollower.dispose = observerFollower.destroy;
-
-                subscribers.add(observerFollower);
-                return observerFollower;
-            },
-
-            /**
-             * Returns the raw store observer directly (no follower, no cleanup contract).
-             * Use this for direct read access when you don't need to unsubscribe.
-             * WARNING : mutations on this observer impact all subscribers immediately.
-             *
-             * @param {string} name
-             * @returns {ObservableItem|null}
-             */
-            get(name) {
-                const item = $stores.get(name);
-                if (!item) {
-                    DebugManager.warn('Store', `Store.get('${name}') : store not found.`);
-                    return null;
-                }
-                return item.observer;
-            },
-
-            /**
-             * @param {string} name
-             * @returns {{ observer: ObservableItem, subscribers: Set } | null}
-             */
-            getWithSubscribers(name) {
-                return $stores.get(name) ?? null;
-            },
-
-            /**
-             * Destroys a store : cleans up the observer, destroys all followers, and removes the entry.
-             *
-             * @param {string} name
-             */
-            delete(name) {
-                const item = $stores.get(name);
-                if (!item) {
-                    DebugManager.warn('Store', `Store.delete('${name}') : store not found, nothing to delete.`);
-                    return;
-                }
-                item.subscribers.forEach(follower => follower.destroy());
-                item.subscribers.clear();
-                item.observer.cleanup();
-                $stores.delete(name);
-            },
-            /**
-             * Creates an isolated store group with its own state namespace.
-             * Each group is a fully independent StoreFactory instance —
-             * no key conflicts, no shared state with the parent store.
-             *
-             * @param {string | ((group: ReturnType<typeof StoreFactory>) => void)} name - Group name for debugging, or setup callback if no name is provided
-             * @param {((group: ReturnType<typeof StoreFactory>) => void)} [callback] - Setup function receiving the isolated store instance
-             * @returns {ReturnType<typeof StoreFactory>}
-             *
-             * @example
-             * // With name (recommended)
-             * const EventStore = Store.group('events', (group) => {
-             *     group.create('catalog', []);
-             *     group.create('filters', { category: null, date: null });
-             *     group.createResettable('selected', null);
-             *     group.createComposed('filtered', () => {
-             *         const catalog = EventStore.get('catalog').val();
-             *         const filters = EventStore.get('filters').val();
-             *         return catalog.filter(event => {
-             *             if (filters.category && event.category !== filters.category) return false;
-             *             return true;
-             *         });
-             *     }, ['catalog', 'filters']);
-             * });
-             *
-             * // Without name
-             * const CartStore = Store.group((group) => {
-             *     group.create('items', []);
-             * });
-             *
-             * // Usage
-             * EventStore.use('catalog'); // two-way follower
-             * EventStore.follow('filtered'); // read-only follower
-             * EventStore.get('filters'); // raw observable
-             *
-             * // Cross-group composed
-             * const OrderStore = Store.group('orders', (group) => {
-             *     group.createComposed('summary', () => {
-             *         const items = CartStore.get('items').val();
-             *         const events = EventStore.get('catalog').val();
-             *         return { items, events };
-             *     }, [CartStore.get('items'), EventStore.get('catalog')]);
-             * });
-             */
-            group(name, callback) {
-                if (typeof name === 'function') {
-                    callback = name;
-                    name = 'anonymous';
-                }
-                const store = StoreFactory();
-                callback && callback(store);
-                return store;
-            },
-            createPersistent(name, value, localstorage_key) {
-                localstorage_key = localstorage_key || name;
-                const observer = this.create(name, $getFromStorage(localstorage_key, value));
-                const saver = $saveToStorage(value);
-
-                observer.subscribe((val) => saver(localstorage_key, val));
-                return observer;
-            },
-            createPersistentResettable(name, value, localstorage_key) {
-                localstorage_key = localstorage_key || name;
-                const observer = this.createResettable(name, $getFromStorage(localstorage_key, value));
-                const saver = $saveToStorage(value);
-                observer.subscribe((val) => saver(localstorage_key, val));
-
-                const originalReset = observer.reset.bind(observer);
-                observer.reset = () => {
-                    LocalStorage.remove(localstorage_key);
-                    originalReset();
-                };
-
-                return observer;
-            }
-        };
-
-
-        return new Proxy($api, {
-            get(target, prop) {
-                if (typeof prop === 'symbol' || prop.startsWith('$') || prop in target) {
-                    return target[prop];
-                }
-                if (target.has(prop)) {
-                    if ($followersCache.has(prop)) {
-                        return $followersCache.get(prop);
-                    }
-                    const follower = target.follow(prop);
-                    $followersCache.set(prop, follower);
-                    return follower;
-                }
-                return undefined;
-            },
-            set(target, prop, value) {
-                DebugManager.error('Store', `Forbidden: You cannot overwrite the store key '${String(prop)}'. Use .use('${String(prop)}').set(value) instead.`);
-                throw new NativeDocumentError(`Store structure is immutable. Use .set() on the observable.`);
-            },
-            deleteProperty(target, prop) {
-                throw new NativeDocumentError(`Store keys cannot be deleted.`);
-            }
-        });
-    };
-
-    const Store = StoreFactory();
-
-    Store.create('locale', navigator.language.split('-')[0] || 'en');
-
     const $parseDateParts = (value, locale) => {
         const d = new Date(value);
         return {
@@ -1721,6 +1101,62 @@ var NativeDocument = (function (exports) {
         },
     };
 
+    const LocalStorage = {
+        getJson(key) {
+            let value = localStorage.getItem(key);
+            try {
+                return JSON.parse(value);
+            } catch (e) {
+                throw new NativeDocumentError('invalid_json:'+key);
+            }
+        },
+        getNumber(key) {
+            return Number(this.get(key));
+        },
+        getBool(key) {
+            const value = this.get(key);
+            return value === 'true' || value === '1';
+        },
+        setJson(key, value) {
+            localStorage.setItem(key, JSON.stringify(value));
+        },
+        setBool(key, value) {
+            localStorage.setItem(key, value ? 'true' : 'false');
+        },
+        get(key, defaultValue = null) {
+            return localStorage.getItem(key) || defaultValue;
+        },
+        set(key, value) {
+            return localStorage.setItem(key, value);
+        },
+        remove(key) {
+            localStorage.removeItem(key);
+        },
+        has(key) {
+            return localStorage.getItem(key) != null;
+        }
+    };
+
+    const $getFromStorage = (key, value) => {
+        if(!LocalStorage.has(key)) {
+            return value;
+        }
+        switch (typeof value) {
+            case 'object': return LocalStorage.getJson(key) ?? value;
+            case 'boolean': return LocalStorage.getBool(key) ?? value;
+            case 'number': return LocalStorage.getNumber(key) ?? value;
+            default: return LocalStorage.get(key, value) ?? value;
+        }
+    };
+
+    const $saveToStorage = (value) => {
+        switch (typeof value) {
+            case 'object': return LocalStorage.setJson;
+            case 'boolean': return LocalStorage.setBool;
+            default: return LocalStorage.set;
+        }
+    };
+
     /**
      *
      * @param {*} value
@@ -1763,6 +1199,7 @@ var NativeDocument = (function (exports) {
         configurable: true,
     });
 
+    ObservableItem.prototype.__$Observable = true;
     ObservableItem.prototype.__$isObservable = true;
     const noneTrigger = function() {};
 
@@ -1830,7 +1267,7 @@ var NativeDocument = (function (exports) {
         if(this.$listeners?.length) {
             if(this.$listeners.length === 1) {
                 this.$firstListener = this.$listeners[0];
-                this.trigger = this.triggerFirstListener;
+                this.trigger = this.$firstListener.length === 0 ? this.$firstListener : this.triggerFirstListener;
             }
             else {
                 this.trigger = this.triggerListeners;
@@ -1845,6 +1282,8 @@ var NativeDocument = (function (exports) {
     };
     ObservableItem.prototype.trigger = noneTrigger;
 
+
+    const $setOperation = { action: 'set' };
     ObservableItem.prototype.$updateWithNewValue = function(newValue) {
         newValue = newValue?.__$isObservable ? newValue.val() : newValue;
         if(this.$currentValue === newValue) {
@@ -1855,7 +1294,7 @@ var NativeDocument = (function (exports) {
         {
             PluginsManager.emit('ObservableBeforeChange', this);
         }
-        this.trigger();
+        this.trigger($setOperation);
         this.$previousValue = null;
         {
             PluginsManager.emit('ObservableAfterChange', this);
@@ -1936,7 +1375,7 @@ var NativeDocument = (function (exports) {
     ObservableItem.prototype.subscribe = function(callback) {
         {
             if (this.$isCleanedUp) {
-                DebugManager.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
+                DebugManager$1.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
                 return;
             }
             if (typeof callback !== 'function') {
@@ -2360,13 +1799,8 @@ var NativeDocument = (function (exports) {
     const bindClassAttribute = (element, data) => {
         for(const className in data) {
             const value = data[className];
-            if(value.__$isObservable) {
+            if(value.__$Observable) {
                 element.classes.toggle(className, value.val());
-                value.subscribe((shouldAdd) => element.classes.toggle(className, shouldAdd));
-                continue;
-            }
-            if(value.__$isObservableWhen) {
-                element.classes.toggle(className, value.isActive());
                 value.subscribe((shouldAdd) => element.classes.toggle(className, shouldAdd));
                 continue;
             }
@@ -2376,7 +1810,6 @@ var NativeDocument = (function (exports) {
             }
             element.classes.toggle(className, value);
         }
-        data = null;
     };
 
     /**
@@ -2494,6 +1927,10 @@ var NativeDocument = (function (exports) {
 
     String.prototype.toNdElement = function () {
         return ElementCreator.createStaticTextNode(null, this);
+    };
+
+    Number.prototype.toNdElement = function () {
+        return ElementCreator.createStaticTextNode(null, this.toString());
     };
 
     Element.prototype.toNdElement = function () {
@@ -2630,10 +2067,6 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
-    String.prototype.handleNdAttribute = function(element, attributeName) {
-        element.setAttribute(attributeName, this);
-    };
-
     ObservableItem.prototype.handleNdAttribute = function(element, attributeName) {
         if(BOOLEAN_ATTRIBUTES.has(attributeName)) {
             bindBooleanAttribute(element, attributeName, this);
@@ -2647,7 +2080,6 @@ var NativeDocument = (function (exports) {
         this.$hydrate(element, attributeName);
     };
 
-    const $nodeCache = new Map();
     let $textNodeCache = null;
 
     const ElementCreator = {
@@ -2677,7 +2109,7 @@ var NativeDocument = (function (exports) {
          * @param {{$hydrate: Function}} item
          * @returns {Text}
          */
-        createHydratableNode(parent, item) {
+        createHydratableNode: (parent, item) => {
             const text = ElementCreator.createTextNode();
             item.$hydrate(text);
             return text;
@@ -2689,7 +2121,7 @@ var NativeDocument = (function (exports) {
          * @param {*} value
          * @returns {Text}
          */
-        createStaticTextNode(parent, value) {
+        createStaticTextNode: (parent, value) => {
             let text = ElementCreator.createTextNode();
             text.nodeValue = value;
             parent && parent.appendChild(text);
@@ -2701,15 +2133,10 @@ var NativeDocument = (function (exports) {
          * @returns {HTMLElement|DocumentFragment}
          */
         createElement: (name) => {
-            if(name) {
-                const cacheNode = $nodeCache.get(name);
-                if(cacheNode) {
-                    return cacheNode.cloneNode();
-                }
-                const node = document.createElement(name);
-                $nodeCache.set(name, node);
-                return node.cloneNode();
-            }
+            const node = document.createElement(name);
+            return node.cloneNode();
+        },
+        createFragment: (name) => {
             return Anchor('Fragment');
         },
         bindTextNode: (textNode, value) => {
@@ -2725,12 +2152,12 @@ var NativeDocument = (function (exports) {
          * @param {*} children
          * @param {HTMLElement|DocumentFragment} parent
          */
-        processChildren(children, parent) {
+        processChildren: (children, parent) => {
             if(children === null) return;
             {
                 PluginsManager.emit('BeforeProcessChildren', parent);
             }
-            let child = this.getChild(children);
+            let child = ElementCreator.getChild(children);
             if(child) {
                 parent.appendChild(child);
             }
@@ -2776,6 +2203,307 @@ var NativeDocument = (function (exports) {
         processClassAttribute: bindClassAttribute,
         processStyleAttribute: bindStyleAttribute,
     };
+
+    function AnchorWithSentinel(name) {
+        const instance = Reflect.construct(DocumentFragment, [], AnchorWithSentinel);
+        const sentinel = document.createComment((name || '') + ' Anchor Sentinel');
+        const anchorStart = document.createComment('Anchor Start : '+name);
+        const anchorEnd = document.createComment('/ Anchor End '+name);
+        const events = {};
+
+        instance.append(anchorStart, sentinel, anchorEnd);
+
+        const observer = new MutationObserver(() => {
+            if (sentinel.parentNode !== instance && !(sentinel.parentNode instanceof DocumentFragment)) {
+                events.connected && events.connected(sentinel.parentNode);
+            }
+        });
+
+        observer.observe(document, { childList: true, subtree: true });
+
+
+        instance.$sentinel = sentinel;
+        instance.$start = anchorStart;
+        instance.$end = anchorEnd;
+        instance.$observer = observer;
+        instance.$events = events;
+
+        return instance;
+    }
+
+    AnchorWithSentinel.prototype = Object.create(DocumentFragment.prototype);
+    AnchorWithSentinel.prototype.constructor = AnchorWithSentinel;
+
+    AnchorWithSentinel.prototype.onConnected = function(callback) {
+        this.$events.connected = callback;
+        return this;
+    };
+
+    AnchorWithSentinel.prototype.onConnectedOnce = function(callback) {
+        this.$events.connected = (parent) => {
+            callback(parent);
+            this.$observer.disconnect();
+            this.$events.connectedOnce = null;
+        };
+    };
+
+    function oneChildAnchorOverwriting(anchor, parent) {
+
+        anchor.remove = () => {
+            anchor.append.apply(anchor, parent.childNodes);
+        };
+        anchor.getParent = () => parent;
+
+        anchor.appendChild = (child) => {
+            child = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+            parent.appendChild(child);
+        };
+
+        anchor.appendChildRaw = parent.appendChild.bind(parent);
+        anchor.append = anchor.appendChild;
+        anchor.appendRaw = anchor.appendChildRaw;
+
+        anchor.insertAtStart = (child) => {
+            child = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+            parent.firstChild ? parent.insertBefore(child, parent.firstChild) : parent.appendChild(child);
+        };
+        anchor.insertAtStartRaw = (child) => {
+            parent.firstChild ? parent.insertBefore(child, parent.firstChild) : parent.appendChild(child);
+        };
+
+        anchor.appendElement = anchor.appendChild;
+
+        anchor.removeChildren = () => {
+            parent.textContent = '';
+        };
+
+        anchor.replaceContent = function(content) {
+            const child = Validator.isElement(content) ? content : ElementCreator.getChild(content);
+            parent.replaceChildren(child);
+        };
+
+        anchor.replaceContentRaw = function(child) {
+            parent.replaceChildren(child);
+        };
+        anchor.setContent = anchor.replaceContent;
+
+        anchor.insertBefore = (child, anchor) => {
+            child = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+            parent.insertBefore(child, anchor);
+        };
+        anchor.insertBeforeRaw = (child, anchor) => {
+            parent.insertBefore(child, anchor);
+        };
+
+        anchor.appendChildBefore = anchor.insertBefore;
+        anchor.appendChildBeforeRaw = anchor.insertBeforeRaw;
+
+        anchor.clear = anchor.remove;
+        anchor.detach = anchor.remove;
+
+        anchor.replaceChildren = function() {
+            parent.replaceChildren(...arguments);
+        };
+
+        anchor.getByIndex = (index) => {
+            return parent.childNodes[index];
+        };
+    }
+
+    function Anchor(name, isUniqueChild = false) {
+        const anchorFragment = new AnchorWithSentinel(name);
+
+        anchorFragment.onConnectedOnce((parent) => {
+            if(isUniqueChild) {
+                oneChildAnchorOverwriting(anchorFragment, parent);
+            }
+        });
+
+        anchorFragment.__Anchor__ = true;
+
+        const anchorStart = anchorFragment.$start;
+        const anchorEnd = anchorFragment.$end;
+
+        anchorFragment.nativeInsertBefore = anchorFragment.insertBefore;
+        anchorFragment.nativeAppendChild = anchorFragment.appendChild;
+        anchorFragment.nativeAppend = anchorFragment.append;
+
+        const isParentUniqueChild = isUniqueChild
+            ? () => true: (parent) => (parent.firstChild === anchorStart && parent.lastChild === anchorEnd);
+
+        const insertBefore = function(parent, child, target) {
+            const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+            insertBeforeRaw(parent, childElement, target);
+        };
+
+        const insertBeforeRaw = function(parent, child, target) {
+            if(parent === anchorFragment) {
+                parent.nativeInsertBefore(child, target);
+                return;
+            }
+            if(isParentUniqueChild(parent) && target === anchorEnd) {
+                parent.append(child,  target);
+                return;
+            }
+            parent.insertBefore(child, target);
+        };
+
+        anchorFragment.appendElement = function(child) {
+            const parentNode = anchorStart.parentNode;
+            if(parentNode === anchorFragment) {
+                parentNode.nativeInsertBefore(child, anchorEnd);
+                return;
+            }
+            parentNode.insertBefore(child, anchorEnd);
+        };
+
+        anchorFragment.appendChild = function(child, before = null) {
+            const parent = anchorEnd.parentNode;
+            if(!parent) {
+                DebugManager.error('Anchor', 'Anchor : parent not found', child);
+                return;
+            }
+            before = before ?? anchorEnd;
+            insertBefore(parent, child, before);
+        };
+
+        anchorFragment.appendChildRaw = function(child, before = null) {
+            const parent = anchorEnd.parentNode;
+            if(!parent) {
+                DebugManager.error('Anchor', 'Anchor : parent not found', child);
+                return;
+            }
+            before = before ?? anchorEnd;
+            insertBeforeRaw(parent, child, before);
+        };
+
+        anchorFragment.getParent = () => anchorEnd.parentNode;
+        anchorFragment.append = anchorFragment.appendChild;
+        anchorFragment.appendRaw = anchorFragment.appendChildRaw;
+
+        anchorFragment.insertAtStart = function(child) {
+            child = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+            anchorFragment.insertAtStartRaw(child);
+        };
+
+        anchorFragment.insertAtStartRaw = function(child) {
+            const parentNode = anchorStart.parentNode;
+            if(parentNode === anchorFragment) {
+                parentNode.nativeInsertBefore(child, anchorStart);
+                return;
+            }
+            parentNode.insertBefore(child, anchorStart);
+        };
+
+        anchorFragment.removeChildren = function() {
+            const parent = anchorEnd.parentNode;
+            if(parent === anchorFragment) {
+                return;
+            }
+            if(isParentUniqueChild(parent)) {
+                parent.replaceChildren(anchorStart, anchorEnd);
+                return;
+            }
+
+            let itemToRemove = anchorStart.nextSibling, tempItem;
+            while(itemToRemove && itemToRemove !== anchorEnd) {
+                tempItem = itemToRemove.nextSibling;
+                itemToRemove.remove();
+                itemToRemove =  tempItem;
+            }
+        };
+
+        anchorFragment.remove = function() {
+            const parent = anchorEnd.parentNode;
+            if(parent === anchorFragment) {
+                return;
+            }
+            if(isParentUniqueChild(parent)) {
+                anchorFragment.nativeAppend.apply(anchorFragment, parent.childNodes);
+                parent.replaceChildren(anchorStart, anchorEnd);
+                return;
+            }
+            let itemToRemove = anchorStart.nextSibling, tempItem;
+            while(itemToRemove && itemToRemove !== anchorEnd) {
+                tempItem = itemToRemove.nextSibling;
+                anchorFragment.nativeAppend(itemToRemove);
+                itemToRemove = tempItem;
+            }
+        };
+
+        anchorFragment.removeWithAnchors = function() {
+            anchorFragment.removeChildren();
+            anchorStart.remove();
+            anchorEnd.remove();
+        };
+
+        anchorFragment.replaceContent = function(child) {
+            const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+            anchorFragment.replaceContentRaw(childElement);
+        };
+
+        anchorFragment.replaceContentRaw = function(child) {
+            const parent = anchorEnd.parentNode;
+            if(!parent) {
+                return;
+            }
+            if(isParentUniqueChild(parent)) {
+                parent.replaceChildren(anchorStart, child, anchorEnd);
+                return;
+            }
+            anchorFragment.removeChildren();
+            parent.insertBefore(child, anchorEnd);
+        };
+
+        anchorFragment.setContent = anchorFragment.replaceContent;
+        anchorFragment.setContentRaw = anchorFragment.replaceContentRaw;
+
+        anchorFragment.insertBefore = anchorFragment.appendChild;
+        anchorFragment.insertBeforeRaw = anchorFragment.appendChildRaw;
+
+        anchorFragment.endElement = function() {
+            return anchorEnd;
+        };
+
+        anchorFragment.startElement = function() {
+            return anchorStart;
+        };
+
+        anchorFragment.restore = function() {
+            anchorFragment.appendChild(anchorFragment);
+        };
+
+        anchorFragment.clear = anchorFragment.remove;
+        anchorFragment.detach = anchorFragment.remove;
+
+        anchorFragment.getByIndex = function(index) {
+            let currentNode = anchorStart;
+            for(let i = 0; i <= index; i++) {
+                if(!currentNode.nextSibling) {
+                    return null;
+                }
+                currentNode = currentNode.nextSibling;
+            }
+            return currentNode !== anchorStart ? currentNode : null;
+        };
+
+        return anchorFragment;
+    }
+    /**
+     *
+     * @param {HTMLElement|DocumentFragment|Text|String|Array} children
+     * @param {{ parent?: HTMLElement, name?: String}} configs
+     * @returns {DocumentFragment}
+     */
+    function createPortal(children, { parent, name = 'unnamed' } = {}) {
+        const anchor = Anchor('Portal '+name);
+        anchor.appendChild(ElementCreator.getChild(children));
+
+        (parent || document.body).appendChild(anchor);
+        return anchor;
+    }
+
+    DocumentFragment.prototype.setAttribute = () => {};
 
     const EVENTS = [
       "Click",
@@ -3180,7 +2908,10 @@ var NativeDocument = (function (exports) {
     }
 
     const normalizeComponentArgs = function(props, children = null) {
-        if(Array.isArray(props) || typeof props !== 'object' || props === null || props.constructor.name !== 'Object' ||  props.$hydrate) { // IF it's not a JSON
+        if(props && children) {
+            return { props, children };
+        }
+        if(typeof props !== 'object' || Array.isArray(props) || props === null || props.constructor.name !== 'Object' ||  props.$hydrate) { // IF it's not a JSON
             return { props: children, children: props }
         }
         return { props, children };
@@ -3191,22 +2922,21 @@ var NativeDocument = (function (exports) {
      * @param {*} value
      * @returns {Text}
      */
-    const createTextNode = function(value) {
-        return (Validator.isObservable(value))
-            ? ElementCreator.createObservableNode(null, value)
-            : ElementCreator.createStaticTextNode(null, value);
+    const createTextNode = (value) => {
+        if(value) {
+            return value.toNdElement();
+        }
+        return ElementCreator.createTextNode();
     };
 
 
-    function createHtmlElement($tagName, customWrapper, _attributes, _children = null) {
+    const createHtmlElement = (element, _attributes, _children = null) => {
         let { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
-        let element = ElementCreator.createElement($tagName);
-        let finalElement = (customWrapper && typeof customWrapper === 'function') ? customWrapper(element) : element;
 
-        ElementCreator.processAttributes(finalElement, attributes);
-        ElementCreator.processChildren(children, finalElement);
-        return finalElement;
-    }
+        ElementCreator.processAttributes(element, attributes);
+        ElementCreator.processChildren(children, element);
+        return element;
+    };
 
     /**
      *
@@ -3215,341 +2945,278 @@ var NativeDocument = (function (exports) {
      * @returns {Function}
      */
     function HtmlElementWrapper(name, customWrapper = null) {
-        return createHtmlElement.bind(null, name, customWrapper);
+        if(name) {
+            if(customWrapper) {
+                let node = null;
+                let createElement = (attr, children) => {
+                    node = document.createElement(name);
+                    createElement = (attr, children) => {
+                        return createHtmlElement(customWrapper(node.cloneNode()), attr, children);
+                    };
+                    return createHtmlElement(customWrapper(node.cloneNode()), attr, children);            };
+
+                return (attr, children) => createElement(attr, children)
+            }
+
+            let node = null;
+            let createElement = (attr, children) => {
+                node = document.createElement(name);
+                createElement = (attr, children) => {
+                    return createHtmlElement(node.cloneNode(), attr, children);
+                };
+                return createHtmlElement(node.cloneNode(), attr, children);
+            };
+
+            return (attr, children) => createElement(attr, children)
+        }
+        return (children, name = '') => {
+            const anchor = Anchor(name);
+            anchor.append(children);
+            return anchor;
+        };
     }
 
-    const cloneBindingsDataCache = new WeakMap();
+    function NodeCloner($element) {
+        this.$element = $element;
+        this.$classes = null;
+        this.$styles = null;
+        this.$attrs = null;
+        this.$ndMethods = null;
+    }
 
-    const pathProcess = (target, path, data) => {
-        if(path.HYDRATE_TEXT) {
-            const value = path.value;
-            ElementCreator.bindTextNode(target, path.isString ? data[0][value] : value.apply(null, data));
+
+    /**
+     * Attaches a template binding to the element by hydrating it with the specified method.
+     *
+     * @param {string} methodName - Name of the hydration method to call
+     * @param {BindingHydrator} bindingHydrator - Template binding with $hydrate method
+     * @returns {HTMLElement} The underlying HTML element
+     * @example
+     * const onClick = $binder.attach((event, data) => console.log(data));
+     * element.nd.attach('onClick', onClick);
+     */
+    NDElement.prototype.attach = function(methodName, bindingHydrator) {
+        if(typeof bindingHydrator === 'function') {
+            const element = this.$element;
+            element.nodeCloner = element.nodeCloner || new NodeCloner(element);
+            element.nodeCloner.attach(methodName, bindingHydrator);
+            return element;
+        }
+        bindingHydrator.$hydrate(this.$element, methodName);
+        return this.$element;
+    };
+
+    NodeCloner.prototype.__$isNodeCloner = true;
+
+    const buildProperties = (cache, properties, data) => {
+        for(const key in properties) {
+            cache[key] = properties[key].apply(null, data);
+        }
+        return cache;
+    };
+
+    NodeCloner.prototype.resolve = function() {
+        if(this.$content) {
             return;
         }
-        if(path.ATTACH_METHOD) {
-            const bindingData = path.bindingData;
-            for(let i = 0, length = bindingData._attachLength; i < length; i++) {
-                const method = bindingData.attach[i];
-                target.nd[method.methodName](function() {
-                    method.fn.call(this, ...data, ...arguments);
+        const steps = [];
+        if(this.$ndMethods) {
+            const methods = Object.keys(this.$ndMethods);
+            if(methods.length === 1) {
+                const methodName = methods[0];
+                const callback = this.$ndMethods[methodName];
+                steps.push((clonedNode, data) => {
+                    clonedNode.nd[methodName](callback.bind(clonedNode, ...data));
+                });
+            } else {
+                steps.push((clonedNode, data) => {
+                    const nd = clonedNode.nd;
+                    for(const methodName in this.$ndMethods) {
+                        nd[methodName](this.$ndMethods[methodName].bind(clonedNode, ...data));
+                    }
                 });
             }
         }
-        if(path.HYDRATE_ATTRIBUTES) {
-            path.hydrator(target, path.bindingData, data);
+        if(this.$classes) {
+            const cache = {};
+            const keys = Object.keys(this.$classes);
+
+            if(keys.length === 1) {
+                const key = keys[0];
+                const callback = this.$classes[key];
+                steps.push((clonedNode, data) => {
+                    cache[key] = callback.apply(null, data);
+                    ElementCreator.processClassAttribute(clonedNode, cache);
+                });
+            } else {
+                steps.push((clonedNode, data) => {
+                    ElementCreator.processClassAttribute(clonedNode, buildProperties(cache, this.$classes, data));
+                });
+            }
         }
+        if(this.$styles) {
+            const cache = {};
+            const keys = Object.keys(this.$styles);
+
+            if(keys.length === 1) {
+                const key = keys[0];
+                const callback = this.$styles[key];
+                steps.push((clonedNode, data) => {
+                    cache[key] = callback.apply(null, data);
+                    ElementCreator.processStyleAttribute(clonedNode, cache);
+                });
+            } else {
+                steps.push((clonedNode, data) => {
+                    ElementCreator.processStyleAttribute(clonedNode, buildProperties(cache, this.$styles, data));
+                });
+            }
+        }
+        if(this.$attrs) {
+            const cache = {};
+            const keys = Object.keys(this.$attrs);
+
+            if(keys.length === 1) {
+                const key = keys[0];
+                const callback = this.$attrs[key];
+                steps.push((clonedNode, data) => {
+                    cache[key] = callback.apply(null, data);
+                    ElementCreator.processAttributes(clonedNode, cache);
+                });
+            } else {
+                steps.push((clonedNode, data) => {
+                    ElementCreator.processAttributes(clonedNode, buildProperties(cache, this.$attrs, data));
+                });
+            }
+        }
+
+        const stepsCount = steps.length;
+        const $element = this.$element;
+
+        this.cloneNode = (data) => {
+            const clonedNode = $element.cloneNode(false);
+            for(let i = 0; i < stepsCount; i++) {
+                steps[i](clonedNode, data);
+            }
+            return clonedNode;
+        };
     };
 
-    const buildAttributesCache = (bindDingData) => {
-        const cache = { };
-        if(bindDingData.attributes) cache.attributes = {};
-        if(bindDingData.classes)    cache.class = {};
-        if(bindDingData.styles)     cache.style = {};
-        bindDingData._cache = cache;
+    NodeCloner.prototype.cloneNode = function(data) {
+        return this.$element.cloneNode(false);
     };
 
-    const prepareBindingMetadata = (bindDingData) => {
-        const attributes = [];
-        const classAndStyles = [];
-
-        if(bindDingData.attributes) {
-            for (const attr in bindDingData.attributes) {
-                attributes.push({
-                    name: attr,
-                    value: bindDingData.attributes[attr]
-                });
-            }
-        }
-
-        if(bindDingData.classes) {
-            for (const className in bindDingData.classes) {
-                bindDingData._hasClassAttribute = true;
-                classAndStyles.push({
-                    name: 'class',
-                    key: className,
-                    value: bindDingData.classes[className]
-                });
-            }
-        }
-
-        if(bindDingData.styles) {
-            for (const property in bindDingData.styles) {
-                bindDingData._hasStyleAttribute = true;
-                classAndStyles.push({
-                    name: 'style',
-                    key: property,
-                    value: bindDingData.styles[property]
-                });
-            }
-        }
-
-        bindDingData._flatAttributes = attributes;
-        bindDingData._flatAttributesLength = attributes.length;
-        bindDingData._flatDynamique = classAndStyles;
-        bindDingData._flatDynamiqueLength = classAndStyles.length;
-        bindDingData._attachLength = bindDingData.attach.length;
+    NodeCloner.prototype.attach = function(methodName, callback) {
+        this.$ndMethods = this.$ndMethods || {};
+        this.$ndMethods[methodName] = callback;
+        return this;
     };
 
-
-    const $hydrateFn = function(hydrateFunction, targetType, element, property) {
-        if(!cloneBindingsDataCache.has(element)) {
-            cloneBindingsDataCache.set(element, { attach: [] });
+    NodeCloner.prototype.text = function(value) {
+        this.$content = value;
+        if(typeof value === 'function') {
+            this.cloneNode = (data) => createTextNode(value.apply(null, data));
+            return this;
         }
-        const hydrationState = cloneBindingsDataCache.get(element);
+        this.cloneNode = (data) => createTextNode(data[0][value]);
+        return this;
+    };
 
+    NodeCloner.prototype.attr = function(attrName, value) {
+        if(attrName === 'class') {
+            this.$classes = this.$classes || {};
+            this.$classes[value.property] = value.value;
+            return this;
+        }
+        if(attrName === 'style') {
+            this.$styles = this.$styles || {};
+            this.$styles[value.property] = value.value;
+            return this;
+        }
+        this.$attrs = this.$attrs || {};
+        this.$attrs[attrName] = value.value;
+        return this;
+    };
+
+    const $hydrateFn = function(value, targetType, element, property) {
+        element.nodeCloner = element.nodeCloner || new NodeCloner(element);
         if(targetType === 'value') {
-            hydrationState.value = hydrateFunction;
+            element.nodeCloner.text(value);
             return;
         }
         if(targetType === 'attach') {
-            hydrationState.attach = hydrationState.attach || [];
-            hydrationState.attach.push({ methodName: property, fn: hydrateFunction});
+            element.nodeCloner.attach(property, value);
             return;
         }
-        hydrationState[targetType] = hydrationState[targetType] || {};
-        hydrationState[targetType][property] = hydrateFunction;
-    };
-
-    const bindAttachMethods = (node, bindDingData, data) => {
-        for(let i = 0, length = bindDingData._attachLength; i < length; i++) {
-            const method = bindDingData.attach[i];
-            node.nd[method.methodName](function() {
-                method.fn.call(this, ...data, ...arguments);
-            });
-        }
-    };
-
-    const optimizeBindingData = (bindDingData) => {
-        buildAttributesCache(bindDingData);
-        prepareBindingMetadata(bindDingData);
-    };
-
-
-    const $applyBindingParents = [];
-    const hydrateClonedNode = (root, data, paths, pathSize) => {
-        const rootPath = paths[pathSize];
-        $applyBindingParents[rootPath.id] = root;
-        pathProcess(root, rootPath, data);
-
-        let target = null, path = null;
-        for(let i = 0; i < pathSize; i++) {
-            path = paths[i];
-            target = $applyBindingParents[path.parentId].childNodes[path.index];
-            $applyBindingParents[path.id] = target;
-
-            if(path.HYDRATE_TEXT) {
-                const value = path.value;
-                ElementCreator.bindTextNode(target, path.isString ? data[0][value] : value.apply(null, data));
-                continue;
-            }
-            if(path.ATTACH_METHOD) {
-                const bindingData = path.bindingData;
-                for(let i = 0, length = bindingData._attachLength; i < length; i++) {
-                    const method = bindingData.attach[i];
-                    target.nd[method.methodName](function() {
-                        method.fn.call(this, ...data, ...arguments);
-                    });
-                }
-            }
-            if(path.HYDRATE_ATTRIBUTES) {
-                path.hydrator(target, path.bindingData, data);
-            }
-        }
-
-        for (let i = 0; i <= pathSize; i++) {
-            $applyBindingParents[i] = null;
-        }
-    };
-
-    const hydrateFull = (node, bindDingData, data) => {
-        const cacheAttributes = bindDingData._cache;
-
-        for(let i = 0, length = bindDingData._flatAttributesLength; i < length; i++) {
-            const attr = bindDingData._flatAttributes[i];
-            cacheAttributes[attr.name] = attr.value.apply(null, data);
-        }
-
-        for(let i = 0, length = bindDingData._flatDynamiqueLength; i < length; i++) {
-            const dyn = bindDingData._flatDynamique[i];
-            cacheAttributes[dyn.name][dyn.key] = dyn.value.apply(null, data);
-        }
-
-        ElementCreator.processAttributesDirect(node, cacheAttributes);
-        return true;
-    };
-
-    const hydrateDynamic = (node, bindDingData, data) => {
-        const cacheAttributes = bindDingData._cache;
-
-        for(let i = 0, length = bindDingData._flatDynamiqueLength; i < length; i++) {
-            const dyn = bindDingData._flatDynamique[i];
-            cacheAttributes[dyn.name][dyn.key] = dyn.value.apply(null, data);
-        }
-
-        ElementCreator.processClassAttribute(node, cacheAttributes.class);
-        ElementCreator.processStyleAttribute(node, cacheAttributes.style);
-        return true;
-    };
-
-    const hydrateClassAttribute = (node, bindDingData, data) => {
-        const classAttributes = bindDingData._cache.class;
-
-        for(let i = 0, length = bindDingData._flatDynamiqueLength; i < length; i++) {
-            const dyn = bindDingData._flatDynamique[i];
-            classAttributes[dyn.key] = dyn.value.apply(null, data);
-        }
-
-        ElementCreator.processClassAttribute(node, classAttributes);
-        return true;
-    };
-
-    const hydrateStyleAttribute = (node, bindDingData, data) => {
-        const styleAttributes = bindDingData._cache;
-
-        for(let i = 0, length = bindDingData._flatDynamiqueLength; i < length; i++) {
-            const dyn = bindDingData._flatDynamique[i];
-            styleAttributes[dyn.key] = dyn.value.apply(null, data);
-        }
-
-        ElementCreator.processStyleAttribute(node, styleAttributes);
-        return true;
-    };
-
-    const hydrateAttributes = (node, bindDingData, data) => {
-        const cacheAttributes = bindDingData._cache;
-
-        for(let i = 0, length = bindDingData._flatAttributesLength; i < length; i++) {
-            const attr = bindDingData._flatAttributes[i];
-            cacheAttributes[attr.name] = attr.value.apply(null, data);
-        }
-
-        ElementCreator.processAttributesDirect(node, cacheAttributes);
-        return true;
-    };
-
-    const getHydrator = (bindDingData) => {
-        if(!bindDingData._cache) {
-            return noUpdate;
-        }
-        if(bindDingData._flatAttributesLength && bindDingData._flatDynamiqueLength) {
-            return hydrateFull;
-        }
-        if(bindDingData._flatAttributesLength) {
-            return hydrateAttributes;
-        }
-        if(bindDingData._hasClassAttribute && bindDingData._hasStyleAttribute) {
-            return hydrateDynamic;
-        }
-        if(bindDingData._hasClassAttribute) {
-            return hydrateClassAttribute;
-        }
-        return hydrateStyleAttribute;
+        element.nodeCloner.attr(targetType, { property, value });
     };
 
     function TemplateCloner($fn) {
         let $node = null;
-        let $hasBindingData = false;
 
-        let $bindingTreePathSize = 0;
-        const $bindingTreePath = [
-            {
-                id: 0,
-                parentId: null
-            }
-        ];
-
-        let pathCounter = 0;
-        const clone = (node, data, currentPath) => {
-            const bindDingData = cloneBindingsDataCache.get(node);
-            if(bindDingData) {
-                optimizeBindingData(bindDingData);
-            }
-            if(node.nodeType === 3) {
-                if(bindDingData && bindDingData.value) {
-                    const value = bindDingData.value;
-                    const textNode = node.cloneNode();
-                    currentPath.value = value;
-                    currentPath.HYDRATE_TEXT = true;
-                    currentPath.operation = true;
-                    currentPath.isString = (typeof value === 'string');
-                    ElementCreator.bindTextNode(textNode, (currentPath.isString ? data[0][value] : value.apply(null, data)));
-                    return textNode;
+        const assignClonerToNode = ($node) => {
+            const childNodes = $node.childNodes;
+            let containDynamicNode = !!$node.nodeCloner;
+            const childNodesLength = childNodes.length;
+            for(let i = 0; i < childNodesLength; i++) {
+                const child = childNodes[i];
+                if(child.nodeCloner) {
+                    containDynamicNode = true;
                 }
-                return node.cloneNode(true);
-            }
-            const nodeCloned = node.cloneNode();
-            if(bindDingData) {
-                const hydrator = getHydrator(bindDingData);
-                hydrator(nodeCloned, bindDingData, data);
-                bindAttachMethods(nodeCloned, bindDingData, data);
-
-                const hasAttributes = bindDingData.classes || bindDingData.styles || bindDingData.attributes;
-                const hasAttachMethods = bindDingData.attach.length;
-
-                currentPath.bindingData = bindDingData;
-                currentPath.hydrator = hydrator;
-
-                if(hasAttributes) {
-                    currentPath.HYDRATE_ATTRIBUTES = true;
-                    currentPath.operation = true;
-                }
-                if(hasAttachMethods) {
-                    currentPath.ATTACH_METHOD = true;
-                    currentPath.operation = true;
+                const localContainDynamicNode = assignClonerToNode(child);
+                if(localContainDynamicNode) {
+                    containDynamicNode = true;
                 }
             }
-            const childNodes = node.childNodes;
-            const parentId = currentPath.id;
 
-            for(let i = 0, length = childNodes.length; i < length; i++) {
-                const childNode = childNodes[i];
-                const path = { parentId, id: ++pathCounter,  index: i };
-                const childNodeCloned = clone(childNode, data, path);
-                if(path.hasChildren || path.operation) {
-                    $bindingTreePath.push(path);
-                    currentPath.hasChildren = true;
+            if(!containDynamicNode) {
+                $node.dynamicCloneNode = $node.cloneNode.bind($node, true);
+            } else {
+                if($node.nodeCloner) {
+                    $node.nodeCloner.resolve();
+                    $node.dynamicCloneNode = (data) => {
+                        const clonedNode = $node.nodeCloner.cloneNode(data);
+                        for(let i = 0; i < childNodesLength; i++) {
+                            clonedNode.appendChild(childNodes[i].dynamicCloneNode(data));
+                        }
+                        return clonedNode;
+                    };
+                } else {
+                    $node.dynamicCloneNode = (data) => {
+                        const clonedNode = $node.cloneNode();
+                        for(let i = 0; i < childNodesLength; i++) {
+                            clonedNode.appendChild(childNodes[i].dynamicCloneNode(data));
+                        }
+                        return clonedNode;
+                    };
                 }
-                nodeCloned.appendChild(childNodeCloned);
             }
-            return nodeCloned;
-        };
 
-        const cloneWithBindingPaths = (data) => {
-            let root = $node.cloneNode(true);
-
-            hydrateClonedNode(root, data, $bindingTreePath, $bindingTreePathSize);
-            return root;
+            return containDynamicNode;
         };
 
         this.clone = (data) => {
             const binder = createTemplateCloner(this);
             $node = $fn(binder);
-            if(!$hasBindingData) {
-                this.clone = () => $node.cloneNode(true);
-                return $node.cloneNode(true);
+            if(!$node.nodeCloner) {
+                $node.nodeCloner = new NodeCloner($node);
             }
-
-            const firstClone = clone($node, data, $bindingTreePath[0]);
-            $bindingTreePath.reverse();
-            $bindingTreePathSize = $bindingTreePath.length - 1;
-
-            this.clone = cloneWithBindingPaths;
-            return firstClone;
+            assignClonerToNode($node);
+            this.clone = $node.dynamicCloneNode;
+            return $node.dynamicCloneNode(data);
         };
 
 
         const createBinding = (hydrateFunction, targetType) => {
             return new TemplateBinding((element, property) => {
-                $hasBindingData = true;
                 $hydrateFn(hydrateFunction, targetType, element, property);
             });
         };
 
         this.style = (fn) => {
-            return createBinding(fn, 'styles');
+            return createBinding(fn, 'style');
         };
         this.class = (fn) => {
-            return createBinding(fn, 'classes');
+            return createBinding(fn, 'class');
         };
         this.property = (propertyName) => {
             return this.value(propertyName);
@@ -3586,10 +3253,9 @@ var NativeDocument = (function (exports) {
         let wrapper = (args) => {
             $cache = new TemplateCloner(fn);
 
-            wrapper = (args) => {
-                return $cache.clone(args);
-            };
-            return $cache.clone(args);
+            const node = $cache.clone(args);
+            wrapper = $cache.clone;
+            return node;
         };
 
         if(fn.length < 2) {
@@ -3715,7 +3381,7 @@ var NativeDocument = (function (exports) {
         return {
             add(key, value) {
                 if(isArray) {
-                    data.push(key+' :  '+value);
+                    data.push(key+':  '+value);
                     return;
                 }
                 data[key] = value;
@@ -4208,6 +3874,8 @@ var NativeDocument = (function (exports) {
         };
     });
 
+    const $clearEvent = { action: 'clear' };
+
     /**
      * Removes all items from the array and triggers an update.
      *
@@ -4221,7 +3889,7 @@ var NativeDocument = (function (exports) {
             return;
         }
         this.$currentValue.length = 0;
-        this.trigger({ action: 'clear' });
+        this.trigger($clearEvent);
         return true;
     };
 
@@ -4835,6 +4503,406 @@ var NativeDocument = (function (exports) {
         return observable;
     };
 
+    const StoreFactory = function() {
+
+        const $stores = new Map();
+        const $followersCache = new Map();
+
+        /**
+         * Internal helper — retrieves a store entry or throws if not found.
+         */
+        const $getStoreOrThrow = (method, name) => {
+            const item = $stores.get(name);
+            if (!item) {
+                DebugManager$1.error('Store', `Store.${method}('${name}') : store not found. Did you call Store.create('${name}') first?`);
+                throw new NativeDocumentError(
+                    `Store.${method}('${name}') : store not found.`
+                );
+            }
+            return item;
+        };
+
+        /**
+         * Internal helper — blocks write operations on a read-only observer.
+         */
+        const $applyReadOnly = (observer, name, context) => {
+            const readOnlyError = (method) => () => {
+                DebugManager$1.error('Store', `Store.${context}('${name}') is read-only. '${method}()' is not allowed.`);
+                throw new NativeDocumentError(
+                    `Store.${context}('${name}') is read-only.`
+                );
+            };
+            observer.set    = readOnlyError('set');
+            observer.toggle = readOnlyError('toggle');
+            observer.reset  = readOnlyError('reset');
+        };
+
+        const $createObservable = (value, options = {}) => {
+            if(Array.isArray(value)) {
+                return Observable.array(value, options);
+            }
+            if(typeof value === 'object') {
+                return Observable.object(value, options);
+            }
+            return Observable(value, options);
+        };
+
+        const $api = {
+            /**
+             * Create a new state and return the observer.
+             * Throws if a store with the same name already exists.
+             *
+             * @param {string} name
+             * @param {*} value
+             * @returns {ObservableItem}
+             */
+            create(name, value) {
+                if ($stores.has(name)) {
+                    DebugManager$1.warn('Store', `Store.create('${name}') : a store with this name already exists. Use Store.get('${name}') to retrieve it.`);
+                    throw new NativeDocumentError(
+                        `Store.create('${name}') : a store with this name already exists.`
+                    );
+                }
+                const observer = $createObservable(value);
+                $stores.set(name, { observer, subscribers: new Set(), resettable: false, composed: false });
+                return observer;
+            },
+
+            /**
+             * Create a new resettable state and return the observer.
+             * The store can be reset to its initial value via Store.reset(name).
+             * Throws if a store with the same name already exists.
+             *
+             * @param {string} name
+             * @param {*} value
+             * @returns {ObservableItem}
+             */
+            createResettable(name, value) {
+                if ($stores.has(name)) {
+                    DebugManager$1.warn('Store', `Store.createResettable('${name}') : a store with this name already exists.`);
+                    throw new NativeDocumentError(
+                        `Store.createResettable('${name}') : a store with this name already exists.`
+                    );
+                }
+                const observer = $createObservable(value, { reset: true });
+                $stores.set(name, { observer, subscribers: new Set(), resettable: true, composed: false });
+                return observer;
+            },
+
+            /**
+             * Create a computed store derived from other stores.
+             * The value is automatically recalculated when any dependency changes.
+             * This store is read-only — Store.use() and Store.set() will throw.
+             * Throws if a store with the same name already exists.
+             *
+             * @param {string} name
+             * @param {() => *} computation - Function that returns the computed value
+             * @param {string[]} dependencies - Names of the stores to watch
+             * @returns {ObservableItem}
+             *
+             * @example
+             * Store.create('products', [{ id: 1, price: 10 }]);
+             * Store.create('cart', [{ productId: 1, quantity: 2 }]);
+             *
+             * Store.createComposed('total', () => {
+             *     const products = Store.get('products').val();
+             *     const cart     = Store.get('cart').val();
+             *     return cart.reduce((sum, item) => {
+             *         const product = products.find(p => p.id === item.productId);
+             *         return sum + (product.price * item.quantity);
+             *     }, 0);
+             * }, ['products', 'cart']);
+             */
+            createComposed(name, computation, dependencies) {
+                if ($stores.has(name)) {
+                    DebugManager$1.warn('Store', `Store.createComposed('${name}') : a store with this name already exists.`);
+                    throw new NativeDocumentError(
+                        `Store.createComposed('${name}') : a store with this name already exists.`
+                    );
+                }
+                if (typeof computation !== 'function') {
+                    throw new NativeDocumentError(
+                        `Store.createComposed('${name}') : computation must be a function.`
+                    );
+                }
+                if (!Array.isArray(dependencies) || dependencies.length === 0) {
+                    throw new NativeDocumentError(
+                        `Store.createComposed('${name}') : dependencies must be a non-empty array of store names.`
+                    );
+                }
+
+                // Resolve dependency observers
+                const depObservers = dependencies.map(depName => {
+                    if(typeof depName !== 'string') {
+                        return depName;
+                    }
+                    const depItem = $stores.get(depName);
+                    if (!depItem) {
+                        DebugManager$1.error('Store', `Store.createComposed('${name}') : dependency '${depName}' not found. Create it first.`);
+                        throw new NativeDocumentError(
+                            `Store.createComposed('${name}') : dependency store '${depName}' not found.`
+                        );
+                    }
+                    return depItem.observer;
+                });
+
+                // Create computed observable from dependency observers
+                const observer = Observable.computed(computation, depObservers);
+
+                $stores.set(name, { observer, subscribers: new Set(), resettable: false, composed: true });
+                return observer;
+            },
+
+            /**
+             * Returns true if a store with the given name exists.
+             *
+             * @param {string} name
+             * @returns {boolean}
+             */
+            has(name) {
+                return $stores.has(name);
+            },
+
+            /**
+             * Resets a resettable store to its initial value and notifies all subscribers.
+             * Throws if the store was not created with createResettable().
+             *
+             * @param {string} name
+             */
+            reset(name) {
+                const item = $getStoreOrThrow('reset', name);
+                if (item.composed) {
+                    DebugManager$1.error('Store', `Store.reset('${name}') : composed stores cannot be reset. Their value is derived from dependencies.`);
+                    throw new NativeDocumentError(
+                        `Store.reset('${name}') : composed stores cannot be reset.`
+                    );
+                }
+                if (!item.resettable) {
+                    DebugManager$1.error('Store', `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`);
+                    throw new NativeDocumentError(
+                        `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`
+                    );
+                }
+                item.observer.reset();
+            },
+
+            /**
+             * Returns a two-way synchronized follower of the store.
+             * Writing to the follower propagates the value back to the store and all its subscribers.
+             * Throws if called on a composed store — use Store.follow() instead.
+             * Call follower.destroy() or follower.dispose() to unsubscribe.
+             *
+             * @param {string} name
+             * @returns {ObservableItem}
+             */
+            use(name) {
+                const item = $getStoreOrThrow('use', name);
+
+                if (item.composed) {
+                    DebugManager$1.error('Store', `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`);
+                    throw new NativeDocumentError(
+                        `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`
+                    );
+                }
+
+                const { observer: originalObserver, subscribers } = item;
+                const observerFollower = $createObservable(originalObserver.val());
+
+                const onStoreChange    = value => observerFollower.set(value);
+                const onFollowerChange = value => originalObserver.set(value);
+
+                originalObserver.subscribe(onStoreChange);
+                observerFollower.subscribe(onFollowerChange);
+
+                observerFollower.destroy = () => {
+                    originalObserver.unsubscribe(onStoreChange);
+                    observerFollower.unsubscribe(onFollowerChange);
+                    subscribers.delete(observerFollower);
+                    observerFollower.cleanup();
+                };
+                observerFollower.dispose = observerFollower.destroy;
+
+                subscribers.add(observerFollower);
+                return observerFollower;
+            },
+
+            /**
+             * Returns a read-only follower of the store.
+             * The follower reflects store changes but cannot write back to the store.
+             * Any attempt to call .set(), .toggle() or .reset() will throw.
+             * Call follower.destroy() or follower.dispose() to unsubscribe.
+             *
+             * @param {string} name
+             * @returns {ObservableItem}
+             */
+            follow(name) {
+                const { observer: originalObserver, subscribers } = $getStoreOrThrow('follow', name);
+                const observerFollower = $createObservable(originalObserver.val());
+
+                const onStoreChange = value => observerFollower.set(value);
+                originalObserver.subscribe(onStoreChange);
+
+                $applyReadOnly(observerFollower, name, 'follow');
+
+                observerFollower.destroy = () => {
+                    originalObserver.unsubscribe(onStoreChange);
+                    subscribers.delete(observerFollower);
+                    observerFollower.cleanup();
+                };
+                observerFollower.dispose = observerFollower.destroy;
+
+                subscribers.add(observerFollower);
+                return observerFollower;
+            },
+
+            /**
+             * Returns the raw store observer directly (no follower, no cleanup contract).
+             * Use this for direct read access when you don't need to unsubscribe.
+             * WARNING : mutations on this observer impact all subscribers immediately.
+             *
+             * @param {string} name
+             * @returns {ObservableItem|null}
+             */
+            get(name) {
+                const item = $stores.get(name);
+                if (!item) {
+                    DebugManager$1.warn('Store', `Store.get('${name}') : store not found.`);
+                    return null;
+                }
+                return item.observer;
+            },
+
+            /**
+             * @param {string} name
+             * @returns {{ observer: ObservableItem, subscribers: Set } | null}
+             */
+            getWithSubscribers(name) {
+                return $stores.get(name) ?? null;
+            },
+
+            /**
+             * Destroys a store : cleans up the observer, destroys all followers, and removes the entry.
+             *
+             * @param {string} name
+             */
+            delete(name) {
+                const item = $stores.get(name);
+                if (!item) {
+                    DebugManager$1.warn('Store', `Store.delete('${name}') : store not found, nothing to delete.`);
+                    return;
+                }
+                item.subscribers.forEach(follower => follower.destroy());
+                item.subscribers.clear();
+                item.observer.cleanup();
+                $stores.delete(name);
+            },
+            /**
+             * Creates an isolated store group with its own state namespace.
+             * Each group is a fully independent StoreFactory instance —
+             * no key conflicts, no shared state with the parent store.
+             *
+             * @param {string | ((group: ReturnType<typeof StoreFactory>) => void)} name - Group name for debugging, or setup callback if no name is provided
+             * @param {((group: ReturnType<typeof StoreFactory>) => void)} [callback] - Setup function receiving the isolated store instance
+             * @returns {ReturnType<typeof StoreFactory>}
+             *
+             * @example
+             * // With name (recommended)
+             * const EventStore = Store.group('events', (group) => {
+             *     group.create('catalog', []);
+             *     group.create('filters', { category: null, date: null });
+             *     group.createResettable('selected', null);
+             *     group.createComposed('filtered', () => {
+             *         const catalog = EventStore.get('catalog').val();
+             *         const filters = EventStore.get('filters').val();
+             *         return catalog.filter(event => {
+             *             if (filters.category && event.category !== filters.category) return false;
+             *             return true;
+             *         });
+             *     }, ['catalog', 'filters']);
+             * });
+             *
+             * // Without name
+             * const CartStore = Store.group((group) => {
+             *     group.create('items', []);
+             * });
+             *
+             * // Usage
+             * EventStore.use('catalog'); // two-way follower
+             * EventStore.follow('filtered'); // read-only follower
+             * EventStore.get('filters'); // raw observable
+             *
+             * // Cross-group composed
+             * const OrderStore = Store.group('orders', (group) => {
+             *     group.createComposed('summary', () => {
+             *         const items = CartStore.get('items').val();
+             *         const events = EventStore.get('catalog').val();
+             *         return { items, events };
+             *     }, [CartStore.get('items'), EventStore.get('catalog')]);
+             * });
+             */
+            group(name, callback) {
+                if (typeof name === 'function') {
+                    callback = name;
+                    name = 'anonymous';
+                }
+                const store = StoreFactory();
+                callback && callback(store);
+                return store;
+            },
+            createPersistent(name, value, localstorage_key) {
+                localstorage_key = localstorage_key || name;
+                const observer = this.create(name, $getFromStorage(localstorage_key, value));
+                const saver = $saveToStorage(value);
+
+                observer.subscribe((val) => saver(localstorage_key, val));
+                return observer;
+            },
+            createPersistentResettable(name, value, localstorage_key) {
+                localstorage_key = localstorage_key || name;
+                const observer = this.createResettable(name, $getFromStorage(localstorage_key, value));
+                const saver = $saveToStorage(value);
+                observer.subscribe((val) => saver(localstorage_key, val));
+
+                const originalReset = observer.reset.bind(observer);
+                observer.reset = () => {
+                    LocalStorage.remove(localstorage_key);
+                    originalReset();
+                };
+
+                return observer;
+            }
+        };
+
+
+        return new Proxy($api, {
+            get(target, prop) {
+                if (typeof prop === 'symbol' || prop.startsWith('$') || prop in target) {
+                    return target[prop];
+                }
+                if (target.has(prop)) {
+                    if ($followersCache.has(prop)) {
+                        return $followersCache.get(prop);
+                    }
+                    const follower = target.follow(prop);
+                    $followersCache.set(prop, follower);
+                    return follower;
+                }
+                return undefined;
+            },
+            set(target, prop, value) {
+                DebugManager$1.error('Store', `Forbidden: You cannot overwrite the store key '${String(prop)}'. Use .use('${String(prop)}').set(value) instead.`);
+                throw new NativeDocumentError(`Store structure is immutable. Use .set() on the observable.`);
+            },
+            deleteProperty(target, prop) {
+                throw new NativeDocumentError(`Store keys cannot be deleted.`);
+            }
+        });
+    };
+
+    const Store = StoreFactory();
+
+    Store.create('locale', navigator.language.split('-')[0] || 'en');
+
     /**
      * Renders a list of items from an observable array or object, automatically updating when data changes.
      * Efficiently manages DOM updates by tracking items with keys.
@@ -4910,7 +4978,7 @@ var NativeDocument = (function (exports) {
                 }
                 cache.set(keyId, { keyId, isNew: true, child: new WeakRef(child), indexObserver});
             } catch (e) {
-                DebugManager.error('ForEach', `Error creating element for key ${keyId}` , e);
+                DebugManager$1.error('ForEach', `Error creating element for key ${keyId}` , e);
                 throw e;
             }
             return keyId;
@@ -5015,7 +5083,6 @@ var NativeDocument = (function (exports) {
     function ForEachArray(data, callback, configs = {}) {
         const element = Anchor('ForEach Array', configs.isParentUniqueChild);
         const blockEnd = element.endElement();
-        const blockStart = element.startElement();
 
         let cache = new Map();
         let lastNumberOfItems = 0;
@@ -5101,21 +5168,23 @@ var NativeDocument = (function (exports) {
         };
 
 
-        const cleanCache = (items) => {
-            if(!isIndexRequired) {
-                cache.clear();
-                return;
-            }
-            if(configs.shouldKeepItemsInCache) {
-                return;
-            }
-            for (const [itemAsKey, _] of cache.entries()) {
-                if(items && items.includes(itemAsKey)) {
-                    continue;
+        let cleanCache;
+
+        if(!isIndexRequired) {
+            cleanCache = cache.clear.bind(cache);
+        }
+        else if(configs.shouldKeepItemsInCache) {
+            cleanCache = () => {};
+        } else {
+            cleanCache = (items) => {
+                for (const [itemAsKey, _] of cache.entries()) {
+                    if(items && items.includes(itemAsKey)) {
+                        continue;
+                    }
+                    removeCacheItem(itemAsKey, false);
                 }
-                removeCacheItem(itemAsKey, false);
-            }
-        };
+            };
+        }
 
         const removeByItem = (item, fragment) => {
             const cacheItem = cache.get(item);
@@ -5135,7 +5204,7 @@ var NativeDocument = (function (exports) {
         };
 
         const Actions = {
-            toFragment(items){
+            toFragment: (items) =>{
                 const fragment = document.createDocumentFragment();
                 for(let i = 0, length = items.length; i < length; i++) {
                     fragment.appendChild(buildItem(items[i], lastNumberOfItems));
@@ -5143,14 +5212,19 @@ var NativeDocument = (function (exports) {
                 }
                 return fragment;
             },
-            add(items) {
-                element.appendElement(Actions.toFragment(items));
+            add: (items) => {
+                element.appendChildRaw(Actions.toFragment(items));
             },
-            replace(items) {
+            replace: (items) => {
                 clear(items);
-                Actions.add(items);
+                element.appendChildRaw(Actions.toFragment(items));
             },
-            reOrder(items) {
+            set: () => {
+                const items = data.val();
+                clear(items);
+                element.appendChildRaw(Actions.toFragment(items));
+            },
+            reOrder: (items) => {
                 let child = null;
                 const fragment = document.createDocumentFragment();
                 for(const item of items) {
@@ -5160,24 +5234,13 @@ var NativeDocument = (function (exports) {
                     }
                 }
                 child = null;
-                element.appendElement(fragment, blockEnd);
+                element.appendElementRaw(fragment);
             },
-            removeOne(element, index) {
+            removeOne: (element, index) => {
                 removeCacheItem(element, true);
             },
             clear,
-            merge(items) {
-                Actions.add(items);
-            },
-            push(items) {
-                let delay = 0;
-                if(configs.pushDelay) {
-                    delay = configs.pushDelay(items) ?? 0;
-                }
-
-                Actions.add(items, delay);
-            },
-            populate([target, iteration, callback]) {
+            populate: ([target, iteration, callback]) => {
                 const fragment = document.createDocumentFragment();
                 for (let i = 0; i < iteration; i++) {
                     const data = callback(i);
@@ -5185,13 +5248,13 @@ var NativeDocument = (function (exports) {
                     fragment.append(buildItem(data, i));
                     lastNumberOfItems++;
                 }
-                element.appendChild(fragment);
+                element.appendChildRaw(fragment);
                 fragment.replaceChildren();
             },
-            unshift(values){
-                element.insertBefore(Actions.toFragment(values), blockStart.nextSibling);
+            unshift: (values) => {
+                element.insertAtStartRaw(Actions.toFragment(values));
             },
-            splice(args, deleted) {
+            splice: (args, deleted) => {
                 const [start, deleteCount, ...values] = args;
                 let elementBeforeFirst = null;
                 const garbageFragment = document.createDocumentFragment();
@@ -5214,27 +5277,27 @@ var NativeDocument = (function (exports) {
                 garbageFragment.replaceChildren();
 
                 if(values && values.length && elementBeforeFirst) {
-                    element.insertBefore(Actions.toFragment(values), elementBeforeFirst.nextSibling);
+                    element.insertBeforeRaw(Actions.toFragment(values), elementBeforeFirst.nextSibling);
                 }
 
             },
-            reverse(_, reversed) {
+            reverse: (_, reversed) => {
                 Actions.reOrder(reversed);
             },
-            sort(_, sorted) {
+            sort: (_, sorted) => {
                 Actions.reOrder(sorted);
             },
-            remove(_, deleted) {
+            remove: (_, deleted)=> {
                 Actions.removeOne(deleted);
             },
-            pop(_, deleted) {
+            pop: (_, deleted) => {
                 Actions.removeOne(deleted);
             },
-            shift(_, deleted) {
+            shift: (_, deleted) => {
                 Actions.removeOne(deleted);
             },
-            swap(args, elements) {
-                const parent = blockEnd.parentNode;
+            swap: (args, elements) => {
+                const parent = element.getParent();
 
                 let childA = getItemChild(elements[0]);
                 let childB = getItemChild(elements[1]);
@@ -5249,37 +5312,22 @@ var NativeDocument = (function (exports) {
                 childB = null;
             }
         };
+        Actions.merge = Actions.add;
+        Actions.push = Actions.add;
 
-        const buildContent = (items, _, operations) => {
-            if(operations?.action === 'clear' || !items.length) {
-                if(lastNumberOfItems === 0) {
-                    return;
-                }
-                clear();
-                return;
-            }
-            selectBuildStrategy(operations?.action);
+        const buildContent = (items, _, operations = {}) => {
+            selectBuildStrategy(operations.action);
 
-            if(!operations?.action) {
-                if(lastNumberOfItems === 0) {
-                    Actions.add(items);
-                    return;
-                }
-                Actions.replace(items);
-            }
-            else if(Actions[operations.action]) {
+            if(Actions[operations.action]) {
                 Actions[operations.action](operations.args, operations.result);
             }
-
             updateIndexObservers(items, 0);
         };
 
         if(data.val().length) {
             buildContent(data.val(), null, {action: null});
         }
-        if(Validator.isObservable(data)) {
-            data.subscribe(buildContent);
-        }
+        data.subscribe(buildContent);
 
         return element;
     }
@@ -5300,7 +5348,7 @@ var NativeDocument = (function (exports) {
      */
     const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
         if(!(Validator.isObservable(condition)) && !Validator.isObservableWhenResult(condition)) {
-            return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
+            return DebugManager$1.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
         }
         const element = Anchor('Show if : '+(comment || ''));
 
@@ -6719,7 +6767,7 @@ var NativeDocument = (function (exports) {
                 window.history.pushState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, query, path);
             } catch (e) {
-                DebugManager.error('HistoryRouter', 'Error in pushState', e);
+                DebugManager$1.error('HistoryRouter', 'Error in pushState', e);
             }
         };
         /**
@@ -6732,7 +6780,7 @@ var NativeDocument = (function (exports) {
                 window.history.replaceState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, {}, path);
             } catch(e) {
-                DebugManager.error('HistoryRouter', 'Error in replaceState', e);
+                DebugManager$1.error('HistoryRouter', 'Error in replaceState', e);
             }
         };
         this.forward = function() {
@@ -6759,7 +6807,7 @@ var NativeDocument = (function (exports) {
                     }
                     this.handleRouteChange(route, params, query, path);
                 } catch(e) {
-                    DebugManager.error('HistoryRouter', 'Error in popstate event', e);
+                    DebugManager$1.error('HistoryRouter', 'Error in popstate event', e);
                 }
             });
             const { route, params, query, path } = this.resolve(defaultPath || (window.location.pathname+window.location.search));
@@ -6873,6 +6921,7 @@ var NativeDocument = (function (exports) {
                 $lastNodeInserted.remove();
             }
         };
+
         const cleanContainer = () => {
             container.nodeValue = '';
             removeLastNodeInserted();
@@ -6898,10 +6947,12 @@ var NativeDocument = (function (exports) {
                 if(cachedLayout === $currentLayout) {
                     const layoutAnchor = getNodeAnchorForLayout(nodeToInsert, path);
                     removeLastNodeInserted();
+                    $lastNodeInserted = nodeToInsert;
                     layoutAnchor.replaceContent(nodeToInsert);
                     return;
                 }
                 cleanContainer();
+                $lastNodeInserted = nodeToInsert;
                 $currentLayout = cachedLayout;
                 const layoutAnchor = getNodeAnchorForLayout(nodeToInsert, path);
                 layoutAnchor.replaceContent(nodeToInsert);
@@ -6909,6 +6960,7 @@ var NativeDocument = (function (exports) {
                 return;
             }
             cleanContainer();
+            $lastNodeInserted = nodeToInsert;
             const anchor = getNodeAnchorForLayout(nodeToInsert, path);
 
             $currentLayout = ElementCreator.getChild(layout(anchor));
@@ -6984,7 +7036,7 @@ var NativeDocument = (function (exports) {
                     listener(request);
                     next && next(request);
                 } catch (e) {
-                    DebugManager.warn('Route Listener', 'Error in listener:', e);
+                    DebugManager$1.warn('Route Listener', 'Error in listener:', e);
                 }
             }
         };
@@ -7162,7 +7214,7 @@ var NativeDocument = (function (exports) {
      */
     Router.create = function(options, callback) {
         if(!Validator.isFunction(callback)) {
-            DebugManager.error('Router', 'Callback must be a function');
+            DebugManager$1.error('Router', 'Callback must be a function');
             throw new RouterError('Callback must be a function');
         }
         const router = new Router(options);

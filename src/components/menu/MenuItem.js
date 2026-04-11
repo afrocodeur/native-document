@@ -11,6 +11,16 @@ export default function MenuItem(config = {}) {
 
     this.$description = {
         items: [],
+        link: null,
+        target: null,
+        label: null,
+        icon: null,
+        shortcut: null,
+        disabled: false,
+        selected: false,
+        value: null,
+        data: null,
+        render: null,
         ...config
     };
 
@@ -29,6 +39,16 @@ MenuItem.prototype.label = function(label) {
     this.$description.label = label;
     return this;
 };
+
+MenuItem.prototype.link = function(link) {
+    this.$description.link = link;
+    return this;
+};
+
+MenuItem.prototype.target = function(target) {
+    this.$description.target = target;
+    return this;
+}
 
 MenuItem.prototype.icon = function(icon) {
     this.$description.icon = icon;

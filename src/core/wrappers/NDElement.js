@@ -139,21 +139,6 @@ NDElement.prototype.closedShadow = function(style = null) {
 };
 
 /**
- * Attaches a template binding to the element by hydrating it with the specified method.
- *
- * @param {string} methodName - Name of the hydration method to call
- * @param {BindingHydrator} bindingHydrator - Template binding with $hydrate method
- * @returns {HTMLElement} The underlying HTML element
- * @example
- * const onClick = $binder.attach((event, data) => console.log(data));
- * element.nd.attach('onClick', onClick);
- */
-NDElement.prototype.attach = function(methodName, bindingHydrator) {
-    bindingHydrator.$hydrate(this.$element, methodName);
-    return this.$element;
-};
-
-/**
  * Extends the current NDElement instance with custom methods.
  * Methods are bound to the instance and available for chaining.
  *

@@ -5,6 +5,16 @@ const DocumentObserver = {
     unmounted: new WeakMap(),
     unmountedSupposedSize: 0,
     observer: null,
+    initObserver: () => {
+        if(DocumentObserver.observer) {
+            return;
+        }
+        DocumentObserver.observer = new MutationObserver(DocumentObserver.checkMutation);
+        DocumentObserver.observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+        });
+    },
 
     executeMountedCallback(node) {
         const data = DocumentObserver.mounted.get(node);
@@ -52,6 +62,7 @@ const DocumentObserver = {
     },
 
     checkMutation: function(mutationsList) {
+        console.log('mutationsList', mutationsList);
         for(const mutation of mutationsList) {
             if(DocumentObserver.mountedSupposedSize > 0) {
                 for(const node of mutation.addedNodes) {
@@ -89,6 +100,8 @@ const DocumentObserver = {
     watch: function(element, inDom = false) {
         let mountedRegistered   = false;
         let unmountedRegistered = false;
+
+        DocumentObserver.initObserver();
 
         let data = {
             inDom,
@@ -166,11 +179,5 @@ const DocumentObserver = {
         };
     }
 };
-
-DocumentObserver.observer = new MutationObserver(DocumentObserver.checkMutation);
-DocumentObserver.observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-});
 
 export default DocumentObserver;
