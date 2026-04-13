@@ -15,7 +15,7 @@ export * from './list';
 export * from './medias';
 export * from './meta-data';
 export * from './table';
-
+export * from './svg';
 /**
  * Creates an empty `DocumentFragment` wrapper.
  * Useful for grouping elements without adding a DOM node.

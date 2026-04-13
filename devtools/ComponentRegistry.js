@@ -1,5 +1,6 @@
 import {Anchor} from "../elements";
 import Validator from "../src/core/utils/validator";
+import DebugManager from "../src/core/utils/debug-manager";
 
 const ComponentRegistry = (function() {
     const registry = new Map();
@@ -83,10 +84,10 @@ const ComponentRegistry = (function() {
         update(id, newFactory) {
             const component = registry.get(id);
             if(!component) {
-                console.warn(`[HMR] Component ${id} not found`);
+                DebugManager.warn(`[HMR] Component ${id} not found`);
                 return;
             }
-            console.log(`[HMR] Updating ${component.instances.size} instance(s) of ${id}`);
+            DebugManager.log(`[HMR] Updating ${component.instances.size} instance(s) of ${id}`);
             const oldFactory = component.factory;
             component.factory = newFactory;
             component.version++;

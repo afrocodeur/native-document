@@ -25,3 +25,4 @@ export * from './src/components/table/index';
 export * from './src/components/tabs/index';
 export * from './src/components/toast/index';
 export * from './src/components/tooltip/index';
+export * from './src/components/stacks/index';

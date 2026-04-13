@@ -17,7 +17,7 @@ export const createTextNode = (value) => {
 };
 
 
-const createHtmlElement = (element, _attributes, _children = null) => {
+export const createHtmlElement = (element, _attributes, _children = null) => {
     let { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
 
     ElementCreator.processAttributes(element, attributes);

@@ -32,14 +32,14 @@ export interface WhenFunction {
 
 export interface ForEachFunction {
     <T>(data: T[] | Record<string, T> | ObservableItem<T[]> | ObservableItem<Record<string, T>>,
-        callback: (item: T, index?: ObservableItem<number>) => ValidChild,
+        callback?: (item: T, index?: ObservableItem<number>) => ValidChild,
         key?: string | ((item: T, defaultKey: string | number) => string | number),
         options?: { shouldKeepItemsInCache: boolean, isParentUniqueChild: boolean,  }): DocumentFragment,
 }
 
 export interface ForEachArrayFunction {
     <T>(data: ObservableArray<T>,
-        callback: (item: T, index?: ObservableItem<number>) => ValidChild,
+        callback?: (item: T, index?: ObservableItem<number>) => ValidChild,
         configs?: { isParentUniqueChild: boolean, shouldKeepItemsInCache?: boolean }): DocumentFragment;
 }
 

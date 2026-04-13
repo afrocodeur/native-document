@@ -1,51 +1,72 @@
-import BaseComponent from "../BaseComponent";
-import EventEmitter from "../../../src/core/utils/EventEmitter";
+import Field from "../form/field/Field";
 
-export default function Slider(config = {}) {
-    if (!(this instanceof Slider)) {
-        return new Slider(config);
+export default function Slider(name, props = {}) {
+    if(!(this instanceof Slider)) {
+        return new Slider(props);
     }
 
+    Field.call(this, props);
+
     this.$description = {
-        value: null,
-        defaultValue: null,
-        range: null,
-        min: null,
-        max: null,
-        step: null,
-        showValue: null,
-        showTooltip: null,
+        name,
+        id: name || null,
+        value:         null,
+        defaultValue:  null,
+        valueStart:    null,
+        valueEnd:      null,
+        range:         false,
+        min:           0,
+        max:           100,
+        step:          1,
+        showValue:     null,
+        showTooltip:   null,
         tooltipFormat: null,
-        marks: null,
-        showMarks: null,
-        variant: null,
-        color: null,
-        trackColor: null,
-        vertical: null,
-        height: null,
-        disabled: null,
-        readonly: null,
-        reverse: null,
-        snapToMarks: null,
-        render: null,
-        renderCursor: null,
-        ...config
+        renderTooltip: null,
+        marks:         null,
+        showMarks:     null,
+        variant:       null,
+        color:         null,
+        trackColor:    null,
+        fillColor:    null,
+        vertical:      false,
+        height:        null,
+        disabled:      null,
+        readonly:      null,
+        reverse:       false,
+        snapToMarks:   false,
+        renderCursor:  null,
+        renderThumb:   null,
+        props
     };
 }
 
-BaseComponent.extends(Slider, EventEmitter);
+Slider.prototype = Object.create(Field.prototype);
+Slider.prototype.constructor = Slider;
 
-Slider.use = function(template) {};
+
 Slider.defaultTemplate = null;
+Slider.use = function(template) {
+    Slider.defaultTemplate = template;
+};
 
-
-Slider.prototype.value = function(value) {
-    this.$description.value = value;
+Slider.prototype.model = function(observable) {
+    this.$description.value = observable;
     return this;
 };
 
-Slider.prototype.value = function() {
-    return this.$description.value?.val();
+Slider.prototype.modelStart = function(observable) {
+    this.$description.valueStart = observable;
+    return this;
+};
+
+Slider.prototype.modelEnd = function(observable) {
+    this.$description.valueEnd = observable;
+    return this;
+};
+
+Slider.prototype.defaultValue = function(value) {
+    this.$description.defaultValue = value;
+    return this;
 };
 
 Slider.prototype.setCurrentStep = function(value) {
@@ -54,8 +75,8 @@ Slider.prototype.setCurrentStep = function(value) {
     return this;
 };
 
-Slider.prototype.range = function(min, max) {
-    this.$description.range = {min, max};
+Slider.prototype.range = function(enabled = true) {
+    this.$description.range = enabled;
     return this;
 };
 
@@ -89,6 +110,11 @@ Slider.prototype.tooltipFormat = function(formatFn) {
     return this;
 };
 
+Slider.prototype.renderTooltip = function(renderFn) {
+    this.$description.renderTooltip = renderFn;
+    return this;
+};
+
 Slider.prototype.marks = function(marks) {
     this.$description.marks = marks;
     return this;
@@ -99,28 +125,42 @@ Slider.prototype.showMarks = function(enabled = true) {
     return this;
 };
 
+Slider.prototype.snapToMarks = function(enabled = true) {
+    this.$description.snapToMarks = enabled;
+    return this;
+};
+
 Slider.prototype.variant = function(name) {
     this.$description.variant = name;
     return this;
 };
 
-Slider.prototype.primary = function() {
-    return this.variant('primary');
+Slider.prototype.primary   = function() { return this.variant('primary');   };
+Slider.prototype.secondary = function() { return this.variant('secondary'); };
+Slider.prototype.success   = function() { return this.variant('success');   };
+Slider.prototype.warning   = function() { return this.variant('warning');   };
+Slider.prototype.danger    = function() { return this.variant('danger');    };
+Slider.prototype.info      = function() { return this.variant('info');      };
+
+Slider.prototype.color = function(color) {
+    this.$description.color = color;
+    return this;
 };
-Slider.prototype.secondary = function() {
-    return this.variant('secondary');
+
+Slider.prototype.trackColor = function(color) {
+    this.$description.trackColor = color;
+    return this;
 };
-Slider.prototype.success = function() {
-    return this.variant('success');
+
+Slider.prototype.fillColor = function(color) {
+    this.$description.fillColor = color;
+    return this;
 };
-Slider.prototype.warning = function() {
-    return this.variant('warning');
-};
-Slider.prototype.danger = function() {
-    return this.variant('danger');
-};
-Slider.prototype.info = function() {
-    return this.variant('info');
+
+
+Slider.prototype.fullColor = function(color) {
+    this.color(color).fillColor(color);
+    return this;
 };
 
 Slider.prototype.vertical = function(enabled = true) {
@@ -148,8 +188,13 @@ Slider.prototype.reverse = function(enabled = true) {
     return this;
 };
 
-Slider.prototype.snapToMarks = function(enabled = true) {
-    this.$description.snapToMarks = enabled;
+Slider.prototype.renderThumb = function(renderFn) {
+    this.$description.renderThumb = renderFn;
+    return this;
+};
+
+Slider.prototype.renderCursor = function(renderFn) {
+    this.$description.renderCursor = renderFn;
     return this;
 };
 
@@ -161,23 +206,4 @@ Slider.prototype.onChange = function(handler) {
 Slider.prototype.onComplete = function(handler) {
     this.on('complete', handler);
     return this;
-};
-
-
-Slider.prototype.renderCursor = function(renderFn) {
-    this.$description.renderCursor = renderFn;
-    return this;
-};
-
-Slider.prototype.render = function(renderFn) {
-    this.$description.render = renderFn;
-};
-
-
-Slider.prototype.$build = function() {
-    // TODO: Implementation
-};
-
-Slider.prototype.toNdElement = function() {
-    return this.$build();
 };

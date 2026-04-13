@@ -1,7 +1,7 @@
 
 import BaseComponent from "../BaseComponent";
-import EventEmitter from "../../../src/core/utils/EventEmitter";
-import HasItems from "../$traits/HasItems";
+import HasEventEmitter from "../../core/utils/HasEventEmitter";
+import HasItems from "../$traits/has-items/HasItems";
 import Dropdown from "../dropdown/Dropdown";
 
 export default function List(config = {}) {
@@ -31,7 +31,8 @@ List.use = function(template) {
     List.defaultTemplate = template.list;
 };
 
-BaseComponent.extends(List, HasItems, EventEmitter);
+BaseComponent.extends(List);
+BaseComponent.use(List, HasItems, HasEventEmitter);
 
 List.defaultTemplate = null;
 

@@ -1,0 +1,62 @@
+.fixed-stack {
+    position: fixed;
+}
+
+.relative-stack {
+    position: relative;
+}
+
+.absolute-stack {
+    position: absolute;
+}
+
+.fixed-stack,
+.absolute-stack {
+    &.is-top-leading {
+        top: 0;
+        left: 0;
+    }
+    &.is-top-center {
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    &.is-top-trailing {
+        top: 0;
+        right: 0;
+    }
+    &.is-center-leading {
+        top: 50%;
+        left: 0;
+        transform: translateY(-50%);
+    }
+    &.is-center {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+    &.is-center-trailing {
+        top: 50%;
+        right: 0;
+        transform: translateY(-50%);
+    }
+    &.is-bottom-leading {
+        bottom: 0;
+        left: 0;
+    }
+    &.is-bottom-center {
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    &.is-bottom-trailing {
+        bottom: 0;
+        right: 0;
+    }
+    &.is-fill {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+    }
+}

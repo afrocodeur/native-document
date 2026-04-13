@@ -1,57 +1,61 @@
-import {Validation} from "../validation/Validation";
-import {Validator} from "../../../../index";
-import {resolveParams} from "../utils";
+import {Validator, $} from "../../../../index";
 import BaseComponent from "../../BaseComponent";
+import HasEventEmitter from "../../../core/utils/HasEventEmitter";
+import HasValidation from "../../$traits/has-validation/HasValidation";
 
-export default function Field(name, type, defaultConfig) {
+export default function Field(name, type, props) {
+    if(!(this instanceof Field)) {
+        return new Field(name, type, props);
+    }
 
-    BaseComponent.call(this);
+    BaseComponent.call(this, props);
 
     this.$description = {
-        name: name,
-        type: type,
-        key: name,
-        label: null,
-        placeholder: null,
-        help: null,
-        defaultValue: null,
-        disabled: false,
-        readonly: false,
+        name:          name,
+        type:          type,
+        key:           name,
+        label:         null,
+        placeholder:   null,
+        help:          null,
+        defaultValue:  null,
+        disabled:      false,
+        readonly:      false,
         rules: [],
-        clearErrorOn: 'focus',
-        validateOn: 'blur',
-        showIf: null,
-        requiredIf: null,
-        value: null,
-        errors: null,
-        showErrors: true,
-        id: null,
-        suffix: 'field',
-        classes: {
+        clearErrorOn:  'focus',
+        validateOn:    'blur',
+        requiredIf:    null,
+        value:         null,
+        clearable:     null,
+        hasErrors:     $(false),
+        errors:        $.array(),
+        showErrors:    $(true),
+        suffix:        'field',
+        elementsProps: {
             wrapper: null,
-            label: null,
-            input: null,
-            error: null,
-            hint: null
+            label:   null,
+            input:   null,
+            error:   null,
+            hint:    null
         },
-        events: {},
-        render: null,
-        ...defaultConfig
+        render:          null,
+        clearButtonIcon: null,
+        focus: $(false),
+        isDirty:  $(false),
+        isTouched:  $(false),
+        slots: {},
+        props
     };
 
-    this.$element = null;
-    this.$input = null;
-
+    this.$description.errors.intercept((nextValue) => nextValue === null ? [] : nextValue);
 }
 
-Field.renderers = {};
-
 Field.defaultTemplate = null;
-
 BaseComponent.extends(Field);
+BaseComponent.use(Field, HasEventEmitter);
+BaseComponent.use(Field, HasValidation);
 
 Field.use = function(template) {
-    Field.defaultTemplate = template.field;
+    Field.defaultTemplate = template;
 };
 
 // ---------------------------------------------
@@ -62,8 +66,12 @@ Field.prototype.$model = function() {
     return this.$description.value || this.$description.checked;
 };
 
-Field.prototype.id = function(id) {
-    this.$description.id = id;
+Field.prototype.forceShowErrors = function(forceValue) {
+    this.$description.showErrors.intercept(() => forceValue);
+}
+
+Field.prototype.key = function(key) {
+    this.$description.key = key;
     return this;
 };
 
@@ -88,20 +96,15 @@ Field.prototype.input = function(callback) {
     return this;
 };
 
-Field.prototype.showErrors = function(show = true) {
-    this.$description.showErrors = show;
-    return this;
-};
-
-Field.prototype.hideErrors = function() {
-    this.$description.showErrors = false;
-    return this;
-};
-
 Field.prototype.model = function(observable) {
-    this.$description.value = observable;
+    this.$description.value        = observable;
+    this.$description.initialValue = Validator.isObservable(observable)
+        ? observable.val()
+        : observable;
     return this;
 };
+
+Field.prototype.bind = Field.prototype.model;
 
 Field.prototype.errors = function(errors) {
     if(!Validator.isObservable(errors)) {
@@ -111,18 +114,8 @@ Field.prototype.errors = function(errors) {
     return this;
 };
 
-Field.prototype.setError = function(error) {
-    this.$description.errors?.set?.(error);
-    return this;
-};
-
 Field.prototype.type = function(type) {
     this.$description.type = type;
-    return this;
-};
-
-Field.prototype.key = function(keyInData) {
-    this.$description.key = keyInData;
     return this;
 };
 
@@ -152,57 +145,12 @@ Field.prototype.placeholder = function(text) {
 };
 
 Field.prototype.disabled = function(disabled) {
-    this.$description.disabled = disabled;
+    this.$description.disabled = BaseComponent.obs(disabled);
     return this;
 };
 
 Field.prototype.readonly = function(readonly) {
-    this.$description.readonly = readonly;
-    return this;
-};
-
-Field.prototype.required = function(message) {
-    this.$description.rules.push({
-        fn: Validation.required,
-        message: message || `${this.$description.label || this.$description.name} is required`
-    });
-    return this;
-};
-
-Field.prototype.custom = function(validatorFn, message) {
-    this.$description.rules.push({
-        validate: validatorFn,
-        message: message || 'Validation failed'
-    });
-    return this;
-};
-
-Field.prototype.clearErrorOn = function(event) {
-    this.$description.clearErrorOn = event;
-    return this;
-};
-
-Field.prototype.validateOn = function(event) {
-    this.$description.validateOn = event;
-    return this;
-};
-
-Field.prototype.showIf = function(condition) {
-    this.$description.showIf = condition;
-    return this;
-};
-
-Field.prototype.requiredIf = function(condition, message) {
-    this.addRule(Validation.requiredIf, [condition], message);
-    return this;
-};
-
-Field.prototype.addRule = function(validationFn, params, message) {
-    this.$description.rules.push({
-        fn: validationFn,
-        params: params || [],
-        message
-    });
+    this.$description.readonly = BaseComponent.obs(readonly);
     return this;
 };
 
@@ -217,107 +165,91 @@ Field.prototype.setValue = function(newValue) {
         value.set(newValue);
         return this;
     }
-    this.$description.value = value;
+    this.$description.value = BaseComponent.obs(newValue);
     return this;
 };
 
-Field.prototype.validate = function(allValues = {}) {
-    if (!this.$description.rules || this.$description.rules.length === 0) {
-        this.$description.errors?.set(null);
-        return [];
+Field.prototype.wrapperProps = function(wrapperProps) {
+    this.$description.elementsProps.wrapper = wrapperProps;
+    return this;
+};
+
+Field.prototype.inputProps = function(inputProps) {
+    this.$description.elementsProps.input = inputProps;
+    return this;
+};
+
+Field.prototype.labelProps = function(labelProps) {
+    this.$description.elementsProps.label = labelProps;
+    return this;
+};
+
+Field.prototype.errorProps = function(errorProps) {
+    this.$description.elementsProps.error = errorProps;
+    return this;
+};
+
+Field.prototype.hintProps = function(hintProps) {
+    this.$description.elementsProps.hint = hintProps;
+    return this;
+};
+
+Field.prototype.focus = function() {
+    this.$description.focus.set(true);
+    return this;
+};
+
+Field.prototype.blur = function() {
+    this.$description.focus.set(false);
+    return this;
+};
+
+Field.prototype.leading = function(content) {
+    this.$description.slots.leading = content;
+    return this;
+};
+
+Field.prototype.trailing = function(content) {
+    this.$description.slots.trailing = content;
+    return this;
+};
+
+Field.prototype.bottom = function(content) {
+    this.$description.slots.bottom = content;
+    return this;
+};
+
+Field.prototype.clearable = function(mode = true) {
+    this.$description.clearable = BaseComponent.obs(mode);
+    return this;
+};
+
+Field.prototype.clearButtonIcon = function(clearButtonIcon) {
+    this.$description.slots.clearButtonIcon = clearButtonIcon;
+    return this;
+};
+
+Field.prototype.reset = function() {
+    const value = this.$model();
+    if(Validator.isObservable(value)) {
+        value.set(this.$description.initialValue ?? this.$description.defaultValue ?? null);
     }
 
-    const errors = [];
-    const value = this.value();
+    this.$description.errors.clear();
+    this.$description.hasErrors.set(false);
+    this.$description.showErrors.set(true);
+    this.$description.isDirty.set(false);
+    this.$description.isTouched.set(false);
 
-    for (const rule of this.$description.rules) {
-        const paramsResolved = resolveParams(rule, allValues);
-        const result = rule.fn(value, ...paramsResolved, allValues);
+    this.$description.focus.set(false);
 
-        if (!result.valid) {
-            errors.push(rule.message || result.message);
-        }
-    }
-
-    this.$description.errors?.set(errors.length ? errors : null);
-    return errors;
-};
-
-Field.prototype.toJSON = function() {
-    return {
-        ...this.$description,
-        rules: this.$description.rules?.map(r => ({
-            type: r.fn.name,
-            params: r.params,
-            message: r.message
-        })),
-    };
-};
-
-Field.prototype.classes = function(classesObject) {
-    Object.assign(this.$description.classes, classesObject);
+    this.emit('reset');
     return this;
 };
 
-Field.prototype.wrapperClass = function(wrapperClass) {
-    this.$description.classes.wrapper = wrapperClass;
-    return this;
-};
-
-Field.prototype.inputClass = function(inputClass) {
-    this.$description.classes.input = inputClass;
-    return this;
-};
-
-Field.prototype.labelClass = function(labelClass) {
-    this.$description.classes.label = labelClass;
-    return this;
-};
-
-Field.prototype.errorClass = function(errorClass) {
-    this.$description.classes.error = errorClass;
-    return this;
-};
-
-Field.prototype.hintClass = function(hintClass) {
-    this.$description.classes.error = hintClass;
-    return this;
-};
-
-Field.prototype.render = function(renderFn) {
-    if (typeof renderFn !== 'function') {
-        throw new Error('Custom renderer must be a function');
-    }
-
-    this.$description.render = renderFn;
-    return this;
-};
-
-Field.registerRenderer = function(type, renderer) {
-    if (typeof renderer !== 'function') {
-        throw new Error(`Renderer for type "${type}" must be a function`);
-    }
-
-    Field.renderers[type] = renderer;
-};
-
-Field.prototype.getRenderer = function() {
-    if (this.$description.render) {
-        return this.$description.render;
-    }
-
-    const typeRenderer = Field.renderers[this.$description.type];
-    if (typeRenderer) {
-        return typeRenderer;
-    }
-
-    return this.constructor.defaultTemplate || Field.defaultTemplate;
-};
-
-Field.prototype.$build = function() {
-    const renderer = this.getRenderer();
-    if(!renderer) {
-        return null;
-    }
-    return renderer(this);
+Field.prototype.setError =  function(error) {
+    const errs = Array.isArray(error) ? error : [error];
+    this.$description.errors.set(errs);
+    this.$description.hasErrors.set(!!error);
+    this.$description.showErrors.set(!!error);
 };

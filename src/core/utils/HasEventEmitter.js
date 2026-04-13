@@ -1,12 +1,11 @@
-import NativeDocumentError from "../errors/NativeDocumentError";
 
-export default function EventEmitter() {
+export default function HasEventEmitter() {
 
     this.__$events = null;
 
 }
 
-EventEmitter.prototype.on = function(eventName, callback) {
+HasEventEmitter.prototype.on = function(eventName, callback) {
     if(!this.__$events) {
         this.__$events = new Map();
     }
@@ -22,11 +21,17 @@ EventEmitter.prototype.on = function(eventName, callback) {
     existingCallback.push(callback);
 };
 
-EventEmitter.prototype.hasListeners = function(eventName) {
+HasEventEmitter.prototype.hasListeners = function(eventName) {
+    if(!this.__$events) {
+        return false;
+    }
     return !!this.__$events.get(eventName);
 };
 
-EventEmitter.prototype.trigger = async function(eventName, ...args) {
+HasEventEmitter.prototype.trigger = async function(eventName, ...args) {
+    if(!this.__$events) {
+        return;
+    }
     const callbacks = this.__$events.get(eventName);
     if(!callbacks) {
         // throw new NativeDocumentError(this.constructor.name, 'Event '+eventName+' not found');
@@ -43,4 +48,4 @@ EventEmitter.prototype.trigger = async function(eventName, ...args) {
     }
     return result;
 };
-EventEmitter.prototype.emit = EventEmitter.prototype.trigger;
+HasEventEmitter.prototype.emit = HasEventEmitter.prototype.trigger;

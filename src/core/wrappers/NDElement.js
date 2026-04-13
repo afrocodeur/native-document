@@ -2,15 +2,26 @@ import DocumentObserver from "./DocumentObserver";
 import PluginsManager from "../utils/plugins-manager";
 import NativeDocumentError from "../errors/NativeDocumentError.js";
 import DebugManager from "../utils/debug-manager.js";
+import Anchor from "../elements/anchor/anchor";
+import {ElementCreator} from "./ElementCreator";
 
 export function NDElement(element) {
     this.$element = element;
+    this.$attachements = null;
     if(process.env.NODE_ENV === 'development') {
         PluginsManager.emit('NDElementCreated', element, this);
     }
 }
 
 NDElement.prototype.__$isNDElement = true;
+
+NDElement.prototype.ghostDom = function(element) {
+    if(!this.$attachements) {
+        this.$attachements = document.createDocumentFragment();
+    }
+    this.$attachements.appendChild(ElementCreator.getChild(element));
+    return this;
+};
 
 NDElement.prototype.valueOf = function() {
     return this.$element;
@@ -22,7 +33,9 @@ NDElement.prototype.ref = function(target, name) {
 };
 
 NDElement.prototype.refSelf = function(target, name) {
-    target[name] = new NDElement(this.$element);
+    target[name] = this;
+    // TODO: @DIM to check
+    // target[name] = new NDElement(this.$element);
     return this;
 };
 
@@ -166,7 +179,7 @@ NDElement.prototype.with = function(methods) {
         const method = methods[name];
 
         if (typeof method !== 'function') {
-            console.warn(`⚠️ extends(): "${name}" is not a function, skipping`);
+            DebugManager.warn(`⚠️ extends(): "${name}" is not a function, skipping`);
             continue;
         }
         if(process.env.NODE_ENV === 'development') {

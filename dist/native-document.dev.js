@@ -5,11 +5,10 @@ var NativeDocument = (function (exports) {
 
     {
         DebugManager$2 = {
-            enabled: false,
+            enabled: true,
 
             enable() {
-                this.enabled = true;
-                console.log('🔍 NativeDocument Debug Mode enabled');
+                DebugManager$2.log('🔍 NativeDocument Debug Mode enabled');
             },
 
             disable() {
@@ -17,7 +16,6 @@ var NativeDocument = (function (exports) {
             },
 
             log(category, message, data) {
-                if (!this.enabled) return;
                 console.group(`🔍 [${category}] ${message}`);
                 if (data) console.log(data);
                 console.trace();
@@ -25,7 +23,6 @@ var NativeDocument = (function (exports) {
             },
 
             warn(category, message, data) {
-                if (!this.enabled) return;
                 console.warn(`⚠️ [${category}] ${message}`, data);
             },
 
@@ -46,280 +43,58 @@ var NativeDocument = (function (exports) {
         }
     }
 
-    /**
-     *
-     * @param {ObservableItem} $observable
-     * @param {Function} $checker
-     * @class ObservableChecker
-     */
-    function ObservableChecker($observable, $checker) {
-        this.observable = $observable;
-        this.checker = $checker;
-        this.unSubscriptions = [];
-    }
+    const MemoryManager = (function() {
 
-    ObservableChecker.prototype.__$Observable = true;
-    ObservableChecker.prototype.__$isObservableChecker = true;
+        let $nextObserverId = 0;
+        const $observables = new Map();
 
-    /**
-     * Subscribes to changes in the checked/transformed value.
-     *
-     * @param {Function} callback - Function called with the transformed value when observable changes
-     * @returns {Function} Unsubscribe function
-     * @example
-     * const count = Observable(5);
-     * const doubled = count.check(n => n * 2);
-     * doubled.subscribe(value => console.log(value)); // Logs: 10
-     */
-    ObservableChecker.prototype.subscribe = function(callback) {
-        const unSubscribe = this.observable.subscribe((value) => {
-            callback && callback(this.checker(value));
-        });
-        this.unSubscriptions.push(unSubscribe);
-        return unSubscribe;
-    };
-
-    /**
-     * Creates a new ObservableChecker by applying another transformation.
-     * Allows chaining transformations.
-     *
-     * @param {(value: *) => *} callback - Transformation function to apply to the current checked value
-     * @returns {ObservableChecker} New ObservableChecker with chained transformation
-     * @example
-     * const count = Observable(5);
-     * const result = count.check(n => n * 2).check(n => n + 1);
-     * result.val(); // 11
-     */
-    ObservableChecker.prototype.check = function(callback) {
-        return this.observable.check(() => callback(this.val()));
-    };
-
-    /**
-     * Gets the current transformed/checked value.
-     *
-     * @returns {*} The result of applying the checker function to the observable's current value
-     * @example
-     * const count = Observable(5);
-     * const doubled = count.check(n => n * 2);
-     * doubled.val(); // 10
-     */
-    ObservableChecker.prototype.val = function() {
-        return this.checker && this.checker(this.observable.val());
-    };
-
-    /**
-     * Sets the value of the underlying observable (not the transformed value).
-     *
-     * @param {*} value - New value for the underlying observable
-     * @example
-     * const count = Observable(5);
-     * const doubled = count.check(n => n * 2);
-     * doubled.set(10); // Sets count to 10, doubled.val() returns 20
-     */
-    ObservableChecker.prototype.set = function(value) {
-        return this.observable.set(value);
-    };
-
-    /**
-     * Manually triggers the underlying observable to notify subscribers.
-     *
-     * @example
-     * const count = Observable(5);
-     * const doubled = count.check(n => n * 2);
-     * doubled.trigger(); // Notifies all subscribers
-     */
-    ObservableChecker.prototype.trigger = function() {
-        return this.observable.trigger();
-    };
-
-    /**
-     * Cleans up the underlying observable and all its subscriptions.
-     */
-    ObservableChecker.prototype.cleanup = function() {
-        return this.observable.cleanup();
-    };
-
-    const DocumentObserver = {
-        mounted: new WeakMap(),
-        beforeUnmount: new WeakMap(),
-        mountedSupposedSize: 0,
-        unmounted: new WeakMap(),
-        unmountedSupposedSize: 0,
-        observer: null,
-        initObserver: () => {
-            if(DocumentObserver.observer) {
-                return;
-            }
-            DocumentObserver.observer = new MutationObserver(DocumentObserver.checkMutation);
-            DocumentObserver.observer.observe(document.body, {
-                childList: true,
-                subtree: true,
-            });
-        },
-
-        executeMountedCallback(node) {
-            const data = DocumentObserver.mounted.get(node);
-            if(!data) {
-                return;
-            }
-            data.inDom = true;
-            if(!data.mounted) {
-                return;
-            }
-            if(Array.isArray(data.mounted)) {
-                for(const cb of data.mounted) {
-                    cb(node);
-                }
-                return;
-            }
-            data.mounted(node);
-        },
-
-        executeUnmountedCallback(node) {
-            const data = DocumentObserver.unmounted.get(node);
-            if(!data) {
-                return;
-            }
-            data.inDom = false;
-            if(!data.unmounted) {
-                return;
-            }
-
-            let shouldRemove = false;
-            if(Array.isArray(data.unmounted)) {
-                for(const cb of data.unmounted) {
-                    if(cb(node) === true) {
-                        shouldRemove = true;
+        return {
+            /**
+             * Register an observable and return an id.
+             *
+             * @param {ObservableItem} observable
+             * @param {Function} getListeners
+             * @returns {number}
+             */
+            register(observable) {
+                const id = ++$nextObserverId;
+                $observables.set(id, new WeakRef(observable));
+                return id;
+            },
+            unregister(id) {
+                $observables.delete(id);
+            },
+            getObservableById(id) {
+                return $observables.get(id)?.deref();
+            },
+            cleanup() {
+                for (const [_, weakObservableRef] of $observables) {
+                    const observable = weakObservableRef.deref();
+                    if (observable) {
+                        observable.cleanup();
                     }
                 }
-            } else {
-                shouldRemove = data.unmounted(node) === true;
-            }
-
-            if(shouldRemove) {
-                data.disconnect();
-                node.nd?.remove();
-            }
-        },
-
-        checkMutation: function(mutationsList) {
-            console.log('mutationsList', mutationsList);
-            for(const mutation of mutationsList) {
-                if(DocumentObserver.mountedSupposedSize > 0) {
-                    for(const node of mutation.addedNodes) {
-                        DocumentObserver.executeMountedCallback(node);
-                        if(!node.querySelectorAll) {
-                            continue;
-                        }
-                        const children = node.querySelectorAll('[data--nd-mounted]');
-                        for(const child of children) {
-                            DocumentObserver.executeMountedCallback(child);
-                        }
+                $observables.clear();
+            },
+            /**
+             * Clean observables that are not referenced anymore.
+             * @param {number} threshold
+             */
+            cleanObservables(threshold) {
+                if($observables.size < threshold) return;
+                let cleanedCount = 0;
+                for (const [id, weakObservableRef] of $observables) {
+                    if (!weakObservableRef.deref()) {
+                        $observables.delete(id);
+                        cleanedCount++;
                     }
                 }
-
-                if (DocumentObserver.unmountedSupposedSize > 0) {
-                    for (const node of mutation.removedNodes) {
-                        DocumentObserver.executeUnmountedCallback(node);
-                        if(!node.querySelectorAll) {
-                            continue;
-                        }
-                        const children = node.querySelectorAll('[data--nd-unmounted]');
-                        for(const child of children) {
-                            DocumentObserver.executeUnmountedCallback(child);
-                        }
-                    }
+                if (cleanedCount > 0) {
+                    DebugManager$1.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
                 }
             }
-        },
-
-        /**
-         * @param {HTMLElement} element
-         * @param {boolean} inDom
-         * @returns {{ disconnect: Function, mounted: Function, unmounted: Function, off: Function }}
-         */
-        watch: function(element, inDom = false) {
-            let mountedRegistered   = false;
-            let unmountedRegistered = false;
-
-            DocumentObserver.initObserver();
-
-            let data = {
-                inDom,
-                mounted: null,
-                unmounted: null,
-                disconnect: () => {
-                    if (mountedRegistered) {
-                        DocumentObserver.mounted.delete(element);
-                        DocumentObserver.mountedSupposedSize--;
-                    }
-                    if (unmountedRegistered) {
-                        DocumentObserver.unmounted.delete(element);
-                        DocumentObserver.unmountedSupposedSize--;
-                    }
-                    data = null;
-                }
-            };
-
-            const addListener = (type, callback) => {
-                if (!data[type]) {
-                    data[type] = callback;
-                    return;
-                }
-                if (!Array.isArray(data[type])) {
-                    data[type] = [data[type], callback];
-                    return;
-                }
-                data[type].push(callback);
-            };
-
-            const removeListener = (type, callback) => {
-                if(!data?.[type]) {
-                    return;
-                }
-                if(Array.isArray(data[type])) {
-                    const index = data[type].indexOf(callback);
-                    if(index > -1) {
-                        data[type].splice(index, 1);
-                    }
-                    if(data[type].length === 1) {
-                        data[type] = data[type][0];
-                    }
-                    if(data[type].length === 0) {
-                        data[type] = null;
-                    }
-                    return;
-                }
-                data[type] = null;
-            };
-
-            return {
-                disconnect: () => data?.disconnect(),
-
-                mounted: (callback) => {
-                    addListener('mounted', callback);
-                    DocumentObserver.mounted.set(element, data);
-                    if (!mountedRegistered) {
-                        DocumentObserver.mountedSupposedSize++;
-                        mountedRegistered = true;
-                    }
-                },
-
-                unmounted: (callback) => {
-                    addListener('unmounted', callback);
-                    DocumentObserver.unmounted.set(element, data);
-                    if (!unmountedRegistered) {
-                        DocumentObserver.unmountedSupposedSize++;
-                        unmountedRegistered = true;
-                    }
-                },
-
-                off: (type, callback) => {
-                    removeListener(type, callback);
-                }
-            };
-        }
-    };
+        };
+    }());
 
     let PluginsManager$1 = null;
 
@@ -400,485 +175,6 @@ var NativeDocument = (function (exports) {
     }
 
     var PluginsManager = PluginsManager$1;
-
-    function NDElement(element) {
-        this.$element = element;
-        {
-            PluginsManager.emit('NDElementCreated', element, this);
-        }
-    }
-
-    NDElement.prototype.__$isNDElement = true;
-
-    NDElement.prototype.valueOf = function() {
-        return this.$element;
-    };
-
-    NDElement.prototype.ref = function(target, name) {
-        target[name] = this.$element;
-        return this;
-    };
-
-    NDElement.prototype.refSelf = function(target, name) {
-        target[name] = new NDElement(this.$element);
-        return this;
-    };
-
-    NDElement.prototype.unmountChildren = function() {
-        let element = this.$element;
-        for(let i = 0, length = element.children.length; i < length; i++) {
-            let elementChildren = element.children[i];
-            if(!elementChildren.$ndProx) {
-                elementChildren.nd?.remove();
-            }
-            elementChildren = null;
-        }
-        element = null;
-        return this;
-    };
-
-    NDElement.prototype.remove = function() {
-        let element = this.$element;
-        element.nd.unmountChildren();
-        element.$ndProx = null;
-
-        $lifeCycleObservers.delete(element);
-
-        element = null;
-        return this;
-    };
-
-    const $lifeCycleObservers = new WeakMap();
-    NDElement.prototype.lifecycle = function(states) {
-        const el = this.$element;
-        if (!$lifeCycleObservers.has(el)) {
-            $lifeCycleObservers.set(el, DocumentObserver.watch(el));
-        }
-        const observer = $lifeCycleObservers.get(el);
-
-        if(states.mounted) {
-            this.$element.setAttribute('data--nd-mounted', '1');
-            observer.mounted(states.mounted);
-        }
-        if(states.unmounted) {
-            this.$element.setAttribute('data--nd-unmounted', '1');
-            observer.unmounted(states.unmounted);
-        }
-        return this;
-    };
-
-    NDElement.prototype.mounted = function(callback) {
-        return this.lifecycle({ mounted: callback });
-    };
-
-    NDElement.prototype.unmounted = function(callback) {
-        return this.lifecycle({ unmounted: callback });
-    };
-
-    NDElement.prototype.beforeUnmount = function(id, callback) {
-        const el = this.$element;
-
-        if(!DocumentObserver.beforeUnmount.has(el)) {
-            DocumentObserver.beforeUnmount.set(el, new Map());
-            const originalRemove = el.remove.bind(el);
-
-            let  $isUnmounting = false;
-
-            el.remove = async () => {
-                if($isUnmounting) {
-                    return;
-                }
-                $isUnmounting = true;
-
-                try {
-                    const callbacks = DocumentObserver.beforeUnmount.get(el);
-                    for (const cb of callbacks.values()) {
-                        await cb.call(this, el);
-                    }
-                } finally {
-                    originalRemove();
-                    $isUnmounting = false;
-                }
-            };
-        }
-
-        DocumentObserver.beforeUnmount.get(el).set(id, callback);
-        return this;
-    };
-
-    NDElement.prototype.htmlElement = function() {
-        return this.$element;
-    };
-
-    NDElement.prototype.node = NDElement.prototype.htmlElement;
-
-    NDElement.prototype.shadow = function(mode, style = null) {
-        const $element = this.$element;
-        const children = Array.from($element.childNodes);
-        const shadowRoot = $element.attachShadow({ mode });
-        if(style) {
-            const styleNode = document.createElement("style");
-            styleNode.textContent = style;
-            shadowRoot.appendChild(styleNode);
-        }
-        $element.append = shadowRoot.append.bind(shadowRoot);
-        $element.appendChild = shadowRoot.appendChild.bind(shadowRoot);
-        shadowRoot.append(...children);
-
-        return this;
-    };
-
-    NDElement.prototype.openShadow = function(style = null) {
-        return this.shadow('open', style);
-    };
-
-    NDElement.prototype.closedShadow = function(style = null) {
-        return this.shadow('closed', style);
-    };
-
-    /**
-     * Extends the current NDElement instance with custom methods.
-     * Methods are bound to the instance and available for chaining.
-     *
-     * @param {Object} methods - Object containing method definitions
-     * @returns {this} The NDElement instance with added methods for chaining
-     * @example
-     * element.nd.with({
-     *   highlight() {
-     *     this.$element.style.background = 'yellow';
-     *     return this;
-     *   }
-     * }).highlight().onClick(() => console.log('Clicked'));
-     */
-    NDElement.prototype.with = function(methods) {
-        if (!methods || typeof methods !== 'object') {
-            throw new NativeDocumentError('extend() requires an object of methods');
-        }
-        {
-            if (!this.$localExtensions) {
-                this.$localExtensions = new Map();
-            }
-        }
-
-        for (const name in methods) {
-            const method = methods[name];
-
-            if (typeof method !== 'function') {
-                console.warn(`⚠️ extends(): "${name}" is not a function, skipping`);
-                continue;
-            }
-            {
-                if (this[name] && !this.$localExtensions.has(name)) {
-                    DebugManager$1.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
-                }
-                this.$localExtensions.set(name, method);
-            }
-
-            this[name] = method.bind(this);
-        }
-
-        return this;
-    };
-
-    /**
-     * Extends the NDElement prototype with new methods available to all NDElement instances.
-     * Use this to add global methods to all NDElements.
-     *
-     * @param {Object} methods - Object containing method definitions to add to prototype
-     * @returns {typeof NDElement} The NDElement constructor
-     * @throws {NativeDocumentError} If methods is not an object or contains non-function values
-     * @example
-     * NDElement.extend({
-     *   fadeIn() {
-     *     this.$element.style.opacity = '1';
-     *     return this;
-     *   }
-     * });
-     * // Now all NDElements have .fadeIn() method
-     * Div().nd.fadeIn();
-     */
-    NDElement.extend = function(methods) {
-        if (!methods || typeof methods !== 'object') {
-            throw new NativeDocumentError('NDElement.extend() requires an object of methods');
-        }
-
-        if (Array.isArray(methods)) {
-            throw new NativeDocumentError('NDElement.extend() requires an object, not an array');
-        }
-
-        const protectedMethods = new Set([
-            'constructor', 'valueOf', '$element', '$observer',
-            'ref', 'remove', 'cleanup', 'with', 'extend', 'attach',
-            'lifecycle', 'mounted', 'unmounted', 'unmountChildren'
-        ]);
-
-        for (const name in methods) {
-            if (!Object.hasOwn(methods, name)) {
-                continue;
-            }
-
-            const method = methods[name];
-
-            if (typeof method !== 'function') {
-                DebugManager$1.warn('NDElement.extend', `"${name}" is not a function, skipping`);
-                continue;
-            }
-
-            if (protectedMethods.has(name)) {
-                DebugManager$1.error('NDElement.extend', `Cannot override protected method "${name}"`);
-                throw new NativeDocumentError(`Cannot override protected method "${name}"`);
-            }
-
-            if (NDElement.prototype[name]) {
-                DebugManager$1.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
-            }
-
-            NDElement.prototype[name] = method;
-        }
-        {
-            PluginsManager.emit('NDElementExtended', methods);
-        }
-
-        return NDElement;
-    };
-
-    const COMMON_NODE_TYPES = {
-        ELEMENT: 1,
-        TEXT: 3,
-        COMMENT: 8,
-        DOCUMENT_FRAGMENT: 11
-    };
-
-    const VALID_TYPES = [];
-    VALID_TYPES[COMMON_NODE_TYPES.ELEMENT] = true;
-    VALID_TYPES[COMMON_NODE_TYPES.TEXT] = true;
-    VALID_TYPES[COMMON_NODE_TYPES.DOCUMENT_FRAGMENT] = true;
-    VALID_TYPES[COMMON_NODE_TYPES.COMMENT] = true;
-
-    const Validator = {
-        isObservable(value) {
-            return  value?.__$isObservable;
-        },
-        isTemplateBinding(value) {
-            return  value?.__$isTemplateBinding;
-        },
-        isObservableWhenResult(value) {
-            return value && (value.__$isObservableWhen || (typeof value === 'object' && '$target' in value && '$observer' in value));
-        },
-        isArrayObservable(value) {
-            return  value?.__$isObservableArray;
-        },
-        isProxy(value) {
-            return value?.__isProxy__
-        },
-        isObservableOrProxy(value) {
-            return Validator.isObservable(value) || Validator.isProxy(value);
-        },
-        isAnchor(value) {
-            return value?.__Anchor__
-        },
-        isObservableChecker(value) {
-            return value?.__$isObservableChecker || value instanceof ObservableChecker;
-        },
-        isArray(value) {
-            return Array.isArray(value);
-        },
-        isString(value) {
-            return typeof value === 'string';
-        },
-        isNumber(value) {
-            return typeof value === 'number';
-        },
-        isBoolean(value) {
-            return typeof value === 'boolean';
-        },
-        isFunction(value) {
-            return typeof value === 'function';
-        },
-        isAsyncFunction(value) {
-            return typeof value === 'function' && value.constructor.name === 'AsyncFunction';
-        },
-        isObject(value) {
-            return typeof value === 'object' && value !== null;
-        },
-        isJson(value) {
-            return !(typeof value !== 'object' || value === null || Array.isArray(value) || value.constructor.name !== 'Object')
-        },
-        isElement(value) {
-            return value && VALID_TYPES[value.nodeType];
-        },
-        isDOMNode(value) {
-            return VALID_TYPES[value.nodeType];
-        },
-        isFragment(value) {
-            return value?.nodeType === COMMON_NODE_TYPES.DOCUMENT_FRAGMENT;
-        },
-        isStringOrObservable(value) {
-            return this.isString(value) || this.isObservable(value);
-        },
-        isValidChild(child) {
-            return child === null ||
-                this.isElement(child) ||
-                this.isObservable(child) ||
-                this.isNDElement(child) ||
-                ['string', 'number', 'boolean'].includes(typeof child);
-        },
-        isNDElement(child) {
-            return child?.__$isNDElement || child instanceof NDElement;
-        },
-        isValidChildren(children) {
-            if (!Array.isArray(children)) {
-                children = [children];
-            }
-
-            const invalid = children.filter(child => !this.isValidChild(child));
-            return invalid.length === 0;
-        },
-        validateChildren(children) {
-            if (!Array.isArray(children)) {
-                children = [children];
-            }
-
-            const invalid = children.filter(child => !this.isValidChild(child));
-            if (invalid.length > 0) {
-                throw new NativeDocumentError(`Invalid children detected: ${invalid.map(i => typeof i).join(', ')}`);
-            }
-
-            return children;
-        },
-        /**
-         * Check if the data contains observables.
-         * @param {Array|Object} data
-         * @returns {boolean}
-         */
-        containsObservables(data) {
-            if(!data) {
-                return false;
-            }
-            return Validator.isObject(data)
-                && Object.values(data).some(value => Validator.isObservable(value));
-        },
-        /**
-         * Check if the data contains an observable reference.
-         * @param {string} data
-         * @returns {boolean}
-         */
-        containsObservableReference(data) {
-            if(!data || typeof data !== 'string') {
-                return false;
-            }
-            return /\{\{#ObItem::\([0-9]+\)\}\}/.test(data);
-        },
-        validateAttributes(attributes) {},
-
-        validateEventCallback(callback) {
-            if (typeof callback !== 'function') {
-                throw new NativeDocumentError('Event callback must be a function');
-            }
-        }
-    };
-    {
-        Validator.validateAttributes = function(attributes) {
-            if (!attributes || typeof attributes !== 'object') {
-                return attributes;
-            }
-
-            const reserved = [];
-            const foundReserved = Object.keys(attributes).filter(key => reserved.includes(key));
-
-            if (foundReserved.length > 0) {
-                DebugManager$1.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
-            }
-
-            return attributes;
-        };
-    }
-
-    const BOOLEAN_ATTRIBUTES = new Set([
-        'checked',
-        'selected',
-        'disabled',
-        'readonly',
-        'required',
-        'autofocus',
-        'multiple',
-        'autocomplete',
-        'hidden',
-        'contenteditable',
-        'spellcheck',
-        'translate',
-        'draggable',
-        'async',
-        'defer',
-        'autoplay',
-        'controls',
-        'loop',
-        'muted',
-        'download',
-        'reversed',
-        'open',
-        'default',
-        'formnovalidate',
-        'novalidate',
-        'scoped',
-        'itemscope',
-        'allowfullscreen',
-        'allowpaymentrequest',
-        'playsinline'
-    ]);
-
-    const MemoryManager = (function() {
-
-        let $nextObserverId = 0;
-        const $observables = new Map();
-
-        return {
-            /**
-             * Register an observable and return an id.
-             *
-             * @param {ObservableItem} observable
-             * @param {Function} getListeners
-             * @returns {number}
-             */
-            register(observable) {
-                const id = ++$nextObserverId;
-                $observables.set(id, new WeakRef(observable));
-                return id;
-            },
-            unregister(id) {
-                $observables.delete(id);
-            },
-            getObservableById(id) {
-                return $observables.get(id)?.deref();
-            },
-            cleanup() {
-                for (const [_, weakObservableRef] of $observables) {
-                    const observable = weakObservableRef.deref();
-                    if (observable) {
-                        observable.cleanup();
-                    }
-                }
-                $observables.clear();
-            },
-            /**
-             * Clean observables that are not referenced anymore.
-             * @param {number} threshold
-             */
-            cleanObservables(threshold) {
-                if($observables.size < threshold) return;
-                let cleanedCount = 0;
-                for (const [id, weakObservableRef] of $observables) {
-                    if (!weakObservableRef.deref()) {
-                        $observables.delete(id);
-                        cleanedCount++;
-                    }
-                }
-                if (cleanedCount > 0) {
-                    DebugManager$1.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
-                }
-            }
-        };
-    }());
 
     /**
      * Creates an ObservableWhen that tracks whether an observable equals a specific value.
@@ -1101,6 +397,76 @@ var NativeDocument = (function (exports) {
         },
     };
 
+    /**
+     *
+     * @param {*} value
+     * @param {{ propagation: boolean, reset: boolean} | null} configs
+     * @returns {ObservableItem}
+     * @constructor
+     */
+    function Observable(value, configs = null) {
+        return new ObservableItem(value, configs);
+    }
+
+    const $$1 = Observable;
+    const obs = Observable;
+
+    /**
+     *
+     * @param {string} propertyName
+     */
+    Observable.useValueProperty = function(propertyName = 'value') {
+        Object.defineProperty(ObservableItem.prototype, propertyName, {
+            get() {
+                return this.$currentValue;
+            },
+            set(value) {
+                this.set(value);
+            },
+            configurable: true,
+        });
+    };
+
+
+    /**
+     *
+     * @param id
+     * @returns {ObservableItem|null}
+     */
+    Observable.getById = function(id) {
+        const item = MemoryManager.getObservableById(parseInt(id));
+        if(!item) {
+            throw new NativeDocumentError('Observable.getById : No observable found with id ' + id);
+        }
+        return item;
+    };
+
+    /**
+     *
+     * @param {ObservableItem} observable
+     */
+    Observable.cleanup = function(observable) {
+        observable.cleanup();
+    };
+
+    /**
+     * Enable auto cleanup of observables.
+     * @param {Boolean} enable
+     * @param {{interval:Boolean, threshold:number}} options
+     */
+    Observable.autoCleanup = function(enable = false, options = {}) {
+        if(!enable) {
+            return;
+        }
+        const { interval = 60000, threshold = 100 } = options;
+
+        window.addEventListener('beforeunload', () => {
+            MemoryManager.cleanup();
+        });
+
+        setInterval(() => MemoryManager.cleanObservables(threshold), interval);
+    };
+
     const LocalStorage = {
         getJson(key) {
             let value = localStorage.getItem(key);
@@ -1219,6 +585,11 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
+    ObservableItem.prototype.interceptMutations = function(callback) {
+        this.$mutationInterceptor = callback;
+        return this;
+    };
+
     ObservableItem.prototype.triggerFirstListener = function(operations) {
         this.$firstListener(this.$currentValue, this.$previousValue, operations);
     };
@@ -1261,6 +632,8 @@ var NativeDocument = (function (exports) {
     ObservableItem.prototype.assocTrigger = function() {
         this.$firstListener = null;
         if(this.$watchers?.size && this.$listeners?.length) {
+            this.$firstListener = this.$listeners[0];
+            this.trigger = this.$firstListener.length === 0 ? this.$firstListener : this.triggerFirstListener;
             this.trigger = (this.$listeners.length === 1) ? this.triggerWatchersAndFirstListener : this.triggerAll;
             return;
         }
@@ -1314,6 +687,7 @@ var NativeDocument = (function (exports) {
 
         this.$updateWithNewValue(newValue);
     };
+
 
     /**
      * @param {*} data
@@ -1512,9 +886,19 @@ var NativeDocument = (function (exports) {
     };
 
     ObservableItem.prototype.transform = ObservableItem.prototype.check;
-    ObservableItem.prototype.pluck = ObservableItem.prototype.check;
-    ObservableItem.prototype.is = ObservableItem.prototype.check;
+    ObservableItem.prototype.pluck = function(property) {
+        return new ObservableChecker(this, (value) => value[property]);
+    };
+    ObservableItem.prototype.is = function(callbackOrValue) {
+        if(typeof callbackOrValue === 'function') {
+            return new ObservableChecker(this, callbackOrValue);
+        }
+        return new ObservableChecker(this, (value) => value === callbackOrValue);
+    };
     ObservableItem.prototype.select = ObservableItem.prototype.check;
+
+
+
 
     /**
      * Gets a property value from the observable's current value.
@@ -1721,75 +1105,270 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
+    ObservableItem.prototype.clone = function() {
+        let clonedValue = this.$currentValue;
+
+        if(clonedValue && typeof clonedValue === 'object') {
+            if(typeof clonedValue.clone === 'function') {
+                clonedValue = clonedValue.clone();
+            } else {
+                clonedValue = structuredClone(clonedValue);
+            }
+        }
+
+        return new ObservableItem(clonedValue);
+    };
+
     /**
      *
-     * @param {*} value
-     * @param {{ propagation: boolean, reset: boolean} | null} configs
-     * @returns {ObservableItem}
-     * @constructor
+     * @param {ObservableItem} $observable
+     * @param {Function} $checker
+     * @class ObservableChecker
      */
-    function Observable(value, configs = null) {
-        return new ObservableItem(value, configs);
+    function ObservableChecker($observable, $checker) {
+        this.observable = $observable;
+
+        ObservableItem.call(this);
+        {
+            PluginsManager.emit('CreateObservableChecker', this);
+        }
+
+        this.$mutation = $checker;
+
+        $observable.subscribe((newValue) => {
+            this.$updateWithMutation(newValue);
+        });
+
+        this.$updateWithMutation($observable.val());
     }
 
-    const $ = Observable;
-    const obs = Observable;
+    ObservableChecker.prototype = Object.create(ObservableItem.prototype);
+    ObservableChecker.prototype.constructor = ObservableChecker;
+    ObservableChecker.prototype.__$Observable = true;
+    ObservableChecker.prototype.__$isObservableChecker = true;
 
-    /**
-     *
-     * @param {string} propertyName
-     */
-    Observable.useValueProperty = function(propertyName = 'value') {
-        Object.defineProperty(ObservableItem.prototype, propertyName, {
-            get() {
-                return this.$currentValue;
-            },
-            set(value) {
-                this.set(value);
-            },
-            configurable: true,
-        });
+
+    const ObservablePipe = ObservableChecker;
+    ObservablePipe.prototype.constructor = ObservablePipe;
+
+    ObservableChecker.prototype.$updateWithMutation = function(newValue) {
+        newValue = this.$mutation(newValue);
+        return this.set(newValue);
     };
 
+    const DocumentObserver = {
+        mounted: new WeakMap(),
+        beforeUnmount: new WeakMap(),
+        mountedSupposedSize: 0,
+        unmounted: new WeakMap(),
+        unmountedSupposedSize: 0,
+        observer: null,
+        initObserver: () => {
+            if(DocumentObserver.observer) {
+                return;
+            }
+            DocumentObserver.observer = new MutationObserver(DocumentObserver.checkMutation);
+            DocumentObserver.observer.observe(document.body, {
+                childList: true,
+                subtree: true,
+            });
+        },
 
-    /**
-     *
-     * @param id
-     * @returns {ObservableItem|null}
-     */
-    Observable.getById = function(id) {
-        const item = MemoryManager.getObservableById(parseInt(id));
-        if(!item) {
-            throw new NativeDocumentError('Observable.getById : No observable found with id ' + id);
+        executeMountedCallback(node) {
+            const data = DocumentObserver.mounted.get(node);
+            if(!data) {
+                return;
+            }
+            data.inDom = true;
+            if(!data.mounted) {
+                return;
+            }
+            if(Array.isArray(data.mounted)) {
+                for(const cb of data.mounted) {
+                    cb(node);
+                }
+                return;
+            }
+            data.mounted(node);
+        },
+
+        executeUnmountedCallback(node) {
+            const data = DocumentObserver.unmounted.get(node);
+            if(!data) {
+                return;
+            }
+            data.inDom = false;
+            if(!data.unmounted) {
+                return;
+            }
+
+            let shouldRemove = false;
+            if(Array.isArray(data.unmounted)) {
+                for(const cb of data.unmounted) {
+                    if(cb(node) === true) {
+                        shouldRemove = true;
+                    }
+                }
+            } else {
+                shouldRemove = data.unmounted(node) === true;
+            }
+
+            if(shouldRemove) {
+                data.disconnect();
+                node.nd?.remove();
+            }
+        },
+
+        checkMutation: function(mutationsList) {
+            for(const mutation of mutationsList) {
+                if(DocumentObserver.mountedSupposedSize > 0) {
+                    for(const node of mutation.addedNodes) {
+                        DocumentObserver.executeMountedCallback(node);
+                        if(!node.querySelectorAll) {
+                            continue;
+                        }
+                        const children = node.querySelectorAll('[data--nd-mounted]');
+                        for(const child of children) {
+                            DocumentObserver.executeMountedCallback(child);
+                        }
+                    }
+                }
+
+                if (DocumentObserver.unmountedSupposedSize > 0) {
+                    for (const node of mutation.removedNodes) {
+                        DocumentObserver.executeUnmountedCallback(node);
+                        if(!node.querySelectorAll) {
+                            continue;
+                        }
+                        const children = node.querySelectorAll('[data--nd-unmounted]');
+                        for(const child of children) {
+                            DocumentObserver.executeUnmountedCallback(child);
+                        }
+                    }
+                }
+            }
+        },
+
+        /**
+         * @param {HTMLElement} element
+         * @param {boolean} inDom
+         * @returns {{ disconnect: Function, mounted: Function, unmounted: Function, off: Function }}
+         */
+        watch: function(element, inDom = false) {
+            let mountedRegistered   = false;
+            let unmountedRegistered = false;
+
+            DocumentObserver.initObserver();
+
+            let data = {
+                inDom,
+                mounted: null,
+                unmounted: null,
+                disconnect: () => {
+                    if (mountedRegistered) {
+                        DocumentObserver.mounted.delete(element);
+                        DocumentObserver.mountedSupposedSize--;
+                    }
+                    if (unmountedRegistered) {
+                        DocumentObserver.unmounted.delete(element);
+                        DocumentObserver.unmountedSupposedSize--;
+                    }
+                    data = null;
+                }
+            };
+
+            const addListener = (type, callback) => {
+                if (!data[type]) {
+                    data[type] = callback;
+                    return;
+                }
+                if (!Array.isArray(data[type])) {
+                    data[type] = [data[type], callback];
+                    return;
+                }
+                data[type].push(callback);
+            };
+
+            const removeListener = (type, callback) => {
+                if(!data?.[type]) {
+                    return;
+                }
+                if(Array.isArray(data[type])) {
+                    const index = data[type].indexOf(callback);
+                    if(index > -1) {
+                        data[type].splice(index, 1);
+                    }
+                    if(data[type].length === 1) {
+                        data[type] = data[type][0];
+                    }
+                    if(data[type].length === 0) {
+                        data[type] = null;
+                    }
+                    return;
+                }
+                data[type] = null;
+            };
+
+            return {
+                disconnect: () => data?.disconnect(),
+
+                mounted: (callback) => {
+                    addListener('mounted', callback);
+                    DocumentObserver.mounted.set(element, data);
+                    if (!mountedRegistered) {
+                        DocumentObserver.mountedSupposedSize++;
+                        mountedRegistered = true;
+                    }
+                },
+
+                unmounted: (callback) => {
+                    addListener('unmounted', callback);
+                    DocumentObserver.unmounted.set(element, data);
+                    if (!unmountedRegistered) {
+                        DocumentObserver.unmountedSupposedSize++;
+                        unmountedRegistered = true;
+                    }
+                },
+
+                off: (type, callback) => {
+                    removeListener(type, callback);
+                }
+            };
         }
-        return item;
     };
 
-    /**
-     *
-     * @param {ObservableItem} observable
-     */
-    Observable.cleanup = function(observable) {
-        observable.cleanup();
-    };
-
-    /**
-     * Enable auto cleanup of observables.
-     * @param {Boolean} enable
-     * @param {{interval:Boolean, threshold:number}} options
-     */
-    Observable.autoCleanup = function(enable = false, options = {}) {
-        if(!enable) {
-            return;
-        }
-        const { interval = 60000, threshold = 100 } = options;
-
-        window.addEventListener('beforeunload', () => {
-            MemoryManager.cleanup();
-        });
-
-        setInterval(() => MemoryManager.cleanObservables(threshold), interval);
-    };
+    const BOOLEAN_ATTRIBUTES = new Set([
+        'checked',
+        'selected',
+        'disabled',
+        'readonly',
+        'required',
+        'autofocus',
+        'multiple',
+        'autocomplete',
+        'hidden',
+        'contenteditable',
+        'spellcheck',
+        'translate',
+        'draggable',
+        'async',
+        'defer',
+        'autoplay',
+        'controls',
+        'loop',
+        'muted',
+        'download',
+        'reversed',
+        'open',
+        'default',
+        'formnovalidate',
+        'novalidate',
+        'scoped',
+        'itemscope',
+        'allowfullscreen',
+        'allowpaymentrequest',
+        'playsinline'
+    ]);
 
     /**
      *
@@ -1800,6 +1379,18 @@ var NativeDocument = (function (exports) {
         for(const className in data) {
             const value = data[className];
             if(value.__$Observable) {
+                if(value.__$isObservableChecker) {
+                    let lastClass = value.val();
+                    if(typeof lastClass === "string") {
+                        element.classes.toggle(lastClass, true);
+                        value.subscribe((currentValue) => {
+                            element.classes.remove(lastClass);
+                            element.classes.toggle(currentValue, true);
+                            lastClass = currentValue;
+                        });
+                        continue;
+                    }
+                }
                 element.classes.toggle(className, value.val());
                 value.subscribe((shouldAdd) => element.classes.toggle(className, shouldAdd));
                 continue;
@@ -1820,11 +1411,36 @@ var NativeDocument = (function (exports) {
     const bindStyleAttribute = (element, data) => {
         for(const styleName in data) {
             const value = data[styleName];
-            if(value.__$isObservable) {
-                element.style[styleName] = value.val();
-                value.subscribe((newValue) => element.style[styleName] = newValue);
+            const isCustomProperty = styleName.startsWith('--');
+
+            if(value.__$Observable) {
+                if(isCustomProperty) {
+                    element.style.setProperty(styleName, value.val());
+                    value.subscribe((newValue) => {
+                        if(newValue === false) {
+                            element.style.removeProperty(styleName);
+                            return;
+                        }
+                        element.style.setProperty(styleName, newValue);
+                    });
+                } else {
+                    element.style[styleName] = value.val();
+                    value.subscribe((newValue) => {
+                        if(newValue === false) {
+                            element.style.removeProperty(styleName);
+                            return;
+                        }
+                        element.style[styleName] = newValue;
+                    });
+                }
                 continue;
             }
+
+            if(isCustomProperty) {
+                element.style.setProperty(styleName, value);
+                continue;
+            }
+
             element.style[styleName] = value;
         }
     };
@@ -1956,7 +1572,14 @@ var NativeDocument = (function (exports) {
     ObservableChecker.prototype.toNdElement = ObservableItem.prototype.toNdElement;
 
     NDElement.prototype.toNdElement = function () {
-        return this.$element ?? this.$build?.() ?? this.build?.() ?? null;
+        const element = this.$element ?? this.$build?.() ?? this.build?.() ?? null;
+        if(this.$attachements) {
+            if(!this.$attachements.contains(this.$element)) {
+                this.$attachements.append(this.$element);
+            }
+            return this.$attachements;
+        }
+        return element;
     };
 
     Array.prototype.toNdElement = function () {
@@ -2076,7 +1699,9 @@ var NativeDocument = (function (exports) {
         bindAttributeWithObservable(element, attributeName, this);
     };
 
-    TemplateBinding.prototype.handleNdAttribute = function(element, attributeName) {
+    ObservableChecker.prototype.handleNdAttribute = ObservableItem.prototype.handleNdAttribute;
+
+        TemplateBinding.prototype.handleNdAttribute = function(element, attributeName) {
         this.$hydrate(element, attributeName);
     };
 
@@ -2331,12 +1956,12 @@ var NativeDocument = (function (exports) {
         const isParentUniqueChild = isUniqueChild
             ? () => true: (parent) => (parent.firstChild === anchorStart && parent.lastChild === anchorEnd);
 
-        const insertBefore = function(parent, child, target) {
+        const insertBefore = (parent, child, target) => {
             const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
             insertBeforeRaw(parent, childElement, target);
         };
 
-        const insertBeforeRaw = function(parent, child, target) {
+        const insertBeforeRaw = (parent, child, target) => {
             if(parent === anchorFragment) {
                 parent.nativeInsertBefore(child, target);
                 return;
@@ -2436,6 +2061,7 @@ var NativeDocument = (function (exports) {
             anchorStart.remove();
             anchorEnd.remove();
         };
+        anchorFragment.delete = anchorFragment.removeWithAnchors;
 
         anchorFragment.replaceContent = function(child) {
             const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
@@ -2504,6 +2130,410 @@ var NativeDocument = (function (exports) {
     }
 
     DocumentFragment.prototype.setAttribute = () => {};
+
+    function NDElement(element) {
+        this.$element = element;
+        this.$attachements = null;
+        {
+            PluginsManager.emit('NDElementCreated', element, this);
+        }
+    }
+
+    NDElement.prototype.__$isNDElement = true;
+
+    NDElement.prototype.ghostDom = function(element) {
+        if(!this.$attachements) {
+            this.$attachements = document.createDocumentFragment();
+        }
+        this.$attachements.appendChild(ElementCreator.getChild(element));
+        return this;
+    };
+
+    NDElement.prototype.valueOf = function() {
+        return this.$element;
+    };
+
+    NDElement.prototype.ref = function(target, name) {
+        target[name] = this.$element;
+        return this;
+    };
+
+    NDElement.prototype.refSelf = function(target, name) {
+        target[name] = this;
+        // TODO: @DIM to check
+        // target[name] = new NDElement(this.$element);
+        return this;
+    };
+
+    NDElement.prototype.unmountChildren = function() {
+        let element = this.$element;
+        for(let i = 0, length = element.children.length; i < length; i++) {
+            let elementChildren = element.children[i];
+            if(!elementChildren.$ndProx) {
+                elementChildren.nd?.remove();
+            }
+            elementChildren = null;
+        }
+        element = null;
+        return this;
+    };
+
+    NDElement.prototype.remove = function() {
+        let element = this.$element;
+        element.nd.unmountChildren();
+        element.$ndProx = null;
+
+        $lifeCycleObservers.delete(element);
+
+        element = null;
+        return this;
+    };
+
+    const $lifeCycleObservers = new WeakMap();
+    NDElement.prototype.lifecycle = function(states) {
+        const el = this.$element;
+        if (!$lifeCycleObservers.has(el)) {
+            $lifeCycleObservers.set(el, DocumentObserver.watch(el));
+        }
+        const observer = $lifeCycleObservers.get(el);
+
+        if(states.mounted) {
+            this.$element.setAttribute('data--nd-mounted', '1');
+            observer.mounted(states.mounted);
+        }
+        if(states.unmounted) {
+            this.$element.setAttribute('data--nd-unmounted', '1');
+            observer.unmounted(states.unmounted);
+        }
+        return this;
+    };
+
+    NDElement.prototype.mounted = function(callback) {
+        return this.lifecycle({ mounted: callback });
+    };
+
+    NDElement.prototype.unmounted = function(callback) {
+        return this.lifecycle({ unmounted: callback });
+    };
+
+    NDElement.prototype.beforeUnmount = function(id, callback) {
+        const el = this.$element;
+
+        if(!DocumentObserver.beforeUnmount.has(el)) {
+            DocumentObserver.beforeUnmount.set(el, new Map());
+            const originalRemove = el.remove.bind(el);
+
+            let  $isUnmounting = false;
+
+            el.remove = async () => {
+                if($isUnmounting) {
+                    return;
+                }
+                $isUnmounting = true;
+
+                try {
+                    const callbacks = DocumentObserver.beforeUnmount.get(el);
+                    for (const cb of callbacks.values()) {
+                        await cb.call(this, el);
+                    }
+                } finally {
+                    originalRemove();
+                    $isUnmounting = false;
+                }
+            };
+        }
+
+        DocumentObserver.beforeUnmount.get(el).set(id, callback);
+        return this;
+    };
+
+    NDElement.prototype.htmlElement = function() {
+        return this.$element;
+    };
+
+    NDElement.prototype.node = NDElement.prototype.htmlElement;
+
+    NDElement.prototype.shadow = function(mode, style = null) {
+        const $element = this.$element;
+        const children = Array.from($element.childNodes);
+        const shadowRoot = $element.attachShadow({ mode });
+        if(style) {
+            const styleNode = document.createElement("style");
+            styleNode.textContent = style;
+            shadowRoot.appendChild(styleNode);
+        }
+        $element.append = shadowRoot.append.bind(shadowRoot);
+        $element.appendChild = shadowRoot.appendChild.bind(shadowRoot);
+        shadowRoot.append(...children);
+
+        return this;
+    };
+
+    NDElement.prototype.openShadow = function(style = null) {
+        return this.shadow('open', style);
+    };
+
+    NDElement.prototype.closedShadow = function(style = null) {
+        return this.shadow('closed', style);
+    };
+
+    /**
+     * Extends the current NDElement instance with custom methods.
+     * Methods are bound to the instance and available for chaining.
+     *
+     * @param {Object} methods - Object containing method definitions
+     * @returns {this} The NDElement instance with added methods for chaining
+     * @example
+     * element.nd.with({
+     *   highlight() {
+     *     this.$element.style.background = 'yellow';
+     *     return this;
+     *   }
+     * }).highlight().onClick(() => console.log('Clicked'));
+     */
+    NDElement.prototype.with = function(methods) {
+        if (!methods || typeof methods !== 'object') {
+            throw new NativeDocumentError('extend() requires an object of methods');
+        }
+        {
+            if (!this.$localExtensions) {
+                this.$localExtensions = new Map();
+            }
+        }
+
+        for (const name in methods) {
+            const method = methods[name];
+
+            if (typeof method !== 'function') {
+                DebugManager$1.warn(`⚠️ extends(): "${name}" is not a function, skipping`);
+                continue;
+            }
+            {
+                if (this[name] && !this.$localExtensions.has(name)) {
+                    DebugManager$1.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
+                }
+                this.$localExtensions.set(name, method);
+            }
+
+            this[name] = method.bind(this);
+        }
+
+        return this;
+    };
+
+    /**
+     * Extends the NDElement prototype with new methods available to all NDElement instances.
+     * Use this to add global methods to all NDElements.
+     *
+     * @param {Object} methods - Object containing method definitions to add to prototype
+     * @returns {typeof NDElement} The NDElement constructor
+     * @throws {NativeDocumentError} If methods is not an object or contains non-function values
+     * @example
+     * NDElement.extend({
+     *   fadeIn() {
+     *     this.$element.style.opacity = '1';
+     *     return this;
+     *   }
+     * });
+     * // Now all NDElements have .fadeIn() method
+     * Div().nd.fadeIn();
+     */
+    NDElement.extend = function(methods) {
+        if (!methods || typeof methods !== 'object') {
+            throw new NativeDocumentError('NDElement.extend() requires an object of methods');
+        }
+
+        if (Array.isArray(methods)) {
+            throw new NativeDocumentError('NDElement.extend() requires an object, not an array');
+        }
+
+        const protectedMethods = new Set([
+            'constructor', 'valueOf', '$element', '$observer',
+            'ref', 'remove', 'cleanup', 'with', 'extend', 'attach',
+            'lifecycle', 'mounted', 'unmounted', 'unmountChildren'
+        ]);
+
+        for (const name in methods) {
+            if (!Object.hasOwn(methods, name)) {
+                continue;
+            }
+
+            const method = methods[name];
+
+            if (typeof method !== 'function') {
+                DebugManager$1.warn('NDElement.extend', `"${name}" is not a function, skipping`);
+                continue;
+            }
+
+            if (protectedMethods.has(name)) {
+                DebugManager$1.error('NDElement.extend', `Cannot override protected method "${name}"`);
+                throw new NativeDocumentError(`Cannot override protected method "${name}"`);
+            }
+
+            if (NDElement.prototype[name]) {
+                DebugManager$1.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
+            }
+
+            NDElement.prototype[name] = method;
+        }
+        {
+            PluginsManager.emit('NDElementExtended', methods);
+        }
+
+        return NDElement;
+    };
+
+    const COMMON_NODE_TYPES = {
+        ELEMENT: 1,
+        TEXT: 3,
+        COMMENT: 8,
+        DOCUMENT_FRAGMENT: 11
+    };
+
+    const VALID_TYPES = [];
+    VALID_TYPES[COMMON_NODE_TYPES.ELEMENT] = true;
+    VALID_TYPES[COMMON_NODE_TYPES.TEXT] = true;
+    VALID_TYPES[COMMON_NODE_TYPES.DOCUMENT_FRAGMENT] = true;
+    VALID_TYPES[COMMON_NODE_TYPES.COMMENT] = true;
+
+    const Validator = {
+        isObservable(value) {
+            return  value && (value.__$isObservable || value.__$Observable);
+        },
+        isTemplateBinding(value) {
+            return  value?.__$isTemplateBinding;
+        },
+        isObservableWhenResult(value) {
+            return value && (value.__$isObservableWhen || (typeof value === 'object' && '$target' in value && '$observer' in value));
+        },
+        isArrayObservable(value) {
+            return  value?.__$isObservableArray;
+        },
+        isProxy(value) {
+            return value?.__isProxy__
+        },
+        isObservableOrProxy(value) {
+            return Validator.isObservable(value) || Validator.isProxy(value);
+        },
+        isAnchor(value) {
+            return value?.__Anchor__
+        },
+        isObservableChecker(value) {
+            return value?.__$isObservableChecker || value instanceof ObservableChecker;
+        },
+        isArray(value) {
+            return Array.isArray(value);
+        },
+        isString(value) {
+            return typeof value === 'string';
+        },
+        isNumber(value) {
+            return typeof value === 'number';
+        },
+        isBoolean(value) {
+            return typeof value === 'boolean';
+        },
+        isFunction(value) {
+            return typeof value === 'function';
+        },
+        isAsyncFunction(value) {
+            return typeof value === 'function' && value.constructor.name === 'AsyncFunction';
+        },
+        isObject(value) {
+            return typeof value === 'object' && value !== null;
+        },
+        isJson(value) {
+            return !(typeof value !== 'object' || value === null || Array.isArray(value) || value.constructor.name !== 'Object')
+        },
+        isElement(value) {
+            return value && VALID_TYPES[value.nodeType];
+        },
+        isDOMNode(value) {
+            return VALID_TYPES[value.nodeType];
+        },
+        isFragment(value) {
+            return value?.nodeType === COMMON_NODE_TYPES.DOCUMENT_FRAGMENT;
+        },
+        isStringOrObservable(value) {
+            return this.isString(value) || this.isObservable(value);
+        },
+        isValidChild(child) {
+            return child === null ||
+                this.isElement(child) ||
+                this.isObservable(child) ||
+                this.isNDElement(child) ||
+                ['string', 'number', 'boolean'].includes(typeof child);
+        },
+        isNDElement(child) {
+            return child?.__$isNDElement || child instanceof NDElement;
+        },
+        isValidChildren(children) {
+            if (!Array.isArray(children)) {
+                children = [children];
+            }
+
+            const invalid = children.filter(child => !this.isValidChild(child));
+            return invalid.length === 0;
+        },
+        validateChildren(children) {
+            if (!Array.isArray(children)) {
+                children = [children];
+            }
+
+            const invalid = children.filter(child => !this.isValidChild(child));
+            if (invalid.length > 0) {
+                throw new NativeDocumentError(`Invalid children detected: ${invalid.map(i => typeof i).join(', ')}`);
+            }
+
+            return children;
+        },
+        /**
+         * Check if the data contains observables.
+         * @param {Array|Object} data
+         * @returns {boolean}
+         */
+        containsObservables(data) {
+            if(!data) {
+                return false;
+            }
+            return Validator.isObject(data)
+                && Object.values(data).some(value => Validator.isObservable(value));
+        },
+        /**
+         * Check if the data contains an observable reference.
+         * @param {string} data
+         * @returns {boolean}
+         */
+        containsObservableReference(data) {
+            if(!data || typeof data !== 'string') {
+                return false;
+            }
+            return /\{\{#ObItem::\([0-9]+\)\}\}/.test(data);
+        },
+        validateAttributes(attributes) {},
+
+        validateEventCallback(callback) {
+            if (typeof callback !== 'function') {
+                throw new NativeDocumentError('Event callback must be a function');
+            }
+        }
+    };
+    {
+        Validator.validateAttributes = function(attributes) {
+            if (!attributes || typeof attributes !== 'object') {
+                return attributes;
+            }
+
+            const reserved = [];
+            const foundReserved = Object.keys(attributes).filter(key => reserved.includes(key));
+
+            if (foundReserved.length > 0) {
+                DebugManager$1.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
+            }
+
+            return attributes;
+        };
+    }
 
     const EVENTS = [
       "Click",
@@ -3376,18 +3406,24 @@ var NativeDocument = (function (exports) {
 
     const cssPropertyAccumulator = function(initialValue = {}) {
         let data = Validator.isString(initialValue) ? initialValue.split(';').filter(Boolean) : initialValue;
-        const isArray = Validator.isArray(data);
 
         return {
             add(key, value) {
-                if(isArray) {
+                if(Array.isArray(data)) {
                     data.push(key+':  '+value);
+                    return;
+                }
+                if(Validator.isObject(key)) {
+                    value = key;
+                    for(const property in value) {
+                        data[property] = value[property];
+                    }
                     return;
                 }
                 data[key] = value;
             },
             value() {
-                if(isArray) {
+                if(Array.isArray(data)) {
                     return data.join(';').concat(';');
                 }
                 return { ...data };
@@ -3397,18 +3433,41 @@ var NativeDocument = (function (exports) {
 
     const classPropertyAccumulator = function(initialValue = []) {
         let data = Validator.isString(initialValue) ? initialValue.split(" ").filter(Boolean) : initialValue;
-        const isArray = Validator.isArray(data);
 
         return {
             add(key, value = true) {
-                if(isArray) {
+                if(Validator.isJson(key)) {
+                    for(const property in key) {
+                        if(key[property]) {
+                            data[property] = key[property];
+                        }
+                    }
+                    return;
+                }
+                if(value != null || key.__$Observable) {
+                    if(Array.isArray(data)) {
+                        data = data.reduce((acc, item) => {
+                            acc[item] = true;
+                            return acc;
+                        }, {});
+                    }
+                    if(key.__$Observable) {
+                        const uniqueId = `obs-${Math.random().toString(36).substr(2, 9)}`;
+                        data[uniqueId] = key;
+                    }
+                    else {
+                        data[key] = value;
+                    }
+                    return;
+                }
+                if(Array.isArray(data)) {
                     data.push(key);
                     return;
                 }
                 data[key] = value;
             },
             value() {
-                if(isArray) {
+                if(Array.isArray(data)) {
                     return data.join(' ');
                 }
                 return { ...data };
@@ -3585,7 +3644,7 @@ var NativeDocument = (function (exports) {
                         const regex = new RegExp(pattern, flags);
                         return regex.test(String(value));
                     } catch (error){
-                        console.warn('Invalid regex pattern:', pattern, error);
+                        DebugManager$1.warn('Invalid regex pattern:', pattern, error);
                         return false;
                     }
                 }
@@ -3831,7 +3890,6 @@ var NativeDocument = (function (exports) {
     const mutationMethods = ['push', 'pop', 'shift', 'unshift', 'reverse', 'sort', 'splice'];
     const noMutationMethods = ['map', 'forEach', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex', 'concat', 'includes', 'indexOf'];
 
-
     /**
      *
      * @param target
@@ -3860,11 +3918,24 @@ var NativeDocument = (function (exports) {
         }
     });
 
+
+    ObservableArray.prototype.$mutate = function(action, args, mutateFn) {
+        if(this.$mutationInterceptor) {
+            const value = this.$mutationInterceptor(args, { action });
+            if(args !== undefined) {
+                args = value;
+            }
+        }
+        mutateFn(args);
+    };
+
     mutationMethods.forEach((method) => {
         ObservableArray.prototype[method] = function(...values) {
-            const result = this.$currentValue[method].apply(this.$currentValue, values);
-            this.trigger({ action: method, args: values, result });
-            return result;
+            return this.$mutate(method, values, (argsToUse) => {
+                const result = this.$currentValue[method].apply(this.$currentValue, argsToUse);
+                this.trigger({ action: method, args: argsToUse, result });
+                return result;
+            })
         };
     });
 
@@ -3873,6 +3944,7 @@ var NativeDocument = (function (exports) {
             return this.$currentValue[method].apply(this.$currentValue, values);
         };
     });
+
 
     const $clearEvent = { action: 'clear' };
 
@@ -3888,8 +3960,10 @@ var NativeDocument = (function (exports) {
         if(this.$currentValue.length === 0) {
             return;
         }
-        this.$currentValue.length = 0;
-        this.trigger($clearEvent);
+        this.$mutate('clear', [], () => {
+            this.$currentValue.length = 0;
+            this.trigger($clearEvent);
+        });
         return true;
     };
 
@@ -3917,8 +3991,10 @@ var NativeDocument = (function (exports) {
      * items.merge([3, 4]); // [1, 2, 3, 4]
      */
     ObservableArray.prototype.merge = function(values) {
-        this.$currentValue.push.apply(this.$currentValue, values);
-        this.trigger({ action: 'merge',  args: values });
+        this.$mutate('merge', values, (valuesToMerge) => {
+            this.$currentValue.push.apply(this.$currentValue, valuesToMerge);
+            this.trigger({ action: 'merge',  args: valuesToMerge });
+        });
     };
 
     /**
@@ -3951,23 +4027,37 @@ var NativeDocument = (function (exports) {
      * items.swap(0, 2); // ['c', 'b', 'a']
      */
     ObservableArray.prototype.swap = function(indexA, indexB) {
-        const value = this.$currentValue;
-        const length = value.length;
-        if(length < indexA || length < indexB) {
-            return false;
-        }
-        if(indexB < indexA) {
-            const temp = indexA;
-            indexA = indexB;
-            indexB = temp;
-        }
-        const elementA = value[indexA];
-        const elementB = value[indexB];
+        this.$mutate('swap', [indexA, indexB], ([indexA, indexB]) => {
+            const value = this.$currentValue;
+            const length = value.length;
+            if(indexB < indexA) {
+                const temp = indexA;
+                indexA = indexB;
+                indexB = temp;
+            }
+            if(length < indexA || length < indexB) {
+                return false;
+            }
+            const elementA = value[indexA];
+            const elementB = value[indexB];
 
-        value[indexA] = elementB;
-        value[indexB] = elementA;
-        this.trigger({ action: 'swap', args: [indexA, indexB], result: [elementA, elementB] });
+            value[indexA] = elementB;
+            value[indexB] = elementA;
+            this.trigger({ action: 'swap', args: [indexA, indexB], result: [elementA, elementB] });
+        });
         return true;
+    };
+
+    ObservableArray.prototype.swapItems = function(itemA, itemB) {
+        const indexA = this.$currentValue.indexOf(itemA);
+        const indexB = this.$currentValue.indexOf(itemB);
+
+        return this.swap(indexA, indexB);
+    };
+
+    ObservableArray.prototype.insertAfter = function(data, target) {
+        const targetIndex = this.$currentValue.indexOf(target);
+        return this.splice(targetIndex + 1, 0, data);
     };
 
     /**
@@ -3980,11 +4070,14 @@ var NativeDocument = (function (exports) {
      * items.remove(1); // ['b'] - Array is now ['a', 'c']
      */
     ObservableArray.prototype.remove = function(index) {
-        const deleted = this.$currentValue.splice(index, 1);
-        if(deleted.length === 0) {
-            return [];
-        }
-        this.trigger({ action: 'remove', args: [index], result: deleted[0] });
+        let deleted = [];
+        this.$mutate('remove', [index], ([idx]) => {
+            deleted = this.$currentValue.splice(idx, 1);
+            if(deleted.length === 0) {
+                return;
+            }
+            this.trigger({action: 'remove', args: [idx], result: deleted[0]});
+        });
         return deleted;
     };
 
@@ -4040,9 +4133,13 @@ var NativeDocument = (function (exports) {
      *   { name: 'John', age: 25 },
      *   { name: 'Jane', age: 30 }
      * ]);
+     *
      * const adults = users.where({ age: (val) => val >= 18 });
      */
     ObservableArray.prototype.where = function(predicates) {
+        if(typeof predicates === 'function') {
+            predicates = { _: predicates };
+        }
         const sourceArray = this;
         const observableDependencies = [sourceArray];
         const filterCallbacks = {};
@@ -4196,6 +4293,32 @@ var NativeDocument = (function (exports) {
         return () => {
             this.$currentValue.forEach(unbindItem);
         };
+    };
+
+
+    ObservableArray.prototype.sync = function(targetObservable) {
+        if (!targetObservable || !targetObservable.__$isObservableArray) {
+            throw new NativeDocumentError('ObservableArray.sync : target must be an ObservableArray');
+        }
+
+        targetObservable.set([...this.$currentValue]);
+
+        const sync = (currentValue, _, operations) => {
+            if (!operations) {
+                targetObservable.set([...currentValue]);
+                return;
+            }
+
+            const { action, args } = operations;
+            targetObservable[action].apply(targetObservable, args);
+        };
+        this.subscribe(sync);
+
+        return () => this.unsubscribe(sync);
+    };
+
+    ObservableArray.prototype.clone = function() {
+        return new ObservableArray(this.resolve());
     };
 
     /**
@@ -4435,21 +4558,25 @@ var NativeDocument = (function (exports) {
      * @returns {{}|*|null}
      */
     Observable.value = function(data) {
-        if(Validator.isObservable(data)) {
+        if(data?.__$isObservableArray) {
+            const result = [];
+            for(let i = 0, length = data.length; i < length; i++) {
+                const item = data.at(i);
+                result.push(Observable.value(item));
+            }
+            return result;
+        }
+        if(data?.__$Observable) {
             return data.val();
         }
         if(Validator.isProxy(data)) {
             return data.$value;
         }
-        if(Validator.isArray(data)) {
-            const result = [];
-            for(let i = 0, length = data.length; i < length; i++) {
-                const item = data[i];
-                result.push(Observable.value(item));
-            }
-            return result;
-        }
         return data;
+    };
+
+    ObservableItem.prototype.resolve = function () {
+        return Observable.value(this);
     };
 
     Observable.object = Observable.init;
@@ -4477,7 +4604,8 @@ var NativeDocument = (function (exports) {
     Observable.computed = function(callback, dependencies = []) {
         const initialValue = callback();
         const observable = new ObservableItem(initialValue);
-        const updatedValue = nextTick(() => observable.set(callback()));
+        const getValues = () => dependencies.map((item) => item.val());
+        const updatedValue = nextTick(() => observable.set(callback(...getValues())));
         {
             PluginsManager.emit('CreateObservableComputed', observable, dependencies);
         }
@@ -4903,14 +5031,16 @@ var NativeDocument = (function (exports) {
 
     Store.create('locale', navigator.language.split('-')[0] || 'en');
 
+    const SELF_RENDER$1 = (item) => item;
+
     /**
      * Renders a list of items from an observable array or object, automatically updating when data changes.
      * Efficiently manages DOM updates by tracking items with keys.
      *
      * @param {ObservableItem<Array|Object>} data - Observable containing array or object to iterate over
-     * @param {(item: *, index: null|ObservableItem) => NdChild} callback - Function that renders each item (item, index) => ValidChild
-     * @param {string|Function} [key] - Property name or function to generate unique keys for items
-     * @param {Object} [options={}] - Configuration options
+     * @param {((item: *, index: null|ObservableItem) => NdChild)?} callback - Function that renders each item (item, index) => ValidChild
+     * @param {(string|Function)?} [key] - Property name or function to generate unique keys for items
+     * @param {Object?} [options={}] - Configuration options
      * @param {boolean} [options.shouldKeepItemsInCache=false] - Whether to cache rendered items
      * @returns {AnchorDocumentFragment} Fragment managing the list rendering
      * @example
@@ -4924,6 +5054,7 @@ var NativeDocument = (function (exports) {
      * ForEach(items, (item) => Div({}, item), (item) => item.id);
      */
     function ForEach(data, callback, key, { shouldKeepItemsInCache = false } = {}) {
+        callback = callback || SELF_RENDER$1;
         const element = Anchor('ForEach');
         const blockEnd = element.endElement();
         element.startElement();
@@ -5062,13 +5193,15 @@ var NativeDocument = (function (exports) {
 
     const CREATE_AND_CACHE_ACTIONS = new Set(['clear', 'push', 'unshift', 'replace']);
 
+    const SELF_RENDER = (item) => item;
+
     /**
      * Renders items from an ObservableArray with optimized array-specific updates.
      * Provides index observables and handles array mutations efficiently.
      *
      * @param {ObservableArray} data - ObservableArray to iterate over
-     * @param {(item: *, index: null|ObservableItem) => NdChild} callback - Function that renders each item (item, indexObservable) => ValidChild
-     * @param {Object} [configs={}] - Configuration options
+     * @param {((item: *, index: null|ObservableItem) => NdChild)?} callback - Function that renders each item (item, indexObservable) => ValidChild
+     * @param {Object?} [configs={}] - Configuration options
      * @param {boolean} [configs.shouldKeepItemsInCache] - Whether to cache rendered items
      * @param {boolean} [configs.isParentUniqueChild] - When it's the only child of the parent
      * @returns {AnchorDocumentFragment} Fragment managing the list rendering
@@ -5081,6 +5214,7 @@ var NativeDocument = (function (exports) {
      * items.push(4); // Automatically updates DOM
      */
     function ForEachArray(data, callback, configs = {}) {
+        callback = callback || SELF_RENDER;
         const element = Anchor('ForEach Array', configs.isParentUniqueChild);
         const blockEnd = element.endElement();
 
@@ -5096,21 +5230,6 @@ var NativeDocument = (function (exports) {
 
         const getItemChild = (item) => {
             return cache.get(item)?.child;
-        };
-
-        const updateIndexObservers = (items, startFrom = 0) => {
-            if(!isIndexRequired) {
-                return;
-            }
-            let index = startFrom;
-            for(let i = startFrom, length = items?.length; i < length; i++) {
-                const cacheItem = cache.get(items[i]);
-                if(!cacheItem) {
-                    continue;
-                }
-                cacheItem.indexObserver?.set(index);
-                index++;
-            }
         };
 
         const removeCacheItem = (item, removeChild = true) => {
@@ -5137,8 +5256,8 @@ var NativeDocument = (function (exports) {
             return child;
         };
 
-        const createWithIndexAndCache = (item, indexKey) => {
-            const indexObserver = Observable(indexKey);
+        let createWithIndexAndCache = (item, indexKey) => {
+            const indexObserver = data.transform((items) =>  items.indexOf(item));
             const child = ElementCreator.getChild(callback(item, indexObserver));
             {
                 if(!child) {
@@ -5148,6 +5267,18 @@ var NativeDocument = (function (exports) {
             cache.set(item, { child, indexObserver  });
             return child;
         };
+        if(!data.__$Observable) {
+            createWithIndexAndCache = (item, indexKey) => {
+                const child = ElementCreator.getChild(callback(item, indexKey));
+                {
+                    if(!child) {
+                        throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
+                    }
+                }
+                cache.set(item, { child, indexObserver: null  });
+                return child;
+            };
+        }
 
         const getOrCreate = (item, indexKey) => {
             const cacheItem = cache.get(item);
@@ -5203,6 +5334,21 @@ var NativeDocument = (function (exports) {
             child.remove();
         };
 
+        let set = null;
+        if(Array.isArray(data)) {
+            set = () => {
+                clear(data);
+                element.appendChildRaw(Actions.toFragment(data));
+            };
+        }
+        else {
+            set = () => {
+                const items = data.val();
+                clear(items);
+                element.appendChildRaw(Actions.toFragment(items));
+            };
+        }
+
         const Actions = {
             toFragment: (items) =>{
                 const fragment = document.createDocumentFragment();
@@ -5219,11 +5365,7 @@ var NativeDocument = (function (exports) {
                 clear(items);
                 element.appendChildRaw(Actions.toFragment(items));
             },
-            set: () => {
-                const items = data.val();
-                clear(items);
-                element.appendChildRaw(Actions.toFragment(items));
-            },
+            set,
             reOrder: (items) => {
                 let child = null;
                 const fragment = document.createDocumentFragment();
@@ -5272,7 +5414,9 @@ var NativeDocument = (function (exports) {
                         }
                     }
                 } else {
-                    elementBeforeFirst = blockEnd;
+                    const indexBefore =  (start - 1 >= 0) ? start - 1 : start;
+                    const itemAtStart = data.at(indexBefore);
+                    elementBeforeFirst = getItemChild(itemAtStart) || blockEnd.previousSibling;
                 }
                 garbageFragment.replaceChildren();
 
@@ -5321,14 +5465,17 @@ var NativeDocument = (function (exports) {
             if(Actions[operations.action]) {
                 Actions[operations.action](operations.args, operations.result);
             }
-            updateIndexObservers(items, 0);
         };
 
+        if(Array.isArray(data)) {
+            buildContent(data, null, { action: 'set' });
+            return element;
+        }
+
         if(data.val().length) {
-            buildContent(data.val(), null, {action: null});
+            buildContent(data.val(), null, { action: 'set' });
         }
         data.subscribe(buildContent);
-
         return element;
     }
 
@@ -5347,8 +5494,12 @@ var NativeDocument = (function (exports) {
      * ShowIf(isVisible, Div({}, 'Hello World'));
      */
     const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
-        if(!(Validator.isObservable(condition)) && !Validator.isObservableWhenResult(condition)) {
-            return DebugManager$1.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
+        if(!Validator.isObservable(condition)) {
+            if(typeof condition === "boolean") {
+                return condition ? ElementCreator.getChild(child) : null;
+            }
+
+            return DebugManager$1.warn('ShowIf', "ShowIf : condition must be an Observable or boolean / "+comment, condition);
         }
         const element = Anchor('Show if : '+(comment || ''));
 
@@ -5369,12 +5520,13 @@ var NativeDocument = (function (exports) {
         if(currentValue) {
             element.appendChild(getChildElement());
         }
-        condition.subscribe(value => {
-            if(value) {
+
+        condition.subscribe((value) => {
+            if(!!value) {
                 element.appendChild(getChildElement());
-            } else {
-                element.remove();
+                return;
             }
+            element.remove();
         });
 
         return element;
@@ -5535,6 +5687,7 @@ var NativeDocument = (function (exports) {
             },
             remove(key) {
                 shouldKeepInCache && cache.delete(key);
+                $condition.set([...cache.keys()].at(-1) ?? '');
                 delete values[key];
             }
         });
@@ -5560,8 +5713,9 @@ var NativeDocument = (function (exports) {
         if(!Validator.isObservable($condition)) {
             throw new NativeDocumentError("Toggle : condition must be an Observable");
         }
+        const condition = (typeof $condition.val() === 'boolean') ? $condition : $condition.is(v => !!v);
 
-        return Match($condition, {
+        return Match(condition, {
             true: onTrue,
             false: onFalse,
         });
@@ -6360,6 +6514,80 @@ var NativeDocument = (function (exports) {
      */
     const TBodyCell = Td;
 
+    function SvgElementWrapper(name) {
+        let node = null;
+
+        let createElement = (attr, children) => {
+            node = document.createElementNS('http://www.w3.org/2000/svg', name);
+            createElement = (attr, children) => {
+                return createHtmlElement(node.cloneNode(), attr, children);
+            };
+            return createHtmlElement(node.cloneNode(), attr, children);
+        };
+
+        return (attr, children) => createElement(attr, children);
+    }
+
+    const SvgSvg                 = SvgElementWrapper('svg');
+    const SvgCircle              = SvgElementWrapper('circle');
+    const SvgRect                = SvgElementWrapper('rect');
+    const SvgEllipse             = SvgElementWrapper('ellipse');
+    const SvgLine                = SvgElementWrapper('line');
+    const SvgPolyline            = SvgElementWrapper('polyline');
+    const SvgPolygon             = SvgElementWrapper('polygon');
+    const SvgPath                = SvgElementWrapper('path');
+    const SvgText                = SvgElementWrapper('text');
+    const SvgTSpan               = SvgElementWrapper('tspan');
+    const SvgTextPath            = SvgElementWrapper('textPath');
+    const SvgG                   = SvgElementWrapper('g');
+    const SvgDefs                = SvgElementWrapper('defs');
+    const SvgUse                 = SvgElementWrapper('use');
+    const SvgSymbol              = SvgElementWrapper('symbol');
+    const SvgClipPath            = SvgElementWrapper('clipPath');
+    const SvgMask                = SvgElementWrapper('mask');
+    const SvgMarker              = SvgElementWrapper('marker');
+    const SvgPattern             = SvgElementWrapper('pattern');
+    const SvgImage               = SvgElementWrapper('image');
+    const SvgForeignObject       = SvgElementWrapper('foreignObject');
+    const SvgSwitch              = SvgElementWrapper('switch');
+    const SvgLinearGradient      = SvgElementWrapper('linearGradient');
+    const SvgRadialGradient      = SvgElementWrapper('radialGradient');
+    const SvgStop                = SvgElementWrapper('stop');
+    const SvgFilter              = SvgElementWrapper('filter');
+    const SvgFEBlend             = SvgElementWrapper('feBlend');
+    const SvgFEColorMatrix       = SvgElementWrapper('feColorMatrix');
+    const SvgFEComposite         = SvgElementWrapper('feComposite');
+    const SvgFEFlood             = SvgElementWrapper('feFlood');
+    const SvgFEGaussianBlur      = SvgElementWrapper('feGaussianBlur');
+    const SvgFEMerge             = SvgElementWrapper('feMerge');
+    const SvgFEMergeNode         = SvgElementWrapper('feMergeNode');
+    const SvgFEOffset            = SvgElementWrapper('feOffset');
+    const SvgFETurbulence        = SvgElementWrapper('feTurbulence');
+    const SvgFEDisplacementMap   = SvgElementWrapper('feDisplacementMap');
+    const SvgFEDiffuseLighting   = SvgElementWrapper('feDiffuseLighting');
+    const SvgFESpecularLighting  = SvgElementWrapper('feSpecularLighting');
+    const SvgFEDistantLight      = SvgElementWrapper('feDistantLight');
+    const SvgFEPointLight        = SvgElementWrapper('fePointLight');
+    const SvgFESpotLight         = SvgElementWrapper('feSpotLight');
+    const SvgFEMorphology        = SvgElementWrapper('feMorphology');
+    const SvgFEConvolveMatrix    = SvgElementWrapper('feConvolveMatrix');
+    const SvgFEComponentTransfer = SvgElementWrapper('feComponentTransfer');
+    const SvgFEFuncR             = SvgElementWrapper('feFuncR');
+    const SvgFEFuncG             = SvgElementWrapper('feFuncG');
+    const SvgFEFuncB             = SvgElementWrapper('feFuncB');
+    const SvgFEFuncA             = SvgElementWrapper('feFuncA');
+    const SvgAnimate             = SvgElementWrapper('animate');
+    const SvgAnimateTransform    = SvgElementWrapper('animateTransform');
+    const SvgAnimateMotion       = SvgElementWrapper('animateMotion');
+    const SvgMPath               = SvgElementWrapper('mpath');
+    const SvgSet                 = SvgElementWrapper('set');
+    const SvgDesc                = SvgElementWrapper('desc');
+    const SvgTitle               = SvgElementWrapper('title');
+    const SvgMetadata            = SvgElementWrapper('metadata');
+    const SvgView                = SvgElementWrapper('view');
+    const SvgStyle               = SvgElementWrapper('style');
+    const SvgScript              = SvgElementWrapper('script');
+
     /**
      * Creates an empty `DocumentFragment` wrapper.
      * Useful for grouping elements without adding a DOM node.
@@ -6467,6 +6695,65 @@ var NativeDocument = (function (exports) {
         Summary: Summary,
         Sup: Sup,
         Svg: Svg,
+        SvgAnimate: SvgAnimate,
+        SvgAnimateMotion: SvgAnimateMotion,
+        SvgAnimateTransform: SvgAnimateTransform,
+        SvgCircle: SvgCircle,
+        SvgClipPath: SvgClipPath,
+        SvgDefs: SvgDefs,
+        SvgDesc: SvgDesc,
+        SvgEllipse: SvgEllipse,
+        SvgFEBlend: SvgFEBlend,
+        SvgFEColorMatrix: SvgFEColorMatrix,
+        SvgFEComponentTransfer: SvgFEComponentTransfer,
+        SvgFEComposite: SvgFEComposite,
+        SvgFEConvolveMatrix: SvgFEConvolveMatrix,
+        SvgFEDiffuseLighting: SvgFEDiffuseLighting,
+        SvgFEDisplacementMap: SvgFEDisplacementMap,
+        SvgFEDistantLight: SvgFEDistantLight,
+        SvgFEFlood: SvgFEFlood,
+        SvgFEFuncA: SvgFEFuncA,
+        SvgFEFuncB: SvgFEFuncB,
+        SvgFEFuncG: SvgFEFuncG,
+        SvgFEFuncR: SvgFEFuncR,
+        SvgFEGaussianBlur: SvgFEGaussianBlur,
+        SvgFEMerge: SvgFEMerge,
+        SvgFEMergeNode: SvgFEMergeNode,
+        SvgFEMorphology: SvgFEMorphology,
+        SvgFEOffset: SvgFEOffset,
+        SvgFEPointLight: SvgFEPointLight,
+        SvgFESpecularLighting: SvgFESpecularLighting,
+        SvgFESpotLight: SvgFESpotLight,
+        SvgFETurbulence: SvgFETurbulence,
+        SvgFilter: SvgFilter,
+        SvgForeignObject: SvgForeignObject,
+        SvgG: SvgG,
+        SvgImage: SvgImage,
+        SvgLine: SvgLine,
+        SvgLinearGradient: SvgLinearGradient,
+        SvgMPath: SvgMPath,
+        SvgMarker: SvgMarker,
+        SvgMask: SvgMask,
+        SvgMetadata: SvgMetadata,
+        SvgPath: SvgPath,
+        SvgPattern: SvgPattern,
+        SvgPolygon: SvgPolygon,
+        SvgPolyline: SvgPolyline,
+        SvgRadialGradient: SvgRadialGradient,
+        SvgRect: SvgRect,
+        SvgScript: SvgScript,
+        SvgSet: SvgSet,
+        SvgStop: SvgStop,
+        SvgStyle: SvgStyle,
+        SvgSvg: SvgSvg,
+        SvgSwitch: SvgSwitch,
+        SvgSymbol: SvgSymbol,
+        SvgTSpan: SvgTSpan,
+        SvgText: SvgText,
+        SvgTextPath: SvgTextPath,
+        SvgTitle: SvgTitle,
+        SvgUse: SvgUse,
+        SvgView: SvgView,
         Switch: Switch,
         TBody: TBody,
         TBodyCell: TBodyCell,
@@ -7112,6 +7399,17 @@ var NativeDocument = (function (exports) {
          * @returns {{route:Route, params:Object, query:Object, path:string}}
          */
         this.resolve = function(target) {
+            if(typeof target === 'string') {
+                const route = $routesByName[target];
+                if(route) {
+                    return {
+                        route,
+                        params: [],
+                        query: [],
+                        path: route.url({ name: target })
+                    };
+                }
+            }
             if(Validator.isJson(target)) {
                 const route = $routesByName[target.name];
                 if(!route) {
@@ -7270,7 +7568,6 @@ var NativeDocument = (function (exports) {
         if(route) {
             target = { name: pathOrRouteName, params};
         }
-        console.log(target);
         return router.push(target);
     };
 
@@ -7410,10 +7707,12 @@ var NativeDocument = (function (exports) {
         __proto__: null,
         Cache: cache,
         NativeFetch: NativeFetch,
+        classPropertyAccumulator: classPropertyAccumulator,
+        cssPropertyAccumulator: cssPropertyAccumulator,
         filters: index
     });
 
-    exports.$ = $;
+    exports.$ = $$1;
     exports.ElementCreator = ElementCreator;
     exports.HtmlElementWrapper = HtmlElementWrapper;
     exports.NDElement = NDElement;

@@ -1,17 +1,16 @@
 import Field from "../Field";
 import {Validator} from "../../../../../index";
-import CheckboxField from "./CheckboxField";
 
-export default function RadioField(name, options, defaultConfig = {}) {
+export default function RadioField(name, props = {}) {
     if(!(this instanceof RadioField)) {
-        return new RadioField(name, defaultConfig);
+        return new RadioField(name, props);
     }
 
-    Field.call(this, name, 'radio', defaultConfig);
+    Field.call(this, name, 'radio', props);
 
     Object.assign(this.$description, {
-        options: options || [],
-        layout: 'vertical' || defaultConfig?.layout,
+        options: [],
+        layout: 'vertical',
         checked: false
     });
 }
@@ -19,7 +18,7 @@ export default function RadioField(name, options, defaultConfig = {}) {
 RadioField.defaultTemplate = null;
 
 RadioField.use = function(template) {
-    RadioField.defaultTemplate = template.radioField;
+    RadioField.defaultTemplate = template;
 };
 
 RadioField.prototype = Object.create(Field.prototype);
@@ -30,12 +29,17 @@ RadioField.prototype.options = function(opts) {
     return this;
 };
 
+RadioField.prototype.option = function(value, label, props = {}) {
+    this.$description.options.push({ value, label, props });
+    return this;
+};
+
 RadioField.prototype.model = function(observable) {
     this.$description.checked = observable;
     return this;
 };
 
-CheckboxField.prototype.checked = function() {
+RadioField.prototype.checked = function() {
     const checked = this.$description.checked;
     if(Validator.isObservable(checked)) {
         return checked.val();

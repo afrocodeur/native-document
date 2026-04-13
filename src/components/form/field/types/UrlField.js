@@ -1,20 +1,19 @@
 import StringField from "./StringField";
 import {Validation} from "../../validation/Validation";
 
-export default function UrlField(name, defaultConfig) {
+export default function UrlField(name, props) {
     if(!(this instanceof UrlField)) {
-        return new UrlField(name, defaultConfig);
+        return new UrlField(name, props);
     }
-    StringField.call(this, name, 'url', defaultConfig);
+    StringField.call(this, name, 'url', props);
 
-    // Auto-apply url validation
     this.addRule(Validation.url, []);
 }
 
 UrlField.defaultTemplate = null;
 
 UrlField.use = function(template) {
-    UrlField.defaultTemplate = template.urlField;
+    UrlField.defaultTemplate = template;
 };
 
 UrlField.prototype = Object.create(StringField.prototype);

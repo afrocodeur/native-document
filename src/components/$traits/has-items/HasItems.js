@@ -1,10 +1,13 @@
-import {$} from "../../../index";
+import {$} from "../../../../index";
 
 /**
  * Mixin for managing a collection of items with manipulation methods
  * @class
  */
 export default function HasItems() {}
+
+
+HasItems.prototype.trailing = () => {}
 
 /**
  * Sets a dynamic observable array to store items
@@ -15,6 +18,7 @@ HasItems.prototype.dynamic = function(observableArray = null) {
     this.$description.items = observableArray || $.array([]);
     return this;
 };
+HasItems.prototype.bind = HasItems.prototype.dynamic;
 
 /**
  * Replaces all existing items with a new array of items
@@ -26,15 +30,6 @@ HasItems.prototype.items = function(items) {
     return this;
 };
 
-/**
- * Adds an item to the collection
- * @param {*} item - The item to add
- * @returns {HasItems}
- */
-HasItems.prototype.item = function(item) {
-    this.$description.items.push(item);
-    return this;
-};
 
 /**
  * Clears all items from the collection
@@ -65,15 +60,5 @@ HasItems.prototype.removeItem = function(item) {
         }
     }
     items.removeItem(item);
-    return this;
-};
-
-/**
- * Sets the render function for items
- * @param {(element: *) => ValidChildren} renderFn - Render function to apply
- * @returns {HasItems}
- */
-HasItems.prototype.render = function(renderFn) {
-    this.$description.render = renderFn;
     return this;
 };

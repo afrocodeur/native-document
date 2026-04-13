@@ -1,12 +1,12 @@
 import Field from "../Field";
 import {Validator} from "../../../../../index";
 
-export default function CheckboxField(name, defaultConfig) {
+export default function CheckboxField(name, props) {
     if(!(this instanceof CheckboxField)) {
-        return new CheckboxField(name, defaultConfig);
+        return new CheckboxField(name, props);
     }
 
-    Field.call(this, name, 'checkbox', defaultConfig);
+    Field.call(this, name, 'checkbox', props);
 
     Object.assign(this.$description, {
         checked: false,
@@ -16,7 +16,7 @@ export default function CheckboxField(name, defaultConfig) {
 CheckboxField.defaultTemplate = null;
 
 CheckboxField.use = function(template) {
-    CheckboxField.defaultTemplate = template.checkboxField;
+    CheckboxField.defaultTemplate = template;
 };
 
 CheckboxField.prototype = Object.create(Field.prototype);

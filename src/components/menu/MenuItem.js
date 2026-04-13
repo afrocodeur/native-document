@@ -1,27 +1,35 @@
 import BaseComponent from "../BaseComponent";
-import HasItems from "../$traits/HasItems";
+import HasItems from "../$traits/has-items/HasItems";
 import MenuDivider from "./MenuDivider";
 import MenuGroup from "./MenuGroup";
+import HasMenuItem from "./HasMenuItem";
+import { $ } from '../../../index';
+import HasEventEmitter from "../../core/utils/HasEventEmitter";
 
+const EMPTY_PROPS = {}
 
-export default function MenuItem(config = {}) {
+export default function MenuItem(props = {}) {
     if(!(this instanceof MenuItem)) {
-        return new MenuItem(config);
+        return new MenuItem(props || EMPTY_PROPS);
     }
 
+    BaseComponent.call(this, props || EMPTY_PROPS);
+
     this.$description = {
-        items: [],
-        link: null,
-        target: null,
+        items: $.array(),
+        key: null,
+        action: null,
         label: null,
         icon: null,
         shortcut: null,
-        disabled: false,
-        selected: false,
+        disabled: null,
+        selected: null,
         value: null,
         data: null,
         render: null,
-        ...config
+        trailing: null,
+        visibility: null,
+        props
     };
 
 }
@@ -29,10 +37,13 @@ export default function MenuItem(config = {}) {
 MenuItem.defaultTemplate = null;
 
 MenuItem.use = function(template) {
-    MenuItem.defaultTemplate = template.menuItem;
+    MenuItem.defaultTemplate = template;
 };
 
-BaseComponent.extends(MenuItem, HasItems);
+BaseComponent.extends(MenuItem);
+BaseComponent.use(MenuItem, HasItems, HasEventEmitter, HasMenuItem);
+
+HasMenuItem.components.MenuItem = MenuItem;
 
 
 MenuItem.prototype.label = function(label) {
@@ -40,18 +51,13 @@ MenuItem.prototype.label = function(label) {
     return this;
 };
 
-MenuItem.prototype.link = function(link) {
-    this.$description.link = link;
+MenuItem.prototype.icon = function(icon) {
+    this.$description.icon = icon;
     return this;
 };
 
-MenuItem.prototype.target = function(target) {
-    this.$description.target = target;
-    return this;
-}
-
-MenuItem.prototype.icon = function(icon) {
-    this.$description.icon = icon;
+MenuItem.prototype.trailing = function(trailing) {
+    this.$description.trailing = trailing;
     return this;
 };
 
@@ -61,17 +67,22 @@ MenuItem.prototype.shortcut = function(shortcut) {
 };
 
 MenuItem.prototype.disabled = function(disabled = true) {
-    this.$description.disabled = disabled;
+    this.$description.disabled = BaseComponent.obs(disabled);
     return this;
 };
 
 MenuItem.prototype.selected = function(selected = true) {
-    this.$description.selected = selected;
+    this.$description.selected = BaseComponent.obs(selected);
     return this;
 };
 
 MenuItem.prototype.value = function(value) {
     this.$description.value = value;
+    return this;
+};
+
+MenuItem.prototype.action = function(action) {
+    this.$description.action = action;
     return this;
 };
 
@@ -84,8 +95,12 @@ MenuItem.prototype.divider = function() {
     return this.item(new MenuDivider());
 };
 
-MenuItem.prototype.group = function(label, builder) {
-    const group = new MenuGroup(label);
-    builder && builder(group);
-    return this.item(group);
+MenuItem.prototype.key = function(key) {
+    this.$description.key = key;
+    return this;
+};
+
+MenuItem.prototype.visibility = function(mode) {
+    this.$description.visibility = BaseComponent.obs(mode);
+    return this;
 };

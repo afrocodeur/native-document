@@ -1,15 +1,16 @@
 import Field from "../Field";
 
-export default function CheckboxGroupField(name, options, defaultConfig) {
+export default function CheckboxGroupField(name, props) {
     if(!(this instanceof CheckboxGroupField)) {
-        return new CheckboxGroupField(name, defaultConfig);
+        return new CheckboxGroupField(name, props);
     }
 
-    Field.call(this, name, 'checkbox-group', defaultConfig);
+    Field.call(this, name, 'checkbox-group', props);
 
     Object.assign(this.$description, {
-        options: options || [],
+        options: [],
         layout: 'vertical',
+        validateOn: 'change',
         defaultValue: []
     });
 }
@@ -17,7 +18,7 @@ export default function CheckboxGroupField(name, options, defaultConfig) {
 CheckboxGroupField.defaultTemplate = null;
 
 CheckboxGroupField.use = function(template) {
-    CheckboxGroupField.defaultTemplate = template.checkboxGroupField;
+    CheckboxGroupField.defaultTemplate = template;
 };
 
 CheckboxGroupField.prototype = Object.create(Field.prototype);
@@ -25,6 +26,11 @@ CheckboxGroupField.prototype.constructor = CheckboxGroupField;
 
 CheckboxGroupField.prototype.options = function(opts) {
     this.$description.options = opts;
+    return this;
+};
+
+CheckboxGroupField.prototype.option = function(value, label, props = {}) {
+    this.$description.options.push({ value, label, props });
     return this;
 };
 

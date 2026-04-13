@@ -24,12 +24,12 @@ export default function Anchor(name, isUniqueChild = false) {
     const isParentUniqueChild = isUniqueChild
         ? () => true: (parent) => (parent.firstChild === anchorStart && parent.lastChild === anchorEnd)
 
-    const insertBefore = function(parent, child, target) {
+    const insertBefore = (parent, child, target) => {
         const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
         insertBeforeRaw(parent, childElement, target);
     };
 
-    const insertBeforeRaw = function(parent, child, target) {
+    const insertBeforeRaw = (parent, child, target) => {
         if(parent === anchorFragment) {
             parent.nativeInsertBefore(child, target);
             return;
@@ -129,6 +129,7 @@ export default function Anchor(name, isUniqueChild = false) {
         anchorStart.remove();
         anchorEnd.remove();
     };
+    anchorFragment.delete = anchorFragment.removeWithAnchors;
 
     anchorFragment.replaceContent = function(child) {
         const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);

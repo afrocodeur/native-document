@@ -1,0 +1,38 @@
+@use "reset";
+@use "opacity";
+@use "viewports";
+@use "fonts";
+@use "spacings";
+@use "colors" as colors;
+@use "colors-dark";
+@use "shadows";
+@use "layouts";
+@use "glass";
+@use "others";
+@use "animation";
+@use "radius";
+@use "components";
+
+@use "vars";
+
+
+body {
+  padding: 0;
+  margin: 0;
+  word-break: break-word;
+  font-family: var(--font);
+  color-scheme: light dark;
+  color: var(--text-color);
+}
+
+* {
+  box-sizing: border-box;
+  //transition: all .3s ease-in-out;
+}
+
+.titles-list {
+  display: flex;
+  flex-direction: column;
+  row-gap: 1rem;
+  margin-top: 2rem;
+}

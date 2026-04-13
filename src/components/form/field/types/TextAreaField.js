@@ -1,11 +1,11 @@
 import StringField from "./StringField";
 
-export default function TextAreaField(name, defaultConfig) {
+export default function TextAreaField(name, props) {
     if(!(this instanceof TextAreaField)) {
-        return new TextAreaField(name, defaultConfig);
+        return new TextAreaField(name, props);
     }
 
-    StringField.call(this, name, 'textarea', defaultConfig);
+    StringField.call(this, name, 'textarea', props);
 
     Object.assign(this.$description, {
         ...this.$description,
@@ -13,6 +13,7 @@ export default function TextAreaField(name, defaultConfig) {
         cols: null,
         resize: 'vertical',
         autoGrow: false,
+        wordCount: false,
         characterCounter: false,
     });
 }
@@ -20,7 +21,7 @@ export default function TextAreaField(name, defaultConfig) {
 TextAreaField.defaultTemplate = null;
 
 TextAreaField.use = function(template) {
-    TextAreaField.defaultTemplate = template.textareaField;
+    TextAreaField.defaultTemplate = template;
 };
 
 TextAreaField.prototype = Object.create(StringField.prototype);
@@ -52,8 +53,9 @@ TextAreaField.prototype.characterCounter = function(enabled = true) {
 };
 
 TextAreaField.prototype.wordCount = function(min, max, message) {
+    this.$description.wordCount = true;
     this.$description.rules.push({
-        validate: (value) => {
+        fn: (value) => {
             if (!value) return true;
             const words = value.trim().split(/\s+/).length;
             if (min && words < min) return false;

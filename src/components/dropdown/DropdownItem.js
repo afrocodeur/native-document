@@ -1,23 +1,33 @@
 import BaseComponent from "../BaseComponent";
 
 
-export default function DropdownItem(config = {}) {
+export default function DropdownItem(props = {}) {
     if(!(this instanceof DropdownItem)) {
-        return new DropdownItem(config);
+        return new DropdownItem(props);
     }
+
+    BaseComponent.call(this, props);
+
     this.$description = {
         icon: null,
         content: null,
-        shortcuts: null,
+        shortcut: null,
         value: null,
         disabled: false,
+        selected: false,
         data: null,
         render: null,
-        ...config
+        renderContent: null,
+        props
     };
 };
 
 BaseComponent.extends(DropdownItem);
+
+DropdownItem.defaultTemplate = null;
+DropdownItem.use = function(template) {
+    DropdownItem.defaultTemplate = template;
+};
 
 DropdownItem.prototype.value = function(value) {
     this.$description.value = value;
@@ -29,7 +39,12 @@ DropdownItem.prototype.getValue = function() {
 };
 
 DropdownItem.prototype.disabled = function(disabled = true) {
-    this.$description.disabled = disabled;
+    this.$description.disabled = BaseComponent.obs(disabled);
+    return this;
+};
+
+DropdownItem.prototype.selected = function(selected = true) {
+    this.$description.selected = BaseComponent.obs(selected);
     return this;
 };
 
@@ -52,20 +67,11 @@ DropdownItem.prototype.getData = function() {
     return this.$description.data;
 };
 
-DropdownItem.prototype.shortcuts = function(shortcuts) {
-    this.$description.shortcuts = shortcuts;
+DropdownItem.prototype.shortcut = function(shortcut) {
+    this.$description.shortcut = shortcut;
     return this;
 };
-
-DropdownItem.prototype.render = function(renderFn) {
-    this.$description.render = renderFn;
+DropdownItem.prototype.renderContent = function(callback) {
+    this.$description.renderContent = callback;
     return this;
-};
-
-DropdownItem.prototype.$build = function() {
-
-};
-
-DropdownItem.prototype.toNdElement = function() {
-
 };

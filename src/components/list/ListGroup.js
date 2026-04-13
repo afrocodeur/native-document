@@ -1,5 +1,5 @@
 import BaseComponent from "../BaseComponent";
-import HasItems from "../$traits/HasItems";
+import HasItems from "../$traits/has-items/HasItems";
 
 export default function ListGroup(label, config = {}) {
     if(!(this instanceof ListGroup)) {
@@ -19,12 +19,13 @@ export default function ListGroup(label, config = {}) {
     };
 }
 
-BaseComponent.extends(ListGroup, HasItems);
+BaseComponent.extends(ListGroup);
+BaseComponent.use(ListGroup, HasItems);
 
 ListGroup.defaultTemplate = null;
 
 ListGroup.use = function(template) {
-    ListGroup.defaultTemplate = template.listGroup;
+    ListGroup.defaultTemplate = template;
 };
 
 ListGroup.prototype.header = function(header) {

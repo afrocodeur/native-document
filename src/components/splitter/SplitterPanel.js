@@ -1,18 +1,17 @@
 import BaseComponent from "../BaseComponent";
+import { $ } from '../../../index';
 
-export default function SplitterPanel(content, config = {}) {
+export default function SplitterPanel(content, props = {}) {
     if(!(this instanceof SplitterPanel)) {
-        return new SplitterPanel(content, config);
+        return new SplitterPanel(content, props);
     }
 
-    if (typeof content === 'object' && !content.tagName) {
-        config = content;
-        content = config.content || null;
-    }
+    BaseComponent.call(this, props);
 
     this.$description = {
+        orientation: 'horizontal',
         content: content || null,
-        size: null,
+        size: $(null),
         minSize: null,
         maxSize: null,
         collapsible: false,
@@ -20,16 +19,16 @@ export default function SplitterPanel(content, config = {}) {
         resizable: true,
         data: null,
         render: null,
-        ...config
+        props
     };
 }
 
-BaseComponent.extends(SplitterPanel, BaseComponent);
+BaseComponent.extends(SplitterPanel);
 
 SplitterPanel.defaultTemplate = null;
 
 SplitterPanel.use = function(template) {
-    SplitterPanel.defaultTemplate = template.splitterPanel;
+    SplitterPanel.defaultTemplate = template;
 };
 
 SplitterPanel.prototype.content = function(content) {
@@ -38,7 +37,7 @@ SplitterPanel.prototype.content = function(content) {
 };
 
 SplitterPanel.prototype.size = function(size) {
-    this.$description.size = size;
+    this.$description.size.set(size);
     return this;
 };
 
@@ -73,10 +72,5 @@ SplitterPanel.prototype.fixed = function() {
 
 SplitterPanel.prototype.data = function(data) {
     this.$description.data = data;
-    return this;
-};
-
-SplitterPanel.prototype.render = function(renderFn) {
-    this.$description.render = renderFn;
     return this;
 };

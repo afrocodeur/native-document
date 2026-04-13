@@ -1,0 +1,189 @@
+:root {
+    --avatar-size-extra-small: 24px;
+    --avatar-size-small: 32px;
+    --avatar-size-medium: 40px;
+    --avatar-size-large: 56px;
+    --avatar-size-extra-large: 72px;
+
+    --avatar-font-size-extra-small: var(--hint-size);
+    --avatar-font-size-small: var(--note-size);
+    --avatar-font-size-medium: var(--description-size);
+    --avatar-font-size-large: var(--important-size);
+    --avatar-font-size-extra-large: var(--h3-font-size);
+
+    --avatar-status-size: 10px;
+    --avatar-status-offset: 1px;
+
+    --avatar-color-primary: var(--color-primary);
+    --avatar-color-secondary: var(--color-secondary);
+    --avatar-color-success: var(--color-success);
+    --avatar-color-danger: var(--color-danger);
+    --avatar-color-warning: var(--color-warning);
+    --avatar-color-info: var(--color-info);
+}
+
+.avatar, .avatar-group-more {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    font-weight: 500;
+    user-select: none;
+
+    &.is-extra-small {
+        width: var(--avatar-size-extra-small);
+        height: var(--avatar-size-extra-small);
+        font-size: var(--avatar-font-size-extra-small);
+    }
+
+    &.is-small {
+        width: var(--avatar-size-small);
+        height: var(--avatar-size-small);
+        font-size: var(--avatar-font-size-small);
+    }
+
+    &.is-medium {
+        width: var(--avatar-size-medium);
+        height: var(--avatar-size-medium);
+        font-size: var(--avatar-font-size-medium);
+    }
+
+    &.is-large {
+        width: var(--avatar-size-large);
+        height: var(--avatar-size-large);
+        font-size: var(--avatar-font-size-large);
+    }
+
+    &.is-extra-large {
+        width: var(--avatar-size-extra-large);
+        height: var(--avatar-size-extra-large);
+        font-size: var(--avatar-font-size-extra-large);
+    }
+
+    &.is-circle {
+        border-radius: 50%;
+    }
+
+    &.is-square {
+        border-radius: 0;
+    }
+
+    &.is-rounded {
+        border-radius: var(--radius-x);
+    }
+
+    &.is-primary {
+        background: var(--avatar-color-primary);
+        color: var(--white);
+    }
+
+    &.is-secondary {
+        background: var(--avatar-color-secondary);
+        color: var(--text-color);
+    }
+
+    &.is-success {
+        background: var(--avatar-color-success);
+        color: var(--white);
+    }
+
+    &.is-danger {
+        background: var(--avatar-color-danger);
+        color: var(--white);
+    }
+
+    &.is-warning {
+        background: var(--avatar-color-warning);
+        color: var(--white);
+    }
+
+    &.is-info {
+        background: var(--avatar-color-info);
+        color: var(--white);
+    }
+}
+
+.avatar-wrapper {
+    position: relative;
+    display: inline-flex;
+}
+
+.avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-status {
+    position: absolute;
+    width: var(--avatar-status-size);
+    height: var(--avatar-status-size);
+    border-radius: 50%;
+    border: 2px solid var(--background);
+
+    &.is-top-leading {
+        top: var(--avatar-status-offset);
+        left: var(--avatar-status-offset);
+    }
+
+    &.is-top-trailing {
+        top: var(--avatar-status-offset);
+        right: var(--avatar-status-offset);
+    }
+
+    &.is-bottom-leading {
+        bottom: var(--avatar-status-offset);
+        left: var(--avatar-status-offset);
+    }
+
+    &.is-bottom-trailing {
+        bottom: var(--avatar-status-offset);
+        right: var(--avatar-status-offset);
+    }
+
+    &.is-online {
+        background: var(--green);
+    }
+
+    &.is-offline {
+        background: var(--gray);
+    }
+
+    &.is-busy {
+        background: var(--red);
+    }
+
+    &.is-away {
+        background: var(--yellow);
+    }
+}
+
+.avatar-badge {
+    position: absolute;
+
+    &.is-top-leading {
+        top: 0;
+        left: 0;
+        transform: translate(-25%, -25%);
+    }
+
+    &.is-top-trailing {
+        top: 0;
+        right: 0;
+        transform: translate(25%, -25%);
+    }
+
+    &.is-bottom-leading {
+        bottom: 0;
+        left: 0;
+        transform: translate(-25%, 25%);
+    }
+
+    &.is-bottom-trailing {
+        bottom: 0;
+        right: 0;
+        transform: translate(25%, 25%);
+    }
+}

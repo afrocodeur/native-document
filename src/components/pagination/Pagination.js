@@ -1,17 +1,21 @@
 import BaseComponent from "../BaseComponent";
-import EventEmitter from "../../../src/core/utils/EventEmitter";
+import { $ } from "../../../index";
+import HasEventEmitter from "../../core/utils/HasEventEmitter";
+import DebugManager from "../../core/utils/debug-manager";
 
-export default function Pagination(config = {}) {
+export default function Pagination(props = {}) {
     if(!(this instanceof Pagination)) {
-        return new Pagination(config);
+        return new Pagination(props);
     }
+
+    BaseComponent.call(this, props);
 
     this.$description = {
         currentPage: $(1),
         pages: $.array([]),
-        totalPages: 1,
-        pageSize: 10,
-        totalItems: 0,
+        totalPages: $(2),
+        pageSize: $(10),
+        totalItems: $(0),
         siblingCount: 1,
         boundaryCount: 1,
         showFirstLast: true,
@@ -25,20 +29,56 @@ export default function Pagination(config = {}) {
         renderFirst: null,
         renderLast: null,
         render: null,
-        ...config
+        props
     };
 
     this.$element = null;
 }
 
-BaseComponent.extends(Pagination, EventEmitter);
+BaseComponent.extends(Pagination);
+BaseComponent.use(Pagination, HasEventEmitter);
 
 Pagination.defaultTemplate = null;
 
 Pagination.use = function(template) {
-    Pagination.defaultTemplate = template.pagination;
+    Pagination.defaultTemplate = template;
 };
 
+Pagination.preset = function(name, callback) {
+    if (Pagination.prototype[name] || Pagination[name]) {
+        DebugManager.warn(`Warning: the ${name} method already exist in Pagination.`);
+        return;
+    }
+    Pagination[name] = (props) => callback(new Pagination(props));
+};
+
+Pagination.presets = function(presets) {
+    for (const name in presets) {
+        Pagination.preset(name, presets[name]);
+    }
+};
+
+Pagination.prototype.$originalBuild = BaseComponent.prototype.$build;
+
+Pagination.prototype.$build = function() {
+    const $desc = this.$description;
+
+    const updatePages = () => {
+        $desc.totalPages.set(Math.ceil($desc.totalItems.val() / $desc.pageSize.val()));
+        this.$updatePages();
+    };
+
+    $desc.pageSize.subscribe(updatePages);
+    $desc.currentPage.subscribe(updatePages);
+    $desc.totalItems.subscribe(updatePages);
+    $desc.totalPages.subscribe(() => this.$updatePages());
+
+    const totalPages = Math.ceil($desc.totalItems.val() / $desc.pageSize.val());
+    $desc.totalPages.set(totalPages);
+    this.$updatePages();
+
+    return this.$originalBuild();
+};
 Pagination.prototype.currentPage = function(page) {
     if (typeof page === 'number') {
         this.$description.currentPage.set(page);
@@ -49,18 +89,17 @@ Pagination.prototype.currentPage = function(page) {
 };
 
 Pagination.prototype.totalPages = function(total) {
-    this.$description.totalPages = total;
+    this.$description.totalPages.set(total);
     return this;
 };
 
 Pagination.prototype.pageSize = function(size) {
-    this.$description.pageSize = size;
+    this.$description.pageSize = BaseComponent.obs(size);
     return this;
 };
 
 Pagination.prototype.totalItems = function(total) {
-    this.$description.totalItems = total;
-    this.totalPages(Math.ceil(total / this.$description.pageSize));
+    this.$description.totalItems = BaseComponent.obs(total);
     return this;
 };
 
@@ -95,7 +134,7 @@ Pagination.prototype.data = function(data) {
 };
 
 Pagination.prototype.goToPage = function(page) {
-    if (page < 1 || page > this.$description.totalPages) {
+    if (page < 1 || page > this.$description.totalPages.val()) {
         return this;
     }
 
@@ -119,11 +158,11 @@ Pagination.prototype.first = function() {
 };
 
 Pagination.prototype.last = function() {
-    return this.goToPage(this.$description.totalPages);
+    return this.goToPage(this.$description.totalPages.val());
 };
 
 Pagination.prototype.hasNext = function() {
-    return this.$description.currentPage.val() < this.$description.totalPages;
+    return this.$description.currentPage.val() < this.$description.totalPages.last();
 };
 
 Pagination.prototype.hasPrevious = function() {
@@ -136,7 +175,7 @@ Pagination.prototype.$updatePages = function() {
 
 Pagination.prototype.getPageNumbers = function() {
     const current = this.$description.currentPage.val();
-    const total = this.$description.totalPages;
+    const total = this.$description.totalPages.val();
     const siblings = this.$description.siblingCount;
     const boundary = this.$description.boundaryCount;
 
@@ -221,9 +260,4 @@ Pagination.prototype.renderFirst = function(renderFn) {
 Pagination.prototype.renderLast = function(renderFn) {
     this.$description.renderLast = renderFn;
     return this;
-};
-
-Pagination.prototype.$build = function() {
-
-    return null;
 };

@@ -1,149 +1,227 @@
 import {debounce} from "../../core/utils/helpers";
-import EventEmitter from "../../../src/core/utils/EventEmitter";
-import {Validator, Observable as $ } from "../../../index";
+import HasEventEmitter from "../../core/utils/HasEventEmitter";
+import {Validator, Observable as $} from "../../../index";
 import NativeDocumentError from "../../../src/core/errors/NativeDocumentError";
 import BaseComponent from "../BaseComponent";
 
-/**
- * @param { {data: Observable } } configs
- * @constructor
- */
-export default function FormControl(configs) {
+export default function FormControl(props) {
     if(!(this instanceof FormControl)) {
-        return new FormControl(configs);
+        return new FormControl(props);
     }
-    EventEmitter.call(this);
+    BaseComponent.call(this, props);
 
-    this.$element = null;
-    this.$configs = configs;
-    this.$fields = new Map();
-    this.$submitting = $(false);
-    this.$errors = $(null);
-    this.$isDirty = $(false);
-    this.$isValid = $(false);
+    this.$fields  = {};
+
+    this.$description = {
+        data:            props?.data || null,
+        fieldBuilder:    null,
+        layout:          null,
+        errorsMode:      'dispatch',
+        errorsPosition:  'bottom',
+        errorsMapper:    null,
+        renderErrors:    null,
+        submitting:      $(false),
+        errors:          $(null),
+        isDirty:         $(false),
+        isValid:         $(false),
+        props
+    };
 }
 
-FormControl.defaultLayoutTemplate = null;
+FormControl.defaultTemplate = null;
 
 FormControl.use = function(template) {
-    FormControl.defaultLayoutTemplate = template.formControl;
+    FormControl.defaultTemplate = template;
 };
 
-FormControl.create = function (configs) {
-    return new FormControl(configs);
+FormControl.create = function(props) {
+    return new FormControl(props);
 };
 
-BaseComponent.extends(FormControl, EventEmitter);
+BaseComponent.extends(FormControl);
+BaseComponent.use(FormControl, HasEventEmitter);
 
 Object.defineProperty(FormControl.prototype, 'isDirty', {
-    get() { return this.$isDirty; }
+    get() { return this.$description.isDirty; }
 });
 
 Object.defineProperty(FormControl.prototype, 'isValid', {
-    get() { return this.$isValid; }
+    get() { return this.$description.isValid; }
 });
 
 Object.defineProperty(FormControl.prototype, 'submitting', {
-    get() { return this.$submitting; }
+    get() { return this.$description.submitting; }
 });
 
-FormControl.prototype.layout = function(layoutCallback) {
-    if (typeof layoutCallback !== 'function') {
-        throw new Error('Layout must be a function');
+FormControl.prototype.fields = function(fieldBuilder) {
+    if(typeof fieldBuilder !== 'function') {
+        throw new NativeDocumentError('FormControl.fields() expects a function');
     }
+    this.$description.fieldBuilder = (...args) => {
+        const result = fieldBuilder(...args);
+        const dirties = [];
+        for(const [name, field] of Object.entries(result)) {
+            this.$registerField(name, field);
+            dirties.push(field.$description.isDirty);
+        }
 
-    this.$layout = layoutCallback;
+        $.computed(() => {
+            const isDirty = dirties.some((item) => item.val());
+            this.$description.isDirty.set(isDirty);
+        }, dirties);
+
+        return result;
+    };
     return this;
 };
 
-FormControl.prototype.field = function(field) {
-    const name = field.$description.name;
-    this.$fields.set(name, field);
+FormControl.prototype.$registerField = function(name, field) {
+    this.$fields[name] = field;
 
-    const dataSource = this.$configs?.data?.[name];
+    const dataSource = this.$description.data?.[name];
     if(!dataSource) {
-        return this;
+        return;
     }
 
     if(Validator.isObservable(dataSource)) {
         field.model(dataSource);
-        dataSource.subscribe(() => {
-            this.$isDirty.set(true);
-            this.emit('change', name, dataSource, field);
-        });
-        return this;
+        return;
     }
 
     field.value(dataSource);
-
-    return this;
 };
 
 FormControl.prototype.get = function(fieldName) {
-    const field = this.$fields.get(fieldName);
-    if (!field) {
-        throw new Error(`Field "${fieldName}" not found in form`);
+    const field = this.$fields[fieldName];
+    if(!field) {
+        throw new NativeDocumentError(`Field "${fieldName}" not found in form`);
     }
     return field;
 };
 
+FormControl.prototype.layout = function(layoutCallback) {
+    if(typeof layoutCallback !== 'function') {
+        throw new NativeDocumentError('FormControl.layout() expects a function');
+    }
+    this.$description.layout = layoutCallback;
+    return this;
+};
+
+FormControl.prototype.errorsMode = function(mode) {
+    this.$description.errorsMode = mode;
+    return this;
+};
+
+FormControl.prototype.dispatchErrors = function(mapper = null) {
+    this.$description.errorsMode   = this.$description.errorsMode === 'summary' ? 'both' : 'dispatch';
+    this.$description.errorsMapper = mapper;
+    return this;
+};
+
+FormControl.prototype.summarizeErrors = function() {
+    this.$description.errorsMode = this.$description.errorsMode === 'dispatch' ? 'both' : 'summary';
+    return this;
+};
+
+FormControl.prototype.dispatchAndSummarize = function(mapper = null) {
+    this.$description.errorsMode   = 'both';
+    this.$description.errorsMapper = mapper;
+    return this;
+};
+
+FormControl.prototype.errorsPosition = function(position) {
+    this.$description.errorsPosition = position;
+    return this;
+};
+
+FormControl.prototype.errorsAtTop = function() {
+    this.$description.errorsPosition = 'top';
+    return this;
+};
+
+FormControl.prototype.errorsAtBottom = function() {
+    this.$description.errorsPosition = 'bottom';
+    return this;
+};
+
+FormControl.prototype.renderErrors = function(renderFn) {
+    this.$description.renderErrors = renderFn;
+    return this;
+};
+
+FormControl.prototype.$dispatchServerErrors = function(error) {
+    const serverErrors = error.fields;
+    const mapped = this.$description.errorsMapper
+        ? this.$description.errorsMapper(serverErrors)
+        : serverErrors;
+
+    if(!mapped) {
+        return;
+    }
+
+    for(const [fieldName, errors] of Object.entries(mapped)) {
+        const field = this.$fields[fieldName];
+        if(field) {
+            const errs = Array.isArray(errors) ? errors : [errors];
+            field.setError(errs);
+        }
+    }
+};
 
 FormControl.prototype.reset = function() {
-    this.$isDirty.set(false);
-    this.$isValid.set(true);
+    this.$description.isDirty.set(false);
+    this.$description.isValid.set(false);
+    this.$description.errors.set(null);
 
-    this.$configs?.data?.reset();
+    this.$description.data?.reset?.();
+
+    for(const [_, field] of Object.entries(this.$fields)) {
+        field.reset();
+    }
 
     this.emit('reset');
     return this;
 };
 
-FormControl.prototype.submit = function() {
-    this.$element?.submit();
+FormControl.prototype.resetField = function(name) {
+    const field = this.$fields[name];
+    if(!field) {
+        return this;
+    }
+    field.reset()
     return this;
 };
 
-FormControl.prototype.$handleSubmit = async function(event) {
-    this.emit('beforeSubmit', event, this);
-
-    const values = this.values();
-    const isValid = await this.validate(values);
-    if (!isValid) {
-        event.preventDefault();
-        this.emit('validationError', this.$errors.val(), this);
-        return;
-    }
-
-    this.$submitting.set(true);
-
-    try {
-        const result = await this.emit('submit', event, values);
-
-        this.emit('success', result, values, this);
-
-        return result;
-
-    } catch (error) {
-        this.emit('error', error, this);
-        if(!this.hasListeners('error')) {
-            throw error;
-        }
-    } finally {
-        this.$submitting.set(false);
-        this.emit('afterSubmit', this);
-    }
+FormControl.prototype.submit = function(event) {
+    return this.$handleSubmit(event);
 };
 
-FormControl.prototype.disable = function() {
-    for (const [_, field] of this.$fields) {
+FormControl.prototype.trigger = function(...fieldNames) {
+    const values = this.values();
+    fieldNames.forEach(name => {
+        this.$fields[name]?.validate(values);
+    });
+    return this;
+};
+
+FormControl.prototype.disable = function(fieldName = null) {
+    if(fieldName) {
+        this.$fields[fieldName]?.disabled?.(true);
+        return this;
+    }
+    for(const [_, field] of Object.entries(this.$fields)) {
         field.disabled?.(true);
     }
     this.emit('disable');
     return this;
 };
 
-FormControl.prototype.enable = function() {
-    for (const [_, field] of this.$fields) {
+FormControl.prototype.enable = function(fieldName = null) {
+    if(fieldName) {
+        this.$fields[fieldName]?.disabled?.(false);
+        return this;
+    }
+    for(const [_, field] of Object.entries(this.$fields)) {
         field.disabled?.(false);
     }
     this.emit('enable');
@@ -152,33 +230,73 @@ FormControl.prototype.enable = function() {
 
 FormControl.prototype.values = function() {
     const values = {};
-    for(const [_, field] of this.$fields) {
-        values[field.$description.name] = field.value();
+    for(const [name, field] of Object.entries(this.$fields)) {
+        values[name] = field.value();
     }
     return values;
+};
+
+FormControl.prototype.watch = function(fieldName, handler) {
+    const field = this.$fields[fieldName];
+    if(!field) {
+        return this;
+    }
+    field.$description.value?.subscribe(handler);
+    return this;
 };
 
 FormControl.prototype.validate = async function(allValues) {
     const errors = {};
     const values = allValues || this.values();
 
-    for (const [name, field] of this.$fields) {
+    for(const [name, field] of Object.entries(this.$fields)) {
         const fieldErrors = await field.validate(values);
 
-        if (fieldErrors && fieldErrors.length > 0) {
-            errors[name] = fieldErrors;
+        if(fieldErrors && fieldErrors.errors?.length > 0) {
+            errors[name] = fieldErrors.errors;
         }
     }
 
     const hasError = Object.keys(errors).length > 0;
 
-    this.$errors.set(hasError ? errors : null);
-
-    this.$isValid.set(!hasError);
+    this.$description.errors.set(hasError ? errors : null);
+    this.$description.isValid.set(!hasError);
 
     this.emit('validate', !hasError, errors);
 
-    return Object.keys(errors).length === 0;
+    return !hasError;
+};
+
+FormControl.prototype.$handleSubmit = async function(event) {
+    this.emit('beforeSubmit', event, this);
+
+    const values  = this.values();
+    const isValid = await this.validate(values);
+
+    if(!isValid) {
+        event.preventDefault();
+        this.emit('validationError', this.$description.errors.val(), this);
+        return;
+    }
+
+    this.$description.submitting.set(true);
+
+    try {
+        const result = await this.emit('submit', event, values);
+        this.emit('success', result, values, this);
+
+        return result;
+
+    } catch(error) {
+        this.$dispatchServerErrors(error);
+        this.emit('error', error, this);
+        if(!this.hasListeners('error')) {
+            throw error;
+        }
+    } finally {
+        this.$description.submitting.set(false);
+        this.emit('afterSubmit', this);
+    }
 };
 
 FormControl.prototype.onSubmit = function(callback) {
@@ -198,12 +316,12 @@ FormControl.prototype.onDebouncedSubmit = function(callback, delay = 300) {
     return this.onSubmit(debounce(callback.bind(this), delay));
 };
 
-FormControl.prototype.onSuccess = function (callback) {
+FormControl.prototype.onSuccess = function(callback) {
     this.on('success', callback);
     return this;
 };
 
-FormControl.prototype.onError = function (callback) {
+FormControl.prototype.onError = function(callback) {
     this.on('error', callback);
     return this;
 };
@@ -217,39 +335,20 @@ FormControl.prototype.onReset = function(callback) {
     this.on('reset', callback);
     return this;
 };
+
 FormControl.prototype.onBeforeSubmit = function(callback) {
     this.on('beforeSubmit', callback);
     return this;
 };
+
 FormControl.prototype.onAfterSubmit = function(callback) {
     this.on('afterSubmit', callback);
     return this;
 };
+
 FormControl.prototype.onValidationError = function(callback) {
     this.on('validationError', callback);
     return this;
 };
 
-
-FormControl.prototype.$build = function() {
-    const fieldsObject = {};
-    for (const [name, field] of this.$fields) {
-        fieldsObject[name] = field;
-    }
-
-    const layoutFn = this.$layout || FormControl.defaultLayoutTemplate;
-
-    const form = layoutFn({
-        fields: fieldsObject,
-        form: this
-    });
-    if(!((form instanceof HTMLFormElement)  || form?.$element instanceof HTMLFormElement)) {
-        throw new NativeDocumentError('Layout must return an HtmlFormElement');
-    }
-    const self = this;
-    form.nd.onSubmit(async function(event) {
-        return await self.$handleSubmit(event);
-    });
-
-    return form;
-};
+FormControl.prototype.onInvalid = FormControl.prototype.onValidationError;

@@ -1,72 +1,176 @@
 import BaseComponent from "../BaseComponent";
-import EventEmitter from "../../../src/core/utils/EventEmitter";
+import HasEventEmitter from "../../core/utils/HasEventEmitter";
+import { $ } from "../../../index";
 
 
-export default function Tabs(config = {}) {
+export default function Tabs(props = {}) {
     if(!(this instanceof Tabs)) {
         return new Tabs();
     }
-    BaseComponent.apply(this);
+    BaseComponent.apply(this, props);
     this.$description = {
         active: $(''),
         tabs: {},
-        ...config,
+        sortable: false,
+        tabAppearance: 'segmented',
+        addPlusButton: null,
+        addPLusCallback: null,
+        stickyHeader: false,
+        overflow: 'scroll',
+        navigationBarPosition: 'top',
+        tabsAlignment: 'leading',
+        closable: false,
+        focusOnNewTab: false,
+        closeIcon: null,
+        renderCloseButton: null,
+        renderPlusButton: null,
+        props,
     };
-
-    this.tabsMap = {};
 }
 
-BaseComponent.extends(Tabs, EventEmitter);
+BaseComponent.extends(Tabs);
+BaseComponent.use(Tabs, HasEventEmitter);
 
 Tabs.defaultTemplate = null;
-Tabs.defaultTabTemplate = null;
-Tabs.defaultNavigationBarTemplate = null;
 
-Tabs.use = function(template) {};
+Tabs.use = function(template) {
+    Tabs.defaultTemplate = template;
+};
 
-Tabs.prototype.activateTab = function(key) {};
-Tabs.prototype.closeTab = function(key) {};
+Tabs.prototype.parentEmit = HasEventEmitter.prototype.emit;
+Tabs.prototype.emit = function(eventName, ...args) {
+    this.parentEmit.call(this, eventName, ...args);
+    this.parentEmit.call(this, 'change');
+};
 
-Tabs.prototype.tab = function(label, content, key) {
-    this.$description.tabs[key] = { label, content };
-    this.tabsMap[key] = content;
+Tabs.prototype.sortable = function() {
+    this.$description.sortable = true;
     return this;
 };
+Tabs.prototype.pills = function() {
+    this.$description.tabAppearance = 'pills';
+    return this;
+};
+Tabs.prototype.segmented = function() {
+    this.$description.tabAppearance = 'segmented';
+    return this;
+};
+
+Tabs.prototype.addPlusButton = function(callback) {
+    this.$description.addPlusButton = true;
+    this.$description.addPLusCallback = callback;
+    return this;
+};
+
+Tabs.prototype.closable = function(mode = true) {
+    this.$description.closable = mode;
+    return this;
+};
+
+Tabs.prototype.renderCloseButton = function(renderFn) {
+    this.$description.renderCloseButton = renderFn;
+    return this;
+};
+
+Tabs.prototype.renderPlusButton = function(renderFn) {
+    this.$description.renderPlusButton = renderFn;
+    return this;
+};
+
+Tabs.prototype.overflow = function(overflow) {
+    this.$description.overflow = overflow;
+    return this;
+};
+
+Tabs.prototype.scrollOnTabOverflow = function() {
+    this.$description.overflow = 'scroll';
+    return this;
+};
+
+Tabs.prototype.menuOnTabOverflow = function() {
+    this.$description.overflow = 'menu';
+    return this;
+};
+
+Tabs.prototype.focusOnNewTab = function(mode = true) {
+    this.$description.focusOnNewTab = mode;
+    return this;
+};
+
+Tabs.prototype.stickyHeader = function(mode = true) {
+    this.$description.stickyHeader = mode;
+    return this;
+};
+
+Tabs.prototype.addTab = function(icon, label, content, key) {
+    const tab = { icon, label, content, key };
+    this.$description.tabs[key] = tab;
+    this.emit('addTab', tab);
+    return this;
+};
+
+Tabs.prototype.tab = function(label, content, key) {
+    return this.addTab(null, label, content, key);
+};
+
+Tabs.prototype.tabWithIcon = function(icon, label, content, key) {
+    return this.addTab(icon, label, content, key);
+};
+
 Tabs.prototype.tabs = function(tabs) {
     for(const item of tabs) {
-        this.tab(item.label, item.content, item.key);
+        this.addTab(item.icon, item.label, item.content, item.key);
     }
     return this;
 };
-Tabs.prototype.removeTab = function(key) {
+Tabs.prototype.closeTab = function(key) {
     delete this.$description.tabs[key];
-    delete this.tabsMap[key];
-    // Todo: remove tab from Match element
-    this.active(Object.keys(this.$description.tabs)[0]);
+    this.emit('closeTab', key);
     return this;
 };
 
 Tabs.prototype.active = function(key) {
     this.$description.active.set(key);
+    return this;
 };
-Tabs.prototype.defaultActive = function(key) {};
-Tabs.prototype.getActive = function() {};
 
 Tabs.prototype.navigationBarPosition = function(position) {
     this.$description.navigationBarPosition = position;
     return this;
 };
 Tabs.prototype.navigationBarAtLeft = function() {
-    return this.navigationBarPosition('left');
+    this.$description.navigationBarPosition = 'left';
+    return this;
 };
 Tabs.prototype.navigationBarAtRight = function() {
-    return this.navigationBarPosition('right');
+    this.$description.navigationBarPosition = 'right';
+    return this;
 };
 Tabs.prototype.navigationBarAtTop = function() {
-    return this.navigationBarPosition('top');
+    this.$description.navigationBarPosition = 'top';
+    return this;
 }
 Tabs.prototype.navigationBarAsDock = function() {
-    return this.navigationBarPosition('dock');
+    this.$description.navigationBarPosition = 'dock';
+    return this;
+};
+
+Tabs.prototype.tabsAtLeading = function() {
+    this.$description.tabsAlignment = 'leading';
+    return this;
+};
+
+Tabs.prototype.tabsAtTrailing = function() {
+    this.$description.tabsAlignment = 'trailing';
+    return this;
+};
+Tabs.prototype.tabsAtCenter = function() {
+    this.$description.tabsAlignment = 'center';
+    return this;
+};
+Tabs.prototype.tabsJustified = function() {
+    this.$description.tabsAlignment = 'justified';
+    return this;
 };
 
 // Events
@@ -74,16 +178,23 @@ Tabs.prototype.onChange = function(handler) {
     this.on('change', handler);
     return this;
 };
-Tabs.prototype.onBeforeChange = function(handler) {
-    this.on('beforeChange', handler);
+Tabs.prototype.onBeforeTabClose = function(handler) {
+    this.on('beforeTabClose', handler);
     return this;
 };
-Tabs.prototype.onTabClick = function(handler) {
-    this.on('tabClick', handler);
+
+Tabs.prototype.onClickTab = function(handler) {
+    this.on('clickTab', handler);
     return this;
 };
-Tabs.prototype.onTabClose = function(handler) {
-    this.on('tabClose', handler);
+
+Tabs.prototype.onCloseTab = function(handler) {
+    this.on('closeTab', handler);
+    return this;
+};
+
+Tabs.prototype.onAddTab = function(handler) {
+    this.on('addTab', handler);
     return this;
 };
 
@@ -94,17 +205,4 @@ Tabs.prototype.renderTab = function(renderFn) {
 };
 Tabs.prototype.renderNavigationBar = function(renderFn) {
     return this.$description.renderNavigationBar = renderFn;
-};
-
-Tabs.prototype.layout = function(layoutFn) {
-    this.$description.layout = layoutFn;
-    return this;
-};
-
-Tabs.prototype.$build = function() {
-
-};
-
-Tabs.prototype.toNdElement = function() {
-
 };

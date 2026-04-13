@@ -1,47 +1,61 @@
 import BaseComponent from "../BaseComponent";
-import EventEmitter from "../../../src/core/utils/EventEmitter";
+import HasEventEmitter from "../../core/utils/HasEventEmitter";
+import DebugManager from "../../core/utils/debug-manager";
 
 /**
  * Component for displaying alert messages with various styles and variants
- * @param {ValidChildren} message - The alert message content
+ * @param {ValidChildren} content - The alert message content
  * @param {{ title?: ValidChildren, content?: ValidChildren, outline?: boolean, style?: string, variant?: string, closable?: boolean, autoDismiss?: number, icon?: ValidChildren, showIcon?: boolean }} config - Configuration object
  * @class
  */
-export default function Alert(message, config = {}) {
+export default function Alert(content, props = {}) {
     if(!(this instanceof Alert)) {
-        return new Alert(message, config);
+        return new Alert(content, props);
     }
+
+    BaseComponent.call(this, props);
+
     this.$description = {
         title: null,
-        content: message,
+        content,
         outline: null,
-        style: null,
+        appearance: null,
         variant: 'info',
         closable: false,
         autoDismiss: null,
         icon: null,
         showIcon: true,
-        ...config
+        actions: [],
+        props,
     };
 }
 
 Alert.defaultTemplate = null;
-Alert.defaultTitleTemplate = null;
-Alert.defaultButtonsTemplate = null;
-Alert.defaultContentTemplate = null;
 
 /**
  * Sets the default template for all Alert instances
- * @param {{alert: (alert: Alert) => ValidChildren, alertContent: (alert: Alert) => ValidChildren, alertButtons: (alert: Alert) => ValidChildren, alertTitle: (alert: Alert) => ValidChildren}} template - Template object containing alert factory function
+ * @param {ValidChildren} template - Template object containing alert factory function
  */
 Alert.use = function(template) {
-    Alert.defaultTemplate = template.alert;
-    Alert.defaultTitleTemplate = template.alertTitle;
-    Alert.defaultButtonsTemplate = template.alertButtons;
-    Alert.defaultContentTemplate = template.alertContent;
+    Alert.defaultTemplate = template;
 };
 
-BaseComponent.extends(Alert, EventEmitter);
+BaseComponent.extends(Alert);
+BaseComponent.use(Alert, HasEventEmitter);
+
+Alert.preset = function(name, callback) {
+    if (Alert.prototype[name] || Alert[name]) {
+        DebugManager.warn(`Warning: the ${name} method already exist in Alert.`);
+        return;
+    }
+    Alert[name] = (content, props) => callback(new Alert(content, props));
+};
+
+Alert.presets = function(presets) {
+    for (const name in presets) {
+        Alert.preset(name, presets[name]);
+    }
+};
 
 /**
  * Sets the variant style for the alert
@@ -94,38 +108,38 @@ Alert.prototype.danger = function() {
 };
 
 /**
- * Sets the style type for the alert
- * @param {string} style - The style name (filled, bordered, outline)
+ * Sets the appearance type for the alert
+ * @param {string} appearance - The style name (filled, bordered, outline)
  * @returns {Alert}
  */
-Alert.prototype.style = function(style) {
-    this.$description.style = style;
+Alert.prototype.appearance = function(appearance) {
+    this.$description.appearance = appearance;
     return this;
 };
 
 /**
- * Sets the alert style to 'filled'
+ * Sets the alert appearance to 'filled'
  * @returns {Alert}
  */
 Alert.prototype.filled = function() {
-    return this.style('filled');
+    return this.appearance('filled');
 };
 
 /**
- * Sets the alert style to 'bordered'
+ * Sets the alert appearance to 'bordered'
  * @returns {Alert}
  */
 Alert.prototype.bordered = function() {
-    return this.style('bordered');
+    return this.appearance('bordered');
 };
 
 /**
- * Sets the alert style to 'outline'
+ * Sets the alert appearance to 'outline'
  * @param {boolean} [outline=true] - Whether to use outline style
  * @returns {Alert}
  */
 Alert.prototype.outline = function(outline = true) {
-    return this.style('outline');
+    return this.appearance('outline');
 };
 
 /**
@@ -192,10 +206,12 @@ Alert.prototype.clearActions = function(label, handler) {
  * Adds an action button to the alert
  * @param {string} label - The button label
  * @param {Function} handler - The click handler
+ * @param {?string} variant - The button variant style
  * @returns {Alert}
  */
-Alert.prototype.action = function(label, handler) {
-    this.$description.actions.push({label, handler});
+Alert.prototype.action = function(label, handler, variant = null) {
+    handler = handler || ((_, instance) => instance.hide());
+    this.$description.actions.push({ label, handler, variant });
     return this;
 };
 
@@ -234,7 +250,10 @@ Alert.prototype.showIcon = function(show = true) {
  * @returns {Alert}
  */
 Alert.prototype.closable = function(closable = true) {
-    this.$description.closable = closable;
+    this.$description.closable = !!closable;
+    if(closable) {
+        this.showIf(closable);
+    }
     return this;
 };
 
@@ -261,22 +280,22 @@ Alert.prototype.autoDismiss = function(delay) {
  * Closes the alert
  */
 Alert.prototype.close = function() {
-
+    this.$description.showIf?.set(false);
+    this.emit('hide');
 };
 
 /**
  * Shows the alert
  */
 Alert.prototype.show = function() {
-
+    this.$description.showIf?.set(true);
+    this.emit('show');
 };
 
 /**
  * Hides the alert
  */
-Alert.prototype.hide = function() {
-
-};
+Alert.prototype.hide = Alert.prototype.close;
 
 /**
  * Registers a handler for the close event
@@ -297,19 +316,3 @@ Alert.prototype.onShow = function(handler) {
     this.on('show', handler);
     return this;
 };
-
-/**
- * Sets the render function for the entire alert
- * @param {(alert: Alert, sections: {title: ValidChildren, content: ValidChildren, footer: ValidChildren, icon: ValidChildren}) => ValidChildren} renderFn - Function to render the alert
- * @returns {Alert}
- */
-Alert.prototype.render = function(renderFn) {
-    this.$description.render = renderFn;
-    return this;
-};
-
-Alert.prototype.$build = function() {
-
-};
-
-Alert.prototype.toNdElement = function() {};

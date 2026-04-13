@@ -1,0 +1,32 @@
+.tag {
+  display: inline-block;
+  background: var(--gray-lite-3);
+  color: var(--white);
+  padding: var(--space-tiny) var(--space-comfortable);
+  border-radius: var(--radius-pill);
+}
+.spacer {
+  flex: 1;
+}
+.hidden {
+  display: none;
+}
+.note {
+  font-size: var(--note-size);
+}
+.hint {
+  font-size: var(--hint-size);
+}
+.right-footer-options {
+  display: flex;
+  justify-content: flex-end;
+  column-gap: var(--space-cozy);
+  align-items: center;
+  align-content: center;
+}
+.no-margin {
+  margin: 0 !important;
+}
+.no-padding {
+  padding: 0 !important;
+}

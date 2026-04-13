@@ -1,0 +1,79 @@
+/* Shared file field styles */
+.field-file-input {
+    display: none;
+}
+
+.file-item-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-danger);
+    color: white;
+    font-size: 10px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: opacity 0.15s ease;
+
+    &:hover {
+        opacity: 0.8;
+    }
+}
+
+.file-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.file-item-name {
+    font-size: var(--description-size);
+    color: var(--text-color);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-item-size {
+    font-size: var(--note-size);
+    color: var(--gray);
+}
+
+.file-item-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.file-item-progress {
+    display: flex;
+    align-items: center;
+    gap: var(--space-cozy);
+    flex: 1;
+    max-width: 120px;
+}
+
+.file-item-progress-track {
+    flex: 1;
+    height: 4px;
+    background: var(--gray-lite-4);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.file-item-progress-bar {
+    height: 100%;
+    background: var(--color-primary);
+    border-radius: 2px;
+    transition: width 0.2s ease;
+}
+
+.file-item-progress-label {
+    font-size: var(--note-size);
+    color: var(--gray);
+    flex-shrink: 0;
+}

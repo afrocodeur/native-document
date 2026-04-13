@@ -1,19 +1,19 @@
 import Anchor from "../anchor/anchor";
-import {Observable} from "../../data/Observable";
-import Validator from "../../utils/validator";
 import { ElementCreator } from "../../wrappers/ElementCreator";
 import NativeDocumentError from "../../errors/NativeDocumentError";
 
 
 const CREATE_AND_CACHE_ACTIONS = new Set(['clear', 'push', 'unshift', 'replace']);
 
+const SELF_RENDER = (item) => item;
+
 /**
  * Renders items from an ObservableArray with optimized array-specific updates.
  * Provides index observables and handles array mutations efficiently.
  *
  * @param {ObservableArray} data - ObservableArray to iterate over
- * @param {(item: *, index: null|ObservableItem) => NdChild} callback - Function that renders each item (item, indexObservable) => ValidChild
- * @param {Object} [configs={}] - Configuration options
+ * @param {((item: *, index: null|ObservableItem) => NdChild)?} callback - Function that renders each item (item, indexObservable) => ValidChild
+ * @param {Object?} [configs={}] - Configuration options
  * @param {boolean} [configs.shouldKeepItemsInCache] - Whether to cache rendered items
  * @param {boolean} [configs.isParentUniqueChild] - When it's the only child of the parent
  * @returns {AnchorDocumentFragment} Fragment managing the list rendering
@@ -26,6 +26,7 @@ const CREATE_AND_CACHE_ACTIONS = new Set(['clear', 'push', 'unshift', 'replace']
  * items.push(4); // Automatically updates DOM
  */
 export function ForEachArray(data, callback, configs = {}) {
+    callback = callback || SELF_RENDER;
     const element = Anchor('ForEach Array', configs.isParentUniqueChild);
     const blockEnd = element.endElement();
 
@@ -41,21 +42,6 @@ export function ForEachArray(data, callback, configs = {}) {
 
     const getItemChild = (item) => {
         return cache.get(item)?.child;
-    };
-
-    const updateIndexObservers = (items, startFrom = 0) => {
-        if(!isIndexRequired) {
-            return;
-        }
-        let index = startFrom;
-        for(let i = startFrom, length = items?.length; i < length; i++) {
-            const cacheItem = cache.get(items[i]);
-            if(!cacheItem) {
-                continue;
-            }
-            cacheItem.indexObserver?.set(index);
-            index++;
-        }
     };
 
     const removeCacheItem = (item, removeChild = true) => {
@@ -82,8 +68,8 @@ export function ForEachArray(data, callback, configs = {}) {
         return child;
     };
 
-    const createWithIndexAndCache = (item, indexKey) => {
-        const indexObserver = Observable(indexKey);
+    let createWithIndexAndCache = (item, indexKey) => {
+        const indexObserver = data.transform((items) =>  items.indexOf(item));
         const child = ElementCreator.getChild(callback(item, indexObserver));
         if(process.env.NODE_ENV === 'development') {
             if(!child) {
@@ -93,6 +79,18 @@ export function ForEachArray(data, callback, configs = {}) {
         cache.set(item, { child, indexObserver  });
         return child;
     };
+    if(!data.__$Observable) {
+        createWithIndexAndCache = (item, indexKey) => {
+            const child = ElementCreator.getChild(callback(item, indexKey));
+            if(process.env.NODE_ENV === 'development') {
+                if(!child) {
+                    throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
+                }
+            }
+            cache.set(item, { child, indexObserver: null  });
+            return child;
+        };
+    }
 
     const getOrCreate = (item, indexKey) => {
         const cacheItem = cache.get(item);
@@ -148,6 +146,21 @@ export function ForEachArray(data, callback, configs = {}) {
         child.remove();
     };
 
+    let set = null;
+    if(Array.isArray(data)) {
+        set = () => {
+            clear(data);
+            element.appendChildRaw(Actions.toFragment(data));
+        };
+    }
+    else {
+        set = () => {
+            const items = data.val();
+            clear(items);
+            element.appendChildRaw(Actions.toFragment(items));
+        };
+    }
+
     const Actions = {
         toFragment: (items) =>{
             const fragment = document.createDocumentFragment();
@@ -164,11 +177,7 @@ export function ForEachArray(data, callback, configs = {}) {
             clear(items);
             element.appendChildRaw(Actions.toFragment(items));
         },
-        set: () => {
-            const items = data.val();
-            clear(items);
-            element.appendChildRaw(Actions.toFragment(items));
-        },
+        set,
         reOrder: (items) => {
             let child = null;
             const fragment = document.createDocumentFragment();
@@ -217,7 +226,9 @@ export function ForEachArray(data, callback, configs = {}) {
                     }
                 }
             } else {
-                elementBeforeFirst = blockEnd;
+                const indexBefore =  (start - 1 >= 0) ? start - 1 : start;
+                const itemAtStart = data.at(indexBefore);
+                elementBeforeFirst = getItemChild(itemAtStart) || blockEnd.previousSibling;
             }
             garbageFragment.replaceChildren();
 
@@ -266,13 +277,16 @@ export function ForEachArray(data, callback, configs = {}) {
         if(Actions[operations.action]) {
             Actions[operations.action](operations.args, operations.result);
         }
-        updateIndexObservers(items, 0);
     };
 
+    if(Array.isArray(data)) {
+        buildContent(data, null, { action: 'set' });
+        return element;
+    }
+
     if(data.val().length) {
-        buildContent(data.val(), null, {action: null});
+        buildContent(data.val(), null, { action: 'set' });
     }
     data.subscribe(buildContent);
-
     return element;
 }

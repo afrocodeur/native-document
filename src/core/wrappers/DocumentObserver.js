@@ -62,7 +62,6 @@ const DocumentObserver = {
     },
 
     checkMutation: function(mutationsList) {
-        console.log('mutationsList', mutationsList);
         for(const mutation of mutationsList) {
             if(DocumentObserver.mountedSupposedSize > 0) {
                 for(const node of mutation.addedNodes) {

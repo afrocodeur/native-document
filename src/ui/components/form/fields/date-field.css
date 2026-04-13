@@ -1,0 +1,32 @@
+.date-field-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-tiny);
+    flex-shrink: 0;
+    align-self: center;
+}
+
+.date-field-range {
+    display: flex;
+    align-items: center;
+    gap: var(--space-cozy);
+}
+
+.date-field-range-start,
+.date-field-range-end {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-tiny);
+    flex: 1;
+}
+
+.date-field-range-label {
+    font-size: var(--note-size);
+    color: var(--gray);
+}
+
+.date-field-range-separator {
+    color: var(--gray);
+    flex-shrink: 0;
+    margin-top: var(--space-comfortable);
+}

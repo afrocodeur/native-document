@@ -1,6 +1,6 @@
 {
   "name": "native-document",
-  "version": "1.0.126",
+  "version": "1.0.139",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -20,9 +20,12 @@
     "eslint": "^9.33.0",
     "eslint-plugin-jsdoc": "^62.5.4",
     "magic-string": "^0.30.21",
-    "rollup": "^4.53.3"
+    "postcss": "^8.5.12",
+    "rollup": "^4.53.3",
+    "rollup-plugin-postcss": "^4.0.2"
   },
   "dependencies": {
+    "@floating-ui/dom": "^1.7.6",
     "i18next": "^25.8.0"
   }
 }

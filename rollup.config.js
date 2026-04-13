@@ -1,7 +1,6 @@
 import terser from '@rollup/plugin-terser';
 import replace from '@rollup/plugin-replace';
-import alias from '@rollup/plugin-alias';
-import { fileURLToPath } from 'node:url'
+import postcss from 'rollup-plugin-postcss';
 
 const PreventProd = replace({
     'process.env.NODE_ENV': JSON.stringify('production'),
@@ -69,6 +68,10 @@ export default [
         },
         plugins: [
             PreventProd,
+            postcss({
+                extract: true,
+                minimize: true,
+            }),
             // terser()
         ]
     }

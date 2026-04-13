@@ -1,0 +1,58 @@
+@media (prefers-color-scheme: dark) {
+  :root {
+    --transparent: transparent;
+    --background: white;
+    //--background: #242426;
+    --background-color: #242426;
+    --text-color: black;
+
+    --red: #ff4245;
+    --orange: #ff9230;
+    --yellow: #ffd600;
+    --green: #30d158;
+    --mint: #00dac3;
+    --teal: #00d2e0;
+    --cyan: #3cd3fe;
+    --blue: #0091ff;
+    --indigo: #6b5dff;
+    --purple: #db34f2;
+    --pink: #ff375f;
+    --brown: #b78a66;
+    --gray: #8e8e93;
+    --gray-lite-1: #636366;
+    --gray-lite-2: #48484a;
+    --gray-lite-3: #3a3a3c;
+    --gray-lite-4: #2c2c2e;
+    --gray-lite-5: #1c1c1e;
+    --white: #FFFFFF;
+    --black: #000000;
+    --sidereal-black: #0a0a0a;
+
+    --contrasted-red: #ff6165;
+    --contrasted-orange: #ffa056;
+    --contrasted-yellow: #fedf43;
+    --contrasted-green: #4ad968;
+    --contrasted-mint: #54dfcb;
+    --contrasted-teal: #3bddec;
+    --contrasted-cyan: #6dd9ff;
+    --contrasted-blue: #5cb8ff;
+    --contrasted-indigo: #a7aaff;
+    --contrasted-purple: #ea8dff;
+    --contrasted-pink: #ff8ac4;
+    --contrasted-brown: #dba679;
+    --contrasted-gray: #aeaeb2;
+    --contrasted-gray-lite-1: #7c7c80;
+    --contrasted-gray-lite-2: #545456;
+    --contrasted-gray-lite-3: #444446;
+    --contrasted-gray-lite-4: #363638;
+    --contrasted-gray-lite-5: #242426;
+  }
+}
+
+.light-mode {
+  color-scheme: light;
+}
+
+.dark-mode {
+  color-scheme: dark;
+}

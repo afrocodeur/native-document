@@ -1,19 +1,24 @@
 import BaseComponent from "../BaseComponent";
-import EventEmitter from "../../../src/core/utils/EventEmitter";
+import HasEventEmitter from "../../core/utils/HasEventEmitter";
 import {$, Validator} from "../../../index";
+import DebugManager from "../../core/utils/debug-manager";
+import StepperStep from "./StepperStep";
 
-export default function Stepper(config = {}) {
+export default function Stepper(props = {}) {
     if(!(this instanceof Stepper)) {
-        return new Stepper(config);
+        return new Stepper(props);
     }
 
+    BaseComponent.call(this, props);
+
     this.$description = {
-        steps: [],
+        steps: $.array(),
+        visibleSteps: $.array(),
         currentStep: $(0),
         orientation: 'horizontal',
         linear: true,
         alternativeLabel: false,
-        editable: false,
+        editable: $(true),
         showNumbers: true,
         showConnector: true,
         data: null,
@@ -21,67 +26,102 @@ export default function Stepper(config = {}) {
         renderStepIndicatorConnector: null,
         renderContent: null,
         render: null,
-        ...config
+        position: 'bottom',
+        props
     };
 
     this.$element = null;
 }
 
-BaseComponent.extends(Stepper, EventEmitter);
+BaseComponent.extends(Stepper);
+BaseComponent.use(Stepper, HasEventEmitter);
 
 Stepper.defaultTemplate = null;
-Stepper.defaultStepTemplate = null;
-Stepper.defaultStepConnectorTemplate = null;
-Stepper.defaultContentTemplate = null;
 
 Stepper.use = function(template) {
-    Stepper.defaultTemplate = template.stepper;
-    Stepper.defaultStepIndicatorTemplate = template.stepperStepIndicator;
-    Stepper.defaultContentTemplate = template.stepperContent;
-    Stepper.defaultStepIndicatorConnectorTemplate = template.stepperStepIndicatorConnector;
+    Stepper.defaultTemplate = template;
 };
 
-Stepper.prototype.dynamic = function(observableArray) {
-    this.$description.steps = observableArray || $.array([]);
-    return this;
-};
-
-Stepper.prototype.steps = function(steps) {
-    if(Validator.isObservable(steps)) {
-        this.$description.steps = steps;
-        return this;
+Stepper.preset = function(name, callback) {
+    if (Stepper.prototype[name] || Stepper[name]) {
+        DebugManager.warn(`Warning: the ${name} method already exist in Stepper.`);
+        return;
     }
-    this.$description.steps.set(steps);
-    return this;
+    Stepper[name] = (props) => callback(new Stepper(props));
+};
+
+Stepper.presets = function(presets) {
+    for (const name in presets) {
+        Stepper.preset(name, presets[name]);
+    }
+};
+
+Stepper.prototype.$originalBuild = BaseComponent.prototype.$build;
+
+Stepper.prototype.$build = function() {
+    const visibleSteps = this.$description.visibleSteps;
+    const steps = this.$description.steps;
+
+    steps.forEach(step => {
+        if(!step.$description.visibility) {
+            visibleSteps.push(step);
+            return;
+        }
+        if(step.$description.visibility.val()) {
+            visibleSteps.push(step);
+        }
+
+        step.$description.visibility.subscribe((value) => {
+            if(!value) {
+                visibleSteps.removeItem(step);
+                return;
+            }
+            const originalIndex = steps.indexOf(step);
+            let stepBefore = null;
+
+            for (let i = 0; i < visibleSteps.length; i++) {
+                const itemStep = visibleSteps.get(i);
+                if (steps.indexOf(itemStep) < originalIndex) {
+                    stepBefore = itemStep
+                    continue;
+                }
+                break;
+            }
+            if(!stepBefore) {
+                visibleSteps.push(step);
+                return;
+            }
+            visibleSteps.insertAfter(step, stepBefore);
+        });
+    });
+
+    const updateStateIndexes = () => {
+        this.$description.visibleSteps.forEach((step, index) => step.$setIndex(index));
+    };
+    this.$description.visibleSteps.subscribe(updateStateIndexes);
+    updateStateIndexes();
+    return this.$originalBuild();
 };
 
 Stepper.prototype.step = function(step) {
-    this.$description.steps.push(step);
+    let finalStep = null;
+    if(typeof step === 'function') {
+        finalStep = new StepperStep(null);
+        step(finalStep, this);
+    }
+    else {
+        finalStep = (step instanceof StepperStep)
+            ? step
+            : (new StepperStep(step.label)).setDescription(step);
+    }
+
+    this.$description.steps.push(finalStep);
     return this;
 };
 
 Stepper.prototype.clear = function() {
-    const steps = this.$description.steps;
-    if (Array.isArray(steps)) {
-        steps.length = 0;
-        return this;
-    }
-
-    steps.clear();
-    return this;
-};
-
-Stepper.prototype.removeStepByIndex = function(index) {
-    this.$description.steps.splice(index, 1);
-    return this;
-};
-
-Stepper.prototype.removeStepByKey = function(key) {
-    const index = this.$description.steps.findIndex(step => step.getKey() === key);
-    if(index === -1) {
-        return this;
-    }
-    this.$description.steps.splice(index, 1);
+    this.$description.steps.clear();
+    this.$description.visibleSteps.clear();
     return this;
 };
 
@@ -115,7 +155,7 @@ Stepper.prototype.nonLinear = function() {
 };
 
 Stepper.prototype.editable = function(editable = true) {
-    this.$description.editable = editable;
+    this.$description.editable.set(editable);
     return this;
 };
 
@@ -140,50 +180,76 @@ Stepper.prototype.data = function(data) {
     return this;
 };
 
-Stepper.prototype.next = function() {
-    const current = this.$description.currentStep.val();
-    const total = this.$description.steps.length;
+Stepper.prototype.next = async function() {
+    const currentIdx = this.$description.currentStep.val();
+    const total = this.$description.visibleSteps.length;
 
-    if (current < total - 1) {
-        const nextStep = current + 1;
-        this.$description.currentStep.set(nextStep);
-        this.emit('stepChange', nextStep);
+    if (currentIdx === total - 1) {
+        const lastStep = this.$description.visibleSteps.at(currentIdx);
+        const isValid = await lastStep.validate();
+        if (isValid) {
+            lastStep.completed(true);
+            this.emit('complete');
+        } else {
+            lastStep.error(true);
+            this.emit('stepError', currentIdx);
+        }
+        return this;
     }
-    return this;
+
+    return this.goToStep(currentIdx + 1);
 };
 
 Stepper.prototype.previous = function() {
-    const current = this.$description.currentStep.val();
-    if (current > 0) {
-        const previousStep = current - 1;
-        this.$description.currentStep.set(previousStep);
-        this.emit('stepChange', previousStep);
-    }
-    return this;
+    const currentIdx = this.$description.currentStep.val();
+    return this.goToStep(currentIdx - 1);
 };
 
-Stepper.prototype.goToStep = function(index) {
-    const total = this.$description.steps.length;
-    const current = this.$description.currentStep.val();
+Stepper.prototype.goToStep = async function(index) {
+    const visibleSteps = this.$description.visibleSteps;
+    const total = visibleSteps.length;
+    const currentIdx = this.$description.currentStep.val();
 
-    if (index < 0 || index >= total) {
+    if (index < 0 || index >= total || index === currentIdx) {
         return this;
     }
 
-    if(!this.$description.editable && index < current) {
-        return this;
-    }
-    if(this.$description.linear && !(index === current+1 || index === current-1)) {
-        return this;
+    const currentStep = visibleSteps.at(currentIdx);
 
+    if (index < currentIdx) {
+        if (this.$description.editable.val()) {
+            this.$description.currentStep.set(index);
+            this.emit('stepChange', index);
+        }
+        return this;
     }
-    this.$description.currentStep.set(index);
-    this.emit('stepChange', index);
+
+    if (index > currentIdx) {
+        if (this.$description.linear && index > currentIdx + 1) {
+            return this;
+        }
+
+        const isValid = await currentStep.validate();
+        if (isValid) {
+            currentStep.completed(true);
+            this.$description.currentStep.set(index);
+            this.emit('stepChange', index);
+        } else {
+            currentStep.error(true);
+            this.emit('stepError', currentIdx);
+        }
+    }
+
     return this;
 };
 
 Stepper.prototype.reset = function() {
     this.$description.currentStep.set(0);
+
+    this.$description.steps.forEach(step => {
+        step.reset();
+    });
+
     this.emit('reset');
     return this;
 };
@@ -225,5 +291,31 @@ Stepper.prototype.renderStepIndicatorConnector = function(renderFn) {
 
 Stepper.prototype.renderContent = function(renderFn) {
     this.$description.renderContent = renderFn;
+    return this;
+};
+
+
+Stepper.prototype.navigationAtLeading = function() {
+    this.$description.position = 'leading';
+    this.vertical();
+    return this;
+};
+
+Stepper.prototype.navigationAtBottom = function() {
+    this.$description.position = 'bottom';
+    this.horizontal();
+    return this;
+};
+
+
+Stepper.prototype.navigationAtTop = function() {
+    this.$description.position = 'top';
+    this.horizontal()
+    return this;
+};
+
+Stepper.prototype.navigationAtTrailing = function() {
+    this.$description.position = 'trailing';
+    this.vertical();
     return this;
 };

@@ -1,5 +1,5 @@
 
-export default function Column(key, configs = {}) {
+export default function Column(key, props = {}) {
     this.$description = {
         key,
         align: null,
@@ -8,23 +8,24 @@ export default function Column(key, configs = {}) {
         header: null,
         render: null,
         colspan: null,
+        pinned: null,
         rowspan: null,
-        ...configs
+        sortable: null,
+        props
     };
 }
 
-Column.defaultRender = null;
-Column.defaultHeader = null;
+Column.defaultTemplate = null;
 
 Column.use = function(template) {
-    Column.defaultRender = template.render || Column.defaultRender;
-    Column.defaultHeader = template.header || Column.defaultHeader;
+    Column.defaultTemplate = template;
 };
 
 Column.prototype.isColumn = true;
 
 Column.prototype.sortable = function(customSortFn = null) {
     this.$description.sortable = customSortFn;
+    return this;
 };
 
 Column.prototype.searchable = function() {
@@ -34,6 +35,21 @@ Column.prototype.searchable = function() {
 
 Column.prototype.hidden = function() {
     this.$description.visible = false;
+    return this;
+};
+
+Column.prototype.pinned = function(orientation) {
+    this.$description.pinned = orientation;
+    return this;
+};
+
+Column.prototype.pinnedAtLeft = function() {
+    this.$description.pinned = 'left';
+    return this;
+};
+
+Column.prototype.pinnedAtRight = function() {
+    this.$description.pinned = 'right';
     return this;
 };
 
@@ -83,24 +99,4 @@ Column.prototype.render = function(render) {
 Column.prototype.value = function(value) {
     this.$description.value = value;
     return this;
-};
-
-
-Column.prototype.buildHeader = function(rowSpan = null) {
-    const header = this.$description.header;
-    if(typeof header === 'function') {
-        return header(this);
-    }
-    return THeadCell({ rowspan: rowSpan  }, header);
-};
-
-Column.prototype.buildCell = function(rowData) {
-    const render = this.$description.render || Column.defaultRender;
-    if(typeof render === 'string' && rowData[render] !== undefined) {
-        return rowData[render];
-    }
-    if(typeof render === 'function') {
-        return render(rowData, this);
-    }
-    return rowData[this.$description.key] ?? null;
 };

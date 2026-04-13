@@ -20,8 +20,13 @@ import ImageField from "./field/types/ImageField";
 import CheckboxGroupField from "./field/types/CheckboxGroupField";
 import AutocompleteField from "./field/types/AutocompleteField";
 import FieldCollection from "./field/FieldCollection";
+import FileNativeMode from "./field/types/file-field-mode/FileNativeMode";
+import FileDropzoneMode from "./field/types/file-field-mode/FileDropzoneMode";
+import FileUploadButtonMode from "./field/types/file-field-mode/FileUploadButtonMode";
+import FileWallMode from "./field/types/file-field-mode/FileWallMode";
+import FileAvatarMode from "./field/types/file-field-mode/FileAvatarMode";
 
-import './field/FieldFactory';
+// import './field/FieldFactory';
 
 export {
     Field,
@@ -45,5 +50,12 @@ export {
     ImageField,
     CheckboxGroupField,
     AutocompleteField,
-    FieldCollection
+    FieldCollection,
+
+    FileNativeMode,
+    FileAvatarMode,
+    FileWallMode,
+    FileUploadButtonMode,
+    FileDropzoneMode,
+
 }

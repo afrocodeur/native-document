@@ -6,14 +6,16 @@ import {getKey} from "../../utils/helpers";
 import { ElementCreator } from "../../wrappers/ElementCreator";
 import NativeDocumentError from "../../errors/NativeDocumentError";
 
+const SELF_RENDER = (item) => item;
+
 /**
  * Renders a list of items from an observable array or object, automatically updating when data changes.
  * Efficiently manages DOM updates by tracking items with keys.
  *
  * @param {ObservableItem<Array|Object>} data - Observable containing array or object to iterate over
- * @param {(item: *, index: null|ObservableItem) => NdChild} callback - Function that renders each item (item, index) => ValidChild
- * @param {string|Function} [key] - Property name or function to generate unique keys for items
- * @param {Object} [options={}] - Configuration options
+ * @param {((item: *, index: null|ObservableItem) => NdChild)?} callback - Function that renders each item (item, index) => ValidChild
+ * @param {(string|Function)?} [key] - Property name or function to generate unique keys for items
+ * @param {Object?} [options={}] - Configuration options
  * @param {boolean} [options.shouldKeepItemsInCache=false] - Whether to cache rendered items
  * @returns {AnchorDocumentFragment} Fragment managing the list rendering
  * @example
@@ -27,6 +29,7 @@ import NativeDocumentError from "../../errors/NativeDocumentError";
  * ForEach(items, (item) => Div({}, item), (item) => item.id);
  */
 export function ForEach(data, callback, key, { shouldKeepItemsInCache = false } = {}) {
+    callback = callback || SELF_RENDER;
     const element = Anchor('ForEach');
     const blockEnd = element.endElement();
     const blockStart = element.startElement();

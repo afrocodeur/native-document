@@ -1,0 +1,197 @@
+:root {
+    --progress-height-small: 4px;
+    --progress-height-medium: 8px;
+    --progress-height-large: 14px;
+
+    --progress-color: var(--gray-lite-4);
+    --progress-color-primary: var(--color-primary);
+    --progress-color-secondary: var(--color-secondary);
+    --progress-color-success: var(--color-success);
+    --progress-color-danger: var(--color-danger);
+    --progress-color-warning: var(--color-warning);
+    --progress-color-info: var(--color-info);
+
+    --progress-circle-size: 80px;
+    --progress-circle-thickness: 6px;
+    --progress-label-size: var(--note-size);
+    --progress-label-color: var(--gray);
+
+    --progress-stripe-size: 20px;
+    --progress-animation-duration: 1s;
+    --progress-indeterminate-duration: 1.5s;
+}
+
+.progress {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-cozy);
+    width: 100%;
+}
+
+.progress-label {
+    font-size: var(--progress-label-size);
+    color: var(--progress-label-color);
+}
+
+.progress-value {
+    font-size: var(--progress-label-size);
+    color: var(--progress-label-color);
+    text-align: right;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.progress-track {
+    width: 100%;
+    background: var(--progress-color);
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+
+    &.is-small {
+        height: var(--progress-height-small);
+    }
+
+    &.is-medium {
+        height: var(--progress-height-medium);
+    }
+
+    &.is-large {
+        height: var(--progress-height-large);
+    }
+
+    &.is-pill {
+        border-radius: var(--radius-pill);
+    }
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    transition: width 0.3s ease;
+
+    &.is-primary {
+        background: var(--progress-color-primary);
+    }
+
+    &.is-secondary {
+        background: var(--progress-color-secondary);
+    }
+
+    &.is-success {
+        background: var(--progress-color-success);
+    }
+
+    &.is-danger {
+        background: var(--progress-color-danger);
+    }
+
+    &.is-warning {
+        background: var(--progress-color-warning);
+    }
+
+    &.is-info {
+        background: var(--progress-color-info);
+    }
+
+    &.is-striped {
+        background-image: linear-gradient(
+                45deg,
+                rgba(255, 255, 255, 0.15) 25%,
+                transparent 25%,
+                transparent 50%,
+                rgba(255, 255, 255, 0.15) 50%,
+                rgba(255, 255, 255, 0.15) 75%,
+                transparent 75%,
+                transparent
+        );
+        background-size: var(--progress-stripe-size) var(--progress-stripe-size);
+    }
+
+    &.is-animated {
+        animation: progress-stripes var(--progress-animation-duration) linear infinite;
+    }
+
+    &.is-indeterminate {
+        width: 40% !important;
+        animation: progress-indeterminate var(--progress-indeterminate-duration) ease-in-out infinite;
+    }
+}
+
+.progress-circle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--progress-circle-size);
+    height: var(--progress-circle-size);
+}
+
+.progress-circle-svg {
+    transform: rotate(-90deg);
+}
+
+.progress-circle-track {
+    fill: none;
+    stroke: var(--progress-color);
+    stroke-width: var(--progress-circle-thickness);
+}
+
+.progress-circle-fill {
+    fill: none;
+    stroke-width: var(--progress-circle-thickness);
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.3s ease;
+
+    &.is-primary {
+        stroke: var(--progress-color-primary);
+    }
+
+    &.is-secondary {
+        stroke: var(--progress-color-secondary);
+    }
+
+    &.is-success {
+        stroke: var(--progress-color-success);
+    }
+
+    &.is-danger {
+        stroke: var(--progress-color-danger);
+    }
+
+    &.is-warning {
+        stroke: var(--progress-color-warning);
+    }
+
+    &.is-info {
+        stroke: var(--progress-color-info);
+    }
+}
+
+.progress-circle-label {
+    position: absolute;
+    font-size: var(--note-size);
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+@keyframes progress-stripes {
+    from {
+        background-position: var(--progress-stripe-size) 0;
+    }
+    to {
+        background-position: 0 0;
+    }
+}
+
+@keyframes progress-indeterminate {
+    0% {
+        left: -40%;
+    }
+    100% {
+        left: 100%;
+    }
+}

@@ -5,6 +5,7 @@ import {
 import ObservableItem from "../../data/ObservableItem";
 import TemplateBinding from "../TemplateBinding";
 import {BOOLEAN_ATTRIBUTES} from "../constants";
+import ObservableChecker from "../../data/ObservableChecker";
 
 
 ObservableItem.prototype.handleNdAttribute = function(element, attributeName) {
@@ -16,6 +17,8 @@ ObservableItem.prototype.handleNdAttribute = function(element, attributeName) {
     bindAttributeWithObservable(element, attributeName, this);
 };
 
-TemplateBinding.prototype.handleNdAttribute = function(element, attributeName) {
+ObservableChecker.prototype.handleNdAttribute = ObservableItem.prototype.handleNdAttribute;
+
+    TemplateBinding.prototype.handleNdAttribute = function(element, attributeName) {
     this.$hydrate(element, attributeName);
 };

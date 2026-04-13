@@ -1,12 +1,12 @@
 import FileField from "./FileField";
 import {Validation} from "../../validation/Validation";
 
-export default function ImageField(name, defaultConfig) {
+export default function ImageField(name, props) {
     if(!(this instanceof ImageField)) {
-        return new ImageField(name, defaultConfig);
+        return new ImageField(name, props);
     }
 
-    FileField.call(this, name, 'image', defaultConfig);
+    FileField.call(this, name, 'image', props);
 
     Object.assign(this.$description, {
         maxWidth: null,
@@ -21,7 +21,7 @@ export default function ImageField(name, defaultConfig) {
 ImageField.defaultTemplate = null;
 
 ImageField.use = function(template) {
-    ImageField.defaultTemplate = template.imageField;
+    ImageField.defaultTemplate = template;
 };
 
 ImageField.prototype = Object.create(FileField.prototype);

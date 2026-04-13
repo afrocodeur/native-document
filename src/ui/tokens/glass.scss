@@ -1,0 +1,10 @@
+
+.glass-container {
+  background: radial-gradient(circle, var(--transparent) 70%, var(--glass-color) 100%);
+  border-radius: 15px;
+  backdrop-filter: var(--glass-blur);
+  --webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  padding: 1rem;
+  overflow: hidden;
+}

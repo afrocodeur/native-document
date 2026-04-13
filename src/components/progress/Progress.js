@@ -1,11 +1,14 @@
 import BaseComponent from "../BaseComponent";
-import EventEmitter from "../../../src/core/utils/EventEmitter";
+import HasEventEmitter from "../../core/utils/HasEventEmitter";
 import {Validator} from "../../../index";
+import DebugManager from "../../core/utils/debug-manager";
 
-export default function Progress(config = {}) {
+export default function Progress(props = {}) {
     if (!(this instanceof Progress)) {
-        return new Progress(config);
+        return new Progress(props);
     }
+
+    BaseComponent.call(this, props);
 
     this.$description = {
         value: null,
@@ -13,6 +16,7 @@ export default function Progress(config = {}) {
         variant: null,
         max: 100,
         size: null,
+        stroke: null,
         height: null,
         showValue: null,
         showPercentage: null,
@@ -21,44 +25,59 @@ export default function Progress(config = {}) {
         indeterminate: null,
         striped: null,
         animated: null,
-        render: null,
-        ...config
+        borderRadiusType: null,
+        props
     };
 }
 
-BaseComponent.extends(Progress, EventEmitter);
+BaseComponent.extends(Progress);
+BaseComponent.use(Progress, HasEventEmitter);
 
 Progress.defaultTemplate = null;
 
-Progress.use = function(template) {};
+Progress.use = function(template) {
+    Progress.defaultTemplate = template;
+};
+
+Progress.preset = function(name, callback) {
+    if (Progress.prototype[name] || Progress[name]) {
+        DebugManager.warn(`Warning: the ${name} method already exists in Progress.`);
+        return;
+    }
+    Progress[name] = (props) => callback(new Progress(props));
+};
+
+Progress.presets = function(presets) {
+    for (const name in presets) {
+        Progress.preset(name, presets[name]);
+    }
+};
 
 Progress.prototype.model = function(observable) {
     this.$description.value = observable;
     return this;
 };
 
+Progress.prototype.bind = Progress.prototype.model;
+
 Progress.prototype.setCurrentStep = function(step) {
     this.$description.value?.set(step);
     this.emit('change', step);
 };
 
-Progress.prototype.value = function() {
-    const value = this.$description.value;
-    if(Validator.isObservable(value)) {
-        return value.val();
-    }
-    return value;
+Progress.prototype.value = function(value) {
+    this.$description.value = BaseComponent.obs(value);
+    return this;
 };
 
 Progress.prototype.setValue = function(newValue) {
-    const value = this.$description.value;
-    if(Validator.isObservable(value)) {
-        value.set(newValue);
-        return this;
-    }
-    this.$description.value = newValue;
+    this.setCurrentStep(newValue);
     return this;
 };
+
+Progress.prototype.getCurrentValue = function() {
+    return this.$description.value?.get();
+}
 
 Progress.prototype.max = function(max) {
     this.$description.max = max;
@@ -80,6 +99,11 @@ Progress.prototype.circle = function() {
 
 Progress.prototype.line = function() {
     return this.type('line');
+};
+
+Progress.prototype.pill = function() {
+    this.$description.borderRadiusType = 'pill';
+    return this;
 };
 
 // Variant
@@ -115,6 +139,10 @@ Progress.prototype.info = function() {
 
 Progress.prototype.size = function(size) {
     this.$description.size = size;
+    return this;
+};
+Progress.prototype.stroke = function(stroke) {
+    this.$description.stroke = stroke;
     return this;
 };
 
@@ -202,19 +230,4 @@ Progress.prototype.onComplete = function(handler) {
 Progress.prototype.onReset = function(handler) {
     this.on('reset', handler);
     return this;
-};
-
-
-Progress.prototype.render = function(renderFn) {
-    this.$description.render = renderFn;
-    return this;
-};
-
-// Build & Render
-Progress.prototype.$build = function() {
-    // TODO: Implementation
-};
-
-Progress.prototype.toNdElement = function() {
-    return this.$build();
 };

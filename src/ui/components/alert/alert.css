@@ -1,0 +1,163 @@
+:root {
+    --alert-padding: var(--space-comfortable);
+    --alert-radius: var(--radius-card);
+    --alert-gap: var(--space-cozy);
+    --alert-font-size: var(--description-size);
+    --alert-title-size: var(--text-size);
+    --alert-title-weight: 600;
+    --alert-border-width: 1px;
+
+    --alert-color-info: var(--color-info);
+    --alert-color-success: var(--color-success);
+    --alert-color-warning: var(--color-warning);
+    --alert-color-danger: var(--color-danger);
+    --alert-color-error: var(--color-danger);
+
+    --close-alert-btn-width: 25px;
+    --close-alert-btn-height: 25px;
+    --close-alert-btn-background: none;
+}
+
+.alert {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--alert-gap);
+    padding: var(--alert-padding);
+    border-radius: var(--alert-radius);
+    font-size: var(--alert-font-size);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.alert-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+}
+
+.alert-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-cozy);
+}
+
+.alert-title {
+    font-size: var(--alert-title-size);
+    font-weight: var(--alert-title-weight);
+    line-height: 1.3;
+    display: flex;
+    justify-content: space-between;
+    align-content: center;
+    align-items: center;
+}
+
+.alert-content {
+    line-height: 1.6;
+}
+
+.alert-footer {
+    display: flex;
+    gap: var(--space-cozy);
+    margin-top: var(--space-cozy);
+}
+
+.alert-close {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.6;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: var(--text-size);
+    color: inherit;
+    width: var(--close-alert-btn-width);
+    height: var(--close-alert-btn-height);
+    background: var(--close-alert-btn-background) !important;
+
+    &:hover {
+        opacity: 1;
+    }
+}
+
+.alert.is-filled {
+    &.is-info {
+        background: var(--alert-color-info);
+        color: var(--white);
+    }
+
+    &.is-success {
+        background: var(--alert-color-success);
+        color: var(--white);
+    }
+
+    &.is-warning {
+        background: var(--alert-color-warning);
+        color: var(--white);
+    }
+
+    &.is-danger,
+    &.is-error {
+        background: var(--alert-color-danger);
+        color: var(--white);
+    }
+}
+
+.alert.is-bordered {
+    border: var(--alert-border-width) solid currentColor;
+
+    &.is-info {
+        background: color-mix(in srgb, var(--alert-color-info) 10%, transparent);
+        color: var(--alert-color-info);
+    }
+
+    &.is-success {
+        background: color-mix(in srgb, var(--alert-color-success) 10%, transparent);
+        color: var(--alert-color-success);
+    }
+
+    &.is-warning {
+        background: color-mix(in srgb, var(--alert-color-warning) 10%, transparent);
+        color: var(--alert-color-warning);
+    }
+
+    &.is-danger,
+    &.is-error {
+        background: color-mix(in srgb, var(--alert-color-danger) 10%, transparent);
+        color: var(--alert-color-danger);
+    }
+}
+
+.alert.is-outline {
+    background: transparent;
+    border: var(--alert-border-width) solid currentColor;
+
+    &.is-info {
+        color: var(--alert-color-info);
+    }
+
+    &.is-success {
+        color: var(--alert-color-success);
+    }
+
+    &.is-warning {
+        color: var(--alert-color-warning);
+    }
+
+    &.is-danger,
+    &.is-error {
+        color: var(--alert-color-danger);
+    }
+}
+
+.alert.is-filled .alert-action {
+    --btn-color: currentColor;
+    --btn-border-color: rgba(255, 255, 255, 0.5);
+    color: currentColor;
+    border-color: var(--btn-border-color);
+}

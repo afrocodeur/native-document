@@ -15,14 +15,14 @@ export default function EmailField(name, defaultConfig) {
 EmailField.defaultTemplate = null;
 
 EmailField.use = function(template) {
-    EmailField.defaultTemplate = template.emailField;
+    EmailField.defaultTemplate = template;
 };
 
 EmailField.prototype = Object.create(Field.prototype);
 EmailField.prototype.constructor = EmailField;
 
 EmailField.prototype.email = function(message) {
-    const existingRule = this.rules.find(r => r.fn === Validation.email);
+    const existingRule = this.$description.rules.find(r => r.fn === Validation.email);
     if (existingRule && message) {
         existingRule.message = message;
     }

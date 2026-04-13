@@ -1,0 +1,246 @@
+:root {
+    --data-table-font-size:          var(--description-size);
+    --data-table-cell-padding-v:     var(--space-cozy);
+    --data-table-cell-padding-h:     var(--space-comfortable);
+    --data-table-border-color:       var(--color-border-tertiary);
+    --data-table-header-color:       var(--color-text-secondary);
+    --data-table-header-bg:          var(--color-background-secondary);
+    --data-table-header-weight:      500;
+    --data-table-hover-bg:           var(--color-background-secondary);
+    --data-table-selected-bg:        var(--color-background-info);
+    --data-table-toolbar-bg:         var(--color-background-secondary);
+    --data-table-bulk-bg:            var(--color-background-info);
+    --data-table-pagination-bg:      var(--color-background-secondary);
+    --data-table-spinner-size:       24px;
+}
+
+.data-table {
+    display: flex;
+    flex-direction: column;
+    border: 0.5px solid var(--data-table-border-color);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    font-size: var(--data-table-font-size);
+}
+
+/* Layout */
+.data-table-layout {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Toolbar */
+.data-table-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-cozy);
+    padding: var(--space-cozy) var(--space-comfortable);
+    background: var(--data-table-toolbar-bg);
+    border-bottom: 0.5px solid var(--data-table-border-color);
+}
+
+.data-table-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-cozy);
+    flex: 1;
+}
+
+.data-table-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-cozy);
+}
+
+.data-table-search-wrapper {
+    display: flex;
+    align-items: center;
+    gap: var(--space-cozy);
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--data-table-border-color);
+    border-radius: var(--border-radius-md);
+    padding: 4px var(--space-cozy);
+    min-width: 240px;
+}
+
+.data-table-search {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: var(--data-table-font-size);
+    width: 100%;
+    color: var(--color-text-primary);
+}
+
+/* Bulk actions */
+.data-table-bulk {
+    display: flex;
+    align-items: center;
+    gap: var(--space-cozy);
+    padding: var(--space-cozy) var(--space-comfortable);
+    background: var(--data-table-bulk-bg);
+    border-bottom: 0.5px solid var(--data-table-border-color);
+}
+
+.data-table-bulk-count {
+    font-size: var(--data-table-font-size);
+    font-weight: var(--data-table-header-weight);
+    color: var(--color-text-info);
+    flex: 1;
+}
+
+.data-table-bulk-buttons {
+    display: flex;
+    align-items: center;
+    gap: var(--space-cozy);
+}
+
+/* Table */
+.data-table-wrapper {
+    position: relative;
+    overflow-x: auto;
+}
+
+.data-table-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th, td {
+        padding: var(--data-table-cell-padding-v) var(--data-table-cell-padding-h);
+        text-align: left;
+        border-bottom: 0.5px solid var(--data-table-border-color);
+
+        &.is-center { text-align: center; }
+        &.is-right  { text-align: right;  }
+        &.is-pinned-left  { position: sticky; left: 0; background: inherit; }
+        &.is-pinned-right { position: sticky; right: 0; background: inherit; }
+    }
+
+    th {
+        font-weight: var(--data-table-header-weight);
+        color:       var(--data-table-header-color);
+        background:  var(--data-table-header-bg);
+        white-space: nowrap;
+    }
+
+    .data-table-th-checkbox,
+    .data-table-td-checkbox { width: 40px; }
+
+    .data-table-th-expand,
+    .data-table-td-expand   { width: 32px; }
+
+    tr.has-click {
+        cursor: pointer;
+        &:hover td { background: var(--data-table-hover-bg); }
+    }
+
+    tr.is-selected td {
+        background: var(--data-table-selected-bg);
+    }
+}
+
+/* Sort */
+.data-table-sort-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.data-table-sort-icon {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+}
+
+/* Expand */
+.data-table-expand-btn {
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--color-text-secondary);
+}
+
+.data-table-detail-row td {
+    background: var(--color-background-secondary);
+    padding: var(--space-comfortable);
+}
+
+/* Empty */
+.data-table-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-large);
+    color: var(--color-text-secondary);
+}
+
+/* Loading */
+.data-table-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--color-background-primary) 80%, transparent);
+}
+
+.data-table-spinner {
+    width: var(--data-table-spinner-size);
+    height: var(--data-table-spinner-size);
+    border: 2px solid var(--data-table-border-color);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: data-table-spin 0.6s linear infinite;
+}
+
+@keyframes data-table-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Pagination */
+.data-table-pagination {
+    display: flex;
+    align-items: center;
+    gap: var(--space-cozy);
+    padding: var(--space-cozy) var(--space-comfortable);
+    background: var(--data-table-pagination-bg);
+    border-top: 0.5px solid var(--data-table-border-color);
+}
+
+.data-table-page-info {
+    font-size: var(--data-table-font-size);
+    color: var(--color-text-secondary);
+    flex: 1;
+}
+
+.data-table-pagination-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-comfortable);
+}
+
+.data-table-page-size-wrapper {
+    display: flex;
+    align-items: center;
+    gap: var(--space-cozy);
+    font-size: var(--data-table-font-size);
+    color: var(--color-text-secondary);
+}
+
+.data-table-page-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.data-table-page-buttons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.data-table-page-ellipsis {
+    padding: 0 4px;
+    color: var(--color-text-secondary);
+    font-size: var(--data-table-font-size);
+}

@@ -1,18 +1,18 @@
 import Column from "./Column";
 import { THeadCell } from "../../../elements";
 
-export default function ColumnGroup(title, configs = {}) {
+export default function ColumnGroup(title, props = {}) {
     this.$description = {
         header: title,
         columns: [],
         align: null,
-        ...configs
+        props
     };
 };
 
-ColumnGroup.defaultHeader = null;
+ColumnGroup.defaultTemplate = null;
 ColumnGroup.use = function(template) {
-    ColumnGroup.defaultHeader = template.header || ColumnGroup.defaultHeader;
+    ColumnGroup.defaultTemplate = template;
 };
 
 ColumnGroup.prototype.isGroup = true;
@@ -42,13 +42,4 @@ ColumnGroup.prototype.header = function(title) {
 ColumnGroup.prototype.align = function(align) {
     this.$description.align = align;
     return this;
-};
-
-
-ColumnGroup.prototype.buildHeader = function() {
-    const header = this.$description.header || ColumnGroup.defaultHeader;
-    if(typeof header === 'function') {
-        return header(this);
-    }
-    return THeadCell({ colspan: this.$description.columns.length }, header);
 };

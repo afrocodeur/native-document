@@ -1,25 +1,46 @@
+import BaseComponent from "../BaseComponent";
+import HasEventEmitter from "../../core/utils/HasEventEmitter";
+import { $ } from '../../../index';
 
 
-export default function SplitterGutter(leftPanel, rightPanel, config = {}) {
+export default function SplitterGutter(leftPanel, rightPanel, props = {}) {
     if(!(this instanceof SplitterGutter)) {
-        return new SplitterGutter(config);
+        return new SplitterGutter(leftPanel, rightPanel, props);
     }
+
+    BaseComponent.call(this, props);
 
     this.$description = {
         leftPanel: leftPanel || null,
         rightPanel: rightPanel || null,
-        orientation: config.orientation || 'horizontal',
-        cursor: config.orientation === 'vertical' ? 'row-resize' : 'col-resize',
-        size: 8,
-        isDragging: $(false)
-    }
+        orientation: 'horizontal',
+        cursor: 'col-resize',
+        size: 2,
+        isDragging: $(false),
+        props
+    };
 }
+
+BaseComponent.extends(SplitterGutter);
+BaseComponent.use(SplitterGutter, HasEventEmitter);
 
 SplitterGutter.defaultTemplate = null;
 
 SplitterGutter.use = function(template) {
-    SplitterGutter.defaultTemplate = template.splitterGutter;
+    SplitterGutter.defaultTemplate = template;
 };
+
+SplitterGutter.prototype.vertical = function() {
+    this.$description.orientation = 'vertical';
+    this.$description.cursor = 'row-resize';
+    return this;
+};
+
+SplitterGutter.prototype.horizontal = function() {
+    this.$description.orientation = 'horizontal';
+    this.$description.cursor = 'col-resize';
+    return this;
+}
 
 SplitterGutter.prototype.panels = function(leftPanel, rightPanel) {
     this.$description.leftPanel = leftPanel;

@@ -1,0 +1,35 @@
+:root {
+  /* Primary */
+  --color-primary:          var(--blue);
+  --color-primary-hover:    var(--contrasted-blue);
+
+  /* Secondary */
+  --color-secondary:        var(--gray-lite-4);
+  --color-secondary-hover:  var(--gray-lite-3);
+  --color-secondary-text:   var(--text-color);
+
+  /* Danger */
+  --color-danger:           var(--red);
+  --color-danger-hover:     var(--contrasted-red);
+
+  /* Success */
+  --color-success:          var(--green);
+  --color-success-hover:    var(--contrasted-green);
+
+  /* Warning */
+  --color-warning:          var(--yellow);
+  --color-warning-hover:    var(--contrasted-yellow);
+
+  /* Info */
+  --color-info:             var(--cyan);
+  --color-info-hover:       var(--contrasted-cyan);
+
+  /* Ghost */
+  --color-ghost:            transparent;
+  --color-ghost-hover:      var(--gray-lite-5);
+  --color-ghost-text:       var(--text-color);
+
+  /* Link */
+  --color-link:             var(--blue);
+  --color-link-hover:       var(--contrasted-blue);
+}

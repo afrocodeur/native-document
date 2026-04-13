@@ -1,5 +1,6 @@
 import BaseComponent from "../BaseComponent";
-import EventEmitter from "../../../src/core/utils/EventEmitter";
+import HasEventEmitter from "../../core/utils/HasEventEmitter";
+import AccordionItem from "./AccordionItem";
 
 
 /**
@@ -13,40 +14,51 @@ import EventEmitter from "../../../src/core/utils/EventEmitter";
  * @returns {Accordion}
  * @class
  */
-export default function Accordion(config = {}) {
+export default function Accordion(props = {}) {
     if (!(this instanceof Accordion)) {
-        return new Accordion(config);
+        return new Accordion(props);
     }
+
+    BaseComponent.call(this, props);
 
     this.$description = {
         items: [],
         multiple: null,
         variant: null,
         renderContent: null,
-        ...config
+        renderIndicator: null,
+        props
     };
 }
 
-BaseComponent.extends(Accordion, EventEmitter);
+BaseComponent.extends(Accordion);
+BaseComponent.use(Accordion, HasEventEmitter);
 
 Accordion.defaultTemplate = null;
-
-
-/**
- * Sets the default template for all Accordion instances
- * @param {{accordion: (accordion: Accordion) => ValidChildren}} template - Template object containing accordion factory function
- */
 Accordion.use = function(template) {
-    Accordion.defaultTemplate = template.accordion;
+    Accordion.defaultTemplate = template;
 };
 
-/**
- * Adds an accordion item to the collection
- * @param {AccordionItem} accordionItem - The accordion item to add
- * @returns {Accordion}
- */
-Accordion.prototype.item = function(accordionItem) {
-    this.$description.items.push(accordionItem);
+
+Accordion.prototype.item = function(title, content, options) {
+    let item = null;
+
+    if(title instanceof AccordionItem) {
+        item = title;
+    }
+    else {
+        const config = typeof options === 'object' ? options : {};
+        item = new AccordionItem(config);
+        item.title(title);
+        item.content(content);
+        item.setDescription(config);
+    }
+
+    if(typeof options === 'function') {
+        options(item);
+    }
+
+    this.$description.items.push(item);
     return this;
 };
 
@@ -219,19 +231,13 @@ Accordion.prototype.renderContent = function(renderFn) {
     return this;
 };
 
+
 /**
- * Builds the accordion component
- * @private
+ * Sets the indicator render function
+ * @param {Function} renderFn - Function to render the indicator
+ * @returns {AccordionItem}
  */
-Accordion.prototype.$build = function() {
-    // TODO: Implementation
-    // this.$description.items.forEach(item => {
-    //     item.onExpand(() => {
-    //         if (!this.$description.multiple) {
-    //             this.$description.items
-    //                 .filter(i => i !== item)
-    //                 .forEach(i => i.expanded(false));
-    //         }
-    //     });
-    // });
+Accordion.prototype.renderIndicator = function(renderFn) {
+    this.$description.renderIndicator = renderFn;
+    return this;
 };

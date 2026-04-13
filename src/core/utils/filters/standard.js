@@ -1,5 +1,6 @@
 import Validator from "../../utils/validator";
 import { createFilter, createMultiSourceFilter } from "./utils";
+import DebugManager from "../debug-manager";
 
 
 export function equals(observableOrValue){
@@ -70,7 +71,7 @@ export function match(patternObservableOrValue, asRegexObservableOrValue = true,
                     const regex = new RegExp(pattern, flags);
                     return regex.test(String(value));
                 } catch (error){
-                    console.warn('Invalid regex pattern:', pattern, error);
+                    DebugManager.warn('Invalid regex pattern:', pattern, error);
                     return false;
                 }
             }

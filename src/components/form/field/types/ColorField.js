@@ -2,12 +2,12 @@
 import Field from "../Field";
 import {Validation} from "../../validation/Validation";
 
-export default function ColorField(name, defaultConfig) {
+export default function ColorField(name, props) {
     if(!(this instanceof ColorField)) {
-        return new ColorField(name, defaultConfig);
+        return new ColorField(name, props);
     }
 
-    Field.call(this, name, 'color', defaultConfig);
+    Field.call(this, name, 'color', props);
 
     Object.assign(this.$description, {
         format: 'hex',
@@ -18,7 +18,7 @@ export default function ColorField(name, defaultConfig) {
 ColorField.defaultTemplate = null;
 
 ColorField.use = function(template) {
-    ColorField.defaultTemplate = template.colorField;
+    ColorField.defaultTemplate = template;
 };
 
 ColorField.prototype = Object.create(Field.prototype);

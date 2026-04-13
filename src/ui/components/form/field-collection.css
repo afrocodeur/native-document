@@ -1,0 +1,55 @@
+.field-collection {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-comfortable);
+}
+
+.field-collection-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-cozy);
+}
+
+.field-collection-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-cozy);
+    padding: var(--space-comfortable);
+    border: 1px solid var(--field-input-border);
+    border-radius: var(--field-input-radius);
+}
+
+/* Transitions */
+.fade-enter-from {
+    opacity: 0;
+    transform: translateY(-8px);
+}
+
+.fade-enter-to {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fade-exit {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.slide-enter-from {
+    opacity: 0;
+    transform: translateX(-16px);
+}
+
+.slide-enter-to {
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.slide-exit {
+    opacity: 0;
+    transform: translateX(16px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}

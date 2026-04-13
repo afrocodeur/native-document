@@ -2,11 +2,10 @@ let DebugManager = {};
 
 if(process.env.NODE_ENV === 'development') {
     DebugManager = {
-        enabled: false,
+        enabled: true,
 
         enable() {
-            this.enabled = true;
-            console.log('🔍 NativeDocument Debug Mode enabled');
+            DebugManager.log('🔍 NativeDocument Debug Mode enabled');
         },
 
         disable() {
@@ -14,7 +13,6 @@ if(process.env.NODE_ENV === 'development') {
         },
 
         log(category, message, data) {
-            if (!this.enabled) return;
             console.group(`🔍 [${category}] ${message}`);
             if (data) console.log(data);
             console.trace();
@@ -22,7 +20,6 @@ if(process.env.NODE_ENV === 'development') {
         },
 
         warn(category, message, data) {
-            if (!this.enabled) return;
             console.warn(`⚠️ [${category}] ${message}`, data);
         },
 

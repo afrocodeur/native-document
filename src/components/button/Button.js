@@ -1,12 +1,12 @@
 import BaseComponent from "../BaseComponent";
-import { Button as NativeButton } from "../../../elements";
+import DebugManager from "../../core/utils/debug-manager";
 
-export default function Button(label, config = {}) {
+export default function Button(label, props = {}) {
     if(!(this instanceof Button)) {
-        return new Button(label, config);
+        return new Button(label, props);
     }
 
-    BaseComponent.call(this, config);
+    BaseComponent.call(this, props);
 
     this.$description = {
         label: label,
@@ -14,27 +14,40 @@ export default function Button(label, config = {}) {
         variant: null,
         size: null,
         icon: null,
-        iconPosition: null,
+        iconPosition: 'left',
         loading: null,
         disabled: null,
         template: null,
         block: null,
         borderRadiusType: null,
         outline: null,
+        props
     };
 
     this.$element = null;
 }
 
 Button.defaultTemplate = null;
-Button.defaultLoaderTemplate = null;
 
 Button.use = function(template = {}) {
-    Button.defaultTemplate = template.button;
-    Button.defaultLoaderTemplate = template.loader;
+    Button.defaultTemplate = template;
 };
 
 BaseComponent.extends(Button);
+
+Button.preset = function(name, callback) {
+    if (Button.prototype[name] || Button[name]) {
+        DebugManager.warn(`Warning: the ${name} method already exist in Button.`);
+        return;
+    }
+    Button[name] = (label, props) => callback(new Button(label, props));
+};
+
+Button.presets = function(presets) {
+    for (const name in presets) {
+        Button.preset(name, presets[name]);
+    }
+};
 
 Button.prototype.type = function(type) {
     this.$description.type = type;
@@ -85,42 +98,44 @@ Button.prototype.medium = function() {
     return this.size('medium');
 };
 
-Button.prototype.icon = function(icon, iconPosition = 'left') {
+Button.prototype.icon = function(icon, iconPosition = 'leading') {
     this.$description.icon = icon;
     this.$description.iconPosition = iconPosition;
     return this;
 };
 
-Button.prototype.iconAtLeft = function(position) {
-    return this.iconPosition('left');
+Button.prototype.iconAtLeading = function() {
+    this.$description.iconPosition = 'leading';
+    return this;
 };
-Button.prototype.iconAtRight = function(position) {
-    return this.iconPosition('right');
+
+Button.prototype.iconAtTrailing = function() {
+    this.$description.iconPosition = 'trailing';
+    return this;
 };
 Button.prototype.iconAtTop = function() {
-    return this.iconPosition('top');
+    this.$description.iconPosition = 'top';
+    return this;
 };
 
 Button.prototype.iconAtBottom = function() {
-    return this.iconPosition('bottom');
+    this.$description.iconPosition = 'bottom';
+    return this;
 };
 
 Button.prototype.iconOnly = function() {
+    this.$description.iconOnly = true;
     return this;
 };
 
 Button.prototype.loading = function(loading = true) {
-    this.$description.loading = loading;
+    this.$description.loading = BaseComponent.obs(loading);
     return this;
 }
 
-Button.prototype.disable = function(disabled = true) {
-    this.$description.disabled = disabled;
+Button.prototype.disabled = function(disabled = true) {
+    this.$description.disabled = BaseComponent.obs(disabled);
     return this;
-};
-
-Button.prototype.enable = function() {
-    return this.disable(false);
 };
 
 Button.prototype.render = function(renderFunction) {
@@ -132,43 +147,19 @@ Button.prototype.rounded = function() {
     this.$description.borderRadiusType = 'rounded';
     return this;
 };
+Button.prototype.pill = function() {
+    this.$description.borderRadiusType = 'pill';
+    return this;
+};
 Button.prototype.circle = function() {
     this.$description.borderRadiusType = 'circle';
     return this;
 };
-Button.prototype.pill = function() {
-    this.$description.shape = 'circle';
-    return this;
-};
 Button.prototype.smooth = function() {
-    this.$description.shape = 'smooth';
+    this.$description.borderRadiusType = 'smooth';
     return this;
 };
 Button.prototype.block = function() {
     this.$description.block = true;
     return this;
-};
-
-Button.prototype.$build = function() {
-    if(this.$element) {
-        return this.$element;
-    }
-    const renderFn = this.$description.render || Button.defaultTemplate;
-
-    if(typeof renderFn === 'function') {
-        this.$element = renderFn(this);
-    }
-    else {
-        const props = {};
-        this.$element = NativeButton(props, this.$description.label);
-    }
-    return this.$element;
-};
-
-Button.prototype.node = function() {
-    return this.$build();
-};
-
-Button.prototype.toNdElement = function() {
-    return this.$build();
 };

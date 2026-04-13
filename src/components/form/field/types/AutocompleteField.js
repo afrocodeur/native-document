@@ -1,24 +1,27 @@
 import StringField from "./StringField";
 
-export default function AutocompleteField(name, defaultConfig) {
+export default function AutocompleteField(name, props) {
     if(!(this instanceof AutocompleteField)) {
-        return new AutocompleteField(name, defaultConfig);
+        return new AutocompleteField(name, props);
     }
 
-    StringField.call(this, name, 'autocomplete', defaultConfig);
+    StringField.call(this, name, 'autocomplete', props);
 
     Object.assign(this.$description, {
         source: null,
         minChars: 2,
         debounce: 300,
-        maxResults: 10
+        maxResults: 10,
+        valueKey: 'id',
+        labelKey: 'label',
+        renderItem: null,
     });
 }
 
 AutocompleteField.defaultTemplate = null;
 
 AutocompleteField.use = function(template) {
-    AutocompleteField.defaultTemplate = template.autoCompleteField;
+    AutocompleteField.defaultTemplate = template;
 };
 
 
@@ -53,5 +56,23 @@ AutocompleteField.prototype.oneOf = function(allowedValues, message) {
         },
         message: message || `Must be one of: ${allowedValues.join(', ')}`
     });
+    return this;
+};
+
+AutocompleteField.prototype.valueKey = function(key) {
+    this.$description.valueKey = key;
+    return this;
+};
+
+AutocompleteField.prototype.labelKey = function(key) {
+    this.$description.labelKey = key;
+    return this;
+};
+AutocompleteField.prototype.onSelect = function(handler) {
+    this.on('select', handler);
+    return this;
+};
+AutocompleteField.prototype.renderItem = function(callback) {
+    this.$description.renderItem = callback;
     return this;
 };

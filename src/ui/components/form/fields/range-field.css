@@ -1,0 +1,120 @@
+.is-range-field {
+    &.is-vertical {
+        .range-field-wrapper {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .range-field-input {
+            writing-mode: vertical-lr;
+            direction: rtl;
+            width: auto;
+            height: 160px;
+        }
+    }
+}
+
+.range-field-wrapper {
+    display: flex;
+    align-items: center;
+    gap: var(--space-comfortable);
+}
+
+.range-field-input {
+    flex: 1;
+    height: 4px;
+    cursor: pointer;
+    accent-color: var(--color-primary);
+
+    &::-webkit-slider-runnable-track {
+        height: 4px;
+        border-radius: 2px;
+        background: var(--gray-lite-4);
+    }
+
+    &::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--background);
+        border: 2px solid var(--color-primary);
+        margin-top: -7px;
+        cursor: grab;
+        transition: box-shadow 0.15s ease;
+
+        &:hover {
+            box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 15%, transparent);
+        }
+
+        &:active {
+            cursor: grabbing;
+        }
+    }
+
+    &::-moz-range-track {
+        height: 4px;
+        border-radius: 2px;
+        background: var(--gray-lite-4);
+    }
+
+    &::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--background);
+        border: 2px solid var(--color-primary);
+        cursor: grab;
+    }
+
+    &:focus-visible {
+        outline: none;
+
+        &::-webkit-slider-thumb {
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 25%, transparent);
+        }
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+.range-field-value {
+    font-size: var(--description-size);
+    color: var(--gray);
+    min-width: 32px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+/* Marks */
+.range-field-marks {
+    position: relative;
+    width: 100%;
+    height: 20px;
+    margin-top: var(--space-tiny);
+}
+
+.range-field-mark {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translateX(-50%);
+}
+
+.range-field-mark-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--gray-lite-3);
+}
+
+.range-field-mark-label {
+    font-size: var(--note-size);
+    color: var(--gray);
+    margin-top: 2px;
+    white-space: nowrap;
+}

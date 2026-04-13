@@ -1,0 +1,128 @@
+:root {
+    --splitter-gutter-size: 1px;
+    --splitter-gutter-hit-area: 8px;
+    --splitter-gutter-color: var(--gray-lite-3);
+    --splitter-gutter-handle-size: 32px;
+    --splitter-gutter-handle-color: var(--gray-lite-2);
+    --splitter-gutter-handle-color-hover: var(--color-primary);
+}
+
+.splitter {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+
+    &.is-horizontal {
+        flex-direction: row;
+    }
+
+    &.is-vertical {
+        flex-direction: column;
+    }
+}
+
+.splitter-panel {
+    overflow: auto;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 0;
+
+    &.is-collapsed {
+        overflow: hidden;
+        flex: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+}
+
+.splitter-gutter {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+
+    &.is-horizontal {
+        width: var(--splitter-gutter-hit-area);
+        height: 100%;
+        cursor: col-resize;
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: var(--splitter-gutter-size);
+            height: 100%;
+            background: var(--splitter-gutter-color);
+            transition: background 0.15s ease;
+        }
+
+        .splitter-gutter-handle {
+            width: 6px;
+            height: var(--splitter-gutter-handle-size);
+            border-radius: 4px;
+            position: relative;
+            z-index: 1;
+        }
+    }
+
+    &.is-vertical {
+        width: 100%;
+        height: var(--splitter-gutter-hit-area);
+        cursor: row-resize;
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            height: var(--splitter-gutter-size);
+            width: 100%;
+            background: var(--splitter-gutter-color);
+            transition: background 0.15s ease;
+        }
+
+        .splitter-gutter-handle {
+            height: 6px;
+            width: var(--splitter-gutter-handle-size);
+            border-radius: 4px;
+            position: relative;
+            z-index: 1;
+        }
+    }
+
+    &:hover, &.is-dragging {
+        &::before {
+            background: var(--splitter-gutter-handle-color-hover);
+        }
+
+        .splitter-gutter-handle {
+            background: var(--splitter-gutter-handle-color-hover);
+        }
+    }
+}
+
+.splitter-gutter-handle {
+    background: var(--splitter-gutter-handle-color);
+    pointer-events: none;
+    transition: background 0.15s ease;
+}
+
+body.is-splitter-dragging {
+    user-select: none;
+
+    &.is-col-resize {
+        cursor: col-resize !important;
+    }
+
+    &.is-row-resize {
+        cursor: row-resize !important;
+    }
+}

@@ -36,7 +36,14 @@ ObservableItem.prototype.toNdElement = function () {
 ObservableChecker.prototype.toNdElement = ObservableItem.prototype.toNdElement;
 
 NDElement.prototype.toNdElement = function () {
-    return this.$element ?? this.$build?.() ?? this.build?.() ?? null;
+    const element = this.$element ?? this.$build?.() ?? this.build?.() ?? null;
+    if(this.$attachements) {
+        if(!this.$attachements.contains(this.$element)) {
+            this.$attachements.append(this.$element);
+        }
+        return this.$attachements;
+    }
+    return element;
 };
 
 Array.prototype.toNdElement = function () {

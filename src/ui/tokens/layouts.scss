@@ -1,0 +1,228 @@
+:root {
+  --z-stack-z-index: 10_000;
+  --glass-color: rgba(255, 255, 255, 0.4);
+  --glass-blur: blur(1px);
+  --glass-shadow:  0px 4px 30px rgba(0, 0, 0, 0.2);
+  --glass-border: rgba(255, 255, 255, .5);
+}
+
+.flex {
+  display: flex;
+  justify-content: space-between;
+  align-content: center;
+  align-items: center;
+  column-gap: var(--space-tight);
+  &.started, &.leading {
+    justify-content: flex-start;
+  }
+  &.centered {
+    justify-content: center;
+  }
+  &.ended, &.trailing {
+    justify-content: flex-end;
+  }
+}
+.flex-fill, .flex-spacer {
+  flex: 1;
+}
+.grid {
+  display: grid;
+  grid-gap: var(--space-tight);
+}
+.custom-grid {
+  display: grid;
+  grid-template-columns: attr(data-columns, 1fr);
+  grid-template-rows: attr(data-rows, 0fr);
+  column-gap: var(--space-tight);
+  row-gap: var(--space-tight);
+}
+.h-stack, .h-stack-multiline {
+  display: flex;
+  flex-direction: row;
+  column-gap: var(--space-tight);
+  row-gap: var(--space-tight);
+  align-items: center;
+  align-content: center;
+}
+.h-stack-responsive {
+  display: flex;
+  flex-direction: column;
+  column-gap: var(--space-tight);
+  row-gap: var(--space-tight);
+  align-items: stretch;
+  align-content: center;
+}
+.h-stack-multiline {
+  flex-wrap: wrap;
+}
+.v-stack {
+  display: flex;
+  flex-direction: column;
+  column-gap: var(--space-tight);
+  row-gap: var(--space-tight);
+  align-items: stretch;
+  align-content: center;
+}
+body.z-stack-open {
+  overflow: hidden;
+}
+.z-stack, .z-stack-relative {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: var(--z-stack-z-index);
+  backdrop-filter: var(--glass-blur);
+  &.fill-parent {
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+  }
+  .top {
+    top: 0;
+    left: 0;
+    right: 0;
+  }
+  .top-center {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .top-right {
+    top: 0;
+    right: 0;
+  }
+  .top-left {
+    top: 0;
+    left: 0;
+  }
+
+  .bottom {
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+  .bottom-center {
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .bottom-right {
+    bottom: 0;
+    right: 0;
+  }
+  .bottom-left {
+    bottom: 0;
+    left: 0;
+  }
+
+  .center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .left,
+  .left-center {
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .right,
+  .right-center {
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+}
+
+.z-stack {
+  position: fixed;
+}
+.z-stack-relative {
+  position: absolute;
+}
+
+/** Alignment */
+.align-start, .align-top {
+  justify-content: flex-start;
+}
+.align-center, .align-middle {
+  justify-content: center;
+}
+.align-end, .align-bottom {
+  justify-content: flex-end;
+}
+.align-stretch {
+  justify-content: stretch;
+}
+.align-between {
+  justify-content: space-between;
+}
+.align-around {
+  justify-content: space-around;
+}
+.align-evenly {
+  justify-content: space-evenly;
+}
+
+/** Content Alignment */
+.content-stretch {
+  align-items: stretch;
+}
+.content-center, .content-middle {
+  align-items: center;
+}
+.content-start, .content-top {
+  align-items: flex-start;
+}
+.content-end, .content-bottom {
+  align-items: flex-end;
+}
+
+/** Spacing */
+.space-tiny {
+  column-gap: var(--space-tiny);
+  row-gap: var(--space-tiny);
+}
+.space-tight {
+  column-gap: var(--space-tight);
+  row-gap: var(--space-tight);
+}
+.space-cozy {
+  column-gap: var(--space-cozy);
+  row-gap: var(--space-cozy);
+}
+.space-cozy-comfortable {
+  column-gap: var(--space-cozy-comfortable);
+  row-gap: var(--space-cozy-comfortable);
+}
+.space-comfortable {
+  column-gap: var(--space-comfortable);
+  row-gap: var(--space-comfortable);
+}
+.space-relaxed {
+  column-gap: var(--space-relaxed);
+  row-gap: var(--space-relaxed);
+}
+.space-loose {
+  column-gap: var(--space-loose);
+  row-gap: var(--space-loose);
+}
+.space-spacious {
+  column-gap: var(--space-spacious);
+  row-gap: var(--space-spacious);
+}
+
+/** Text Alignment */
+.text-center {
+  text-align: center;
+}
+
+@media only screen and (min-width: 768px) {
+  .h-stack-responsive {
+    flex-direction: row;
+  }
+}

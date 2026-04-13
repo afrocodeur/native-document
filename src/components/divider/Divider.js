@@ -1,16 +1,17 @@
 import BaseComponent from "../BaseComponent";
+import DebugManager from "../../core/utils/debug-manager";
 
-export default function Divider(config = {}) {
+export default function Divider(label, props = {}) {
     if(!(this instanceof Divider)) {
-        return new Divider(config);
+        return new Divider(label, props);
     }
 
     this.$description = {
         orientation: 'horizontal',
         variant: 'solid',
-        thickness: null,
-        spacing: null,
-        label: null,
+        thickness: 1,
+        spacing: 16,
+        label,
         labelPosition: 'center',
         color: null,
         render: null,
@@ -18,16 +19,29 @@ export default function Divider(config = {}) {
         indent: null,
         leading: null,
         trailing: null,
-        ...config
+        props
     };
 }
 
 BaseComponent.extends(Divider);
 
 Divider.defaultTemplate = null;
-
 Divider.use = function(template) {
-    Divider.defaultTemplate = template.divider;
+    Divider.defaultTemplate = template;
+};
+
+Divider.preset = function(name, callback) {
+    if (Divider.prototype[name] || Divider[name]) {
+        DebugManager.warn(`Warning: the ${name} method already exists in Divider.`);
+        return;
+    }
+    Divider[name] = (label, props) => callback(new Divider(label, props));
+};
+
+Divider.presets = function(presets) {
+    for (const name in presets) {
+        Divider.preset(name, presets[name]);
+    }
 };
 
 Divider.prototype.orientation = function(orientation) {

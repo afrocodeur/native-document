@@ -1,19 +1,21 @@
 import {Validator} from "../../../index";
 import BaseComponent from "../BaseComponent";
+import Button from "../button/Button";
+import DebugManager from "../../core/utils/debug-manager";
 
 /**
  * Component for displaying user avatars with images, initials, or icons
  * @param {Observable<string>|string} source - The avatar source (image URL or observable)
- * @param {{ src?: Observable<string>|string, alt?: string, name?: string, initials?: string, icon?: ValidChildren, size?: string|number, shape?: string, variant?: string, color?: string, textColor?: string, status?: string, render?: Function }} config - Configuration object
+ * @param {*} props - Props object
  * @class
  */
-export default function Avatar(source, config = {}) {
+export default function Avatar(source, props = {}) {
     if (!(this instanceof Avatar)) {
-        return new Avatar(source, config);
+        return new Avatar(source, props);
     }
 
     this.$description = {
-        src: Validator.isObservable(source) ? source : $(null),
+        src: source ? BaseComponent.obs(source) : null,
         alt: null,
         name: null,
         initials: null,
@@ -25,7 +27,7 @@ export default function Avatar(source, config = {}) {
         textColor: null,
         status: null,
         render: null,
-        ...config
+        props
     };
 }
 
@@ -35,11 +37,26 @@ Avatar.defaultTemplate = null;
 
 /**
  * Sets the default template for all Avatar instances
- * @param {{avatar: (avatar: Avatar) => ValidChildren}} template - Template object containing avatar factory function
+ * @param {ValidChildren} template - Template object containing avatar factory function
  */
 Avatar.use = function(template) {
-    Avatar.defaultTemplate = template.avatar;
+    Avatar.defaultTemplate = template;
 };
+
+Avatar.preset = function(name, callback) {
+    if (Avatar.prototype[name] || Avatar[name]) {
+        DebugManager.warn(`Warning: the ${name} method already exists in Avatar.`);
+        return;
+    }
+    Avatar[name] = (label, props) => callback(new Avatar(label, props));
+};
+
+Avatar.presets = function(presets) {
+    for (const name in presets) {
+        Avatar.preset(name, presets[name]);
+    }
+};
+
 
 /**
  * Registers a handler for the error event
@@ -75,6 +92,9 @@ Avatar.prototype.alt = function(alt) {
  */
 Avatar.prototype.name = function(name) {
     this.$description.name = name;
+    if(!this.$description.initials) {
+        this.$description.initials = name.split(' ').map(n => n[0]).join('');
+    }
     return this;
 };
 
@@ -189,6 +209,7 @@ Avatar.prototype.rounded = function() {
  */
 Avatar.prototype.variant = function(variant) {
     this.$description.variant = variant;
+    return this;
 }; // 'primary' | 'secondary' | 'success' | etc.
 
 /**
@@ -265,13 +286,13 @@ Avatar.prototype.textColor = function(color) {
  * @returns {Avatar}
  */
 Avatar.prototype.status = function(status) {
-    this.$description.status = status;
+    this.$description.status = BaseComponent.obs(status);
     return this;
 };
 
 /**
  * Sets the position of the status indicator
- * @param {string} position - The position (top-right, bottom-right, top-left, bottom-left)
+ * @param {string} position - The position (top-trailing, bottom-trailing, top-leading, bottom-leading)
  * @returns {Avatar}
  */
 Avatar.prototype.statusPosition = function(position) {
@@ -370,23 +391,5 @@ Avatar.prototype.badgeAtTopTrailing = function() {
  */
 Avatar.prototype.badgeAtBottomTrailing = function() {
     return this.badgePosition('bottom-trailing');
-};
-
-/**
- * Sets the render function for the entire avatar
- * @param {(avatar: Avatar, sections: {image: ValidChildren, initials: ValidChildren, icon: ValidChildren, status: ValidChildren, badge: ValidChildren}) => ValidChildren} renderFn - Function to render the avatar
- * @returns {Avatar}
- */
-Avatar.prototype.render = function(renderFn) {
-    this.$description.render = renderFn;
-    return this;
-};
-
-/**
- * Builds the avatar component
- * @private
- */
-Avatar.prototype.$build = function() {
-
 };
 

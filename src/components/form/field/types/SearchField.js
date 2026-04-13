@@ -1,11 +1,11 @@
 import StringField from "./StringField";
 
-export default function SearchField(name, defaultConfig) {
+export default function SearchField(name, props) {
     if(!(this instanceof SearchField)) {
-        return new SearchField(name, defaultConfig);
+        return new SearchField(name, props);
     }
 
-    StringField.call(this, name, 'search', defaultConfig);
+    StringField.call(this, name, 'search', props);
 
     Object.assign(this.$description, {
         debounce: 300
@@ -15,7 +15,7 @@ export default function SearchField(name, defaultConfig) {
 SearchField.defaultTemplate = null;
 
 SearchField.use = function(template) {
-    SearchField.defaultTemplate = template.searchField;
+    SearchField.defaultTemplate = template;
 };
 
 SearchField.prototype = Object.create(StringField.prototype);

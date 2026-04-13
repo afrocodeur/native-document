@@ -1,12 +1,12 @@
 import StringField from "./StringField";
 import {Validation} from "../../validation/Validation";
 
-export default function TelField(name, defaultConfig) {
+export default function TelField(name, props) {
     if(!(this instanceof TelField)) {
-        return new TelField(name, defaultConfig);
+        return new TelField(name, props);
     }
 
-    StringField.call(this, name, 'tel', defaultConfig);
+    StringField.call(this, name, 'tel', props);
 
     Object.assign(this.$description, {
         countryCode: false,
@@ -17,7 +17,7 @@ export default function TelField(name, defaultConfig) {
 TelField.defaultTemplate = null;
 
 TelField.use = function(template) {
-    TelField.defaultTemplate = template.telField;
+    TelField.defaultTemplate = template;
 };
 
 TelField.prototype = Object.create(StringField.prototype);

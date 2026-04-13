@@ -1,0 +1,36 @@
+:root {
+  --fast: .2s;
+  --natural: .3s;
+  --medium: .5s;
+  --slow: 1s;
+  --very-slow: 5s;
+
+  --animate-very-fast: .2s;
+  --animate-fast: .5s;
+  --animate-relax: 1s;
+  --animate-slow: 2s;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+
+@keyframes pulse-shadow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7); /* Initial shadow (subtle or none) */
+  }
+  70% {
+    box-shadow: 0 0 0 15px rgba(52, 152, 219, 0); /* Shadow expands and fades */
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(52, 152, 219, 0); /* Returns to initial state */
+  }
+}

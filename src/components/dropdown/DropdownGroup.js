@@ -1,22 +1,35 @@
 import DropdownItem from "./DropdownItem";
 import BaseComponent from "../BaseComponent";
 import DropdownDivider from "./DropdownDivider";
+import { $ } from "../../../index";
+import {normalizeDropdownItem} from "./helpers";
 
-
-export default function DropdownGroup(config) {
+export default function DropdownGroup(props) {
     if(!(this instanceof DropdownGroup)) {
-        return new DropdownGroup(config);
+        return new DropdownGroup(props);
     }
 
-    DropdownItem.call(this, config);
+    DropdownItem.call(this, props);
 
     Object.assign(this.$description, {
-        renderItem: config.renderItem || null,
-        items: config.items || []
+        items: $.array([]),
     });
 }
 
 BaseComponent.extends(DropdownGroup, DropdownItem);
+
+DropdownGroup.defaultTemplate = null;
+DropdownGroup.use = function(template) {
+    DropdownGroup.defaultTemplate = template;
+};
+
+DropdownGroup.prototype.add = function(item, props) {
+    this.$description.items.push(normalizeDropdownItem(item, null, props));
+    return this;
+};
+
+DropdownGroup.prototype.menu = DropdownGroup.prototype.add;
+DropdownGroup.prototype.item = DropdownGroup.prototype.add;
 
 DropdownGroup.prototype.group = function(groupBuilder) {
     const item = new DropdownGroup();
@@ -28,17 +41,4 @@ DropdownGroup.prototype.group = function(groupBuilder) {
 DropdownGroup.prototype.divider = function() {
     this.$description.items.push(new DropdownDivider());
     return this;
-};
-
-DropdownGroup.prototype.renderItem = function(renderFn) {
-    this.$description.renderItem = renderFn;
-};
-
-
-DropdownGroup.prototype.render = function(renderFn) {
-    this.$description.render = renderFn;
-};
-
-DropdownGroup.prototype.toNdElement = function() {
-
 };

@@ -1,0 +1,36 @@
+:root {
+    --context-menu-bg: var(--background);
+    --context-menu-border: var(--gray-lite-3);
+    --context-menu-radius: var(--radius-card);
+    --context-menu-shadow: var(--shadow-lg);
+    --context-menu-z-index: 99999;
+    --context-menu-min-width: 180px;
+    --context-menu-animation-duration: 0.12s;
+}
+
+.context-menu {
+    z-index: var(--context-menu-z-index);
+    background: var(--context-menu-bg);
+    border: 1px solid var(--context-menu-border);
+    border-radius: var(--context-menu-radius);
+    box-shadow: var(--context-menu-shadow);
+    min-width: var(--context-menu-min-width);
+    box-sizing: border-box;
+    animation: context-menu-in var(--context-menu-animation-duration) ease forwards;
+
+    .menu {
+        flex-direction: column;
+        padding: var(--space-cozy) 0;
+    }
+}
+
+@keyframes context-menu-in {
+    from {
+        opacity: 0;
+        transform: scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}

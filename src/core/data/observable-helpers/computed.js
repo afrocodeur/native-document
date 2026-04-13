@@ -27,7 +27,8 @@ import {nextTick} from "../../utils/helpers";
 Observable.computed = function(callback, dependencies = []) {
     const initialValue = callback();
     const observable = new ObservableItem(initialValue);
-    const updatedValue = nextTick(() => observable.set(callback()));
+    const getValues = () => dependencies.map((item) => item.val());
+    const updatedValue = nextTick(() => observable.set(callback(...getValues())));
     if(process.env.NODE_ENV === 'development') {
         PluginsManager.emit('CreateObservableComputed', observable, dependencies);
     }

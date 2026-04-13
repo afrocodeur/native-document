@@ -1,0 +1,40 @@
+.form-control {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-comfortable);
+}
+
+.form-control-default {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-comfortable);
+}
+
+/* Errors summary */
+.form-errors {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-cozy);
+    padding: var(--space-comfortable);
+    background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-danger) 30%, transparent);
+    border-radius: var(--field-input-radius);
+}
+
+.form-error-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-tiny);
+}
+
+.form-error-field {
+    font-size: var(--note-size);
+    font-weight: 600;
+    color: var(--color-danger);
+    text-transform: capitalize;
+}
+
+.form-error-message {
+    font-size: var(--note-size);
+    color: var(--color-danger);
+}

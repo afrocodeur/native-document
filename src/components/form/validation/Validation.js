@@ -288,6 +288,15 @@ export const Validation = {
             message: `Date must be between ${start.toLocaleDateString()} and ${end.toLocaleDateString()}`
         };
     },
+    weekday(value) {
+        if(!value) return {valid: true};
+        const day = new Date(value).getDay();
+        const valid = day !== 0 && day !== 6;
+        return {
+            valid,
+            message: 'Date must be a weekday'
+        };
+    },
 
     afterTime(value, afterTime) {
         if (!value) return { valid: true };

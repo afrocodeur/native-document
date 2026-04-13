@@ -1,0 +1,121 @@
+:root {
+    --resize-handle-size: 3px;
+    --resize-handle-color: var(--gray-lite-3);
+    --resize-handle-color-hover: var(--gray-lite-1);
+    --resize-notch-size: 6px;
+}
+
+.is-resizable {
+    box-sizing: border-box;
+}
+
+.resize-handle {
+    position: absolute;
+    z-index: 10;
+
+    &.is-right {
+        top: 0;
+        right: 0;
+        width: var(--resize-handle-size);
+        height: 100%;
+        cursor: ew-resize;
+
+        &:hover {
+            background: var(--resize-handle-color-hover);
+            opacity: 0.3;
+        }
+    }
+
+    &.is-left {
+        top: 0;
+        left: 0;
+        width: var(--resize-handle-size);
+        height: 100%;
+        cursor: ew-resize;
+
+        &:hover {
+            background: var(--resize-handle-color-hover);
+            opacity: 0.3;
+        }
+    }
+
+    &.is-top {
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: var(--resize-handle-size);
+        cursor: ns-resize;
+
+        &:hover {
+            background: var(--resize-handle-color-hover);
+            opacity: 0.3;
+        }
+    }
+
+    &.is-bottom {
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: var(--resize-handle-size);
+        cursor: ns-resize;
+
+        &:hover {
+            background: var(--resize-handle-color-hover);
+            opacity: 0.3;
+        }
+    }
+
+    &.is-top-left {
+        top: 0;
+        left: 0;
+        width: var(--resize-notch-size);
+        height: var(--resize-notch-size);
+        cursor: nwse-resize;
+    }
+
+    &.is-top-right {
+        top: 0;
+        right: 0;
+        width: var(--resize-notch-size);
+        height: var(--resize-notch-size);
+        cursor: nesw-resize;
+    }
+
+    &.is-bottom-left {
+        bottom: 0;
+        left: 0;
+        width: var(--resize-notch-size);
+        height: var(--resize-notch-size);
+        cursor: nesw-resize;
+    }
+
+    &.is-bottom-right {
+        bottom: 0;
+        right: 0;
+        width: var(--resize-notch-size);
+        height: var(--resize-notch-size);
+        cursor: nwse-resize;
+
+        &::after {
+            content: '';
+            position: absolute;
+            bottom: 3px;
+            right: 3px;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 0 var(--resize-notch-size) var(--resize-notch-size);
+            border-color: transparent transparent var(--resize-handle-color) transparent;
+            transition: border-color 0.15s ease;
+        }
+
+        &:hover::after {
+            border-color: transparent transparent var(--resize-handle-color-hover) transparent;
+        }
+    }
+}
+
+body.is-resizing {
+    cursor: nwse-resize;
+    user-select: none;
+}

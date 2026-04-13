@@ -19,8 +19,12 @@ import {ElementCreator} from "../../wrappers/ElementCreator";
  * ShowIf(isVisible, Div({}, 'Hello World'));
  */
 export const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
-    if(!(Validator.isObservable(condition)) && !Validator.isObservableWhenResult(condition)) {
-        return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable / "+comment, condition);
+    if(!Validator.isObservable(condition)) {
+        if(typeof condition === "boolean") {
+            return condition ? ElementCreator.getChild(child) : null;
+        }
+
+        return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable or boolean / "+comment, condition);
     }
     const element = Anchor('Show if : '+(comment || ''));
 
@@ -41,12 +45,13 @@ export const ShowIf = function(condition, child, { comment = null, shouldKeepInC
     if(currentValue) {
         element.appendChild(getChildElement());
     }
-    condition.subscribe(value => {
-        if(value) {
+
+    condition.subscribe((value) => {
+        if(!!value) {
             element.appendChild(getChildElement());
-        } else {
-            element.remove();
+            return;
         }
+        element.remove();
     });
 
     return element;

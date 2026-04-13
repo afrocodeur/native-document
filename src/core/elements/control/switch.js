@@ -73,6 +73,7 @@ export const Match = function($condition, values, shouldKeepInCache = true) {
         },
         remove(key) {
             shouldKeepInCache && cache.delete(key);
+            $condition.set([...cache.keys()].at(-1) ?? '');
             delete values[key];
         }
     });
@@ -98,8 +99,9 @@ export const Switch = function ($condition, onTrue, onFalse) {
     if(!Validator.isObservable($condition)) {
         throw new NativeDocumentError("Toggle : condition must be an Observable");
     }
+    const condition = (typeof $condition.val() === 'boolean') ? $condition : $condition.is(v => !!v);
 
-    return Match($condition, {
+    return Match(condition, {
         true: onTrue,
         false: onFalse,
     });

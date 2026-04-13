@@ -1,0 +1,8 @@
+.is-draggable {
+    cursor: grab;
+}
+
+.is-dragging {
+    cursor: grabbing;
+    user-select: none;
+}

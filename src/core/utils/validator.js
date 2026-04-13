@@ -19,7 +19,7 @@ VALID_TYPES[COMMON_NODE_TYPES.COMMENT] = true;
 
 const Validator = {
     isObservable(value) {
-        return  value?.__$isObservable;
+        return  value && (value.__$isObservable || value.__$Observable);
     },
     isTemplateBinding(value) {
         return  value?.__$isTemplateBinding;

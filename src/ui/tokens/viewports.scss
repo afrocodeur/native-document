@@ -1,0 +1,30 @@
+
+:root {
+  --mobile-width: 320px;
+  --tablet-width: 768px;
+  --desktop-width: 1024px;
+  --wide-desktop-width: 1280px;
+  --fullhd-width: 1440px;
+
+  --floor-layer: 0;
+  --noitifcation-layer: 1;
+  --dropdown-layer: 4;
+  --tooltip-layer: 2;
+  --overlay-layer: 10000;
+  --modal-layer: 10001;
+}
+
+@media only screen and (min-width: 768px) {
+  .mobile-only {
+    display: none;
+  }
+}
+
+@media only screen and (max-width: 768px) {
+  .desktop-only {
+    display: none;
+  }
+  .at-least-tablet {
+    display: none;
+  }
+}

@@ -1,12 +1,14 @@
+import BaseComponent from "../BaseComponent";
+import DebugManager from "../../core/utils/debug-manager";
 
-export default function Spinner(config = {}) {
+export default function Spinner(props = {}) {
     if (!(this instanceof Spinner)) {
-        return new Spinner(config);
+        return new Spinner(props);
     }
 
     this.$description = {
         type: 'circle',
-        variant: null,
+        variant: 'primary',
         color: null,
         size: 'small',
         label: null,
@@ -14,14 +16,32 @@ export default function Spinner(config = {}) {
         overlay: null,
         backdrop: null,
         render: null,
-        loading: null,
-        speed: null,
-        ...config
+        speed: 'normal',
+        fullScreenOverlay: null,
+        props
     };
 }
 
-Spinner.use = function(template) {};
 Spinner.defaultTemplate = null;
+Spinner.use = function(template) {
+    Spinner.defaultTemplate = template;
+};
+
+BaseComponent.extends(Spinner);
+
+Spinner.preset = function(name, callback) {
+    if (Spinner.prototype[name] || Spinner[name]) {
+        DebugManager.warn(`Warning: the ${name} method already exists in Spinner.`);
+        return;
+    }
+    Spinner[name] = (props) => callback(new Spinner(props));
+};
+
+Spinner.presets = function(presets) {
+    for (const name in presets) {
+        Spinner.preset(name, presets[name]);
+    }
+};
 
 Spinner.prototype.type = function(type) {
     this.$description.type = type;
@@ -118,9 +138,11 @@ Spinner.prototype.overlay = function(enabled = true) {
     return this;
 };
 Spinner.prototype.fullscreen = function() {
+    this.$description.fullScreenOverlay = true;
     return this.overlay(true);
 };
 Spinner.prototype.backdrop = function(enabled = true) {
+    this.$description.overlay = true;
     this.$description.backdrop = enabled;
     return this;
 };
@@ -144,17 +166,14 @@ Spinner.prototype.fast = function() {
     return this.speed('fast');
 };
 Spinner.prototype.loading = function(isLoading) {
-    this.$description.loading = isLoading;
+    this.showIf(isLoading);
     return this;
 };
+Spinner.prototype.bind = Spinner.prototype.loading;
 
-Spinner.prototype.show = function() {};
-Spinner.prototype.hide = function() {};
-
-Spinner.prototype.render = function(renderFn) {
-    this.$description.render = renderFn;
-    return this;
+Spinner.prototype.show = function() {
+    this.$description.loading?.set(true);
 };
-
-Spinner.prototype.$build = function() {};
-Spinner.prototype.toNdElement = function() {};
+Spinner.prototype.hide = function() {
+    this.$description.loading?.set(false);
+};

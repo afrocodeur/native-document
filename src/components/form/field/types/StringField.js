@@ -1,18 +1,18 @@
 import Field from "../Field";
 import {Validation} from "../../validation/Validation";
 
-export default function StringField(name, type = 'text', defaultConfig = {}) {
+export default function StringField(name, type = 'text', props = {}) {
     if(!(this instanceof StringField)) {
-        return new StringField(name, defaultConfig);
+        return new StringField(name, props);
     }
 
-    Field.call(this, name, type, defaultConfig);
+    Field.call(this, name, type, props);
 }
 
 StringField.defaultTemplate = null;
 
 StringField.use = function(template) {
-    StringField.defaultTemplate = template.stringField;
+    StringField.defaultTemplate = template;
 };
 
 StringField.prototype = Object.create(Field.prototype);

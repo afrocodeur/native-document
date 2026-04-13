@@ -73,6 +73,11 @@ ObservableItem.prototype.intercept = function(callback) {
     return this;
 };
 
+ObservableItem.prototype.interceptMutations = function(callback) {
+    this.$mutationInterceptor = callback;
+    return this;
+};
+
 ObservableItem.prototype.triggerFirstListener = function(operations) {
     this.$firstListener(this.$currentValue, this.$previousValue, operations);
 };
@@ -115,6 +120,8 @@ ObservableItem.prototype.triggerWatchersAndFirstListener = function(operations) 
 ObservableItem.prototype.assocTrigger = function() {
     this.$firstListener = null;
     if(this.$watchers?.size && this.$listeners?.length) {
+        this.$firstListener = this.$listeners[0];
+        this.trigger = this.$firstListener.length === 0 ? this.$firstListener : this.triggerFirstListener
         this.trigger = (this.$listeners.length === 1) ? this.triggerWatchersAndFirstListener : this.triggerAll;
         return;
     }
@@ -167,7 +174,8 @@ ObservableItem.prototype.$setWithInterceptor = function(data) {
     }
 
     this.$updateWithNewValue(newValue);
-}
+};
+
 
 /**
  * @param {*} data
@@ -366,9 +374,19 @@ ObservableItem.prototype.check = function(callback) {
 };
 
 ObservableItem.prototype.transform = ObservableItem.prototype.check;
-ObservableItem.prototype.pluck = ObservableItem.prototype.check;
-ObservableItem.prototype.is = ObservableItem.prototype.check;
+ObservableItem.prototype.pluck = function(property) {
+    return new ObservableChecker(this, (value) => value[property]);
+};
+ObservableItem.prototype.is = function(callbackOrValue) {
+    if(typeof callbackOrValue === 'function') {
+        return new ObservableChecker(this, callbackOrValue);
+    }
+    return new ObservableChecker(this, (value) => value === callbackOrValue);
+};
 ObservableItem.prototype.select = ObservableItem.prototype.check;
+
+
+
 
 /**
  * Gets a property value from the observable's current value.
@@ -573,4 +591,18 @@ ObservableItem.prototype.persist = function(key, options = {}) {
         saver(key, options.set ? options.set(newValue) : newValue);
     });
     return this;
+};
+
+ObservableItem.prototype.clone = function() {
+    let clonedValue = this.$currentValue;
+
+    if(clonedValue && typeof clonedValue === 'object') {
+        if(typeof clonedValue.clone === 'function') {
+            clonedValue = clonedValue.clone();
+        } else {
+            clonedValue = structuredClone(clonedValue);
+        }
+    }
+
+    return new ObservableItem(clonedValue);
 };

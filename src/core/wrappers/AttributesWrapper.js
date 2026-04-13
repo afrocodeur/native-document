@@ -12,6 +12,18 @@ export const bindClassAttribute = (element, data) => {
     for(const className in data) {
         const value = data[className];
         if(value.__$Observable) {
+            if(value.__$isObservableChecker) {
+                let lastClass = value.val();
+                if(typeof lastClass === "string") {
+                    element.classes.toggle(lastClass, true);
+                    value.subscribe((currentValue) => {
+                        element.classes.remove(lastClass);
+                        element.classes.toggle(currentValue, true);
+                        lastClass = currentValue;
+                    });
+                    continue;
+                }
+            }
             element.classes.toggle(className, value.val());
             value.subscribe((shouldAdd) => element.classes.toggle(className, shouldAdd));
             continue;
@@ -32,14 +44,39 @@ export const bindClassAttribute = (element, data) => {
 export const bindStyleAttribute = (element, data) => {
     for(const styleName in data) {
         const value = data[styleName];
-        if(value.__$isObservable) {
-            element.style[styleName] = value.val();
-            value.subscribe((newValue) => element.style[styleName] = newValue);
+        const isCustomProperty = styleName.startsWith('--');
+
+        if(value.__$Observable) {
+            if(isCustomProperty) {
+                element.style.setProperty(styleName, value.val());
+                value.subscribe((newValue) => {
+                    if(newValue === false) {
+                        element.style.removeProperty(styleName);
+                        return;
+                    }
+                    element.style.setProperty(styleName, newValue)
+                });
+            } else {
+                element.style[styleName] = value.val();
+                value.subscribe((newValue) => {
+                    if(newValue === false) {
+                        element.style.removeProperty(styleName);
+                        return;
+                    }
+                    element.style[styleName] = newValue
+                });
+            }
             continue;
         }
+
+        if(isCustomProperty) {
+            element.style.setProperty(styleName, value);
+            continue;
+        }
+
         element.style[styleName] = value;
     }
-}
+};
 
 /**
  *

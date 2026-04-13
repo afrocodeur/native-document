@@ -1,31 +1,38 @@
 import BaseComponent from "../BaseComponent";
-import EventEmitter from "../../../src/core/utils/EventEmitter";
+import HasEventEmitter from "../../core/utils/HasEventEmitter";
+import {Observable} from "../../../index";
 
-export default function Toast(message, config = {}) {
+export default function Toast(content, props = {}) {
     if (!(this instanceof Toast)) {
-        return new Toast(message, config);
+        return new Toast(content, props);
     }
 
+    BaseComponent.call(this, props);
+
     this.$description = {
+        visibility: Observable(true),
         type: null,
         title: null,
-        content: null,
+        content,
         icon: null,
         showIcon: true,
-        duration: 3000,
+        duration: 5000,
         closable: true,
         pauseOnHover: true,
-        position: 'top-right',
+        position: 'top-trailing',
         actions: [],
         render: null,
-        ...config
+        props
     };
 }
 
-BaseComponent.extends(Toast, EventEmitter);
+BaseComponent.extends(Toast);
+BaseComponent.use(Toast, HasEventEmitter);
 
-Toast.use = function(template) {};
 Toast.defaultTemplate = null;
+Toast.use = function(template) {
+    Toast.defaultTemplate = template;
+};
 
 // Types
 Toast.prototype.type = function(type) {
@@ -33,16 +40,20 @@ Toast.prototype.type = function(type) {
     return this;
 };
 Toast.prototype.info = function() {
-    return this.type('info');
+    this.$description.type = 'info';
+    return this;
 };
 Toast.prototype.success = function() {
-    return this.type('success');
+    this.$description.type = 'success';
+    return this;
 };
 Toast.prototype.warning = function() {
-    return this.type('warning');
+    this.$description.type = 'warning';
+    return this;
 };
 Toast.prototype.error = function() {
-    return this.type('error');
+    this.$description.type = 'error';
+    return this;
 };
 
 
@@ -83,18 +94,19 @@ Toast.prototype.position = function(position) {
     this.$description.position = position;
     return this;
 };
-Toast.prototype.atTopStart = function() {
-    return this.position('top-start');
+
+Toast.prototype.atTopLeading = function() {
+    return this.position('top-leading');
 };
 
-Toast.prototype.atTopEnd = function() {
-    return this.position('top-end');
+Toast.prototype.atTopTrailing = function() {
+    return this.position('top-trailing');
 };
-Toast.prototype.atBottomStart = function() {
-    return this.position('bottom-start');
+Toast.prototype.atBottomLeading = function() {
+    return this.position('bottom-leading');
 };
-Toast.prototype.atBottomEnd = function() {
-    return this.position('bottom-end');
+Toast.prototype.atBottomTrailing = function() {
+    return this.position('bottom-trailing');
 };
 Toast.prototype.atTopCenter = function() {
     return this.position('top-center');
@@ -103,27 +115,20 @@ Toast.prototype.atBottomCenter = function() {
     return this.position('bottom-center');
 };
 
-Toast.prototype.clearActions = function() {
-    this.$description.actions = [];
-    return this;
-};
-Toast.prototype.action = function(label, handler) {
-    this.$description.actions.push({ label, handler });
+Toast.prototype.action = function(label, handler, variant = null) {
+    handler = handler || (() => this.close());
+    this.$description.actions.push({ label, handler, variant });
     return this;
 };
 
-Toast.prototype.close = function() {};
+Toast.prototype.close = function() {
+    this.$description.visibility?.set(false);
+    this.emit('close');
+};
+
 Toast.prototype.onClose = function(handler) {
     this.on('close', handler);
     return this;
 };
 
-Toast.prototype.render = function(renderFn) {
-    this.$description.render = renderFn;
-    return this;
-};
-
-Toast.prototype.$build = function() {
-
-};
-Toast.prototype.toNdElement = function() {};
+Toast.prototype.show = BaseComponent.prototype.toNdElement;

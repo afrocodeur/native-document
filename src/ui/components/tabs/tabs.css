@@ -1,0 +1,253 @@
+:root {
+    --tabs-border: var(--gray-lite-3);
+    --tabs-radius: var(--radius-button);
+    --tabs-font-size: var(--description-size);
+    --tabs-font-weight: 500;
+
+    --tab-padding: var(--space-cozy) var(--space-comfortable);
+    --tab-color: var(--gray);
+    --tab-color-active: var(--color-primary);
+    --tab-color-hover: var(--text-color);
+    --tab-bg-hover: var(--gray-lite-5);
+    --tab-indicator-height: 2px;
+
+    --tabs-content-padding: var(--space-comfortable) 0;
+}
+
+.tabs {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+
+    .tab-nav-options {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        align-content: center;
+    }
+
+    .tabs-nav-wrap {
+        flex: 1;
+        overflow: hidden;
+    }
+    &.is-navigation-at-left,
+    &.is-navigation-at-right {
+        .tabs-nav-wrap {
+            flex-direction: column;
+            &:hover {
+                overflow-y: auto;
+            }
+        }
+        .tab-nav-options {
+            flex-direction: column;
+        }
+    }
+    &.is-navigation-at-top,
+    &.is-navigation-at-bottom {
+        .tabs-nav-wrap {
+            &:hover {
+                overflow-x: auto;
+            }
+        }
+    }
+
+    &.is-navigation-at-left {
+        flex-direction: row;
+
+        .tabs-nav {
+            flex-direction: column;
+            border-bottom: none;
+            border-right: 1px solid var(--tabs-border);
+        }
+
+        .tabs-tab {
+            border-bottom: none;
+            border-right: var(--tab-indicator-height) solid transparent;
+            border-radius: var(--tabs-radius) 0 0 var(--tabs-radius);
+            margin-bottom: 0;
+            margin-right: calc(var(--tab-indicator-height) * -1);
+
+            &.is-active {
+                border-right-color: var(--tab-color-active);
+            }
+        }
+    }
+
+    &.is-navigation-at-right {
+        flex-direction: row-reverse;
+
+        .tabs-nav {
+            flex-direction: column;
+            border-bottom: none;
+            border-left: 1px solid var(--tabs-border);
+        }
+
+        .tabs-tab {
+            border-bottom: none;
+            border-left: var(--tab-indicator-height) solid transparent;
+            border-radius: 0 var(--tabs-radius) var(--tabs-radius) 0;
+            margin-bottom: 0;
+            margin-left: calc(var(--tab-indicator-height) * -1);
+
+            &.is-active {
+                border-left-color: var(--tab-color-active);
+            }
+        }
+    }
+
+    &.is-navigation-at-dock {
+        flex-direction: column-reverse;
+
+        .tabs-nav {
+            border-bottom: none;
+            border-top: 1px solid var(--tabs-border);
+        }
+
+        .tabs-tab {
+            border-bottom: none;
+            border-top: var(--tab-indicator-height) solid transparent;
+            border-radius: 0 0 var(--tabs-radius) var(--tabs-radius);
+            margin-bottom: 0;
+            margin-top: calc(var(--tab-indicator-height) * -1);
+
+            &.is-active {
+                border-top-color: var(--tab-color-active);
+            }
+        }
+    }
+
+    &.is-align-leading .tabs-nav-wrap   { justify-content: flex-start; }
+    &.is-align-trailing .tabs-nav-wrap  { justify-content: flex-end; }
+    &.is-align-center .tabs-nav-wrap    { justify-content: center; }
+    &.is-align-justified .tabs-nav-wrap { justify-content: stretch; .tabs-tab { flex: 1; justify-content: center; } }
+
+    &.is-overflow-scroll .tabs-nav-wrap {
+        overflow-x: auto;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+    }
+
+    &.is-appearance-pills {
+        .tabs-tab {
+            border-bottom: none;
+            border-radius: var(--radius-pill);
+            margin-bottom: 0;
+
+            &.is-active {
+                background: var(--color-primary);
+                color: var(--white);
+            }
+
+            &:hover {
+                background: var(--tab-bg-hover);
+            }
+        }
+
+        .tabs-nav {
+            border-bottom: none;
+            gap: var(--space-cozy);
+        }
+    }
+
+    &.is-closable .tabs-tab-closer {
+        display: inline-flex;
+    }
+}
+
+.tabs-tab {
+    &.is-dragging {
+        display: none;
+        pointer-events: none;
+    }
+
+    &.is-drag-over {
+        border-color: var(--color-primary);
+        background: var(--tab-bg-hover);
+    }
+}
+
+.tabs-nav {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--tabs-border);
+    position: relative;
+}
+
+.tabs-nav-wrap {
+    display: flex;
+    flex: 1;
+    gap: 0;
+}
+
+.tab-nav-overflow {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.tabs-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-cozy);
+    padding: var(--tab-padding);
+    font-size: var(--tabs-font-size);
+    font-weight: var(--tabs-font-weight);
+    color: var(--tab-color);
+    cursor: pointer;
+    border-radius: var(--tabs-radius) var(--tabs-radius) 0 0;
+    position: relative;
+    white-space: nowrap;
+    transition: color 0.15s ease, background 0.15s ease;
+    border-bottom: var(--tab-indicator-height) solid transparent;
+    margin-bottom: calc(var(--tab-indicator-height) * -1);
+    user-select: none;
+
+    &:hover {
+        color: var(--tab-color-hover);
+        background: var(--tab-bg-hover);
+    }
+
+    &.is-active {
+        color: var(--tab-color-active);
+        border-bottom-color: var(--tab-color-active);
+    }
+}
+
+.tabs-tab-icon {
+    display: inline-flex;
+    align-items: center;
+    width: 16px;
+    height: 16px;
+}
+
+.tabs-tab-label {
+    flex: 1;
+}
+
+.tabs-tab-closer {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    opacity: 0.5;
+    font-size: var(--note-size);
+
+    &:hover {
+        opacity: 1;
+        background: var(--gray-lite-4);
+    }
+}
+
+.tabs-content {
+    padding: var(--tabs-content-padding);
+    flex: 1;
+}
+
+.tabs-panel {
+
+}

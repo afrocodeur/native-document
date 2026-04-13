@@ -1,0 +1,38 @@
+:root {
+    --avatar-group-overlap: -15px;
+    --avatar-group-more-text-color: var(--white);
+    --avatar-group-more-background-color: var(--gray-lite-4);
+}
+
+.avatar-group {
+    display: inline-flex;
+    align-items: center;
+}
+
+.avatar-group .avatar-wrapper,
+.avatar-group .avatar {
+    margin-left: var(--avatar-group-overlap, 0px);
+
+    &:first-child {
+        margin-left: 0;
+    }
+}
+.avatar-group .avatar {
+    border: 2px solid var(--background);
+}
+
+.avatar-group-more {
+    background: var(--avatar-group-more-background-color);
+    border: 2px solid var(--background);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-left: var(--avatar-group-overlap, 0px);
+    color: var(--avatar-group-more-text-color);
+
+    &.is-clickable {
+        cursor: pointer;
+    }
+}

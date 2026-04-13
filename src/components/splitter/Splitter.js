@@ -1,29 +1,33 @@
 import BaseComponent from "../BaseComponent";
-import EventEmitter from "../../../src/core/utils/EventEmitter";
+import HasEventEmitter from "../../core/utils/HasEventEmitter";
 import {Validator} from "../../../index";
+import SplitterPanel from "./SplitterPanel";
 
-export default function Splitter(config = {}) {
+export default function Splitter(props = {}) {
     if(!(this instanceof Splitter)) {
-        return new Splitter(config);
+        return new Splitter(props);
     }
+
+    BaseComponent.call(this, props);
 
     this.$description = {
         orientation: 'horizontal',
         panels: [],
         gutterSize: 8,
         render: null,
-        ...config
+        props
     };
 
     this.$element = null;
 }
 
-BaseComponent.extends(Splitter, EventEmitter);
+BaseComponent.extends(Splitter);
+BaseComponent.use(Splitter, HasEventEmitter);
 
 Splitter.defaultTemplate = null;
 
 Splitter.use = function(template) {
-    Splitter.defaultTemplate = template.splitter;
+    Splitter.defaultTemplate = template;
 };
 
 Splitter.prototype.dynamic = function(){
@@ -51,17 +55,20 @@ Splitter.prototype.gutterSize = function(gutterSize) {
     return this;
 };
 
-Splitter.prototype.panel = function(panel) {
+Splitter.prototype.panel = function(content, options = {}, props = {}) {
+    const panel = content instanceof SplitterPanel
+        ? content
+        : SplitterPanel(content).setDescription(options);
     this.$description.panels.push(panel);
     return this;
 };
 
 Splitter.prototype.panels = function(panels) {
     if(Validator.isObservable(this.$description.panels)) {
-        this.$description.panels.set(panels);
-        return this;
+        this.$description.panels.clear();
+    } else {
+        this.$description.panels = [];
     }
-    this.$description.panels = [];
     panels.forEach(panel => this.panel(panel));
     return this;
 };

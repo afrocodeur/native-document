@@ -1,12 +1,12 @@
 import {Validation} from "../../validation/Validation";
 import Field from "../Field";
 
-export default function NumberField(name, type = 'number', defaultConfig = {}) {
+export default function NumberField(name, type = 'number', props = {}) {
     if(!(this instanceof NumberField)) {
-        return new NumberField(name, defaultConfig);
+        return new NumberField(name, type, props);
     }
 
-    Field.call(this, name, type, defaultConfig);
+    Field.call(this, name, type, props);
 
     Object.assign(this.$description, {
         ...this.$description,
@@ -20,7 +20,7 @@ export default function NumberField(name, type = 'number', defaultConfig = {}) {
 NumberField.defaultTemplate = null;
 
 NumberField.use = function(template) {
-    NumberField.defaultTemplate = template.numberField;
+    NumberField.defaultTemplate = template;
 };
 
 NumberField.prototype = Object.create(Field.prototype);
@@ -68,7 +68,7 @@ NumberField.prototype.step = function(value) {
     return this;
 };
 
-NumberField.prototype.decimals = function(value) {
+NumberField.prototype.decimals = function(value = 2) {
     this.$description.decimals = value;
     return this;
 };

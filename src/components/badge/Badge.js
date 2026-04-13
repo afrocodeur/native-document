@@ -1,17 +1,22 @@
 import BaseComponent from "../BaseComponent";
-import EventEmitter from "../../../src/core/utils/EventEmitter";
+import DebugManager from "../../core/utils/debug-manager";
 
 
-export default function Badge(config = {}) {
+export default function Badge(content, props = {}) {
     if(!(this instanceof Badge)) {
-        return new Badge(config);
+        return new Badge(content, props);
     }
 
+    BaseComponent.call(this, props);
+
     this.$description = {
-        style: null,
-        shape: null,
-        variant,
-        ...config
+        appearance: 'filled',
+        borderRadiusType: 'pill',
+        variant: 'primary',
+        size: 'medium',
+        onClick: null,
+        content,
+        props
     };
 }
 
@@ -19,7 +24,23 @@ BaseComponent.extends(Badge);
 
 Badge.defaultTemplate = null;
 
-Badge.use = function(template) {};
+Badge.use = function(template) {
+    Badge.defaultTemplate = template;
+};
+
+Badge.preset = function(name, callback) {
+    if (Badge.prototype[name] || Badge[name]) {
+        DebugManager.warn(`Warning: the ${name} method already exists in Badge.`);
+        return;
+    }
+    Badge[name] = (content, props) => callback(new Badge(content, props));
+};
+
+Badge.presets = function(presets) {
+    for (const name in presets) {
+        Badge.preset(name, presets[name]);
+    }
+};
 
 Badge.prototype.variant = function(variant) {
     this.$description.variant = variant;
@@ -59,29 +80,38 @@ Badge.prototype.large = function() {
 };
 
 Badge.prototype.shape = function(shape) {
-    this.$description.shape = shape;
+    this.$description.borderRadiusType = shape;
     return this;
 };
 
 Badge.prototype.rounded = function() {
-    return this.shape('rounded');
+    this.$description.borderRadiusType = 'rounded';
+    return this;
 };
 Badge.prototype.pill = function() {
-    return this.shape('pill');
+    this.$description.borderRadiusType = 'pill';
+    return this;
+};
+Badge.prototype.circle = function() {
+    this.$description.borderRadiusType = 'circle';
+    return this;
 };
 
-Badge.prototype.style = function(style) {
-    this.$description.style = style;
+Badge.prototype.appearance = function(appearance) {
+    this.$description.appearance = appearance;
     return this;
 };
 Badge.prototype.outline = function() {
-    return this.style('outline');
+    this.$description.appearance = 'outline';
+    return this;
 };
 Badge.prototype.filled = function() {
-    return this.style('filled');
+    this.$description.appearance = 'filled';
+    return this;
 };
 Badge.prototype.bordered = function() {
-    return this.style('bordered');
+    this.$description.appearance = 'bordered';
+    return this;
 };
 
 Badge.prototype.content = function(content) {
@@ -89,15 +119,7 @@ Badge.prototype.content = function(content) {
     return this;
 };
 
-Badge.prototype.clickable = function(handler) {};
-
-
-Badge.prototype.render = function(renderFn) {
-    this.$description.render = renderFn;
+Badge.prototype.onClick = function(handler) {
+    this.$description.onClick = handler;
     return this;
 };
-
-Badge.prototype.$build = function() {
-
-};
-Badge.prototype.toNdElement = function() {};

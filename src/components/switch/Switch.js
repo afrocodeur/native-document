@@ -1,32 +1,53 @@
 import BaseComponent from "../BaseComponent";
-import EventEmitter from "../../../src/core/utils/EventEmitter";
+import HasEventEmitter from "../../core/utils/HasEventEmitter";
+import { $ } from '../../../index'
 
-function Switch(config = {}) {
+export default function Switch(props = {}) {
     if (!(this instanceof Switch)) {
-        return new Switch(config);
+        return new Switch(props);
     }
 
-    this.$description = {
+    BaseComponent.call(this, props);
 
+    this.$description = {
+        value: $(false),
+        label: null,
+        labelPosition: $('right'),
+        variant: $('primary'),
+        outline: false,
+        disabled: false,
+        loading: false,
+        readonly: false,
+        onIcon: null,
+        offIcon: null,
     };
 }
 
-BaseComponent.extends(Switch, EventEmitter);
+BaseComponent.extends(Switch);
+BaseComponent.use(Switch, HasEventEmitter);
 
 // Theming
 Switch.defaultTemplate = null;
 Switch.use = function(template) {
-
+    Switch.defaultTemplate = template;
 };
 
-Switch.prototype.model = function(value) {};
-Switch.prototype.value = function() {};
+Switch.prototype.model = function(value) {
+    this.$description.value = BaseComponent.obs(value);
+    return this;
+};
 
-Switch.prototype.label = function(label) {};
-Switch.prototype.labelPosition = function(position) {};
+Switch.prototype.label = function(label) {
+    this.$description.label = label;
+    return this;
+};
+Switch.prototype.labelPosition = function(position) {
+    this.$description.labelPosition = position;
+    return this;
+};
 
 Switch.prototype.variant = function(name) {
-    this.$description.variant = name;
+    this.$description.variant.set(name);
     return this;
 };
 Switch.prototype.primary = function() {
@@ -56,23 +77,36 @@ Switch.prototype.outline = function() {
 };
 
 Switch.prototype.disabled = function(condition = true) {
-    this.$description.disabled = condition;
+    this.$description.disabled = BaseComponent.obs(condition);
     return this;
 };
 Switch.prototype.loading = function(isLoading = true) {
-    this.$description.loading = isLoading;
+    this.$description.loading = BaseComponent.obs(isLoading);
     return this;
 };
 Switch.prototype.readonly = function(condition = true) {
-    this.$description.readonly = condition;
+    this.$description.readonly = BaseComponent.obs(condition);
     return this;
 };
 
-Switch.prototype.icon = function(onIcon, offIcon) {};
+Switch.prototype.icon = function(onIcon, offIcon) {
+    this.$description.offIcon = offIcon;
+    this.$description.onIcon = onIcon;
+    return this;
+};
 
-Switch.prototype.toggle = function() {};
-Switch.prototype.on = function() {};
-Switch.prototype.off = function() {};
+Switch.prototype.toggle = function() {
+    this.$description.value.toggle();
+    return this;
+};
+Switch.prototype.on = function() {
+    this.$description.value.set(true);
+    return this;
+};
+Switch.prototype.off = function() {
+    this.$description.value.set(false);
+    return this;
+};
 
 Switch.prototype.onChange = function(handler) {
     this.on('change', handler);
@@ -86,14 +120,3 @@ Switch.prototype.onOff = function(handler) {
     this.on('off', handler);
     return this;
 };
-
-// Render
-Switch.prototype.render = function(renderFn) {
-    this.$description.render = renderFn;
-    return this;
-};
-
-Switch.prototype.$build = function() {
-
-};
-Switch.prototype.toNdElement = function() {};

@@ -1,0 +1,63 @@
+:root {
+    --pagination-gap: var(--space-cozy);
+    --pagination-font-size: var(--description-size);
+
+    --page-size: 36px;
+    --page-radius: var(--radius-button);
+    --page-color: var(--text-color);
+    --page-bg-hover: var(--gray-lite-5);
+    --page-bg-active: var(--color-primary);
+    --page-color-active: var(--white);
+    --page-color-disabled: var(--gray-lite-2);
+}
+
+.pagination {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--pagination-gap);
+    font-size: var(--pagination-font-size);
+}
+
+.pagination-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--page-size);
+    height: var(--page-size);
+    padding: 0 var(--space-cozy);
+    border-radius: var(--page-radius);
+    cursor: pointer;
+    color: var(--page-color);
+    user-select: none;
+    transition: background 0.1s ease, color 0.1s ease;
+    font-weight: 500;
+
+    &:hover {
+        background: var(--page-bg-hover);
+    }
+
+    &.is-active {
+        background: var(--page-bg-active);
+        color: var(--page-color-active);
+        pointer-events: none;
+    }
+
+    &.is-disabled {
+        color: var(--page-color-disabled);
+        pointer-events: none;
+        cursor: not-allowed;
+    }
+
+    &.is-ellipsis {
+        cursor: default;
+        pointer-events: none;
+
+        &:hover {
+            background: none;
+        }
+    }
+
+    &.is-nav {
+        font-size: var(--important-size);
+    }
+}

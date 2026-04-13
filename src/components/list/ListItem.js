@@ -26,7 +26,7 @@ BaseComponent.extends(ListItem);
 ListItem.defaultTemplate = null;
 
 ListItem.use = function(template) {
-    ListItem.defaultTemplate = template.listItem;
+    ListItem.defaultTemplate = template;
 };
 
 ListItem.prototype.content = function(content) {

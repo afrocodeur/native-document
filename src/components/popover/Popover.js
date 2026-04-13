@@ -1,31 +1,46 @@
 import BaseComponent from "../BaseComponent";
-import EventEmitter from "../../../src/core/utils/EventEmitter";
+import HasEventEmitter from "../../core/utils/HasEventEmitter";
+import { Observable } from "../../../index";
+import {ElementCreator} from "../../core/wrappers/ElementCreator";
+import {NDElement} from "../../core/wrappers/NDElement";
+import DebugManager from "../../core/utils/debug-manager";
+import HasFullPosition from "../$traits/has-position/HasFullPosition";
 
-export default function Popover(config = {}) {
+export default function Popover(content, props = {}) {
     if (!(this instanceof Popover)) {
-        return new Popover(config);
+        return new Popover(content, props);
     }
+
+    BaseComponent.call(this, props);
 
     this.$description = {
         trigger: null,
-        content: null,
+        interaction: 'click',
+        content,
         header: null,
         footer: null,
-        isOpen: $(false),
+        isOpen: Observable(false),
         defaultOpen: false,
         modal: false,
         closeOnEscape: true,
         closeOnClickOutside: true,
         focusTrap: true,
         returnFocus: true,
-        position: 'bottom',
-        offset: [0, 8],
+        position: 'top',
+        offset: 8,
+        shift: {},
+        arrow: true,
         data: null,
         renderContent: null,
         renderHeader: null,
         renderFooter: null,
         render: null,
-        ...config,
+        variant: null,
+        matchTriggerWidth: null,
+        matchTargetWidth: null,
+        updatePositionOn: null,
+        includeTriggerIntoGhost: true,
+        props,
     };
 
     this.$element = null;
@@ -35,20 +50,74 @@ export default function Popover(config = {}) {
     }
 }
 
-BaseComponent.extends(Popover, EventEmitter);
+BaseComponent.extends(Popover);
+BaseComponent.use(Popover, HasEventEmitter, HasFullPosition);
 
 Popover.defaultTemplate = null;
 
 Popover.use = function(template) {
-    Popover.defaultTemplate = template.popover;
+    Popover.defaultTemplate = template;
+
+    if(!NDElement.prototype.popover) {
+        NDElement.prototype.popover = function(content, props) {
+            this.ghostDom((content instanceof Popover)
+                ? content.trigger(this.$element)
+                : Popover(content, props).trigger(this.$element));
+            return this;
+        };
+    }
+    if(!BaseComponent.prototype.popover) {
+        BaseComponent.prototype.popover = function(content, props) {
+            this.postBuild(() => {
+                if(content instanceof Popover) {
+                    this.ghostDom(content.trigger(this.$element));
+                } else {
+                    this.ghostDom(Popover(content, props).trigger(this.$element));
+                }
+            })
+            return this;
+        };
+    }
+
+};
+
+
+
+Popover.preset = function(name, callback) {
+    if (Popover.prototype[name] || Popover[name]) {
+        DebugManager.warn(`Warning: the ${name} method already exist in Popover.`);
+        return;
+    }
+    Popover[name] = (content, props) => callback(new Popover(content, props));
+};
+
+Popover.presets = function(presets) {
+    for (const name in presets) {
+        Popover.preset(name, presets[name]);
+    }
 };
 
 Popover.prototype.trigger = function(trigger) {
-    if (trigger instanceof PopoverTrigger) {
-        this.$description.trigger = trigger.toJSON();
-    } else {
-        this.$description.trigger = trigger;
-    }
+    this.$description.trigger = ElementCreator.getChild(trigger);
+    return this;
+};
+
+Popover.prototype.interaction = function(interaction) {
+    this.$description.interaction = interaction;
+};
+
+Popover.prototype.onClicked = function() {
+    this.$description.interaction = 'click';
+    return this;
+};
+
+Popover.prototype.onHovered = function() {
+    this.$description.interaction = 'hover';
+    return this;
+};
+
+Popover.prototype.onFocused = function() {
+    this.$description.interaction = 'focus';
     return this;
 };
 
@@ -92,33 +161,18 @@ Popover.prototype.position = function(position) {
     return this;
 };
 
-Popover.prototype.atTop = function() {
-    return this.position('top');
-};
-Popover.prototype.atBottom = function() {
-    return this.position('bottom');
-};
-Popover.prototype.atLeft = function() {
-    return this.position('left');
-};
-Popover.prototype.atRight = function() {
-    return this.position('right');
-};
-Popover.prototype.atTopStart = function() {
-    return this.position('top-start');
-};
-Popover.prototype.atTopEnd = function() {
-    return this.position('top-end');
-};
-Popover.prototype.atBottomStart = function() {
-    return this.position('bottom-start');
-};
-Popover.prototype.atBottomEnd = function() {
-    return this.position('bottom-end');
+Popover.prototype.offset = function(offset) {
+    this.$description.offset = offset;
+    return this;
 };
 
-Popover.prototype.offset = function(skidding, distance) {
-    this.$description.offset = [skidding, distance];
+Popover.prototype.arrow = function(arrow = true) {
+    this.$description.arrow = arrow;
+    return this;
+};
+
+Popover.prototype.shift = function(shift) {
+    this.$description.shift = shift;
     return this;
 };
 
@@ -179,7 +233,40 @@ Popover.prototype.renderFooter = function(renderFn) {
     return this;
 };
 
-Popover.prototype.render = function(renderFn) {
-    this.$description.render = renderFn;
+Popover.prototype.variant = function(variant) {
+    this.$description.variant = variant;
+    return this;
+};
+
+Popover.prototype.primary = function() {
+    this.$description.variant = 'primary';
+    return this;
+};
+
+Popover.prototype.success = function() {
+    this.$description.variant = 'success';
+    return this;
+};
+
+Popover.prototype.warning = function() {
+    this.$description.variant = 'warning';
+    return this;
+};
+
+Popover.prototype.danger = function() {
+    this.$description.variant = 'danger';
+    return this;
+};
+
+Popover.prototype.info = function() {
+    this.$description.variant = 'info';
+    return this;
+};
+Popover.prototype.matchTriggerWidth = function() {
+    this.$description.matchTriggerWidth = true;
+    return this;
+};
+Popover.prototype.updatePositionOn = function(updatePositionOn) {
+    this.$description.updatePositionOn = updatePositionOn;
     return this;
 };

@@ -1,11 +1,14 @@
 import BaseComponent from "../BaseComponent";
 
 
-export default function MenuDivider() {
+export default function MenuDivider(props = {}) {
     if(!(this instanceof MenuDivider)) {
-        return new MenuDivider();
+        return new MenuDivider(props);
     }
 
+    this.$description = {
+        props
+    };
 }
 
 BaseComponent.extends(MenuDivider);
@@ -14,9 +17,5 @@ BaseComponent.extends(MenuDivider);
 MenuDivider.defaultTemplate = null;
 
 MenuDivider.use = function(template) {
-    MenuDivider.defaultTemplate = template.divider;
-};
-
-MenuDivider.prototype.$build = function() {
-
+    MenuDivider.defaultTemplate = template;
 };

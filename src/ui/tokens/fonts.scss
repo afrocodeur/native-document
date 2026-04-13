@@ -1,0 +1,57 @@
+:root {
+  --font: Inter, Arial, sans-serif;
+  --diablo-detail-size: .5rem;
+  --diablo-size: .6rem;
+  --hint-size: .7rem;
+  --note-size: .8rem;
+  --description-size: 0.9rem;
+  --text-size: 1rem;
+  --field-size: .9rem;
+  --important-size: 1.25rem;
+
+  --main-title: 2.5rem;
+  --h1-font-size: 2.5rem;
+  --section-title: 1.6rem;
+  --h2-font-size: 1.6rem;
+  --sub-section-title: 1.4rem;
+  --h3-font-size:  1.4rem;
+  --content-title: 1.5rem;
+  --h4-font-size: 1.5rem;
+  --legend-title: 1.25rem;
+  --h5-font-size: 1.25rem;
+  --h6-font-size: 1.15rem;
+  --field-title: .9rem;
+  --text: 1rem;
+  --paragraph: 1rem;
+}
+
+* {
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+H1, .main-title {
+  font-size: var(--main-title);
+  font-weight: 600;
+}
+H2, .section-title {
+  font-size: var(--section-title);
+  font-weight: 600;
+}
+H3, .sub-section-title, .card-title {
+  font-size: var(--block-title-size);
+  font-weight: 600;
+}
+H4, .content-title, .paragraph-title {
+  font-size: var(--sub-block-title-size);
+  font-weight: 600;
+}
+H5, .legend-title {
+  font-size: var(--sub-block-title-size);
+  font-weight: 600;
+}
+H6, .field-title, .hint-title {
+
+}
+p, .paragraph {
+}

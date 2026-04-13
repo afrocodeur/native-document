@@ -1,15 +1,18 @@
 import { $ } from '../../../index';
 import BaseComponent from "../BaseComponent";
+import HasEventEmitter from "../../core/utils/HasEventEmitter";
 
 /**
  * Represents an individual item within an Accordion component
  * @param {{ id?: string|number, title?: string, icon?: string, collapsible?: boolean, content?: ValidChildren, renderHeader?: Function, renderContent?: Function, render?: Function, expanded?: Observable<boolean>, disabled?: boolean }} config - Configuration object
  * @class
  */
-export default function AccordionItem(config = {}) {
+export default function AccordionItem(props = {}) {
     if(!(this instanceof AccordionItem)){
         return new AccordionItem()
     }
+
+    BaseComponent.call(this, props);
 
     this.$description = {
         id: null,
@@ -18,15 +21,22 @@ export default function AccordionItem(config = {}) {
         collapsible: true,
         content: null,
         renderHeader: null,
+        renderIndicator: null,
         renderContent: null,
         render: null,
         expanded: $(false),
-        disabled: false,
-        ...config
+        disabled: $(false),
+        props
     };
 }
 
 BaseComponent.extends(AccordionItem);
+BaseComponent.use(AccordionItem, HasEventEmitter);
+
+AccordionItem.defaultTemplate = null;
+AccordionItem.use = function(template) {
+    AccordionItem.defaultTemplate = template;
+};
 
 /**
  * Gets the id of the accordion item
@@ -128,7 +138,7 @@ AccordionItem.prototype.toggle = function() {
  * @returns {AccordionItem}
  */
 AccordionItem.prototype.disabled = function(disabled = true) {
-    this.$description.disabled = disabled;
+    this.$description.disabled.set(disabled);
     return this;
 };
 
@@ -189,20 +199,3 @@ AccordionItem.prototype.renderIndicator = function(renderFn) {
     return this;
 };
 
-/**
- * Sets the render function for the entire item
- * @param {Function} renderFn - Function to render the item
- * @returns {AccordionItem}
- */
-AccordionItem.prototype.render = function(renderFn) {
-    this.$description.render = renderFn;
-    return this;
-}
-
-/**
- * Builds the accordion item component
- * @private
- */
-AccordionItem.prototype.$build = function() {
-
-};

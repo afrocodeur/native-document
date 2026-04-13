@@ -1,11 +1,12 @@
 import BaseComponent from "../BaseComponent";
 
-export default function DropdownDivider() {
+export default function DropdownDivider(props = {}) {
     if(!(this instanceof DropdownDivider)) {
         return new DropdownDivider();
     }
     this.$description  = {
-        type: 'divider'
+        type: 'divider',
+        props
     };
 }
 
@@ -14,7 +15,7 @@ BaseComponent.extends(DropdownDivider);
 DropdownDivider.defaultTemplate = null;
 
 DropdownDivider.use = function(template) {
-    DropdownDivider.defaultTemplate = template.divider;
+    DropdownDivider.defaultTemplate = template;
 };
 
 

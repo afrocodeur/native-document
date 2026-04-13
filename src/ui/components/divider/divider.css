@@ -1,0 +1,70 @@
+:root {
+    --divider-color: var(--gray-lite-3);
+    --divider-label-color: var(--gray);
+    --divider-label-size: var(--note-size);
+    --divider-label-gap: var(--space-comfortable);
+    --divider-thickness: 1px;
+    --divider-spacing: 16px;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    width: 100%;
+
+    &.is-vertical {
+        flex-direction: column;
+        width: auto;
+        height: auto;
+        align-self: stretch;
+    }
+}
+
+.divider-line {
+    flex: 1;
+    border: none;
+    background: var(--divider-color);
+
+    &.is-solid {
+        background: var(--divider-color);
+    }
+
+    &.is-dashed {
+        background: none;
+        border-top: var(--divider-thickness, 1px) dashed var(--divider-color);
+    }
+
+    &.is-dotted {
+        background: none;
+        border-top: var(--divider-thickness, 1px) dotted var(--divider-color);
+    }
+}
+
+.divider.is-horizontal .divider-line {
+    height: var(--divider-thickness, 1px);
+}
+
+.divider.is-vertical .divider-line {
+    width: var(--divider-thickness, 1px);
+    height: auto;
+    border-top: none;
+
+    &.is-dashed {
+        background: none;
+        border-top: none;
+        border-left: var(--divider-thickness, 1px) dashed var(--divider-color);
+    }
+
+    &.is-dotted {
+        background: none;
+        border-top: none;
+        border-left: var(--divider-thickness, 1px) dotted var(--divider-color);
+    }
+}
+
+.divider-label {
+    flex-shrink: 0;
+    font-size: var(--divider-label-size);
+    color: var(--divider-label-color);
+    padding: 0 var(--divider-label-gap);
+}

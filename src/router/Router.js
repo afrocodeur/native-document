@@ -118,6 +118,17 @@ export default function Router($options = {}) {
      * @returns {{route:Route, params:Object, query:Object, path:string}}
      */
     this.resolve = function(target) {
+        if(typeof target === 'string') {
+            const route = $routesByName[target];
+            if(route) {
+                return {
+                    route,
+                    params: [],
+                    query: [],
+                    path: route.url({ name: target })
+                };
+            }
+        }
         if(Validator.isJson(target)) {
             const route = $routesByName[target.name];
             if(!route) {
@@ -276,6 +287,5 @@ Router.redirectTo = function(pathOrRouteName, params = null, name = null) {
     if(route) {
         target = { name: pathOrRouteName, params}
     }
-    console.log(target);
     return router.push(target);
 };
