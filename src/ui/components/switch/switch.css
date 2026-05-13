@@ -7,26 +7,26 @@
     --switch-track-bg:        var(--gray-lite-3);
     --switch-track-bg-active: var(--color-primary);
     --switch-thumb-bg:        var(--background);
-    --switch-thumb-shadow:    0 1px 3px rgba(0,0,0,0.2);
+    --switch-thumb-shadow:    0 1px 3px rgba(0, 0, 0, 0.2);
     --switch-transition:      0.2s ease;
     --switch-label-gap:       var(--space-cozy);
 }
 
 .switch {
-    display: inline-flex;
+    display:     inline-flex;
     align-items: center;
-    gap: var(--switch-label-gap);
-    cursor: pointer;
+    gap:         var(--switch-label-gap);
+    cursor:      pointer;
     user-select: none;
 
     &.is-label-top,
     &.is-label-bottom {
         flex-direction: column;
-        align-items: flex-start;
+        align-items:    flex-start;
     }
 
     &.is-disabled {
-        opacity: 0.5;
+        opacity:        0.5;
         pointer-events: none;
     }
 
@@ -35,14 +35,14 @@
     }
 
     /* Variants */
-    &.is-primary   { --switch-track-bg-active: var(--color-primary);  }
-    &.is-success   { --switch-track-bg-active: var(--color-success);  }
-    &.is-danger    { --switch-track-bg-active: var(--color-danger);   }
-    &.is-warning   { --switch-track-bg-active: var(--color-warning);  }
-    &.is-secondary { --switch-track-bg-active: var(--gray);           }
-    &.is-ghost     {
+    &.is-primary   { --switch-track-bg-active: var(--color-primary); }
+    &.is-success   { --switch-track-bg-active: var(--color-success); }
+    &.is-danger    { --switch-track-bg-active: var(--color-danger);  }
+    &.is-warning   { --switch-track-bg-active: var(--color-warning); }
+    &.is-secondary { --switch-track-bg-active: var(--gray);          }
+    &.is-ghost {
         --switch-track-bg-active: transparent;
-        --switch-thumb-bg: var(--color-primary);
+        --switch-thumb-bg:        var(--color-primary);
     }
 
     /* Outline */
@@ -51,7 +51,7 @@
 
         .switch-track {
             background: transparent;
-            border: var(--switch-border-width) solid var(--switch-track-bg);
+            border:     var(--switch-border-width) solid var(--switch-track-bg);
         }
 
         &.is-state-on .switch-track {
@@ -61,21 +61,21 @@
 }
 
 .switch-input {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
+    position:       absolute;
+    opacity:        0;
+    width:          0;
+    height:         0;
     pointer-events: none;
 }
 
 .switch-track {
-    position: relative;
-    width:    var(--switch-width);
-    height:   var(--switch-height);
+    position:      relative;
+    width:         var(--switch-width);
+    height:        var(--switch-height);
     border-radius: calc(var(--switch-height) / 2);
-    background: var(--switch-track-bg);
-    transition: background var(--switch-transition);
-    flex-shrink: 0;
+    background:    var(--switch-track-bg);
+    transition:    background var(--switch-transition);
+    flex-shrink:   0;
 
     .is-state-on & {
         background: var(--switch-track-bg-active);
@@ -83,21 +83,25 @@
 }
 
 .switch-thumb {
-    position: absolute;
-    top:    calc(var(--switch-thumb-offset) - var(--switch-border-width));
-    left:   calc(var(--switch-thumb-offset) - var(--switch-border-width));
-    width:  var(--switch-thumb-size);
-    height: var(--switch-thumb-size);
+    position:      absolute;
+    top:           calc(var(--switch-thumb-offset) - var(--switch-border-width));
+    left:          calc(var(--switch-thumb-offset) - var(--switch-border-width));
+    width:         var(--switch-thumb-size);
+    height:        var(--switch-thumb-size);
     border-radius: 50%;
-    background: var(--switch-thumb-bg);
-    box-shadow: var(--switch-thumb-shadow);
-    transition: transform var(--switch-transition);
-    display: flex;
-    align-items: center;
+    background:    var(--switch-thumb-bg);
+    box-shadow:    var(--switch-thumb-shadow);
+    transition:    transform var(--switch-transition);
+    display:       flex;
+    align-items:   center;
     justify-content: center;
 
     .is-state-on & {
-        transform: translateX(calc(var(--switch-width) - var(--switch-thumb-size) - var(--switch-thumb-offset) * 2 - var(--switch-border-width) * 2));
+        transform: translateX(calc(
+                var(--switch-width) - var(--switch-thumb-size) -
+                var(--switch-thumb-offset) * 2 -
+                var(--switch-border-width) * 2
+        ));
     }
 
     .is-state-off & {
@@ -105,13 +109,35 @@
     }
 }
 
+.switch-inner-label {
+    position:       absolute;
+    top:            50%;
+    transform:      translateY(-50%);
+    font-size:      10px;
+    font-weight:    600;
+    color:          var(--switch-thumb-bg);
+    white-space:    nowrap;
+    transition:     left var(--switch-transition), right var(--switch-transition);
+    pointer-events: none;
+
+    .is-state-on & {
+        left:  calc(var(--switch-thumb-offset) + 2px);
+        right: auto;
+    }
+
+    .is-state-off & {
+        right: calc(var(--switch-thumb-offset) + 2px);
+        left:  auto;
+    }
+}
+
 .switch-icon {
-    font-size: 11px;
+    font-size:   11px;
     line-height: 1;
 }
 
 .switch-label {
-    font-size: var(--description-size);
-    color: var(--color-primary);
+    font-size:   var(--description-size);
+    color:       var(--color-text-primary);
     line-height: 1.4;
 }

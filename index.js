@@ -16,6 +16,7 @@ export * from './src/core/data/observable-helpers/array';
 export * from './src/core/data/observable-helpers/batch';
 export * from './src/core/data/observable-helpers/object';
 export * from './src/core/data/observable-helpers/computed';
+export * from './src/core/data/observable-helpers/observable.is-to';
 export * from './src/core/data/Store';
 
 import * as elements from './elements';

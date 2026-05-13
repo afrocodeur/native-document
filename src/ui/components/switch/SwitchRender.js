@@ -9,14 +9,14 @@ export default function SwitchRender($desc, instance) {
         'is-disabled':  $desc.disabled,
         'is-readonly':  $desc.readonly,
         'is-loading':   $desc.loading,
-        '_': $desc.variant.transform((value) => `is-${value}`),
+        '_':   $desc.variant.transform((value) => `is-${value}`),
         'is-outline':   $desc.outline,
         'is-checked':   $desc.value,
         '___': $desc.value.transform(value => `is-state-${value ? 'on' : 'off'}`)
     });
 
     if($desc.labelPosition) {
-        props.class.add('is-label-'+$desc.labelPosition);
+        props.class.add('is-label-' + $desc.labelPosition);
     }
 
     const input = Input({
@@ -28,13 +28,13 @@ export default function SwitchRender($desc, instance) {
 
     $desc.value.subscribe(() => {
         const val = $desc.value.val();
-        console.log(val)
         instance.emit('change', val);
         instance.emit(val ? 'on' : 'off', val);
     });
 
-    const thumb = buildThumb($desc);
-    const track = Div({class: 'switch-track'}, [thumb]);
+    const thumb      = buildThumb($desc);
+    const innerLabel = buildInnerLabel($desc);
+    const track      = Div({class: 'switch-track'}, [innerLabel, thumb].filter(Boolean));
 
     const content = [];
 
@@ -56,17 +56,27 @@ export default function SwitchRender($desc, instance) {
 }
 
 const buildThumb = ($desc) => {
-
     if($desc.onIcon || $desc.offIcon) {
         return Div({class: 'switch-thumb'},
             Span({class: 'switch-icon'},
                 Match($desc.value, {
-                    true: $desc.onIcon,
-                    false: $desc.offIcon
+                    true:  $desc.onIcon,
+                    false: $desc.offIcon,
                 })
             )
         );
     }
 
     return Div({class: 'switch-thumb'});
+};
+
+const buildInnerLabel = ($desc) => {
+    if(!$desc.innerOnLabel && !$desc.innerOffLabel) return null;
+
+    return Span({class: 'switch-inner-label'},
+        Match($desc.value, {
+            true:  $desc.innerOnLabel  || '',
+            false: $desc.innerOffLabel || '',
+        })
+    );
 };

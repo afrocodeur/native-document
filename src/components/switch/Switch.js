@@ -20,6 +20,8 @@ export default function Switch(props = {}) {
         readonly: false,
         onIcon: null,
         offIcon: null,
+        innerOnLabel: null,
+        innerOffLabel: null
     };
 }
 
@@ -39,6 +41,11 @@ Switch.prototype.model = function(value) {
 
 Switch.prototype.label = function(label) {
     this.$description.label = label;
+    return this;
+};
+Switch.prototype.innerLabel = function(onLabel, offLabel) {
+    this.$description.innerOnLabel  = onLabel;
+    this.$description.innerOffLabel = offLabel;
     return this;
 };
 Switch.prototype.labelPosition = function(position) {

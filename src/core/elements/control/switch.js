@@ -99,9 +99,8 @@ export const Switch = function ($condition, onTrue, onFalse) {
     if(!Validator.isObservable($condition)) {
         throw new NativeDocumentError("Toggle : condition must be an Observable");
     }
-    const condition = (typeof $condition.val() === 'boolean') ? $condition : $condition.is(v => !!v);
 
-    return Match(condition, {
+    return Match($condition.toBoolean(), {
         true: onTrue,
         false: onFalse,
     });

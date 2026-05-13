@@ -225,7 +225,7 @@ ObservableArray.prototype.removeItem = function(item) {
  * const items = Observable.array([]);
  * items.isEmpty(); // true
  */
-ObservableArray.prototype.isEmpty = function() {
+ObservableArray.prototype.empty = function() {
     return this.$currentValue.length === 0;
 };
 
