@@ -1,4 +1,5 @@
-import {Div, ShowIf, Span} from '../../../core/elements';
+import {Div, Span} from '../../../core/elements';
+
 import './spinner.css';
 
 export default function SpinnerRender($desc, instance) {

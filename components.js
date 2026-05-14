@@ -22,6 +22,7 @@ export * from './src/components/splitter/index';
 export * from './src/components/stepper/index';
 export * from './src/components/switch/index';
 export * from './src/components/table/index';
+
 export * from './src/components/tabs/index';
 export * from './src/components/toast/index';
 export * from './src/components/tooltip/index';

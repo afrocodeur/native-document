@@ -1,4 +1,3 @@
-import Fs from 'node:fs'
 import transformComponentForHrm from "./src/transformComponentForHrm.js";
 import {isFileMustBeModified} from "./src/utils.js";
 import transformJsFile from "./src/transformJsFile.js";

@@ -1,5 +1,5 @@
 import Field from "../Field";
-import {Validator} from "../../../../../index";
+import Validator from "../../../../core/utils/validator";
 
 export default function RadioField(name, props = {}) {
     if(!(this instanceof RadioField)) {

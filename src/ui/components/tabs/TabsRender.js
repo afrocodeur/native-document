@@ -1,5 +1,5 @@
 import {Div, ForEachArray, Match, Nav, ShowIf, Span} from '../../../core/elements';
-import { $ } from '../../../../index';
+import { $ } from '../../../core/data/Observable';
 import {Button} from "../../../components/button";
 import {Dropdown} from '../../../components/dropdown';
 import {nextTick} from "../../../core/utils/helpers";

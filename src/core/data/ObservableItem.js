@@ -1,13 +1,9 @@
 import DebugManager from "../../core/utils/debug-manager";
 import MemoryManager from "./MemoryManager";
 import NativeDocumentError from "../../core/errors/NativeDocumentError";
-import ObservableChecker from "./ObservableChecker";
 import PluginsManager from "../../core/utils/plugins-manager";
 import Validator from "../../core/utils/validator";
-import {ObservableWhen} from "./ObservableWhen";
 import {deepClone} from "../utils/helpers";
-import { Formatters} from "../utils/formatters";
-import {Observable} from "./Observable";
 import {$getFromStorage, $saveToStorage} from "../utils/localstorage";
 
 /**
@@ -54,6 +50,8 @@ Object.defineProperty(ObservableItem.prototype, '$value', {
 
 ObservableItem.prototype.__$Observable = true;
 ObservableItem.prototype.__$isObservable = true;
+ObservableItem.computed = () => {};
+
 const DEFAULT_OPERATIONS = {};
 const noneTrigger = function() {};
 
@@ -364,27 +362,6 @@ ObservableItem.prototype.unsubscribe = function(callback) {
     }
 };
 
-/**
- * Create an Observable checker instance
- * @param callback
- * @returns {ObservableChecker}
- */
-ObservableItem.prototype.check = function(callback) {
-    return new ObservableChecker(this, callback)
-};
-
-ObservableItem.prototype.transform = ObservableItem.prototype.check;
-ObservableItem.prototype.pluck = function(property) {
-    return new ObservableChecker(this, (value) => value[property]);
-};
-ObservableItem.prototype.is = function(callbackOrValue) {
-    if(typeof callbackOrValue === 'function') {
-        return new ObservableChecker(this, callbackOrValue);
-    }
-    return new ObservableChecker(this, (value) => value === callbackOrValue);
-};
-ObservableItem.prototype.select = ObservableItem.prototype.check;
-
 
 
 
@@ -404,21 +381,6 @@ ObservableItem.prototype.get = function(key) {
     return Validator.isObservable(item) ? item.val() : item;
 };
 
-/**
- * Creates an ObservableWhen that represents whether the observable equals a specific value.
- * Returns an object that can be subscribed to and will emit true/false.
- *
- * @param {*} value - The value to compare against
- * @returns {ObservableWhen} An ObservableWhen instance that tracks when the observable equals the value
- * @example
- * const status = Observable('idle');
- * const isLoading = status.when('loading');
- * isLoading.subscribe(active => console.log('Loading:', active));
- * status.set('loading'); // Logs: "Loading: true"
- */
-ObservableItem.prototype.when = function(value) {
-    return new ObservableWhen(this, value);
-};
 
 /**
  * Compares the observable's current value with another value or observable.
@@ -506,79 +468,6 @@ ObservableItem.prototype.valueOf = function() {
 };
 
 
-/**
- * Creates a derived observable that formats the current value using Intl.
- * Automatically reacts to both value changes and locale changes (Store.__nd.locale).
- *
- * @param {string | Function} type - Format type or custom formatter function
- * @param {Object} [options={}] - Options passed to the formatter
- * @returns {ObservableItem<string>}
- *
- * @example
- * // Currency
- * price.format('currency')                                      // "15 000 FCFA"
- * price.format('currency', { currency: 'EUR' })                 // "15 000,00 €"
- * price.format('currency', { notation: 'compact' })             // "15 K FCFA"
- *
- * // Number
- * count.format('number')                                        // "15 000"
- *
- * // Percent
- * rate.format('percent')                                        // "15,0 %"
- * rate.format('percent', { decimals: 2 })                       // "15,00 %"
- *
- * // Date
- * date.format('date')                                           // "3 mars 2026"
- * date.format('date', { dateStyle: 'full' })                    // "mardi 3 mars 2026"
- * date.format('date', { format: 'DD/MM/YYYY' })                 // "03/03/2026"
- * date.format('date', { format: 'DD MMM YYYY' })                // "03 mar 2026"
- * date.format('date', { format: 'DD MMMM YYYY' })               // "03 mars 2026"
- *
- * // Time
- * date.format('time')                                           // "20:30"
- * date.format('time', { second: '2-digit' })                    // "20:30:00"
- * date.format('time', { format: 'HH:mm:ss' })                   // "20:30:00"
- *
- * // Datetime
- * date.format('datetime')                                       // "3 mars 2026, 20:30"
- * date.format('datetime', { dateStyle: 'full' })                // "mardi 3 mars 2026, 20:30"
- * date.format('datetime', { format: 'DD/MM/YYYY HH:mm' })       // "03/03/2026 20:30"
- *
- * // Relative
- * date.format('relative')                                       // "dans 11 jours"
- * date.format('relative', { unit: 'month' })                    // "dans 1 mois"
- *
- * // Plural
- * count.format('plural', { singular: 'billet', plural: 'billets' }) // "3 billets"
- *
- * // Custom formatter
- * price.format(value => `${value.toLocaleString()} FCFA`)
- *
- * // Reacts to locale changes automatically
- * Store.setLocale('en-US');
- */
-ObservableItem.prototype.format = function(type, options = {}) {
-    const self = this;
-
-    if (typeof type === 'function') {
-        return new ObservableChecker(self, type);
-    }
-
-    if (process.env.NODE_ENV === 'development') {
-        if (!Formatters[type]) {
-            throw new NativeDocumentError(
-                `Observable.format : unknown type '${type}'. Available : ${Object.keys(Formatters).join(', ')}.`
-            );
-        }
-    }
-
-    const formatter = Formatters[type];
-    const localeObservable = Formatters.locale;
-
-    return Observable.computed(() => formatter(self.val(), localeObservable.val(), options),
-        [self, localeObservable]
-    );
-};
 
 ObservableItem.prototype.persist = function(key, options = {}) {
     let value = $getFromStorage(key, this.$currentValue);

@@ -1,5 +1,5 @@
 import {Div, Span} from "../../../../../elements";
-import { $ } from "../../../../../index";
+import { $ } from "../../../../core/data/Observable";
 import {SelectField} from "../../../../components/form";
 import {Pagination} from "../../../../components/pagination";
 

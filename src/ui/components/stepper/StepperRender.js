@@ -1,4 +1,5 @@
-import {Div, Span, ForEachArray, Match} from '../../../core/elements';
+import {Div, ForEachArray, Match} from '../../../core/elements';
+
 import './stepper.css';
 
 export default function StepperRender($desc, instance) {

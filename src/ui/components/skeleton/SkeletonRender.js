@@ -1,4 +1,5 @@
 import {Div, Span} from '../../../core/elements';
+
 import './skeleton.css';
 
 export default function SkeletonRender($desc, instance) {

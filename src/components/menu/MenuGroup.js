@@ -2,7 +2,7 @@ import BaseComponent from "../BaseComponent";
 import HasItems from "../$traits/has-items/HasItems";
 import MenuDivider from "./MenuDivider";
 import HasMenuItem from "./HasMenuItem";
-import { $ } from '../../../index';
+import { $ } from '../../core/data/Observable';
 
 
 export default function MenuGroup(label, props = {}) {

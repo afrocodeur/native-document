@@ -1,5 +1,6 @@
 import {Div, Span} from '../../../core/elements';
-import Button from '../../../components/button/Button'
+import Button from '../../../components/button/Button';
+
 import './alert.css';
 
 export default function AlertRender($desc, instance) {

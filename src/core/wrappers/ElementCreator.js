@@ -1,13 +1,7 @@
-import Anchor from "../elements/anchor/anchor";
 import Validator from "../utils/validator";
 import AttributesWrapper, { bindClassAttribute, bindStyleAttribute } from "./AttributesWrapper";
 import PluginsManager from "../utils/plugins-manager";
-import './prototypes/nd-element-extensions';
-import './prototypes/nd-element.transition.extensions';
-import './prototypes/attributes-extensions';
-import './prototypes/bind-class-extensions';
 
-const $nodeCache = new Map();
 let $textNodeCache = null;
 
 export const ElementCreator = {
@@ -63,9 +57,6 @@ export const ElementCreator = {
     createElement: (name) => {
         const node = document.createElement(name);
         return node.cloneNode();
-    },
-    createFragment: (name) => {
-        return Anchor('Fragment');
     },
     bindTextNode: (textNode, value) => {
         if(value?.__$isObservable) {

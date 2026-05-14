@@ -1,6 +1,6 @@
 import {Div, Span, Switch, ForEachArray} from '../../../../../elements';
-import { $, Observable } from '../../../../../index';
-import {Tooltip} from '../../../../../components';
+import { $, Observable } from '../../../../core/data/Observable';
+import {Tooltip} from '../../../../components/tooltip';
 import './slider.css';
 
 export default function SliderRender($desc, instance) {

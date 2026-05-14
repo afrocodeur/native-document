@@ -1,4 +1,4 @@
-import { $ } from '../../../index';
+import { $ } from '../../core/data/Observable';
 import BaseComponent from "../BaseComponent";
 import HasEventEmitter from "../../core/utils/HasEventEmitter";
 

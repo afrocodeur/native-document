@@ -1,8 +1,6 @@
 import {Div, ShowIf} from "../../../core/elements";
 import {createPortal} from "../../../core/elements/anchor/anchor";
-import { $ } from '../../../../index';
 import {computePosition, flip, shift} from '@floating-ui/dom';
-
 
 import './contextmenu.css';
 

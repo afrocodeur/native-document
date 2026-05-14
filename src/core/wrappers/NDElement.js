@@ -2,8 +2,6 @@ import DocumentObserver from "./DocumentObserver";
 import PluginsManager from "../utils/plugins-manager";
 import NativeDocumentError from "../errors/NativeDocumentError.js";
 import DebugManager from "../utils/debug-manager.js";
-import Anchor from "../elements/anchor/anchor";
-import {ElementCreator} from "./ElementCreator";
 
 export function NDElement(element) {
     this.$element = element;
@@ -15,11 +13,13 @@ export function NDElement(element) {
 
 NDElement.prototype.__$isNDElement = true;
 
+NDElement.$getChild = (el) => el;
+
 NDElement.prototype.ghostDom = function(element) {
     if(!this.$attachements) {
         this.$attachements = document.createDocumentFragment();
     }
-    this.$attachements.appendChild(ElementCreator.getChild(element));
+    this.$attachements.appendChild(NDElement.$getChild(element));
     return this;
 };
 

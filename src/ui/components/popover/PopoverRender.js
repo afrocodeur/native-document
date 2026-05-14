@@ -1,7 +1,6 @@
 import {Div, ShowIf, Span} from '../../../core/elements';
 import {computePosition, flip, arrow, offset, shift, size} from '@floating-ui/dom';
-import {Observable} from '../../../../index';
-import {ElementCreator} from "../../../core/wrappers/ElementCreator";
+import {Observable} from '../../../core/data/Observable';
 
 import './popover.css';
 

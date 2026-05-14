@@ -1,4 +1,3 @@
-import FieldRender from './FieldRender';
 import {Input} from '../../../../../elements';
 
 export default function HiddenFieldRender($desc, instance) {

@@ -43,6 +43,191 @@ var NativeDocument = (function (exports) {
         }
     }
 
+    const COMMON_NODE_TYPES = {
+        ELEMENT: 1,
+        TEXT: 3,
+        COMMENT: 8,
+        DOCUMENT_FRAGMENT: 11
+    };
+
+    const VALID_TYPES = [];
+    VALID_TYPES[COMMON_NODE_TYPES.ELEMENT] = true;
+    VALID_TYPES[COMMON_NODE_TYPES.TEXT] = true;
+    VALID_TYPES[COMMON_NODE_TYPES.DOCUMENT_FRAGMENT] = true;
+    VALID_TYPES[COMMON_NODE_TYPES.COMMENT] = true;
+
+    const Validator = {
+        isObservable(value) {
+            return  value && (value.__$isObservable || value.__$Observable);
+        },
+        isTemplateBinding(value) {
+            return  value?.__$isTemplateBinding;
+        },
+        isObservableWhenResult(value) {
+            return value && (value.__$isObservableWhen || (typeof value === 'object' && '$target' in value && '$observer' in value));
+        },
+        isArrayObservable(value) {
+            return  value?.__$isObservableArray;
+        },
+        isProxy(value) {
+            return value?.__isProxy__
+        },
+        isObservableOrProxy(value) {
+            return Validator.isObservable(value) || Validator.isProxy(value);
+        },
+        isAnchor(value) {
+            return value?.__Anchor__
+        },
+        isObservableChecker(value) {
+            return value?.__$isObservableChecker;
+        },
+        isArray(value) {
+            return Array.isArray(value);
+        },
+        isString(value) {
+            return typeof value === 'string';
+        },
+        isNumber(value) {
+            return typeof value === 'number';
+        },
+        isBoolean(value) {
+            return typeof value === 'boolean';
+        },
+        isFunction(value) {
+            return typeof value === 'function';
+        },
+        isAsyncFunction(value) {
+            return typeof value === 'function' && value.constructor.name === 'AsyncFunction';
+        },
+        isObject(value) {
+            return typeof value === 'object' && value !== null;
+        },
+        isJson(value) {
+            return !(typeof value !== 'object' || value === null || Array.isArray(value) || value.constructor.name !== 'Object')
+        },
+        isElement(value) {
+            return value && VALID_TYPES[value.nodeType];
+        },
+        isDOMNode(value) {
+            return VALID_TYPES[value.nodeType];
+        },
+        isFragment(value) {
+            return value?.nodeType === COMMON_NODE_TYPES.DOCUMENT_FRAGMENT;
+        },
+        isStringOrObservable(value) {
+            return this.isString(value) || this.isObservable(value);
+        },
+        isValidChild(child) {
+            return child === null ||
+                this.isElement(child) ||
+                child.__$Observable ||
+                child?.__$isNDElement ||
+                ['string', 'number', 'boolean'].includes(typeof child);
+        },
+        isNDElement(child) {
+            return child?.__$isNDElement;
+        },
+        isValidChildren(children) {
+            if (!Array.isArray(children)) {
+                children = [children];
+            }
+
+            const invalid = children.filter(child => !this.isValidChild(child));
+            return invalid.length === 0;
+        },
+        validateChildren(children) {
+            if (!Array.isArray(children)) {
+                children = [children];
+            }
+
+            const invalid = children.filter(child => !this.isValidChild(child));
+            if (invalid.length > 0) {
+                throw new NativeDocumentError(`Invalid children detected: ${invalid.map(i => typeof i).join(', ')}`);
+            }
+
+            return children;
+        },
+        /**
+         * Check if the data contains observables.
+         * @param {Array|Object} data
+         * @returns {boolean}
+         */
+        containsObservables(data) {
+            if(!data) {
+                return false;
+            }
+            return Validator.isObject(data)
+                && Object.values(data).some(value => Validator.isObservable(value));
+        },
+        /**
+         * Check if the data contains an observable reference.
+         * @param {string} data
+         * @returns {boolean}
+         */
+        containsObservableReference(data) {
+            if(!data || typeof data !== 'string') {
+                return false;
+            }
+            return /\{\{#ObItem::\([0-9]+\)\}\}/.test(data);
+        },
+        validateAttributes(attributes) {},
+
+        validateEventCallback(callback) {
+            if (typeof callback !== 'function') {
+                throw new NativeDocumentError('Event callback must be a function');
+            }
+        }
+    };
+    {
+        Validator.validateAttributes = function(attributes) {
+            if (!attributes || typeof attributes !== 'object') {
+                return attributes;
+            }
+
+            const reserved = [];
+            const foundReserved = Object.keys(attributes).filter(key => reserved.includes(key));
+
+            if (foundReserved.length > 0) {
+                DebugManager$1.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
+            }
+
+            return attributes;
+        };
+    }
+
+    const BOOLEAN_ATTRIBUTES = new Set([
+        'checked',
+        'selected',
+        'disabled',
+        'readonly',
+        'required',
+        'autofocus',
+        'multiple',
+        'autocomplete',
+        'hidden',
+        'contenteditable',
+        'spellcheck',
+        'translate',
+        'draggable',
+        'async',
+        'defer',
+        'autoplay',
+        'controls',
+        'loop',
+        'muted',
+        'download',
+        'reversed',
+        'open',
+        'default',
+        'formnovalidate',
+        'novalidate',
+        'scoped',
+        'itemscope',
+        'allowfullscreen',
+        'allowpaymentrequest',
+        'playsinline'
+    ]);
+
     const MemoryManager = (function() {
 
         let $nextObserverId = 0;
@@ -176,60 +361,6 @@ var NativeDocument = (function (exports) {
 
     var PluginsManager = PluginsManager$1;
 
-    /**
-     * Creates an ObservableWhen that tracks whether an observable equals a specific value.
-     *
-     * @param {ObservableItem} observer - The observable to watch
-     * @param {*} value - The value to compare against
-     * @class ObservableWhen
-     */
-    const ObservableWhen = function(observer, value) {
-        this.$target = value;
-        this.$observer = observer;
-    };
-
-    ObservableWhen.prototype.__$Observable = true;
-    ObservableWhen.prototype.__$isObservableWhen = true;
-
-    /**
-     * Subscribes to changes in the match status (true when observable equals target value).
-     *
-     * @param {Function} callback - Function called with boolean indicating if values match
-     * @returns {Function} Unsubscribe function
-     * @example
-     * const status = Observable('idle');
-     * const isLoading = status.when('loading');
-     * isLoading.subscribe(active => console.log('Loading:', active));
-     */
-    ObservableWhen.prototype.subscribe = function(callback) {
-        return this.$observer.on(this.$target, callback);
-    };
-
-    /**
-     * Returns true if the observable's current value equals the target value.
-     *
-     * @returns {boolean} True if observable value matches target value
-     */
-    ObservableWhen.prototype.val = function() {
-        return this.$observer.$currentValue === this.$target;
-    };
-
-    /**
-     * Returns true if the observable's current value equals the target value.
-     * Alias for val().
-     *
-     * @returns {boolean} True if observable value matches target value
-     */
-    ObservableWhen.prototype.isMatch = ObservableWhen.prototype.val;
-
-    /**
-     * Returns true if the observable's current value equals the target value.
-     * Alias for val().
-     *
-     * @returns {boolean} True if observable value matches target value
-     */
-    ObservableWhen.prototype.isActive = ObservableWhen.prototype.val;
-
     const nextTick = function(fn) {
         let pending = false;
         return function(...args) {
@@ -304,167 +435,6 @@ var NativeDocument = (function (exports) {
             }
         }
         return cloned;
-    };
-
-    const $parseDateParts = (value, locale) => {
-        const d = new Date(value);
-        return {
-            d,
-            parts: new Intl.DateTimeFormat(locale, {
-                year:   'numeric',
-                month:  'long',
-                day:    '2-digit',
-                hour:   '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-            }).formatToParts(d).reduce((acc, { type, value }) => {
-                acc[type] = value;
-                return acc;
-            }, {})
-        };
-    };
-
-    const $applyDatePattern = (pattern, d, parts) => {
-        const pad = n => String(n).padStart(2, '0');
-        return pattern
-            .replace('YYYY', parts.year)
-            .replace('YY',   parts.year.slice(-2))
-            .replace('MMMM', parts.month)
-            .replace('MMM',  parts.month.slice(0, 3))
-            .replace('MM',   pad(d.getMonth() + 1))
-            .replace('DD',   pad(d.getDate()))
-            .replace('D',    d.getDate())
-            .replace('HH',   parts.hour)
-            .replace('mm',   parts.minute)
-            .replace('ss',   parts.second);
-    };
-
-    const Formatters = {
-        currency: (value, locale, { currency = 'XOF', notation, minimumFractionDigits, maximumFractionDigits } = {}) =>
-            new Intl.NumberFormat(locale, {
-                style: 'currency',
-                currency,
-                notation,
-                minimumFractionDigits,
-                maximumFractionDigits
-            }).format(value),
-
-        number: (value, locale, { notation, minimumFractionDigits, maximumFractionDigits } = {}) =>
-            new Intl.NumberFormat(locale, {
-                notation,
-                minimumFractionDigits,
-                maximumFractionDigits
-            }).format(value),
-
-        percent: (value, locale, { decimals = 1 } = {}) =>
-            new Intl.NumberFormat(locale, {
-                style:                'percent',
-                maximumFractionDigits: decimals
-            }).format(value),
-
-        date: (value, locale, { format, dateStyle = 'long' } = {}) => {
-            if (format) {
-                const { d, parts } = $parseDateParts(value, locale);
-                return $applyDatePattern(format, d, parts);
-            }
-            return new Intl.DateTimeFormat(locale, { dateStyle }).format(new Date(value));
-        },
-
-        time: (value, locale, { format, hour = '2-digit', minute = '2-digit', second } = {}) => {
-            if (format) {
-                const { d, parts } = $parseDateParts(value, locale);
-                return $applyDatePattern(format, d, parts);
-            }
-            return new Intl.DateTimeFormat(locale, { hour, minute, second }).format(new Date(value));
-        },
-
-        datetime: (value, locale, { format, dateStyle = 'long', hour = '2-digit', minute = '2-digit', second } = {}) => {
-            if (format) {
-                const { d, parts } = $parseDateParts(value, locale);
-                return $applyDatePattern(format, d, parts);
-            }
-            return new Intl.DateTimeFormat(locale, { dateStyle, hour, minute, second }).format(new Date(value));
-        },
-
-        relative: (value, locale, { unit = 'day', numeric = 'auto' } = {}) => {
-            const diff = Math.round((value - Date.now()) / (1000 * 60 * 60 * 24));
-            return new Intl.RelativeTimeFormat(locale, { numeric }).format(diff, unit);
-        },
-
-        plural: (value, locale, { singular, plural } = {}) => {
-            const rule = new Intl.PluralRules(locale).select(value);
-            return `${value} ${rule === 'one' ? singular : plural}`;
-        },
-    };
-
-    /**
-     *
-     * @param {*} value
-     * @param {{ propagation: boolean, reset: boolean} | null} configs
-     * @returns {ObservableItem}
-     * @constructor
-     */
-    function Observable(value, configs = null) {
-        return new ObservableItem(value, configs);
-    }
-
-    const $ = Observable;
-    const obs = Observable;
-
-    /**
-     *
-     * @param {string} propertyName
-     */
-    Observable.useValueProperty = function(propertyName = 'value') {
-        Object.defineProperty(ObservableItem.prototype, propertyName, {
-            get() {
-                return this.$currentValue;
-            },
-            set(value) {
-                this.set(value);
-            },
-            configurable: true,
-        });
-    };
-
-
-    /**
-     *
-     * @param id
-     * @returns {ObservableItem|null}
-     */
-    Observable.getById = function(id) {
-        const item = MemoryManager.getObservableById(parseInt(id));
-        if(!item) {
-            throw new NativeDocumentError('Observable.getById : No observable found with id ' + id);
-        }
-        return item;
-    };
-
-    /**
-     *
-     * @param {ObservableItem} observable
-     */
-    Observable.cleanup = function(observable) {
-        observable.cleanup();
-    };
-
-    /**
-     * Enable auto cleanup of observables.
-     * @param {Boolean} enable
-     * @param {{interval:Boolean, threshold:number}} options
-     */
-    Observable.autoCleanup = function(enable = false, options = {}) {
-        if(!enable) {
-            return;
-        }
-        const { interval = 60000, threshold = 100 } = options;
-
-        window.addEventListener('beforeunload', () => {
-            MemoryManager.cleanup();
-        });
-
-        setInterval(() => MemoryManager.cleanObservables(threshold), interval);
     };
 
     const LocalStorage = {
@@ -567,6 +537,7 @@ var NativeDocument = (function (exports) {
 
     ObservableItem.prototype.__$Observable = true;
     ObservableItem.prototype.__$isObservable = true;
+    ObservableItem.computed = () => {};
     const noneTrigger = function() {};
 
     /**
@@ -876,27 +847,6 @@ var NativeDocument = (function (exports) {
         }
     };
 
-    /**
-     * Create an Observable checker instance
-     * @param callback
-     * @returns {ObservableChecker}
-     */
-    ObservableItem.prototype.check = function(callback) {
-        return new ObservableChecker(this, callback)
-    };
-
-    ObservableItem.prototype.transform = ObservableItem.prototype.check;
-    ObservableItem.prototype.pluck = function(property) {
-        return new ObservableChecker(this, (value) => value[property]);
-    };
-    ObservableItem.prototype.is = function(callbackOrValue) {
-        if(typeof callbackOrValue === 'function') {
-            return new ObservableChecker(this, callbackOrValue);
-        }
-        return new ObservableChecker(this, (value) => value === callbackOrValue);
-    };
-    ObservableItem.prototype.select = ObservableItem.prototype.check;
-
 
 
 
@@ -916,21 +866,6 @@ var NativeDocument = (function (exports) {
         return Validator.isObservable(item) ? item.val() : item;
     };
 
-    /**
-     * Creates an ObservableWhen that represents whether the observable equals a specific value.
-     * Returns an object that can be subscribed to and will emit true/false.
-     *
-     * @param {*} value - The value to compare against
-     * @returns {ObservableWhen} An ObservableWhen instance that tracks when the observable equals the value
-     * @example
-     * const status = Observable('idle');
-     * const isLoading = status.when('loading');
-     * isLoading.subscribe(active => console.log('Loading:', active));
-     * status.set('loading'); // Logs: "Loading: true"
-     */
-    ObservableItem.prototype.when = function(value) {
-        return new ObservableWhen(this, value);
-    };
 
     /**
      * Compares the observable's current value with another value or observable.
@@ -1018,79 +953,6 @@ var NativeDocument = (function (exports) {
     };
 
 
-    /**
-     * Creates a derived observable that formats the current value using Intl.
-     * Automatically reacts to both value changes and locale changes (Store.__nd.locale).
-     *
-     * @param {string | Function} type - Format type or custom formatter function
-     * @param {Object} [options={}] - Options passed to the formatter
-     * @returns {ObservableItem<string>}
-     *
-     * @example
-     * // Currency
-     * price.format('currency')                                      // "15 000 FCFA"
-     * price.format('currency', { currency: 'EUR' })                 // "15 000,00 €"
-     * price.format('currency', { notation: 'compact' })             // "15 K FCFA"
-     *
-     * // Number
-     * count.format('number')                                        // "15 000"
-     *
-     * // Percent
-     * rate.format('percent')                                        // "15,0 %"
-     * rate.format('percent', { decimals: 2 })                       // "15,00 %"
-     *
-     * // Date
-     * date.format('date')                                           // "3 mars 2026"
-     * date.format('date', { dateStyle: 'full' })                    // "mardi 3 mars 2026"
-     * date.format('date', { format: 'DD/MM/YYYY' })                 // "03/03/2026"
-     * date.format('date', { format: 'DD MMM YYYY' })                // "03 mar 2026"
-     * date.format('date', { format: 'DD MMMM YYYY' })               // "03 mars 2026"
-     *
-     * // Time
-     * date.format('time')                                           // "20:30"
-     * date.format('time', { second: '2-digit' })                    // "20:30:00"
-     * date.format('time', { format: 'HH:mm:ss' })                   // "20:30:00"
-     *
-     * // Datetime
-     * date.format('datetime')                                       // "3 mars 2026, 20:30"
-     * date.format('datetime', { dateStyle: 'full' })                // "mardi 3 mars 2026, 20:30"
-     * date.format('datetime', { format: 'DD/MM/YYYY HH:mm' })       // "03/03/2026 20:30"
-     *
-     * // Relative
-     * date.format('relative')                                       // "dans 11 jours"
-     * date.format('relative', { unit: 'month' })                    // "dans 1 mois"
-     *
-     * // Plural
-     * count.format('plural', { singular: 'billet', plural: 'billets' }) // "3 billets"
-     *
-     * // Custom formatter
-     * price.format(value => `${value.toLocaleString()} FCFA`)
-     *
-     * // Reacts to locale changes automatically
-     * Store.setLocale('en-US');
-     */
-    ObservableItem.prototype.format = function(type, options = {}) {
-        const self = this;
-
-        if (typeof type === 'function') {
-            return new ObservableChecker(self, type);
-        }
-
-        {
-            if (!Formatters[type]) {
-                throw new NativeDocumentError(
-                    `Observable.format : unknown type '${type}'. Available : ${Object.keys(Formatters).join(', ')}.`
-                );
-            }
-        }
-
-        const formatter = Formatters[type];
-        const localeObservable = Formatters.locale;
-
-        return Observable.computed(() => formatter(self.val(), localeObservable.val(), options),
-            [self, localeObservable]
-        );
-    };
 
     ObservableItem.prototype.persist = function(key, options = {}) {
         let value = $getFromStorage(key, this.$currentValue);
@@ -1117,2423 +979,6 @@ var NativeDocument = (function (exports) {
         }
 
         return new ObservableItem(clonedValue);
-    };
-
-    /**
-     *
-     * @param {ObservableItem} $observable
-     * @param {Function} $checker
-     * @class ObservableChecker
-     */
-    function ObservableChecker($observable, $checker) {
-        this.observable = $observable;
-
-        ObservableItem.call(this);
-        {
-            PluginsManager.emit('CreateObservableChecker', this);
-        }
-
-        this.$mutation = $checker;
-
-        $observable.subscribe((newValue) => {
-            this.$updateWithMutation(newValue);
-        });
-
-        this.$updateWithMutation($observable.val());
-    }
-
-    ObservableChecker.prototype = Object.create(ObservableItem.prototype);
-    ObservableChecker.prototype.constructor = ObservableChecker;
-    ObservableChecker.prototype.__$Observable = true;
-    ObservableChecker.prototype.__$isObservableChecker = true;
-
-
-    const ObservablePipe = ObservableChecker;
-    ObservablePipe.prototype.constructor = ObservablePipe;
-
-    ObservableChecker.prototype.$updateWithMutation = function(newValue) {
-        newValue = this.$mutation(newValue);
-        return this.set(newValue);
-    };
-
-    const DocumentObserver = {
-        mounted: new WeakMap(),
-        beforeUnmount: new WeakMap(),
-        mountedSupposedSize: 0,
-        unmounted: new WeakMap(),
-        unmountedSupposedSize: 0,
-        observer: null,
-        initObserver: () => {
-            if(DocumentObserver.observer) {
-                return;
-            }
-            DocumentObserver.observer = new MutationObserver(DocumentObserver.checkMutation);
-            DocumentObserver.observer.observe(document.body, {
-                childList: true,
-                subtree: true,
-            });
-        },
-
-        executeMountedCallback(node) {
-            const data = DocumentObserver.mounted.get(node);
-            if(!data) {
-                return;
-            }
-            data.inDom = true;
-            if(!data.mounted) {
-                return;
-            }
-            if(Array.isArray(data.mounted)) {
-                for(const cb of data.mounted) {
-                    cb(node);
-                }
-                return;
-            }
-            data.mounted(node);
-        },
-
-        executeUnmountedCallback(node) {
-            const data = DocumentObserver.unmounted.get(node);
-            if(!data) {
-                return;
-            }
-            data.inDom = false;
-            if(!data.unmounted) {
-                return;
-            }
-
-            let shouldRemove = false;
-            if(Array.isArray(data.unmounted)) {
-                for(const cb of data.unmounted) {
-                    if(cb(node) === true) {
-                        shouldRemove = true;
-                    }
-                }
-            } else {
-                shouldRemove = data.unmounted(node) === true;
-            }
-
-            if(shouldRemove) {
-                data.disconnect();
-                node.nd?.remove();
-            }
-        },
-
-        checkMutation: function(mutationsList) {
-            for(const mutation of mutationsList) {
-                if(DocumentObserver.mountedSupposedSize > 0) {
-                    for(const node of mutation.addedNodes) {
-                        DocumentObserver.executeMountedCallback(node);
-                        if(!node.querySelectorAll) {
-                            continue;
-                        }
-                        const children = node.querySelectorAll('[data--nd-mounted]');
-                        for(const child of children) {
-                            DocumentObserver.executeMountedCallback(child);
-                        }
-                    }
-                }
-
-                if (DocumentObserver.unmountedSupposedSize > 0) {
-                    for (const node of mutation.removedNodes) {
-                        DocumentObserver.executeUnmountedCallback(node);
-                        if(!node.querySelectorAll) {
-                            continue;
-                        }
-                        const children = node.querySelectorAll('[data--nd-unmounted]');
-                        for(const child of children) {
-                            DocumentObserver.executeUnmountedCallback(child);
-                        }
-                    }
-                }
-            }
-        },
-
-        /**
-         * @param {HTMLElement} element
-         * @param {boolean} inDom
-         * @returns {{ disconnect: Function, mounted: Function, unmounted: Function, off: Function }}
-         */
-        watch: function(element, inDom = false) {
-            let mountedRegistered   = false;
-            let unmountedRegistered = false;
-
-            DocumentObserver.initObserver();
-
-            let data = {
-                inDom,
-                mounted: null,
-                unmounted: null,
-                disconnect: () => {
-                    if (mountedRegistered) {
-                        DocumentObserver.mounted.delete(element);
-                        DocumentObserver.mountedSupposedSize--;
-                    }
-                    if (unmountedRegistered) {
-                        DocumentObserver.unmounted.delete(element);
-                        DocumentObserver.unmountedSupposedSize--;
-                    }
-                    data = null;
-                }
-            };
-
-            const addListener = (type, callback) => {
-                if (!data[type]) {
-                    data[type] = callback;
-                    return;
-                }
-                if (!Array.isArray(data[type])) {
-                    data[type] = [data[type], callback];
-                    return;
-                }
-                data[type].push(callback);
-            };
-
-            const removeListener = (type, callback) => {
-                if(!data?.[type]) {
-                    return;
-                }
-                if(Array.isArray(data[type])) {
-                    const index = data[type].indexOf(callback);
-                    if(index > -1) {
-                        data[type].splice(index, 1);
-                    }
-                    if(data[type].length === 1) {
-                        data[type] = data[type][0];
-                    }
-                    if(data[type].length === 0) {
-                        data[type] = null;
-                    }
-                    return;
-                }
-                data[type] = null;
-            };
-
-            return {
-                disconnect: () => data?.disconnect(),
-
-                mounted: (callback) => {
-                    addListener('mounted', callback);
-                    DocumentObserver.mounted.set(element, data);
-                    if (!mountedRegistered) {
-                        DocumentObserver.mountedSupposedSize++;
-                        mountedRegistered = true;
-                    }
-                },
-
-                unmounted: (callback) => {
-                    addListener('unmounted', callback);
-                    DocumentObserver.unmounted.set(element, data);
-                    if (!unmountedRegistered) {
-                        DocumentObserver.unmountedSupposedSize++;
-                        unmountedRegistered = true;
-                    }
-                },
-
-                off: (type, callback) => {
-                    removeListener(type, callback);
-                }
-            };
-        }
-    };
-
-    const BOOLEAN_ATTRIBUTES = new Set([
-        'checked',
-        'selected',
-        'disabled',
-        'readonly',
-        'required',
-        'autofocus',
-        'multiple',
-        'autocomplete',
-        'hidden',
-        'contenteditable',
-        'spellcheck',
-        'translate',
-        'draggable',
-        'async',
-        'defer',
-        'autoplay',
-        'controls',
-        'loop',
-        'muted',
-        'download',
-        'reversed',
-        'open',
-        'default',
-        'formnovalidate',
-        'novalidate',
-        'scoped',
-        'itemscope',
-        'allowfullscreen',
-        'allowpaymentrequest',
-        'playsinline'
-    ]);
-
-    /**
-     *
-     * @param {HTMLElement} element
-     * @param {Object} data
-     */
-    const bindClassAttribute = (element, data) => {
-        for(const className in data) {
-            const value = data[className];
-            if(value.__$Observable) {
-                if(value.__$isObservableChecker) {
-                    let lastClass = value.val();
-                    if(typeof lastClass === "string") {
-                        element.classes.toggle(lastClass, true);
-                        value.subscribe((currentValue) => {
-                            element.classes.remove(lastClass);
-                            element.classes.toggle(currentValue, true);
-                            lastClass = currentValue;
-                        });
-                        continue;
-                    }
-                }
-                element.classes.toggle(className, value.val());
-                value.subscribe((shouldAdd) => element.classes.toggle(className, shouldAdd));
-                continue;
-            }
-            if(value.$hydrate) {
-                value.$hydrate(element, className);
-                continue;
-            }
-            element.classes.toggle(className, value);
-        }
-    };
-
-    /**
-     *
-     * @param {HTMLElement} element
-     * @param {Object} data
-     */
-    const bindStyleAttribute = (element, data) => {
-        for(const styleName in data) {
-            const value = data[styleName];
-            const isCustomProperty = styleName.startsWith('--');
-
-            if(value.__$Observable) {
-                if(isCustomProperty) {
-                    element.style.setProperty(styleName, value.val());
-                    value.subscribe((newValue) => {
-                        if(newValue === false) {
-                            element.style.removeProperty(styleName);
-                            return;
-                        }
-                        element.style.setProperty(styleName, newValue);
-                    });
-                } else {
-                    element.style[styleName] = value.val();
-                    value.subscribe((newValue) => {
-                        if(newValue === false) {
-                            element.style.removeProperty(styleName);
-                            return;
-                        }
-                        element.style[styleName] = newValue;
-                    });
-                }
-                continue;
-            }
-
-            if(isCustomProperty) {
-                element.style.setProperty(styleName, value);
-                continue;
-            }
-
-            element.style[styleName] = value;
-        }
-    };
-
-    /**
-     *
-     * @param {HTMLElement} element
-     * @param {string} attributeName
-     * @param {boolean|number|Observable} value
-     */
-    const bindBooleanAttribute = (element, attributeName, value) => {
-        const isObservable = value.__$isObservable;
-        const defaultValue = isObservable? value.val() : value;
-        if(Validator.isBoolean(defaultValue)) {
-            element[attributeName] = defaultValue;
-        }
-        else {
-            element[attributeName] = defaultValue === element.value;
-        }
-        if(isObservable) {
-            if(attributeName === 'checked') {
-                if(typeof defaultValue === 'boolean') {
-                    element.addEventListener('input', () => value.set(element[attributeName]));
-                }
-                else {
-                    element.addEventListener('input', () => value.set(element.value));
-                }
-                value.subscribe((newValue) => element[attributeName] = newValue);
-                return;
-            }
-            value.subscribe((newValue) => element[attributeName] = (newValue === element.value));
-        }
-    };
-
-
-    /**
-     *
-     * @param {HTMLElement} element
-     * @param {string} attributeName
-     * @param {Observable} value
-     */
-    const bindAttributeWithObservable = (element, attributeName, value) => {
-        const applyValue = attributeName === 'value' ? (newValue) => element.value = newValue : (newValue) => element.setAttribute(attributeName, newValue);
-        value.subscribe(applyValue);
-
-        if(attributeName === 'value') {
-            element.value = value.val();
-            element.addEventListener('input', () => value.set(element.value));
-            return;
-        }
-        element.setAttribute(attributeName, value.val());
-    };
-
-    /**
-     *
-     * @param {HTMLElement} element
-     * @param {Object} attributes
-     */
-    const AttributesWrapper = (element, attributes) => {
-
-        {
-            Validator.validateAttributes(attributes);
-        }
-
-        for(const originalAttributeName in attributes) {
-            const attributeName = originalAttributeName.toLowerCase();
-            let value = attributes[originalAttributeName];
-            if(value == null) {
-                continue;
-            }
-            if(value.handleNdAttribute) {
-                value.handleNdAttribute(element, attributeName, value);
-                continue;
-            }
-            if(typeof value ===  'object') {
-                if(attributeName === 'class') {
-                    bindClassAttribute(element, value);
-                    continue;
-                }
-                if(attributeName === 'style') {
-                    bindStyleAttribute(element, value);
-                    continue;
-                }
-            }
-            if(BOOLEAN_ATTRIBUTES.has(attributeName)) {
-                bindBooleanAttribute(element, attributeName, value);
-                continue;
-            }
-
-            element.setAttribute(attributeName, value);
-        }
-        return element;
-    };
-
-    function TemplateBinding(hydrate) {
-        this.$hydrate = hydrate;
-    }
-
-    TemplateBinding.prototype.__$isTemplateBinding = true;
-
-    String.prototype.toNdElement = function () {
-        return ElementCreator.createStaticTextNode(null, this);
-    };
-
-    Number.prototype.toNdElement = function () {
-        return ElementCreator.createStaticTextNode(null, this.toString());
-    };
-
-    Element.prototype.toNdElement = function () {
-        return this;
-    };
-    Text.prototype.toNdElement = function () {
-        return this;
-    };
-    Comment.prototype.toNdElement = function () {
-        return this;
-    };
-    Document.prototype.toNdElement = function () {
-        return this;
-    };
-    DocumentFragment.prototype.toNdElement = function () {
-        return this;
-    };
-
-    ObservableItem.prototype.toNdElement = function () {
-        return ElementCreator.createObservableNode(null, this);
-    };
-
-    ObservableChecker.prototype.toNdElement = ObservableItem.prototype.toNdElement;
-
-    NDElement.prototype.toNdElement = function () {
-        const element = this.$element ?? this.$build?.() ?? this.build?.() ?? null;
-        if(this.$attachements) {
-            if(!this.$attachements.contains(this.$element)) {
-                this.$attachements.append(this.$element);
-            }
-            return this.$attachements;
-        }
-        return element;
-    };
-
-    Array.prototype.toNdElement = function () {
-        const fragment = document.createDocumentFragment();
-        for(let i = 0, length = this.length; i < length; i++) {
-            const child = ElementCreator.getChild(this[i]);
-            if(child === null) continue;
-            fragment.appendChild(child);
-        }
-        return fragment;
-    };
-
-    Function.prototype.toNdElement = function () {
-        const child = this;
-        {
-            PluginsManager.emit('BeforeProcessComponent', child);
-        }
-        return ElementCreator.getChild(child());
-    };
-
-    TemplateBinding.prototype.toNdElement = function () {
-        return ElementCreator.createHydratableNode(null, this);
-    };
-
-    /**
-     * @param {HTMLElement} el
-     * @param {number} timeout
-     */
-    const waitForVisualEnd = (el, timeout = 1000) => {
-        return new Promise((resolve) => {
-            let isResolved = false;
-
-            const cleanupAndResolve = (e) => {
-                if (e && e.target !== el) return;
-                if (isResolved) return;
-
-                isResolved = true;
-                el.removeEventListener('transitionend', cleanupAndResolve);
-                el.removeEventListener('animationend', cleanupAndResolve);
-                clearTimeout(timer);
-                resolve();
-            };
-
-            el.addEventListener('transitionend', cleanupAndResolve);
-            el.addEventListener('animationend', cleanupAndResolve);
-
-            const timer = setTimeout(cleanupAndResolve, timeout);
-
-            const style = window.getComputedStyle(el);
-            const hasTransition = style.transitionDuration !== '0s';
-            const hasAnimation = style.animationDuration !== '0s';
-
-            if (!hasTransition && !hasAnimation) {
-                cleanupAndResolve();
-            }
-        });
-    };
-
-    NDElement.prototype.transitionOut = function(transitionName) {
-        const exitClass = transitionName + '-exit';
-        const el = this.$element;
-        this.beforeUnmount('transition-exit', async function() {
-            el.classes.add(exitClass);
-            await waitForVisualEnd(el);
-            el.classes.remove(exitClass);
-        });
-        return this;
-    };
-
-    NDElement.prototype.transitionIn = function(transitionName) {
-        const startClass = transitionName + '-enter-from';
-        const endClass = transitionName + '-enter-to';
-
-        const el = this.$element;
-
-        el.classes.add(startClass);
-
-        this.mounted(() => {
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    el.classes.remove(startClass);
-                    el.classes.add(endClass);
-
-                    waitForVisualEnd(el).then(() => {
-                        el.classes.remove(endClass);
-                    });
-                });
-            });
-        });
-        return this;
-    };
-
-
-    NDElement.prototype.transition = function (transitionName) {
-        this.transitionIn(transitionName);
-        this.transitionOut(transitionName);
-        return this;
-    };
-
-    NDElement.prototype.animate = function(animationName) {
-        const el = this.$element;
-        el.classes.add(animationName);
-
-        waitForVisualEnd(el).then(() => {
-            el.classes.remove(animationName);
-        });
-
-        return this;
-    };
-
-    ObservableItem.prototype.handleNdAttribute = function(element, attributeName) {
-        if(BOOLEAN_ATTRIBUTES.has(attributeName)) {
-            bindBooleanAttribute(element, attributeName, this);
-            return;
-        }
-
-        bindAttributeWithObservable(element, attributeName, this);
-    };
-
-    ObservableChecker.prototype.handleNdAttribute = ObservableItem.prototype.handleNdAttribute;
-
-        TemplateBinding.prototype.handleNdAttribute = function(element, attributeName) {
-        this.$hydrate(element, attributeName);
-    };
-
-    let $textNodeCache = null;
-
-    const ElementCreator = {
-        createTextNode() {
-            if(!$textNodeCache) {
-                $textNodeCache = document.createTextNode('');
-                ElementCreator.createTextNode = () => $textNodeCache.cloneNode();
-            }
-            return $textNodeCache.cloneNode();
-        },
-        /**
-         *
-         * @param {HTMLElement|DocumentFragment} parent
-         * @param {ObservableItem} observable
-         * @returns {Text}
-         */
-        createObservableNode: (parent, observable) => {
-            const text = ElementCreator.createTextNode();
-            observable.subscribe(value => text.nodeValue = value);
-            text.nodeValue = observable.val();
-            parent && parent.appendChild(text);
-            return text;
-        },
-        /**
-         *
-         * @param {HTMLElement|DocumentFragment} parent
-         * @param {{$hydrate: Function}} item
-         * @returns {Text}
-         */
-        createHydratableNode: (parent, item) => {
-            const text = ElementCreator.createTextNode();
-            item.$hydrate(text);
-            return text;
-        },
-
-        /**
-         *
-         * @param {HTMLElement|DocumentFragment} parent
-         * @param {*} value
-         * @returns {Text}
-         */
-        createStaticTextNode: (parent, value) => {
-            let text = ElementCreator.createTextNode();
-            text.nodeValue = value;
-            parent && parent.appendChild(text);
-            return text;
-        },
-        /**
-         *
-         * @param {string} name
-         * @returns {HTMLElement|DocumentFragment}
-         */
-        createElement: (name) => {
-            const node = document.createElement(name);
-            return node.cloneNode();
-        },
-        createFragment: (name) => {
-            return Anchor('Fragment');
-        },
-        bindTextNode: (textNode, value) => {
-            if(value?.__$isObservable) {
-                value.subscribe(newValue => textNode.nodeValue = newValue);
-                textNode.nodeValue = value.val();
-                return;
-            }
-            textNode.nodeValue = value;
-        },
-        /**
-         *
-         * @param {*} children
-         * @param {HTMLElement|DocumentFragment} parent
-         */
-        processChildren: (children, parent) => {
-            if(children === null) return;
-            {
-                PluginsManager.emit('BeforeProcessChildren', parent);
-            }
-            let child = ElementCreator.getChild(children);
-            if(child) {
-                parent.appendChild(child);
-            }
-            {
-                PluginsManager.emit('AfterProcessChildren', parent);
-            }
-        },
-        async safeRemove(element) {
-            await element.remove();
-
-        },
-        getChild: (child) => {
-            if(child == null) {
-                return null;
-            }
-            if(child.toNdElement) {
-                do {
-                    child =  child.toNdElement();
-                    if(Validator.isElement(child)) {
-                        return child;
-                    }
-                } while (child.toNdElement);
-            }
-
-            return ElementCreator.createStaticTextNode(null, child);
-        },
-        /**
-         *
-         * @param {HTMLElement} element
-         * @param {Object} attributes
-         */
-        processAttributes: (element, attributes) => {
-            if (attributes) {
-                AttributesWrapper(element, attributes);
-            }
-        },
-        /**
-         *
-         * @param {HTMLElement} element
-         * @param {Object} attributes
-         */
-        processAttributesDirect: AttributesWrapper,
-        processClassAttribute: bindClassAttribute,
-        processStyleAttribute: bindStyleAttribute,
-    };
-
-    function AnchorWithSentinel(name) {
-        const instance = Reflect.construct(DocumentFragment, [], AnchorWithSentinel);
-        const sentinel = document.createComment((name || '') + ' Anchor Sentinel');
-        const anchorStart = document.createComment('Anchor Start : '+name);
-        const anchorEnd = document.createComment('/ Anchor End '+name);
-        const events = {};
-
-        instance.append(anchorStart, sentinel, anchorEnd);
-
-        const observer = new MutationObserver(() => {
-            if (sentinel.parentNode !== instance && !(sentinel.parentNode instanceof DocumentFragment)) {
-                events.connected && events.connected(sentinel.parentNode);
-            }
-        });
-
-        observer.observe(document, { childList: true, subtree: true });
-
-
-        instance.$sentinel = sentinel;
-        instance.$start = anchorStart;
-        instance.$end = anchorEnd;
-        instance.$observer = observer;
-        instance.$events = events;
-
-        return instance;
-    }
-
-    AnchorWithSentinel.prototype = Object.create(DocumentFragment.prototype);
-    AnchorWithSentinel.prototype.constructor = AnchorWithSentinel;
-
-    AnchorWithSentinel.prototype.onConnected = function(callback) {
-        this.$events.connected = callback;
-        return this;
-    };
-
-    AnchorWithSentinel.prototype.onConnectedOnce = function(callback) {
-        this.$events.connected = (parent) => {
-            callback(parent);
-            this.$observer.disconnect();
-            this.$events.connectedOnce = null;
-        };
-    };
-
-    function oneChildAnchorOverwriting(anchor, parent) {
-
-        anchor.remove = () => {
-            anchor.append.apply(anchor, parent.childNodes);
-        };
-        anchor.getParent = () => parent;
-
-        anchor.appendChild = (child) => {
-            child = Validator.isElement(child) ? child : ElementCreator.getChild(child);
-            parent.appendChild(child);
-        };
-
-        anchor.appendChildRaw = parent.appendChild.bind(parent);
-        anchor.append = anchor.appendChild;
-        anchor.appendRaw = anchor.appendChildRaw;
-
-        anchor.insertAtStart = (child) => {
-            child = Validator.isElement(child) ? child : ElementCreator.getChild(child);
-            parent.firstChild ? parent.insertBefore(child, parent.firstChild) : parent.appendChild(child);
-        };
-        anchor.insertAtStartRaw = (child) => {
-            parent.firstChild ? parent.insertBefore(child, parent.firstChild) : parent.appendChild(child);
-        };
-
-        anchor.appendElement = anchor.appendChild;
-
-        anchor.removeChildren = () => {
-            parent.textContent = '';
-        };
-
-        anchor.replaceContent = function(content) {
-            const child = Validator.isElement(content) ? content : ElementCreator.getChild(content);
-            parent.replaceChildren(child);
-        };
-
-        anchor.replaceContentRaw = function(child) {
-            parent.replaceChildren(child);
-        };
-        anchor.setContent = anchor.replaceContent;
-
-        anchor.insertBefore = (child, anchor) => {
-            child = Validator.isElement(child) ? child : ElementCreator.getChild(child);
-            parent.insertBefore(child, anchor);
-        };
-        anchor.insertBeforeRaw = (child, anchor) => {
-            parent.insertBefore(child, anchor);
-        };
-
-        anchor.appendChildBefore = anchor.insertBefore;
-        anchor.appendChildBeforeRaw = anchor.insertBeforeRaw;
-
-        anchor.clear = anchor.remove;
-        anchor.detach = anchor.remove;
-
-        anchor.replaceChildren = function() {
-            parent.replaceChildren(...arguments);
-        };
-
-        anchor.getByIndex = (index) => {
-            return parent.childNodes[index];
-        };
-    }
-
-    function Anchor(name, isUniqueChild = false) {
-        const anchorFragment = new AnchorWithSentinel(name);
-
-        anchorFragment.onConnectedOnce((parent) => {
-            if(isUniqueChild) {
-                oneChildAnchorOverwriting(anchorFragment, parent);
-            }
-        });
-
-        anchorFragment.__Anchor__ = true;
-
-        const anchorStart = anchorFragment.$start;
-        const anchorEnd = anchorFragment.$end;
-
-        anchorFragment.nativeInsertBefore = anchorFragment.insertBefore;
-        anchorFragment.nativeAppendChild = anchorFragment.appendChild;
-        anchorFragment.nativeAppend = anchorFragment.append;
-
-        const isParentUniqueChild = isUniqueChild
-            ? () => true: (parent) => (parent.firstChild === anchorStart && parent.lastChild === anchorEnd);
-
-        const insertBefore = (parent, child, target) => {
-            const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
-            insertBeforeRaw(parent, childElement, target);
-        };
-
-        const insertBeforeRaw = (parent, child, target) => {
-            if(parent === anchorFragment) {
-                parent.nativeInsertBefore(child, target);
-                return;
-            }
-            if(isParentUniqueChild(parent) && target === anchorEnd) {
-                parent.append(child,  target);
-                return;
-            }
-            parent.insertBefore(child, target);
-        };
-
-        anchorFragment.appendElement = function(child) {
-            const parentNode = anchorStart.parentNode;
-            if(parentNode === anchorFragment) {
-                parentNode.nativeInsertBefore(child, anchorEnd);
-                return;
-            }
-            parentNode.insertBefore(child, anchorEnd);
-        };
-
-        anchorFragment.appendChild = function(child, before = null) {
-            const parent = anchorEnd.parentNode;
-            if(!parent) {
-                DebugManager.error('Anchor', 'Anchor : parent not found', child);
-                return;
-            }
-            before = before ?? anchorEnd;
-            insertBefore(parent, child, before);
-        };
-
-        anchorFragment.appendChildRaw = function(child, before = null) {
-            const parent = anchorEnd.parentNode;
-            if(!parent) {
-                DebugManager.error('Anchor', 'Anchor : parent not found', child);
-                return;
-            }
-            before = before ?? anchorEnd;
-            insertBeforeRaw(parent, child, before);
-        };
-
-        anchorFragment.getParent = () => anchorEnd.parentNode;
-        anchorFragment.append = anchorFragment.appendChild;
-        anchorFragment.appendRaw = anchorFragment.appendChildRaw;
-
-        anchorFragment.insertAtStart = function(child) {
-            child = Validator.isElement(child) ? child : ElementCreator.getChild(child);
-            anchorFragment.insertAtStartRaw(child);
-        };
-
-        anchorFragment.insertAtStartRaw = function(child) {
-            const parentNode = anchorStart.parentNode;
-            if(parentNode === anchorFragment) {
-                parentNode.nativeInsertBefore(child, anchorStart);
-                return;
-            }
-            parentNode.insertBefore(child, anchorStart);
-        };
-
-        anchorFragment.removeChildren = function() {
-            const parent = anchorEnd.parentNode;
-            if(parent === anchorFragment) {
-                return;
-            }
-            if(isParentUniqueChild(parent)) {
-                parent.replaceChildren(anchorStart, anchorEnd);
-                return;
-            }
-
-            let itemToRemove = anchorStart.nextSibling, tempItem;
-            while(itemToRemove && itemToRemove !== anchorEnd) {
-                tempItem = itemToRemove.nextSibling;
-                itemToRemove.remove();
-                itemToRemove =  tempItem;
-            }
-        };
-
-        anchorFragment.remove = function() {
-            const parent = anchorEnd.parentNode;
-            if(parent === anchorFragment) {
-                return;
-            }
-            if(isParentUniqueChild(parent)) {
-                anchorFragment.nativeAppend.apply(anchorFragment, parent.childNodes);
-                parent.replaceChildren(anchorStart, anchorEnd);
-                return;
-            }
-            let itemToRemove = anchorStart.nextSibling, tempItem;
-            while(itemToRemove && itemToRemove !== anchorEnd) {
-                tempItem = itemToRemove.nextSibling;
-                anchorFragment.nativeAppend(itemToRemove);
-                itemToRemove = tempItem;
-            }
-        };
-
-        anchorFragment.removeWithAnchors = function() {
-            anchorFragment.removeChildren();
-            anchorStart.remove();
-            anchorEnd.remove();
-        };
-        anchorFragment.delete = anchorFragment.removeWithAnchors;
-
-        anchorFragment.replaceContent = function(child) {
-            const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
-            anchorFragment.replaceContentRaw(childElement);
-        };
-
-        anchorFragment.replaceContentRaw = function(child) {
-            const parent = anchorEnd.parentNode;
-            if(!parent) {
-                return;
-            }
-            if(isParentUniqueChild(parent)) {
-                parent.replaceChildren(anchorStart, child, anchorEnd);
-                return;
-            }
-            anchorFragment.removeChildren();
-            parent.insertBefore(child, anchorEnd);
-        };
-
-        anchorFragment.setContent = anchorFragment.replaceContent;
-        anchorFragment.setContentRaw = anchorFragment.replaceContentRaw;
-
-        anchorFragment.insertBefore = anchorFragment.appendChild;
-        anchorFragment.insertBeforeRaw = anchorFragment.appendChildRaw;
-
-        anchorFragment.endElement = function() {
-            return anchorEnd;
-        };
-
-        anchorFragment.startElement = function() {
-            return anchorStart;
-        };
-
-        anchorFragment.restore = function() {
-            anchorFragment.appendChild(anchorFragment);
-        };
-
-        anchorFragment.clear = anchorFragment.remove;
-        anchorFragment.detach = anchorFragment.remove;
-
-        anchorFragment.getByIndex = function(index) {
-            let currentNode = anchorStart;
-            for(let i = 0; i <= index; i++) {
-                if(!currentNode.nextSibling) {
-                    return null;
-                }
-                currentNode = currentNode.nextSibling;
-            }
-            return currentNode !== anchorStart ? currentNode : null;
-        };
-
-        return anchorFragment;
-    }
-    /**
-     *
-     * @param {HTMLElement|DocumentFragment|Text|String|Array} children
-     * @param {{ parent?: HTMLElement, name?: String}} configs
-     * @returns {DocumentFragment}
-     */
-    function createPortal(children, { parent, name = 'unnamed' } = {}) {
-        const anchor = Anchor('Portal '+name);
-        anchor.appendChild(ElementCreator.getChild(children));
-
-        (parent || document.body).appendChild(anchor);
-        return anchor;
-    }
-
-    DocumentFragment.prototype.setAttribute = () => {};
-
-    function NDElement(element) {
-        this.$element = element;
-        this.$attachements = null;
-        {
-            PluginsManager.emit('NDElementCreated', element, this);
-        }
-    }
-
-    NDElement.prototype.__$isNDElement = true;
-
-    NDElement.prototype.ghostDom = function(element) {
-        if(!this.$attachements) {
-            this.$attachements = document.createDocumentFragment();
-        }
-        this.$attachements.appendChild(ElementCreator.getChild(element));
-        return this;
-    };
-
-    NDElement.prototype.valueOf = function() {
-        return this.$element;
-    };
-
-    NDElement.prototype.ref = function(target, name) {
-        target[name] = this.$element;
-        return this;
-    };
-
-    NDElement.prototype.refSelf = function(target, name) {
-        target[name] = this;
-        // TODO: @DIM to check
-        // target[name] = new NDElement(this.$element);
-        return this;
-    };
-
-    NDElement.prototype.unmountChildren = function() {
-        let element = this.$element;
-        for(let i = 0, length = element.children.length; i < length; i++) {
-            let elementChildren = element.children[i];
-            if(!elementChildren.$ndProx) {
-                elementChildren.nd?.remove();
-            }
-            elementChildren = null;
-        }
-        element = null;
-        return this;
-    };
-
-    NDElement.prototype.remove = function() {
-        let element = this.$element;
-        element.nd.unmountChildren();
-        element.$ndProx = null;
-
-        $lifeCycleObservers.delete(element);
-
-        element = null;
-        return this;
-    };
-
-    const $lifeCycleObservers = new WeakMap();
-    NDElement.prototype.lifecycle = function(states) {
-        const el = this.$element;
-        if (!$lifeCycleObservers.has(el)) {
-            $lifeCycleObservers.set(el, DocumentObserver.watch(el));
-        }
-        const observer = $lifeCycleObservers.get(el);
-
-        if(states.mounted) {
-            this.$element.setAttribute('data--nd-mounted', '1');
-            observer.mounted(states.mounted);
-        }
-        if(states.unmounted) {
-            this.$element.setAttribute('data--nd-unmounted', '1');
-            observer.unmounted(states.unmounted);
-        }
-        return this;
-    };
-
-    NDElement.prototype.mounted = function(callback) {
-        return this.lifecycle({ mounted: callback });
-    };
-
-    NDElement.prototype.unmounted = function(callback) {
-        return this.lifecycle({ unmounted: callback });
-    };
-
-    NDElement.prototype.beforeUnmount = function(id, callback) {
-        const el = this.$element;
-
-        if(!DocumentObserver.beforeUnmount.has(el)) {
-            DocumentObserver.beforeUnmount.set(el, new Map());
-            const originalRemove = el.remove.bind(el);
-
-            let  $isUnmounting = false;
-
-            el.remove = async () => {
-                if($isUnmounting) {
-                    return;
-                }
-                $isUnmounting = true;
-
-                try {
-                    const callbacks = DocumentObserver.beforeUnmount.get(el);
-                    for (const cb of callbacks.values()) {
-                        await cb.call(this, el);
-                    }
-                } finally {
-                    originalRemove();
-                    $isUnmounting = false;
-                }
-            };
-        }
-
-        DocumentObserver.beforeUnmount.get(el).set(id, callback);
-        return this;
-    };
-
-    NDElement.prototype.htmlElement = function() {
-        return this.$element;
-    };
-
-    NDElement.prototype.node = NDElement.prototype.htmlElement;
-
-    NDElement.prototype.shadow = function(mode, style = null) {
-        const $element = this.$element;
-        const children = Array.from($element.childNodes);
-        const shadowRoot = $element.attachShadow({ mode });
-        if(style) {
-            const styleNode = document.createElement("style");
-            styleNode.textContent = style;
-            shadowRoot.appendChild(styleNode);
-        }
-        $element.append = shadowRoot.append.bind(shadowRoot);
-        $element.appendChild = shadowRoot.appendChild.bind(shadowRoot);
-        shadowRoot.append(...children);
-
-        return this;
-    };
-
-    NDElement.prototype.openShadow = function(style = null) {
-        return this.shadow('open', style);
-    };
-
-    NDElement.prototype.closedShadow = function(style = null) {
-        return this.shadow('closed', style);
-    };
-
-    /**
-     * Extends the current NDElement instance with custom methods.
-     * Methods are bound to the instance and available for chaining.
-     *
-     * @param {Object} methods - Object containing method definitions
-     * @returns {this} The NDElement instance with added methods for chaining
-     * @example
-     * element.nd.with({
-     *   highlight() {
-     *     this.$element.style.background = 'yellow';
-     *     return this;
-     *   }
-     * }).highlight().onClick(() => console.log('Clicked'));
-     */
-    NDElement.prototype.with = function(methods) {
-        if (!methods || typeof methods !== 'object') {
-            throw new NativeDocumentError('extend() requires an object of methods');
-        }
-        {
-            if (!this.$localExtensions) {
-                this.$localExtensions = new Map();
-            }
-        }
-
-        for (const name in methods) {
-            const method = methods[name];
-
-            if (typeof method !== 'function') {
-                DebugManager$1.warn(`⚠️ extends(): "${name}" is not a function, skipping`);
-                continue;
-            }
-            {
-                if (this[name] && !this.$localExtensions.has(name)) {
-                    DebugManager$1.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
-                }
-                this.$localExtensions.set(name, method);
-            }
-
-            this[name] = method.bind(this);
-        }
-
-        return this;
-    };
-
-    /**
-     * Extends the NDElement prototype with new methods available to all NDElement instances.
-     * Use this to add global methods to all NDElements.
-     *
-     * @param {Object} methods - Object containing method definitions to add to prototype
-     * @returns {typeof NDElement} The NDElement constructor
-     * @throws {NativeDocumentError} If methods is not an object or contains non-function values
-     * @example
-     * NDElement.extend({
-     *   fadeIn() {
-     *     this.$element.style.opacity = '1';
-     *     return this;
-     *   }
-     * });
-     * // Now all NDElements have .fadeIn() method
-     * Div().nd.fadeIn();
-     */
-    NDElement.extend = function(methods) {
-        if (!methods || typeof methods !== 'object') {
-            throw new NativeDocumentError('NDElement.extend() requires an object of methods');
-        }
-
-        if (Array.isArray(methods)) {
-            throw new NativeDocumentError('NDElement.extend() requires an object, not an array');
-        }
-
-        const protectedMethods = new Set([
-            'constructor', 'valueOf', '$element', '$observer',
-            'ref', 'remove', 'cleanup', 'with', 'extend', 'attach',
-            'lifecycle', 'mounted', 'unmounted', 'unmountChildren'
-        ]);
-
-        for (const name in methods) {
-            if (!Object.hasOwn(methods, name)) {
-                continue;
-            }
-
-            const method = methods[name];
-
-            if (typeof method !== 'function') {
-                DebugManager$1.warn('NDElement.extend', `"${name}" is not a function, skipping`);
-                continue;
-            }
-
-            if (protectedMethods.has(name)) {
-                DebugManager$1.error('NDElement.extend', `Cannot override protected method "${name}"`);
-                throw new NativeDocumentError(`Cannot override protected method "${name}"`);
-            }
-
-            if (NDElement.prototype[name]) {
-                DebugManager$1.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
-            }
-
-            NDElement.prototype[name] = method;
-        }
-        {
-            PluginsManager.emit('NDElementExtended', methods);
-        }
-
-        return NDElement;
-    };
-
-    const COMMON_NODE_TYPES = {
-        ELEMENT: 1,
-        TEXT: 3,
-        COMMENT: 8,
-        DOCUMENT_FRAGMENT: 11
-    };
-
-    const VALID_TYPES = [];
-    VALID_TYPES[COMMON_NODE_TYPES.ELEMENT] = true;
-    VALID_TYPES[COMMON_NODE_TYPES.TEXT] = true;
-    VALID_TYPES[COMMON_NODE_TYPES.DOCUMENT_FRAGMENT] = true;
-    VALID_TYPES[COMMON_NODE_TYPES.COMMENT] = true;
-
-    const Validator = {
-        isObservable(value) {
-            return  value && (value.__$isObservable || value.__$Observable);
-        },
-        isTemplateBinding(value) {
-            return  value?.__$isTemplateBinding;
-        },
-        isObservableWhenResult(value) {
-            return value && (value.__$isObservableWhen || (typeof value === 'object' && '$target' in value && '$observer' in value));
-        },
-        isArrayObservable(value) {
-            return  value?.__$isObservableArray;
-        },
-        isProxy(value) {
-            return value?.__isProxy__
-        },
-        isObservableOrProxy(value) {
-            return Validator.isObservable(value) || Validator.isProxy(value);
-        },
-        isAnchor(value) {
-            return value?.__Anchor__
-        },
-        isObservableChecker(value) {
-            return value?.__$isObservableChecker || value instanceof ObservableChecker;
-        },
-        isArray(value) {
-            return Array.isArray(value);
-        },
-        isString(value) {
-            return typeof value === 'string';
-        },
-        isNumber(value) {
-            return typeof value === 'number';
-        },
-        isBoolean(value) {
-            return typeof value === 'boolean';
-        },
-        isFunction(value) {
-            return typeof value === 'function';
-        },
-        isAsyncFunction(value) {
-            return typeof value === 'function' && value.constructor.name === 'AsyncFunction';
-        },
-        isObject(value) {
-            return typeof value === 'object' && value !== null;
-        },
-        isJson(value) {
-            return !(typeof value !== 'object' || value === null || Array.isArray(value) || value.constructor.name !== 'Object')
-        },
-        isElement(value) {
-            return value && VALID_TYPES[value.nodeType];
-        },
-        isDOMNode(value) {
-            return VALID_TYPES[value.nodeType];
-        },
-        isFragment(value) {
-            return value?.nodeType === COMMON_NODE_TYPES.DOCUMENT_FRAGMENT;
-        },
-        isStringOrObservable(value) {
-            return this.isString(value) || this.isObservable(value);
-        },
-        isValidChild(child) {
-            return child === null ||
-                this.isElement(child) ||
-                this.isObservable(child) ||
-                this.isNDElement(child) ||
-                ['string', 'number', 'boolean'].includes(typeof child);
-        },
-        isNDElement(child) {
-            return child?.__$isNDElement || child instanceof NDElement;
-        },
-        isValidChildren(children) {
-            if (!Array.isArray(children)) {
-                children = [children];
-            }
-
-            const invalid = children.filter(child => !this.isValidChild(child));
-            return invalid.length === 0;
-        },
-        validateChildren(children) {
-            if (!Array.isArray(children)) {
-                children = [children];
-            }
-
-            const invalid = children.filter(child => !this.isValidChild(child));
-            if (invalid.length > 0) {
-                throw new NativeDocumentError(`Invalid children detected: ${invalid.map(i => typeof i).join(', ')}`);
-            }
-
-            return children;
-        },
-        /**
-         * Check if the data contains observables.
-         * @param {Array|Object} data
-         * @returns {boolean}
-         */
-        containsObservables(data) {
-            if(!data) {
-                return false;
-            }
-            return Validator.isObject(data)
-                && Object.values(data).some(value => Validator.isObservable(value));
-        },
-        /**
-         * Check if the data contains an observable reference.
-         * @param {string} data
-         * @returns {boolean}
-         */
-        containsObservableReference(data) {
-            if(!data || typeof data !== 'string') {
-                return false;
-            }
-            return /\{\{#ObItem::\([0-9]+\)\}\}/.test(data);
-        },
-        validateAttributes(attributes) {},
-
-        validateEventCallback(callback) {
-            if (typeof callback !== 'function') {
-                throw new NativeDocumentError('Event callback must be a function');
-            }
-        }
-    };
-    {
-        Validator.validateAttributes = function(attributes) {
-            if (!attributes || typeof attributes !== 'object') {
-                return attributes;
-            }
-
-            const reserved = [];
-            const foundReserved = Object.keys(attributes).filter(key => reserved.includes(key));
-
-            if (foundReserved.length > 0) {
-                DebugManager$1.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
-            }
-
-            return attributes;
-        };
-    }
-
-    const EVENTS = [
-      "Click",
-      "DblClick",
-      "MouseDown",
-      "MouseEnter",
-      "MouseLeave",
-      "MouseMove",
-      "MouseOut",
-      "MouseOver",
-      "MouseUp",
-      "Wheel",
-      "KeyDown",
-      "KeyPress",
-      "KeyUp",
-      "Blur",
-      "Change",
-      "Focus",
-      "Input",
-      "Invalid",
-      "Reset",
-      "Search",
-      "Select",
-      "Submit",
-      "Drag",
-      "DragEnd",
-      "DragEnter",
-      "DragLeave",
-      "DragOver",
-      "DragStart",
-      "Drop",
-      "AfterPrint",
-      "BeforePrint",
-      "BeforeUnload",
-      "Error",
-      "HashChange",
-      "Load",
-      "Offline",
-      "Online",
-      "PageHide",
-      "PageShow",
-      "Resize",
-      "Scroll",
-      "Unload",
-      "Abort",
-      "CanPlay",
-      "CanPlayThrough",
-      "DurationChange",
-      "Emptied",
-      "Ended",
-      "LoadedData",
-      "LoadedMetadata",
-      "LoadStart",
-      "Pause",
-      "Play",
-      "Playing",
-      "Progress",
-      "RateChange",
-      "Seeked",
-      "Seeking",
-      "Stalled",
-      "Suspend",
-      "TimeUpdate",
-      "VolumeChange",
-      "Waiting",
-
-      "TouchCancel",
-      "TouchEnd",
-      "TouchMove",
-      "TouchStart",
-      "AnimationEnd",
-      "AnimationIteration",
-      "AnimationStart",
-      "TransitionEnd",
-      "Copy",
-      "Cut",
-      "Paste",
-      "FocusIn",
-      "FocusOut",
-      "ContextMenu"
-    ];
-
-    const EVENTS_WITH_PREVENT = [
-      "Click",
-      "DblClick",
-      "MouseDown",
-      "MouseUp",
-      "Wheel",
-      "KeyDown",
-      "KeyPress",
-      "Invalid",
-      "Reset",
-      "Submit",
-      "DragOver",
-      "Drop",
-      "BeforeUnload",
-      "TouchCancel",
-      "TouchEnd",
-      "TouchMove",
-      "TouchStart",
-      "Copy",
-      "Cut",
-      "Paste",
-      "ContextMenu"
-    ];
-
-    const EVENTS_WITH_STOP =  [
-      "Click",
-      "DblClick",
-      "MouseDown",
-      "MouseMove",
-      "MouseOut",
-      "MouseOver",
-      "MouseUp",
-      "Wheel",
-      "KeyDown",
-      "KeyPress",
-      "KeyUp",
-      "Change",
-      "Input",
-      "Invalid",
-      "Reset",
-      "Search",
-      "Select",
-      "Submit",
-      "Drag",
-      "DragEnd",
-      "DragEnter",
-      "DragLeave",
-      "DragOver",
-      "DragStart",
-      "Drop",
-      "BeforeUnload",
-      "HashChange",
-      "TouchCancel",
-      "TouchEnd",
-      "TouchMove",
-      "TouchStart",
-      "AnimationEnd",
-      "AnimationIteration",
-      "AnimationStart",
-      "TransitionEnd",
-      "Copy",
-      "Cut",
-      "Paste",
-      "FocusIn",
-      "FocusOut",
-      "ContextMenu"
-    ];
-
-    const property = {
-        configurable: true,
-        get() {
-            return new NDElement(this);
-        }
-    };
-
-    Object.defineProperty(HTMLElement.prototype, 'nd', property);
-
-    Object.defineProperty(DocumentFragment.prototype, 'nd', property);
-
-    Object.defineProperty(NDElement.prototype, 'nd', {
-        configurable: true,
-        get: function() {
-            return this;
-        }
-    });
-
-
-
-    // ----------------------------------------------------------------
-    // Events helpers
-    // ----------------------------------------------------------------
-    EVENTS.forEach(eventSourceName => {
-        const eventName = eventSourceName.toLowerCase();
-        NDElement.prototype['on'+eventSourceName] = function(callback = null) {
-            this.$element.addEventListener(eventName, callback);
-            return this;
-        };
-    });
-
-    EVENTS_WITH_STOP.forEach(eventSourceName => {
-        const eventName = eventSourceName.toLowerCase();
-        NDElement.prototype['onStop'+eventSourceName] = function(callback = null) {
-            _stop(this.$element, eventName, callback);
-            return this;
-        };
-        NDElement.prototype['onPreventStop'+eventSourceName] = function(callback = null) {
-            _preventStop(this.$element, eventName, callback);
-            return this;
-        };
-    });
-
-    EVENTS_WITH_PREVENT.forEach(eventSourceName => {
-        const eventName = eventSourceName.toLowerCase();
-        NDElement.prototype['onPrevent'+eventSourceName] = function(callback = null) {
-            _prevent(this.$element, eventName, callback);
-            return this;
-        };
-    });
-
-    NDElement.prototype.on = function(name, callback, options) {
-        this.$element.addEventListener(name.toLowerCase(), callback, options);
-        return this;
-    };
-
-    const _prevent = function(element, eventName, callback) {
-        const handler = (event) => {
-            event.preventDefault();
-            callback && callback.call(element, event);
-        };
-        element.addEventListener(eventName, handler);
-        return this;
-    };
-
-    const _stop = function(element, eventName, callback) {
-        const handler = (event) => {
-            event.stopPropagation();
-            callback && callback.call(element, event);
-        };
-        element.addEventListener(eventName, handler);
-        return this;
-    };
-
-    const _preventStop = function(element, eventName, callback) {
-        const handler = (event) => {
-            event.stopPropagation();
-            event.preventDefault();
-            callback && callback.call(element, event);
-        };
-        element.addEventListener(eventName, handler);
-        return this;
-    };
-
-
-
-    // ----------------------------------------------------------------
-    // Class attributes binder
-    // ----------------------------------------------------------------
-    const classListMethods = {
-        getClasses() {
-            return this.$element.className?.split(' ').filter(Boolean);
-        },
-        add(value) {
-            const classes = this.getClasses();
-            if(classes.indexOf(value) >= 0) {
-                return;
-            }
-            classes.push(value);
-            this.$element.className = classes.join(' ');
-        },
-        remove(value) {
-            const classes = this.getClasses();
-            const index = classes.indexOf(value);
-            if(index < 0) {
-                return;
-            }
-            classes.splice(index, 1);
-            this.$element.className = classes.join(' ');
-        },
-        toggle(value, force = undefined) {
-            const classes = this.getClasses();
-            const index = classes.indexOf(value);
-            if(index >= 0) {
-                if(force === true) {
-                    return;
-                }
-                classes.splice(index, 1);
-            }
-            else {
-                if(force === false) {
-                    return;
-                }
-                classes.push(value);
-            }
-            this.$element.className = classes.join(' ');
-        },
-        contains(value) {
-            return this.getClasses().indexOf(value) >= 0;
-        }
-    };
-
-    Object.defineProperty(HTMLElement.prototype, 'classes', {
-        configurable: true,
-        get() {
-            return {
-                $element: this,
-                ...classListMethods
-            };
-        }
-    });
-
-    class ArgTypesError extends Error {
-        constructor(message, errors) {
-            super(`${message}\n\n${errors.join("\n")}\n\n`);
-        }
-    }
-
-    exports.withValidation = (fn) => fn;
-    exports.ArgTypes = {};
-
-    /**
-     *
-     * @type {{string: (function(*): {name: *, type: string, validate: function(*): boolean}),
-     *      number: (function(*): {name: *, type: string, validate: function(*): boolean}),
-     *      boolean: (function(*): {name: *, type: string, validate: function(*): boolean}),
-     *      observable: (function(*): {name: *, type: string, validate: function(*): boolean}),
-     *      element: (function(*): {name: *, type: string, validate: function(*): *}),
-     *      function: (function(*): {name: *, type: string, validate: function(*): boolean}),
-     *      object: (function(*): {name: *, type: string, validate: function(*): boolean}),
-     *      objectNotNull: (function(*): {name: *, type: string, validate: function(*): *}),
-     *      children: (function(*): {name: *, type: string, validate: function(*): *}),
-     *      attributes: (function(*): {name: *, type: string, validate: function(*): *}),
-     *      optional: (function(*): *&{optional: boolean}),
-     *      oneOf: (function(*, ...[*]): {name: *, type: string, types: *[],
-     *      validate: function(*): boolean})
-     * }}
-     */
-    {
-        exports.ArgTypes = {
-            string: (name) => ({ name, type: 'string', validate: (v) => Validator.isString(v) }),
-            number: (name) => ({ name, type: 'number', validate: (v) => Validator.isNumber(v) }),
-            boolean: (name) => ({ name, type: 'boolean', validate: (v) => Validator.isBoolean(v) }),
-            observable: (name) => ({ name, type: 'observable', validate: (v) => Validator.isObservable(v) }),
-            element: (name) => ({ name, type: 'element', validate: (v) => Validator.isElement(v) }),
-            function: (name) => ({ name, type: 'function', validate: (v) => Validator.isFunction(v) }),
-            object: (name) => ({ name, type: 'object', validate: (v) => (Validator.isObject(v)) }),
-            objectNotNull: (name) => ({ name, type: 'object', validate: (v) => (Validator.isObject(v) && v !== null) }),
-            children: (name) => ({ name, type: 'children', validate: (v) => Validator.validateChildren(v) }),
-            attributes: (name) => ({ name, type: 'attributes', validate: (v) => Validator.validateAttributes(v) }),
-
-            // Optional arguments
-            optional: (argType) => ({ ...argType, optional: true }),
-
-            // Union types
-            oneOf: (name, ...argTypes) => ({
-                name,
-                type: 'oneOf',
-                types: argTypes,
-                validate: (v) => argTypes.some(type => type.validate(v))
-            })
-        };
-
-
-        /**
-         *
-         * @param {Array} args
-         * @param {Array} argSchema
-         * @param {string} fnName
-         */
-        const validateArgs = (args, argSchema, fnName = 'Function') => {
-            if (!argSchema) return;
-
-            const errors = [];
-
-            // Check the number of arguments
-            const requiredCount = argSchema.filter(arg => !arg.optional).length;
-            if (args.length < requiredCount) {
-                errors.push(`${fnName}: Expected at least ${requiredCount} arguments, got ${args.length}`);
-            }
-
-            // Validate each argument
-            argSchema.forEach((schema, index) => {
-                const position = index + 1;
-                const value = args[index];
-
-                if (value === undefined) {
-                    if (!schema.optional) {
-                        errors.push(`${fnName}: Missing required argument '${schema.name}' at position ${position}`);
-                    }
-                    return;
-                }
-
-                if (!schema.validate(value)) {
-                    const valueTypeOf = value?.constructor?.name || typeof value;
-                    errors.push(`${fnName}: Invalid argument '${schema.name}' at position ${position}, expected ${schema.type}, got ${valueTypeOf}`);
-                }
-            });
-
-            if (errors.length > 0) {
-                throw new ArgTypesError(`Argument validation failed`, errors);
-            }
-        };
-
-
-
-        /**
-         * @param {Function} fn
-         * @param {Array} argSchema
-         * @param {string} fnName
-         * @returns {Function}
-         */
-        exports.withValidation = (fn, argSchema, fnName = 'Function') => {
-            if(!Validator.isArray(argSchema)) {
-                throw new NativeDocumentError('withValidation : argSchema must be an array');
-            }
-            return function(...args) {
-                validateArgs(args, argSchema, fn.name || fnName);
-                return fn.apply(this, args);
-            };
-        };
-    }
-
-    const normalizeComponentArgs = function(props, children = null) {
-        if(props && children) {
-            return { props, children };
-        }
-        if(typeof props !== 'object' || Array.isArray(props) || props === null || props.constructor.name !== 'Object' ||  props.$hydrate) { // IF it's not a JSON
-            return { props: children, children: props }
-        }
-        return { props, children };
-    };
-
-    /**
-     *
-     * @param {*} value
-     * @returns {Text}
-     */
-    const createTextNode = (value) => {
-        if(value) {
-            return value.toNdElement();
-        }
-        return ElementCreator.createTextNode();
-    };
-
-
-    const createHtmlElement = (element, _attributes, _children = null) => {
-        let { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
-
-        ElementCreator.processAttributes(element, attributes);
-        ElementCreator.processChildren(children, element);
-        return element;
-    };
-
-    /**
-     *
-     * @param {string} name
-     * @param {?Function=} customWrapper
-     * @returns {Function}
-     */
-    function HtmlElementWrapper(name, customWrapper = null) {
-        if(name) {
-            if(customWrapper) {
-                let node = null;
-                let createElement = (attr, children) => {
-                    node = document.createElement(name);
-                    createElement = (attr, children) => {
-                        return createHtmlElement(customWrapper(node.cloneNode()), attr, children);
-                    };
-                    return createHtmlElement(customWrapper(node.cloneNode()), attr, children);            };
-
-                return (attr, children) => createElement(attr, children)
-            }
-
-            let node = null;
-            let createElement = (attr, children) => {
-                node = document.createElement(name);
-                createElement = (attr, children) => {
-                    return createHtmlElement(node.cloneNode(), attr, children);
-                };
-                return createHtmlElement(node.cloneNode(), attr, children);
-            };
-
-            return (attr, children) => createElement(attr, children)
-        }
-        return (children, name = '') => {
-            const anchor = Anchor(name);
-            anchor.append(children);
-            return anchor;
-        };
-    }
-
-    function NodeCloner($element) {
-        this.$element = $element;
-        this.$classes = null;
-        this.$styles = null;
-        this.$attrs = null;
-        this.$ndMethods = null;
-    }
-
-
-    /**
-     * Attaches a template binding to the element by hydrating it with the specified method.
-     *
-     * @param {string} methodName - Name of the hydration method to call
-     * @param {BindingHydrator} bindingHydrator - Template binding with $hydrate method
-     * @returns {HTMLElement} The underlying HTML element
-     * @example
-     * const onClick = $binder.attach((event, data) => console.log(data));
-     * element.nd.attach('onClick', onClick);
-     */
-    NDElement.prototype.attach = function(methodName, bindingHydrator) {
-        if(typeof bindingHydrator === 'function') {
-            const element = this.$element;
-            element.nodeCloner = element.nodeCloner || new NodeCloner(element);
-            element.nodeCloner.attach(methodName, bindingHydrator);
-            return element;
-        }
-        bindingHydrator.$hydrate(this.$element, methodName);
-        return this.$element;
-    };
-
-    NodeCloner.prototype.__$isNodeCloner = true;
-
-    const buildProperties = (cache, properties, data) => {
-        for(const key in properties) {
-            cache[key] = properties[key].apply(null, data);
-        }
-        return cache;
-    };
-
-    NodeCloner.prototype.resolve = function() {
-        if(this.$content) {
-            return;
-        }
-        const steps = [];
-        if(this.$ndMethods) {
-            const methods = Object.keys(this.$ndMethods);
-            if(methods.length === 1) {
-                const methodName = methods[0];
-                const callback = this.$ndMethods[methodName];
-                steps.push((clonedNode, data) => {
-                    clonedNode.nd[methodName](callback.bind(clonedNode, ...data));
-                });
-            } else {
-                steps.push((clonedNode, data) => {
-                    const nd = clonedNode.nd;
-                    for(const methodName in this.$ndMethods) {
-                        nd[methodName](this.$ndMethods[methodName].bind(clonedNode, ...data));
-                    }
-                });
-            }
-        }
-        if(this.$classes) {
-            const cache = {};
-            const keys = Object.keys(this.$classes);
-
-            if(keys.length === 1) {
-                const key = keys[0];
-                const callback = this.$classes[key];
-                steps.push((clonedNode, data) => {
-                    cache[key] = callback.apply(null, data);
-                    ElementCreator.processClassAttribute(clonedNode, cache);
-                });
-            } else {
-                steps.push((clonedNode, data) => {
-                    ElementCreator.processClassAttribute(clonedNode, buildProperties(cache, this.$classes, data));
-                });
-            }
-        }
-        if(this.$styles) {
-            const cache = {};
-            const keys = Object.keys(this.$styles);
-
-            if(keys.length === 1) {
-                const key = keys[0];
-                const callback = this.$styles[key];
-                steps.push((clonedNode, data) => {
-                    cache[key] = callback.apply(null, data);
-                    ElementCreator.processStyleAttribute(clonedNode, cache);
-                });
-            } else {
-                steps.push((clonedNode, data) => {
-                    ElementCreator.processStyleAttribute(clonedNode, buildProperties(cache, this.$styles, data));
-                });
-            }
-        }
-        if(this.$attrs) {
-            const cache = {};
-            const keys = Object.keys(this.$attrs);
-
-            if(keys.length === 1) {
-                const key = keys[0];
-                const callback = this.$attrs[key];
-                steps.push((clonedNode, data) => {
-                    cache[key] = callback.apply(null, data);
-                    ElementCreator.processAttributes(clonedNode, cache);
-                });
-            } else {
-                steps.push((clonedNode, data) => {
-                    ElementCreator.processAttributes(clonedNode, buildProperties(cache, this.$attrs, data));
-                });
-            }
-        }
-
-        const stepsCount = steps.length;
-        const $element = this.$element;
-
-        this.cloneNode = (data) => {
-            const clonedNode = $element.cloneNode(false);
-            for(let i = 0; i < stepsCount; i++) {
-                steps[i](clonedNode, data);
-            }
-            return clonedNode;
-        };
-    };
-
-    NodeCloner.prototype.cloneNode = function(data) {
-        return this.$element.cloneNode(false);
-    };
-
-    NodeCloner.prototype.attach = function(methodName, callback) {
-        this.$ndMethods = this.$ndMethods || {};
-        this.$ndMethods[methodName] = callback;
-        return this;
-    };
-
-    NodeCloner.prototype.text = function(value) {
-        this.$content = value;
-        if(typeof value === 'function') {
-            this.cloneNode = (data) => createTextNode(value.apply(null, data));
-            return this;
-        }
-        this.cloneNode = (data) => createTextNode(data[0][value]);
-        return this;
-    };
-
-    NodeCloner.prototype.attr = function(attrName, value) {
-        if(attrName === 'class') {
-            this.$classes = this.$classes || {};
-            this.$classes[value.property] = value.value;
-            return this;
-        }
-        if(attrName === 'style') {
-            this.$styles = this.$styles || {};
-            this.$styles[value.property] = value.value;
-            return this;
-        }
-        this.$attrs = this.$attrs || {};
-        this.$attrs[attrName] = value.value;
-        return this;
-    };
-
-    const $hydrateFn = function(value, targetType, element, property) {
-        element.nodeCloner = element.nodeCloner || new NodeCloner(element);
-        if(targetType === 'value') {
-            element.nodeCloner.text(value);
-            return;
-        }
-        if(targetType === 'attach') {
-            element.nodeCloner.attach(property, value);
-            return;
-        }
-        element.nodeCloner.attr(targetType, { property, value });
-    };
-
-    function TemplateCloner($fn) {
-        let $node = null;
-
-        const assignClonerToNode = ($node) => {
-            const childNodes = $node.childNodes;
-            let containDynamicNode = !!$node.nodeCloner;
-            const childNodesLength = childNodes.length;
-            for(let i = 0; i < childNodesLength; i++) {
-                const child = childNodes[i];
-                if(child.nodeCloner) {
-                    containDynamicNode = true;
-                }
-                const localContainDynamicNode = assignClonerToNode(child);
-                if(localContainDynamicNode) {
-                    containDynamicNode = true;
-                }
-            }
-
-            if(!containDynamicNode) {
-                $node.dynamicCloneNode = $node.cloneNode.bind($node, true);
-            } else {
-                if($node.nodeCloner) {
-                    $node.nodeCloner.resolve();
-                    $node.dynamicCloneNode = (data) => {
-                        const clonedNode = $node.nodeCloner.cloneNode(data);
-                        for(let i = 0; i < childNodesLength; i++) {
-                            clonedNode.appendChild(childNodes[i].dynamicCloneNode(data));
-                        }
-                        return clonedNode;
-                    };
-                } else {
-                    $node.dynamicCloneNode = (data) => {
-                        const clonedNode = $node.cloneNode();
-                        for(let i = 0; i < childNodesLength; i++) {
-                            clonedNode.appendChild(childNodes[i].dynamicCloneNode(data));
-                        }
-                        return clonedNode;
-                    };
-                }
-            }
-
-            return containDynamicNode;
-        };
-
-        this.clone = (data) => {
-            const binder = createTemplateCloner(this);
-            $node = $fn(binder);
-            if(!$node.nodeCloner) {
-                $node.nodeCloner = new NodeCloner($node);
-            }
-            assignClonerToNode($node);
-            this.clone = $node.dynamicCloneNode;
-            return $node.dynamicCloneNode(data);
-        };
-
-
-        const createBinding = (hydrateFunction, targetType) => {
-            return new TemplateBinding((element, property) => {
-                $hydrateFn(hydrateFunction, targetType, element, property);
-            });
-        };
-
-        this.style = (fn) => {
-            return createBinding(fn, 'style');
-        };
-        this.class = (fn) => {
-            return createBinding(fn, 'class');
-        };
-        this.property = (propertyName) => {
-            return this.value(propertyName);
-        };
-        this.value = (callbackOrProperty) => {
-            return createBinding(callbackOrProperty, 'value');
-        };
-        this.text = this.value;
-        this.attr = (fn) => {
-            return createBinding(fn, 'attributes');
-        };
-        this.attach = (fn) => {
-            return createBinding(fn, 'attach');
-        };
-        this.callback = this.attach;
-    }
-
-
-    const createTemplateCloner = ($binder) => {
-        return new Proxy($binder, {
-            get(target, prop) {
-                if(prop in target) {
-                    return target[prop];
-                }
-                if (typeof prop === 'symbol') return target[prop];
-                return target.value(prop);
-            }
-        });
-    };
-
-    function useCache(fn) {
-        let $cache = null;
-
-        let wrapper = (args) => {
-            $cache = new TemplateCloner(fn);
-
-            const node = $cache.clone(args);
-            wrapper = $cache.clone;
-            return node;
-        };
-
-        if(fn.length < 2) {
-            return (...args) => {
-                return wrapper(args);
-            };
-        }
-        return (_, __, ...args) => {
-            return wrapper([_, __, ...args]);
-        };
-    }
-
-    function SingletonView($viewCreator) {
-        let $cacheNode = null;
-        let $components = null;
-
-        this.render = (data) => {
-            if(!$cacheNode) {
-                $cacheNode = $viewCreator(this);
-            }
-            if(!$components) {
-                return $cacheNode;
-            }
-            for(const index in $components) {
-                const updater = $components[index];
-                updater(...data);
-            }
-            return $cacheNode;
-        };
-
-        this.createSection = (name, fn) => {
-            $components = $components || {};
-            const anchor = Anchor('Component '+name);
-
-            $components[name] = function(...args) {
-                anchor.removeChildren();
-                if(!fn) {
-                    anchor.append(args);
-                    return;
-                }
-                anchor.appendChild(fn(...args));
-            };
-            return anchor;
-        };
-    }
-
-
-    function useSingleton(fn) {
-        let $cache = null;
-
-        return function(...args) {
-            if(!$cache) {
-                $cache = new SingletonView(fn);
-            }
-            return $cache.render(args);
-        };
-    }
-
-    DocumentFragment.prototype.__IS_FRAGMENT = true;
-
-    Function.prototype.args = function(...args) {
-        return exports.withValidation(this, args);
-    };
-
-    Function.prototype.cached = function(...args) {
-        let $cache;
-        let  getCache = () => $cache;
-        return () => {
-            if(!$cache) {
-                $cache = this.apply(this, args);
-                if($cache.cloneNode) {
-                    getCache = () => $cache.cloneNode(true);
-                } else if($cache.$element) {
-                    getCache = () => new NDElement($cache.$element.cloneNode(true));
-                }
-            }
-            return getCache();
-        };
-    };
-
-    Function.prototype.errorBoundary = function(callback) {
-        const handler = (...args)  => {
-            try {
-                return this.apply(this, args);
-            } catch(e) {
-                return callback(e, {caller: handler, args: args });
-            }
-        };
-        return handler;
-    };
-
-    String.prototype.use = function(args) {
-        const value = this;
-
-        return Observable.computed(() => {
-            return value.replace(/\$\{(.*?)}/g, (match, key) => {
-                const data = args[key];
-                if(Validator.isObservable(data)) {
-                    return data.val();
-                }
-                return data;
-            });
-        }, Object.values(args));
-    };
-
-    String.prototype.resolveObservableTemplate = function() {
-        if(!Validator.containsObservableReference(this)) {
-            return this.valueOf();
-        }
-        return this.split(/(\{\{#ObItem::\([0-9]+\)\}\})/g).filter(Boolean).map((value) => {
-            if(!Validator.containsObservableReference(value)) {
-                return value;
-            }
-            const [_, id] = value.match(/\{\{#ObItem::\(([0-9]+)\)\}\}/);
-            return Observable.getById(id);
-        });
-    };
-
-    const cssPropertyAccumulator = function(initialValue = {}) {
-        let data = Validator.isString(initialValue) ? initialValue.split(';').filter(Boolean) : initialValue;
-
-        return {
-            add(key, value) {
-                if(Array.isArray(data)) {
-                    data.push(key+':  '+value);
-                    return;
-                }
-                if(Validator.isObject(key)) {
-                    value = key;
-                    for(const property in value) {
-                        data[property] = value[property];
-                    }
-                    return;
-                }
-                data[key] = value;
-            },
-            value() {
-                if(Array.isArray(data)) {
-                    return data.join(';').concat(';');
-                }
-                return { ...data };
-            },
-        };
-    };
-
-    const classPropertyAccumulator = function(initialValue = []) {
-        let data = Validator.isString(initialValue) ? initialValue.split(" ").filter(Boolean) : initialValue;
-
-        return {
-            add(key, value = true) {
-                if(Validator.isJson(key)) {
-                    for(const property in key) {
-                        if(key[property]) {
-                            data[property] = key[property];
-                        }
-                    }
-                    return;
-                }
-                if(value != null || key.__$Observable) {
-                    if(Array.isArray(data)) {
-                        data = data.reduce((acc, item) => {
-                            acc[item] = true;
-                            return acc;
-                        }, {});
-                    }
-                    if(key.__$Observable) {
-                        const uniqueId = `obs-${Math.random().toString(36).substr(2, 9)}`;
-                        data[uniqueId] = key;
-                    }
-                    else {
-                        data[key] = value;
-                    }
-                    return;
-                }
-                if(Array.isArray(data)) {
-                    data.push(key);
-                    return;
-                }
-                data[key] = value;
-            },
-            value() {
-                if(Array.isArray(data)) {
-                    return data.join(' ');
-                }
-                return { ...data };
-            },
-        };
-    };
-
-    const once$1 = (fn) => {
-        let result = null;
-        return (...args) => {
-            if(result != null) {
-                return result;
-            }
-            result = fn(...args);
-            return result;
-        };
-    };
-
-    const autoOnce = (fn) => {
-        let target = null;
-        return new Proxy({}, {
-            get: (_, key) => {
-                if(target) {
-                    return target[key];
-                }
-                target = fn();
-                return target[key];
-            }
-        });
-    };
-
-    const memoize$1 = (fn) => {
-        const cache = new Map();
-        return (...args) => {
-            const [key, ...rest] = args;
-            const cached = cache.get(key);
-            if(cached) {
-                return cached;
-            }
-            const result = fn(...rest);
-            cache.set(key, result);
-            return result;
-        };
-    };
-
-    const autoMemoize = (fn) => {
-        const cache = new Map();
-        return new Proxy({}, {
-            get: (_, key) => {
-                const cached = cache.get(key);
-                if(cached) {
-                    return cached;
-                }
-
-                if(fn.length > 0) {
-                    return (...args) => {
-                        const result = fn(...args, key);
-                        cache.set(key, result);
-                        return result;
-                    }
-                }
-                const result = fn(key);
-                cache.set(key, result);
-                return result;
-            }
-        });
     };
 
     function toDate(value) {
@@ -4162,7 +1607,7 @@ var NativeDocument = (function (exports) {
             }
         }
 
-        const viewArray = Observable.array();
+        const viewArray = new ObservableArray([]);
 
         const filters = Object.entries(filterCallbacks);
         const updateView = () => {
@@ -4321,45 +1766,6 @@ var NativeDocument = (function (exports) {
         return new ObservableArray(this.resolve());
     };
 
-    /**
-     * Creates an observable array with reactive array methods.
-     * All mutations trigger updates automatically.
-     *
-     * @param {Array} [target=[]] - Initial array value
-     * @param {Object|null} [configs=null] - Configuration options
-     * // @param {boolean} [configs.propagation=true] - Whether to propagate changes to parent observables
-     * // @param {boolean} [configs.deep=false] - Whether to make nested objects observable
-     * @param {boolean} [configs.reset=false] - Whether to store initial value for reset()
-     * @returns {ObservableArray} An observable array with reactive methods
-     * @example
-     * const items = Observable.array([1, 2, 3]);
-     * items.push(4); // Triggers update
-     * items.subscribe((arr) => console.log(arr));
-     */
-    Observable.array = function(target = [], configs = null) {
-        return new ObservableArray(target, configs);
-    };
-
-    /**
-     *
-     * @param {Function} callback
-     * @returns {Function}
-     */
-    Observable.batch = function(callback) {
-        const $observer = Observable(0);
-        const batch = function() {
-            if(Validator.isAsyncFunction(callback)) {
-                return (callback(...arguments)).then(() => {
-                    $observer.trigger();
-                }).catch(error => { throw error; });
-            }
-            callback(...arguments);
-            $observer.trigger();
-        };
-        batch.$observer = $observer;
-        return batch;
-    };
-
     const ObservableObject = function(target, configs) {
         ObservableItem.call(this, target);
         this.$observables = {};
@@ -4400,24 +1806,24 @@ var NativeDocument = (function (exports) {
                 if(configs?.deep !== false) {
                     const mappedItemValue = itemValue.map(item => {
                         if(Validator.isJson(item)) {
-                            return Observable.json(item, configs);
+                            return new ObservableObject(item, configs);
                         }
                         if(Validator.isArray(item)) {
-                            return Observable.array(item, configs);
+                            return new ObservableArray(item, configs);
                         }
-                        return Observable(item, configs);
+                        return new ObservableItem(item, configs);
                     });
-                    this.$observables[key] = Observable.array(mappedItemValue, configs);
+                    this.$observables[key] = new ObservableArray(mappedItemValue, configs);
                     continue;
                 }
-                this.$observables[key] = Observable.array(itemValue, configs);
+                this.$observables[key] = new ObservableArray(itemValue, configs);
                 continue;
             }
             if(Validator.isObservable(itemValue) || Validator.isProxy(itemValue)) {
                 this.$observables[key] = itemValue;
                 continue;
             }
-            this.$observables[key] = (typeof itemValue === 'object') ? Observable.object(itemValue, configs) : Observable(itemValue, configs);
+            this.$observables[key] = (typeof itemValue === 'object') ? new ObservableObject(itemValue, configs) : new ObservableItem(itemValue, configs);
         }
     };
 
@@ -4479,9 +1885,9 @@ var NativeDocument = (function (exports) {
                 if(Validator.isObservable(firstElementFromOriginalValue) || Validator.isProxy(firstElementFromOriginalValue)) {
                     const newValues = newValue.map(item => {
                         if(Validator.isProxy(firstElementFromOriginalValue)) {
-                            return Observable.init(item, configs);
+                            return new ObservableObject(item, configs);
                         }
-                        return Observable(item, configs);
+                        return ObservableItem(item, configs);
                     });
                     targetItem.set(newValues);
                     continue;
@@ -4509,7 +1915,7 @@ var NativeDocument = (function (exports) {
     };
     ObservableObject.prototype.$keys = ObservableObject.prototype.keys;
     ObservableObject.prototype.clone = function() {
-        return Observable.init(this.val(), this.configs);
+        return new ObservableObject(this.val(), this.configs);
     };
     ObservableObject.prototype.$clone = ObservableObject.prototype.clone;
     ObservableObject.prototype.reset = function() {
@@ -4539,99 +1945,7 @@ var NativeDocument = (function (exports) {
 
     ObservableObject.prototype.update = ObservableObject.prototype.set;
 
-    Observable.init = function(initialValue, configs = null) {
-        return new ObservableObject(initialValue, configs)
-    };
-
-    /**
-     *
-     * @param {any[]} data
-     * @return Proxy[]
-     */
-    Observable.arrayOfObject = function(data) {
-        return data.map(item => Observable.object(item));
-    };
-
-    /**
-     * Get the value of an observable or an object of observables.
-     * @param {ObservableItem|Object<ObservableItem>} data
-     * @returns {{}|*|null}
-     */
-    Observable.value = function(data) {
-        if(data?.__$isObservableArray) {
-            const result = [];
-            for(let i = 0, length = data.length; i < length; i++) {
-                const item = data.at(i);
-                result.push(Observable.value(item));
-            }
-            return result;
-        }
-        if(data?.__$Observable) {
-            return data.val();
-        }
-        if(Validator.isProxy(data)) {
-            return data.$value;
-        }
-        return data;
-    };
-
-    ObservableItem.prototype.resolve = function () {
-        return Observable.value(this);
-    };
-
-    Observable.object = Observable.init;
-    Observable.json = Observable.init;
-
-    /**
-     * Creates a computed observable that automatically updates when its dependencies change.
-     * The callback is re-executed whenever any dependency observable changes.
-     *
-     * @param {Function} callback - Function that returns the computed value
-     * @param {Array<ObservableItem|ObservableChecker|ObservableProxy>|Function} [dependencies=[]] - Array of observables to watch, or batch function
-     * @returns {ObservableItem} A new observable that updates automatically
-     * @example
-     * const firstName = Observable('John');
-     * const lastName = Observable('Doe');
-     * const fullName = Observable.computed(
-     *   () => `${firstName.val()} ${lastName.val()}`,
-     *   [firstName, lastName]
-     * );
-     *
-     * // With batch function
-     * const batch = Observable.batch(() => { ...  });
-     * const computed = Observable.computed(() => { ... }, batch);
-    */
-    Observable.computed = function(callback, dependencies = []) {
-        const initialValue = callback();
-        const observable = new ObservableItem(initialValue);
-        const getValues = () => dependencies.map((item) => item.val());
-        const updatedValue = nextTick(() => observable.set(callback(...getValues())));
-        {
-            PluginsManager.emit('CreateObservableComputed', observable, dependencies);
-        }
-
-        if(Validator.isFunction(dependencies)) {
-            if(!Validator.isObservable(dependencies.$observer)) {
-                throw new NativeDocumentError('Observable.computed : dependencies must be valid batch function');
-            }
-            dependencies.$observer.subscribe(updatedValue);
-            return observable;
-        }
-
-        dependencies.forEach(dependency => {
-            if(Validator.isProxy(dependency)) {
-                dependency.$observables.forEach((observable) => {
-                    observable.subscribe(updatedValue);
-                });
-                return;
-            }
-            dependency.subscribe(updatedValue);
-        });
-
-        return observable;
-    };
-
-    const $computed = (fn, dependencies) => Observable.computed(fn, dependencies);
+    const $computed = (fn, dependencies) => ObservableItem.computed(fn, dependencies);
     const $checker = (obs, fn) => obs.transform(fn);
 
     //
@@ -4823,6 +2137,2660 @@ var NativeDocument = (function (exports) {
             return $computed((a, b) => (b === 0 ? 0 : (a / b) * 100), [this, total]);
         }
         return $checker(this, x => (total === 0 ? 0 : (x / total) * 100));
+    };
+
+    /**
+     * Creates an ObservableWhen that tracks whether an observable equals a specific value.
+     *
+     * @param {ObservableItem} observer - The observable to watch
+     * @param {*} value - The value to compare against
+     * @class ObservableWhen
+     */
+    const ObservableWhen = function(observer, value) {
+        this.$target = value;
+        this.$observer = observer;
+    };
+
+    ObservableWhen.prototype.__$Observable = true;
+    ObservableWhen.prototype.__$isObservableWhen = true;
+
+    /**
+     * Subscribes to changes in the match status (true when observable equals target value).
+     *
+     * @param {Function} callback - Function called with boolean indicating if values match
+     * @returns {Function} Unsubscribe function
+     * @example
+     * const status = Observable('idle');
+     * const isLoading = status.when('loading');
+     * isLoading.subscribe(active => console.log('Loading:', active));
+     */
+    ObservableWhen.prototype.subscribe = function(callback) {
+        return this.$observer.on(this.$target, callback);
+    };
+
+    /**
+     * Returns true if the observable's current value equals the target value.
+     *
+     * @returns {boolean} True if observable value matches target value
+     */
+    ObservableWhen.prototype.val = function() {
+        return this.$observer.$currentValue === this.$target;
+    };
+
+    /**
+     * Returns true if the observable's current value equals the target value.
+     * Alias for val().
+     *
+     * @returns {boolean} True if observable value matches target value
+     */
+    ObservableWhen.prototype.isMatch = ObservableWhen.prototype.val;
+
+    /**
+     * Returns true if the observable's current value equals the target value.
+     * Alias for val().
+     *
+     * @returns {boolean} True if observable value matches target value
+     */
+    ObservableWhen.prototype.isActive = ObservableWhen.prototype.val;
+
+    /**
+     *
+     * @param {ObservableItem} $observable
+     * @param {Function} $checker
+     * @class ObservableChecker
+     */
+    function ObservableChecker($observable, $checker) {
+        this.observable = $observable;
+
+        ObservableItem.call(this);
+        {
+            PluginsManager.emit('CreateObservableChecker', this);
+        }
+
+        this.$mutation = $checker;
+
+        $observable.subscribe((newValue) => {
+            this.$updateWithMutation(newValue);
+        });
+
+        this.$updateWithMutation($observable.val());
+    }
+
+    ObservableChecker.prototype = Object.create(ObservableItem.prototype);
+    ObservableChecker.prototype.constructor = ObservableChecker;
+    ObservableChecker.prototype.__$Observable = true;
+    ObservableChecker.prototype.__$isObservableChecker = true;
+
+
+    const ObservablePipe = ObservableChecker;
+    ObservablePipe.prototype.constructor = ObservablePipe;
+
+    ObservableChecker.prototype.$updateWithMutation = function(newValue) {
+        newValue = this.$mutation(newValue);
+        return this.set(newValue);
+    };
+
+    const $parseDateParts = (value, locale) => {
+        const d = new Date(value);
+        return {
+            d,
+            parts: new Intl.DateTimeFormat(locale, {
+                year:   'numeric',
+                month:  'long',
+                day:    '2-digit',
+                hour:   '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+            }).formatToParts(d).reduce((acc, { type, value }) => {
+                acc[type] = value;
+                return acc;
+            }, {})
+        };
+    };
+
+    const $applyDatePattern = (pattern, d, parts) => {
+        const pad = n => String(n).padStart(2, '0');
+        return pattern
+            .replace('YYYY', parts.year)
+            .replace('YY',   parts.year.slice(-2))
+            .replace('MMMM', parts.month)
+            .replace('MMM',  parts.month.slice(0, 3))
+            .replace('MM',   pad(d.getMonth() + 1))
+            .replace('DD',   pad(d.getDate()))
+            .replace('D',    d.getDate())
+            .replace('HH',   parts.hour)
+            .replace('mm',   parts.minute)
+            .replace('ss',   parts.second);
+    };
+
+    const Formatters = {
+        currency: (value, locale, { currency = 'XOF', notation, minimumFractionDigits, maximumFractionDigits } = {}) =>
+            new Intl.NumberFormat(locale, {
+                style: 'currency',
+                currency,
+                notation,
+                minimumFractionDigits,
+                maximumFractionDigits
+            }).format(value),
+
+        number: (value, locale, { notation, minimumFractionDigits, maximumFractionDigits } = {}) =>
+            new Intl.NumberFormat(locale, {
+                notation,
+                minimumFractionDigits,
+                maximumFractionDigits
+            }).format(value),
+
+        percent: (value, locale, { decimals = 1 } = {}) =>
+            new Intl.NumberFormat(locale, {
+                style:                'percent',
+                maximumFractionDigits: decimals
+            }).format(value),
+
+        date: (value, locale, { format, dateStyle = 'long' } = {}) => {
+            if (format) {
+                const { d, parts } = $parseDateParts(value, locale);
+                return $applyDatePattern(format, d, parts);
+            }
+            return new Intl.DateTimeFormat(locale, { dateStyle }).format(new Date(value));
+        },
+
+        time: (value, locale, { format, hour = '2-digit', minute = '2-digit', second } = {}) => {
+            if (format) {
+                const { d, parts } = $parseDateParts(value, locale);
+                return $applyDatePattern(format, d, parts);
+            }
+            return new Intl.DateTimeFormat(locale, { hour, minute, second }).format(new Date(value));
+        },
+
+        datetime: (value, locale, { format, dateStyle = 'long', hour = '2-digit', minute = '2-digit', second } = {}) => {
+            if (format) {
+                const { d, parts } = $parseDateParts(value, locale);
+                return $applyDatePattern(format, d, parts);
+            }
+            return new Intl.DateTimeFormat(locale, { dateStyle, hour, minute, second }).format(new Date(value));
+        },
+
+        relative: (value, locale, { unit = 'day', numeric = 'auto' } = {}) => {
+            const diff = Math.round((value - Date.now()) / (1000 * 60 * 60 * 24));
+            return new Intl.RelativeTimeFormat(locale, { numeric }).format(diff, unit);
+        },
+
+        plural: (value, locale, { singular, plural } = {}) => {
+            const rule = new Intl.PluralRules(locale).select(value);
+            return `${value} ${rule === 'one' ? singular : plural}`;
+        },
+    };
+
+    /**
+     * Creates an ObservableWhen that represents whether the observable equals a specific value.
+     * Returns an object that can be subscribed to and will emit true/false.
+     *
+     * @param {*} value - The value to compare against
+     * @returns {ObservableWhen} An ObservableWhen instance that tracks when the observable equals the value
+     * @example
+     * const status = Observable('idle');
+     * const isLoading = status.when('loading');
+     * isLoading.subscribe(active => console.log('Loading:', active));
+     * status.set('loading'); // Logs: "Loading: true"
+     */
+
+    ObservableItem.prototype.when = function(value) {
+        return new ObservableWhen(this, value);
+    };
+
+
+
+    /**
+     * Create an Observable checker instance
+     * @param callback
+     * @returns {ObservableChecker}
+     */
+    ObservableItem.prototype.check = function(callback) {
+        return new ObservableChecker(this, callback)
+    };
+
+    ObservableItem.prototype.transform = ObservableItem.prototype.check;
+    ObservableItem.prototype.pluck = function(property) {
+        return new ObservableChecker(this, (value) => value[property]);
+    };
+    ObservableItem.prototype.is = function(callbackOrValue) {
+        if(typeof callbackOrValue === 'function') {
+            return new ObservableChecker(this, callbackOrValue);
+        }
+        return new ObservableChecker(this, (value) => value === callbackOrValue);
+    };
+    ObservableItem.prototype.select = ObservableItem.prototype.check;
+
+    /**
+     * Creates a derived observable that formats the current value using Intl.
+     * Automatically reacts to both value changes and locale changes (Store.__nd.locale).
+     *
+     * @param {string | Function} type - Format type or custom formatter function
+     * @param {Object} [options={}] - Options passed to the formatter
+     * @returns {ObservableItem<string>}
+     *
+     * @example
+     * // Currency
+     * price.format('currency')                                      // "15 000 FCFA"
+     * price.format('currency', { currency: 'EUR' })                 // "15 000,00 €"
+     * price.format('currency', { notation: 'compact' })             // "15 K FCFA"
+     *
+     * // Number
+     * count.format('number')                                        // "15 000"
+     *
+     * // Percent
+     * rate.format('percent')                                        // "15,0 %"
+     * rate.format('percent', { decimals: 2 })                       // "15,00 %"
+     *
+     * // Date
+     * date.format('date')                                           // "3 mars 2026"
+     * date.format('date', { dateStyle: 'full' })                    // "mardi 3 mars 2026"
+     * date.format('date', { format: 'DD/MM/YYYY' })                 // "03/03/2026"
+     * date.format('date', { format: 'DD MMM YYYY' })                // "03 mar 2026"
+     * date.format('date', { format: 'DD MMMM YYYY' })               // "03 mars 2026"
+     *
+     * // Time
+     * date.format('time')                                           // "20:30"
+     * date.format('time', { second: '2-digit' })                    // "20:30:00"
+     * date.format('time', { format: 'HH:mm:ss' })                   // "20:30:00"
+     *
+     * // Datetime
+     * date.format('datetime')                                       // "3 mars 2026, 20:30"
+     * date.format('datetime', { dateStyle: 'full' })                // "mardi 3 mars 2026, 20:30"
+     * date.format('datetime', { format: 'DD/MM/YYYY HH:mm' })       // "03/03/2026 20:30"
+     *
+     * // Relative
+     * date.format('relative')                                       // "dans 11 jours"
+     * date.format('relative', { unit: 'month' })                    // "dans 1 mois"
+     *
+     * // Plural
+     * count.format('plural', { singular: 'billet', plural: 'billets' }) // "3 billets"
+     *
+     * // Custom formatter
+     * price.format(value => `${value.toLocaleString()} FCFA`)
+     *
+     * // Reacts to locale changes automatically
+     * Store.setLocale('en-US');
+     */
+    ObservableItem.prototype.format = function(type, options = {}) {
+        const self = this;
+
+        if (typeof type === 'function') {
+            return new ObservableChecker(self, type);
+        }
+
+        {
+            if (!Formatters[type]) {
+                throw new NativeDocumentError(
+                    `Observable.format : unknown type '${type}'. Available : ${Object.keys(Formatters).join(', ')}.`
+                );
+            }
+        }
+
+        const formatter = Formatters[type];
+        const localeObservable = Formatters.locale;
+
+        return ObservableItem.computed(() => formatter(self.val(), localeObservable.val(), options),
+            [self, localeObservable]
+        );
+    };
+
+    /**
+     *
+     * @param {*} value
+     * @param {{ propagation: boolean, reset: boolean} | null} configs
+     * @returns {ObservableItem}
+     * @constructor
+     */
+    function Observable(value, configs = null) {
+        return new ObservableItem(value, configs);
+    }
+
+    const $ = Observable;
+    const obs = Observable;
+
+    /**
+     *
+     * @param {string} propertyName
+     */
+    Observable.useValueProperty = function(propertyName = 'value') {
+        Object.defineProperty(ObservableItem.prototype, propertyName, {
+            get() {
+                return this.$currentValue;
+            },
+            set(value) {
+                this.set(value);
+            },
+            configurable: true,
+        });
+    };
+
+
+    /**
+     *
+     * @param id
+     * @returns {ObservableItem|null}
+     */
+    Observable.getById = function(id) {
+        const item = MemoryManager.getObservableById(parseInt(id));
+        if(!item) {
+            throw new NativeDocumentError('Observable.getById : No observable found with id ' + id);
+        }
+        return item;
+    };
+
+    /**
+     *
+     * @param {ObservableItem} observable
+     */
+    Observable.cleanup = function(observable) {
+        observable.cleanup();
+    };
+
+    /**
+     * Enable auto cleanup of observables.
+     * @param {Boolean} enable
+     * @param {{interval:Boolean, threshold:number}} options
+     */
+    Observable.autoCleanup = function(enable = false, options = {}) {
+        if(!enable) {
+            return;
+        }
+        const { interval = 60000, threshold = 100 } = options;
+
+        window.addEventListener('beforeunload', () => {
+            MemoryManager.cleanup();
+        });
+
+        setInterval(() => MemoryManager.cleanObservables(threshold), interval);
+    };
+
+
+    /**
+     * Creates an observable array with reactive array methods.
+     * All mutations trigger updates automatically.
+     *
+     * @param {Array} [target=[]] - Initial array value
+     * @param {Object|null} [configs=null] - Configuration options
+     * // @param {boolean} [configs.propagation=true] - Whether to propagate changes to parent observables
+     * // @param {boolean} [configs.deep=false] - Whether to make nested objects observable
+     * @param {boolean} [configs.reset=false] - Whether to store initial value for reset()
+     * @returns {ObservableArray} An observable array with reactive methods
+     * @example
+     * const items = Observable.array([1, 2, 3]);
+     * items.push(4); // Triggers update
+     * items.subscribe((arr) => console.log(arr));
+     */
+    Observable.array = function(target = [], configs = null) {
+        return new ObservableArray(target, configs);
+    };
+
+    /**
+     *
+     * @param {Function} callback
+     * @returns {Function}
+     */
+    Observable.batch = function(callback) {
+        const $observer = Observable(0);
+        const batch = function() {
+            if(Validator.isAsyncFunction(callback)) {
+                return (callback(...arguments)).then(() => {
+                    $observer.trigger();
+                }).catch(error => { throw error; });
+            }
+            callback(...arguments);
+            $observer.trigger();
+        };
+        batch.$observer = $observer;
+        return batch;
+    };
+
+
+    /**
+     * Creates a computed observable that automatically updates when its dependencies change.
+     * The callback is re-executed whenever any dependency observable changes.
+     *
+     * @param {Function} callback - Function that returns the computed value
+     * @param {Array<ObservableItem|ObservableChecker|ObservableProxy>|Function} [dependencies=[]] - Array of observables to watch, or batch function
+     * @returns {ObservableItem} A new observable that updates automatically
+     * @example
+     * const firstName = Observable('John');
+     * const lastName = Observable('Doe');
+     * const fullName = Observable.computed(
+     *   () => `${firstName.val()} ${lastName.val()}`,
+     *   [firstName, lastName]
+     * );
+     *
+     * // With batch function
+     * const batch = Observable.batch(() => { ...  });
+     * const computed = Observable.computed(() => { ... }, batch);
+     */
+    Observable.computed = function(callback, dependencies = []) {
+        const initialValue = callback();
+        const observable = new ObservableItem(initialValue);
+        const getValues = () => dependencies.map((item) => item.val());
+        const updatedValue = nextTick(() => observable.set(callback(...getValues())));
+        {
+            PluginsManager.emit('CreateObservableComputed', observable, dependencies);
+        }
+
+        if(Validator.isFunction(dependencies)) {
+            if(!Validator.isObservable(dependencies.$observer)) {
+                throw new NativeDocumentError('Observable.computed : dependencies must be valid batch function');
+            }
+            dependencies.$observer.subscribe(updatedValue);
+            return observable;
+        }
+
+        dependencies.forEach(dependency => {
+            if(Validator.isProxy(dependency)) {
+                dependency.$observables.forEach((observable) => {
+                    observable.subscribe(updatedValue);
+                });
+                return;
+            }
+            dependency.subscribe(updatedValue);
+        });
+
+        return observable;
+    };
+    ObservableItem.computed = Observable.computed;
+
+
+    Observable.init = function(initialValue, configs = null) {
+        return new ObservableObject(initialValue, configs)
+    };
+
+    /**
+     *
+     * @param {any[]} data
+     * @return Proxy[]
+     */
+    Observable.arrayOfObject = function(data) {
+        return data.map(item => Observable.object(item));
+    };
+
+    /**
+     * Get the value of an observable or an object of observables.
+     * @param {ObservableItem|Object<ObservableItem>} data
+     * @returns {{}|*|null}
+     */
+    Observable.value = function(data) {
+        if(data?.__$isObservableArray) {
+            const result = [];
+            for(let i = 0, length = data.length; i < length; i++) {
+                const item = data.at(i);
+                result.push(Observable.value(item));
+            }
+            return result;
+        }
+        if(data?.__$Observable) {
+            return data.val();
+        }
+        if(Validator.isProxy(data)) {
+            return data.$value;
+        }
+        return data;
+    };
+
+    ObservableItem.prototype.resolve = function () {
+        return Observable.value(this);
+    };
+
+    Observable.object = Observable.init;
+    Observable.json = Observable.init;
+
+    /**
+     *
+     * @param {HTMLElement} element
+     * @param {Object} data
+     */
+    const bindClassAttribute = (element, data) => {
+        for(const className in data) {
+            const value = data[className];
+            if(value.__$Observable) {
+                if(value.__$isObservableChecker) {
+                    let lastClass = value.val();
+                    if(typeof lastClass === "string") {
+                        element.classes.toggle(lastClass, true);
+                        value.subscribe((currentValue) => {
+                            element.classes.remove(lastClass);
+                            element.classes.toggle(currentValue, true);
+                            lastClass = currentValue;
+                        });
+                        continue;
+                    }
+                }
+                element.classes.toggle(className, value.val());
+                value.subscribe((shouldAdd) => element.classes.toggle(className, shouldAdd));
+                continue;
+            }
+            if(value.$hydrate) {
+                value.$hydrate(element, className);
+                continue;
+            }
+            element.classes.toggle(className, value);
+        }
+    };
+
+    /**
+     *
+     * @param {HTMLElement} element
+     * @param {Object} data
+     */
+    const bindStyleAttribute = (element, data) => {
+        for(const styleName in data) {
+            const value = data[styleName];
+            const isCustomProperty = styleName.startsWith('--');
+
+            if(value.__$Observable) {
+                if(isCustomProperty) {
+                    element.style.setProperty(styleName, value.val());
+                    value.subscribe((newValue) => {
+                        if(newValue === false) {
+                            element.style.removeProperty(styleName);
+                            return;
+                        }
+                        element.style.setProperty(styleName, newValue);
+                    });
+                } else {
+                    element.style[styleName] = value.val();
+                    value.subscribe((newValue) => {
+                        if(newValue === false) {
+                            element.style.removeProperty(styleName);
+                            return;
+                        }
+                        element.style[styleName] = newValue;
+                    });
+                }
+                continue;
+            }
+
+            if(isCustomProperty) {
+                element.style.setProperty(styleName, value);
+                continue;
+            }
+
+            element.style[styleName] = value;
+        }
+    };
+
+    /**
+     *
+     * @param {HTMLElement} element
+     * @param {string} attributeName
+     * @param {boolean|number|Observable} value
+     */
+    const bindBooleanAttribute = (element, attributeName, value) => {
+        const isObservable = value.__$isObservable;
+        const defaultValue = isObservable? value.val() : value;
+        if(Validator.isBoolean(defaultValue)) {
+            element[attributeName] = defaultValue;
+        }
+        else {
+            element[attributeName] = defaultValue === element.value;
+        }
+        if(isObservable) {
+            if(attributeName === 'checked') {
+                if(typeof defaultValue === 'boolean') {
+                    element.addEventListener('input', () => value.set(element[attributeName]));
+                }
+                else {
+                    element.addEventListener('input', () => value.set(element.value));
+                }
+                value.subscribe((newValue) => element[attributeName] = newValue);
+                return;
+            }
+            value.subscribe((newValue) => element[attributeName] = (newValue === element.value));
+        }
+    };
+
+
+    /**
+     *
+     * @param {HTMLElement} element
+     * @param {string} attributeName
+     * @param {Observable} value
+     */
+    const bindAttributeWithObservable = (element, attributeName, value) => {
+        const applyValue = attributeName === 'value' ? (newValue) => element.value = newValue : (newValue) => element.setAttribute(attributeName, newValue);
+        value.subscribe(applyValue);
+
+        if(attributeName === 'value') {
+            element.value = value.val();
+            element.addEventListener('input', () => value.set(element.value));
+            return;
+        }
+        element.setAttribute(attributeName, value.val());
+    };
+
+    /**
+     *
+     * @param {HTMLElement} element
+     * @param {Object} attributes
+     */
+    const AttributesWrapper = (element, attributes) => {
+
+        {
+            Validator.validateAttributes(attributes);
+        }
+
+        for(const originalAttributeName in attributes) {
+            const attributeName = originalAttributeName.toLowerCase();
+            let value = attributes[originalAttributeName];
+            if(value == null) {
+                continue;
+            }
+            if(value.handleNdAttribute) {
+                value.handleNdAttribute(element, attributeName, value);
+                continue;
+            }
+            if(typeof value ===  'object') {
+                if(attributeName === 'class') {
+                    bindClassAttribute(element, value);
+                    continue;
+                }
+                if(attributeName === 'style') {
+                    bindStyleAttribute(element, value);
+                    continue;
+                }
+            }
+            if(BOOLEAN_ATTRIBUTES.has(attributeName)) {
+                bindBooleanAttribute(element, attributeName, value);
+                continue;
+            }
+
+            element.setAttribute(attributeName, value);
+        }
+        return element;
+    };
+
+    let $textNodeCache = null;
+
+    const ElementCreator = {
+        createTextNode() {
+            if(!$textNodeCache) {
+                $textNodeCache = document.createTextNode('');
+                ElementCreator.createTextNode = () => $textNodeCache.cloneNode();
+            }
+            return $textNodeCache.cloneNode();
+        },
+        /**
+         *
+         * @param {HTMLElement|DocumentFragment} parent
+         * @param {ObservableItem} observable
+         * @returns {Text}
+         */
+        createObservableNode: (parent, observable) => {
+            const text = ElementCreator.createTextNode();
+            observable.subscribe(value => text.nodeValue = value);
+            text.nodeValue = observable.val();
+            parent && parent.appendChild(text);
+            return text;
+        },
+        /**
+         *
+         * @param {HTMLElement|DocumentFragment} parent
+         * @param {{$hydrate: Function}} item
+         * @returns {Text}
+         */
+        createHydratableNode: (parent, item) => {
+            const text = ElementCreator.createTextNode();
+            item.$hydrate(text);
+            return text;
+        },
+
+        /**
+         *
+         * @param {HTMLElement|DocumentFragment} parent
+         * @param {*} value
+         * @returns {Text}
+         */
+        createStaticTextNode: (parent, value) => {
+            let text = ElementCreator.createTextNode();
+            text.nodeValue = value;
+            parent && parent.appendChild(text);
+            return text;
+        },
+        /**
+         *
+         * @param {string} name
+         * @returns {HTMLElement|DocumentFragment}
+         */
+        createElement: (name) => {
+            const node = document.createElement(name);
+            return node.cloneNode();
+        },
+        bindTextNode: (textNode, value) => {
+            if(value?.__$isObservable) {
+                value.subscribe(newValue => textNode.nodeValue = newValue);
+                textNode.nodeValue = value.val();
+                return;
+            }
+            textNode.nodeValue = value;
+        },
+        /**
+         *
+         * @param {*} children
+         * @param {HTMLElement|DocumentFragment} parent
+         */
+        processChildren: (children, parent) => {
+            if(children === null) return;
+            {
+                PluginsManager.emit('BeforeProcessChildren', parent);
+            }
+            let child = ElementCreator.getChild(children);
+            if(child) {
+                parent.appendChild(child);
+            }
+            {
+                PluginsManager.emit('AfterProcessChildren', parent);
+            }
+        },
+        async safeRemove(element) {
+            await element.remove();
+
+        },
+        getChild: (child) => {
+            if(child == null) {
+                return null;
+            }
+            if(child.toNdElement) {
+                do {
+                    child =  child.toNdElement();
+                    if(Validator.isElement(child)) {
+                        return child;
+                    }
+                } while (child.toNdElement);
+            }
+
+            return ElementCreator.createStaticTextNode(null, child);
+        },
+        /**
+         *
+         * @param {HTMLElement} element
+         * @param {Object} attributes
+         */
+        processAttributes: (element, attributes) => {
+            if (attributes) {
+                AttributesWrapper(element, attributes);
+            }
+        },
+        /**
+         *
+         * @param {HTMLElement} element
+         * @param {Object} attributes
+         */
+        processAttributesDirect: AttributesWrapper,
+        processClassAttribute: bindClassAttribute,
+        processStyleAttribute: bindStyleAttribute,
+    };
+
+    function AnchorWithSentinel(name) {
+        const instance = Reflect.construct(DocumentFragment, [], AnchorWithSentinel);
+        const sentinel = document.createComment((name || '') + ' Anchor Sentinel');
+        const anchorStart = document.createComment('Anchor Start : '+name);
+        const anchorEnd = document.createComment('/ Anchor End '+name);
+        const events = {};
+
+        instance.append(anchorStart, sentinel, anchorEnd);
+
+        const observer = new MutationObserver(() => {
+            if (sentinel.parentNode !== instance && !(sentinel.parentNode instanceof DocumentFragment)) {
+                events.connected && events.connected(sentinel.parentNode);
+            }
+        });
+
+        observer.observe(document, { childList: true, subtree: true });
+
+
+        instance.$sentinel = sentinel;
+        instance.$start = anchorStart;
+        instance.$end = anchorEnd;
+        instance.$observer = observer;
+        instance.$events = events;
+
+        return instance;
+    }
+
+    AnchorWithSentinel.prototype = Object.create(DocumentFragment.prototype);
+    AnchorWithSentinel.prototype.constructor = AnchorWithSentinel;
+
+    AnchorWithSentinel.prototype.onConnected = function(callback) {
+        this.$events.connected = callback;
+        return this;
+    };
+
+    AnchorWithSentinel.prototype.onConnectedOnce = function(callback) {
+        this.$events.connected = (parent) => {
+            callback(parent);
+            this.$observer.disconnect();
+            this.$events.connectedOnce = null;
+        };
+    };
+
+    function oneChildAnchorOverwriting(anchor, parent) {
+
+        anchor.remove = () => {
+            anchor.append.apply(anchor, parent.childNodes);
+        };
+        anchor.getParent = () => parent;
+
+        anchor.appendChild = (child) => {
+            child = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+            parent.appendChild(child);
+        };
+
+        anchor.appendChildRaw = parent.appendChild.bind(parent);
+        anchor.append = anchor.appendChild;
+        anchor.appendRaw = anchor.appendChildRaw;
+
+        anchor.insertAtStart = (child) => {
+            child = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+            parent.firstChild ? parent.insertBefore(child, parent.firstChild) : parent.appendChild(child);
+        };
+        anchor.insertAtStartRaw = (child) => {
+            parent.firstChild ? parent.insertBefore(child, parent.firstChild) : parent.appendChild(child);
+        };
+
+        anchor.appendElement = anchor.appendChild;
+
+        anchor.removeChildren = () => {
+            parent.textContent = '';
+        };
+
+        anchor.replaceContent = function(content) {
+            const child = Validator.isElement(content) ? content : ElementCreator.getChild(content);
+            parent.replaceChildren(child);
+        };
+
+        anchor.replaceContentRaw = function(child) {
+            parent.replaceChildren(child);
+        };
+        anchor.setContent = anchor.replaceContent;
+
+        anchor.insertBefore = (child, anchor) => {
+            child = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+            parent.insertBefore(child, anchor);
+        };
+        anchor.insertBeforeRaw = (child, anchor) => {
+            parent.insertBefore(child, anchor);
+        };
+
+        anchor.appendChildBefore = anchor.insertBefore;
+        anchor.appendChildBeforeRaw = anchor.insertBeforeRaw;
+
+        anchor.clear = anchor.remove;
+        anchor.detach = anchor.remove;
+
+        anchor.replaceChildren = function() {
+            parent.replaceChildren(...arguments);
+        };
+
+        anchor.getByIndex = (index) => {
+            return parent.childNodes[index];
+        };
+    }
+
+    function Anchor(name, isUniqueChild = false) {
+        const anchorFragment = new AnchorWithSentinel(name);
+
+        anchorFragment.onConnectedOnce((parent) => {
+            if(isUniqueChild) {
+                oneChildAnchorOverwriting(anchorFragment, parent);
+            }
+        });
+
+        anchorFragment.__Anchor__ = true;
+
+        const anchorStart = anchorFragment.$start;
+        const anchorEnd = anchorFragment.$end;
+
+        anchorFragment.nativeInsertBefore = anchorFragment.insertBefore;
+        anchorFragment.nativeAppendChild = anchorFragment.appendChild;
+        anchorFragment.nativeAppend = anchorFragment.append;
+
+        const isParentUniqueChild = isUniqueChild
+            ? () => true: (parent) => (parent.firstChild === anchorStart && parent.lastChild === anchorEnd);
+
+        const insertBefore = (parent, child, target) => {
+            const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+            insertBeforeRaw(parent, childElement, target);
+        };
+
+        const insertBeforeRaw = (parent, child, target) => {
+            if(parent === anchorFragment) {
+                parent.nativeInsertBefore(child, target);
+                return;
+            }
+            if(isParentUniqueChild(parent) && target === anchorEnd) {
+                parent.append(child,  target);
+                return;
+            }
+            parent.insertBefore(child, target);
+        };
+
+        anchorFragment.appendElement = function(child) {
+            const parentNode = anchorStart.parentNode;
+            if(parentNode === anchorFragment) {
+                parentNode.nativeInsertBefore(child, anchorEnd);
+                return;
+            }
+            parentNode.insertBefore(child, anchorEnd);
+        };
+
+        anchorFragment.appendChild = function(child, before = null) {
+            const parent = anchorEnd.parentNode;
+            if(!parent) {
+                DebugManager.error('Anchor', 'Anchor : parent not found', child);
+                return;
+            }
+            before = before ?? anchorEnd;
+            insertBefore(parent, child, before);
+        };
+
+        anchorFragment.appendChildRaw = function(child, before = null) {
+            const parent = anchorEnd.parentNode;
+            if(!parent) {
+                DebugManager.error('Anchor', 'Anchor : parent not found', child);
+                return;
+            }
+            before = before ?? anchorEnd;
+            insertBeforeRaw(parent, child, before);
+        };
+
+        anchorFragment.getParent = () => anchorEnd.parentNode;
+        anchorFragment.append = anchorFragment.appendChild;
+        anchorFragment.appendRaw = anchorFragment.appendChildRaw;
+
+        anchorFragment.insertAtStart = function(child) {
+            child = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+            anchorFragment.insertAtStartRaw(child);
+        };
+
+        anchorFragment.insertAtStartRaw = function(child) {
+            const parentNode = anchorStart.parentNode;
+            if(parentNode === anchorFragment) {
+                parentNode.nativeInsertBefore(child, anchorStart);
+                return;
+            }
+            parentNode.insertBefore(child, anchorStart);
+        };
+
+        anchorFragment.removeChildren = function() {
+            const parent = anchorEnd.parentNode;
+            if(parent === anchorFragment) {
+                return;
+            }
+            if(isParentUniqueChild(parent)) {
+                parent.replaceChildren(anchorStart, anchorEnd);
+                return;
+            }
+
+            let itemToRemove = anchorStart.nextSibling, tempItem;
+            while(itemToRemove && itemToRemove !== anchorEnd) {
+                tempItem = itemToRemove.nextSibling;
+                itemToRemove.remove();
+                itemToRemove =  tempItem;
+            }
+        };
+
+        anchorFragment.remove = function() {
+            const parent = anchorEnd.parentNode;
+            if(parent === anchorFragment) {
+                return;
+            }
+            if(isParentUniqueChild(parent)) {
+                anchorFragment.nativeAppend.apply(anchorFragment, parent.childNodes);
+                parent.replaceChildren(anchorStart, anchorEnd);
+                return;
+            }
+            let itemToRemove = anchorStart.nextSibling, tempItem;
+            while(itemToRemove && itemToRemove !== anchorEnd) {
+                tempItem = itemToRemove.nextSibling;
+                anchorFragment.nativeAppend(itemToRemove);
+                itemToRemove = tempItem;
+            }
+        };
+
+        anchorFragment.removeWithAnchors = function() {
+            anchorFragment.removeChildren();
+            anchorStart.remove();
+            anchorEnd.remove();
+        };
+        anchorFragment.delete = anchorFragment.removeWithAnchors;
+
+        anchorFragment.replaceContent = function(child) {
+            const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+            anchorFragment.replaceContentRaw(childElement);
+        };
+
+        anchorFragment.replaceContentRaw = function(child) {
+            const parent = anchorEnd.parentNode;
+            if(!parent) {
+                return;
+            }
+            if(isParentUniqueChild(parent)) {
+                parent.replaceChildren(anchorStart, child, anchorEnd);
+                return;
+            }
+            anchorFragment.removeChildren();
+            parent.insertBefore(child, anchorEnd);
+        };
+
+        anchorFragment.setContent = anchorFragment.replaceContent;
+        anchorFragment.setContentRaw = anchorFragment.replaceContentRaw;
+
+        anchorFragment.insertBefore = anchorFragment.appendChild;
+        anchorFragment.insertBeforeRaw = anchorFragment.appendChildRaw;
+
+        anchorFragment.endElement = function() {
+            return anchorEnd;
+        };
+
+        anchorFragment.startElement = function() {
+            return anchorStart;
+        };
+
+        anchorFragment.restore = function() {
+            anchorFragment.appendChild(anchorFragment);
+        };
+
+        anchorFragment.clear = anchorFragment.remove;
+        anchorFragment.detach = anchorFragment.remove;
+
+        anchorFragment.getByIndex = function(index) {
+            let currentNode = anchorStart;
+            for(let i = 0; i <= index; i++) {
+                if(!currentNode.nextSibling) {
+                    return null;
+                }
+                currentNode = currentNode.nextSibling;
+            }
+            return currentNode !== anchorStart ? currentNode : null;
+        };
+
+        return anchorFragment;
+    }
+    /**
+     *
+     * @param {HTMLElement|DocumentFragment|Text|String|Array} children
+     * @param {{ parent?: HTMLElement, name?: String}} configs
+     * @returns {DocumentFragment}
+     */
+    function createPortal(children, { parent, name = 'unnamed' } = {}) {
+        const anchor = Anchor('Portal '+name);
+        anchor.appendChild(ElementCreator.getChild(children));
+
+        (parent || document.body).appendChild(anchor);
+        return anchor;
+    }
+
+    DocumentFragment.prototype.setAttribute = () => {};
+
+    class ArgTypesError extends Error {
+        constructor(message, errors) {
+            super(`${message}\n\n${errors.join("\n")}\n\n`);
+        }
+    }
+
+    exports.withValidation = (fn) => fn;
+    exports.ArgTypes = {};
+
+    /**
+     *
+     * @type {{string: (function(*): {name: *, type: string, validate: function(*): boolean}),
+     *      number: (function(*): {name: *, type: string, validate: function(*): boolean}),
+     *      boolean: (function(*): {name: *, type: string, validate: function(*): boolean}),
+     *      observable: (function(*): {name: *, type: string, validate: function(*): boolean}),
+     *      element: (function(*): {name: *, type: string, validate: function(*): *}),
+     *      function: (function(*): {name: *, type: string, validate: function(*): boolean}),
+     *      object: (function(*): {name: *, type: string, validate: function(*): boolean}),
+     *      objectNotNull: (function(*): {name: *, type: string, validate: function(*): *}),
+     *      children: (function(*): {name: *, type: string, validate: function(*): *}),
+     *      attributes: (function(*): {name: *, type: string, validate: function(*): *}),
+     *      optional: (function(*): *&{optional: boolean}),
+     *      oneOf: (function(*, ...[*]): {name: *, type: string, types: *[],
+     *      validate: function(*): boolean})
+     * }}
+     */
+    {
+        exports.ArgTypes = {
+            string: (name) => ({ name, type: 'string', validate: (v) => Validator.isString(v) }),
+            number: (name) => ({ name, type: 'number', validate: (v) => Validator.isNumber(v) }),
+            boolean: (name) => ({ name, type: 'boolean', validate: (v) => Validator.isBoolean(v) }),
+            observable: (name) => ({ name, type: 'observable', validate: (v) => Validator.isObservable(v) }),
+            element: (name) => ({ name, type: 'element', validate: (v) => Validator.isElement(v) }),
+            function: (name) => ({ name, type: 'function', validate: (v) => Validator.isFunction(v) }),
+            object: (name) => ({ name, type: 'object', validate: (v) => (Validator.isObject(v)) }),
+            objectNotNull: (name) => ({ name, type: 'object', validate: (v) => (Validator.isObject(v) && v !== null) }),
+            children: (name) => ({ name, type: 'children', validate: (v) => Validator.validateChildren(v) }),
+            attributes: (name) => ({ name, type: 'attributes', validate: (v) => Validator.validateAttributes(v) }),
+
+            // Optional arguments
+            optional: (argType) => ({ ...argType, optional: true }),
+
+            // Union types
+            oneOf: (name, ...argTypes) => ({
+                name,
+                type: 'oneOf',
+                types: argTypes,
+                validate: (v) => argTypes.some(type => type.validate(v))
+            })
+        };
+
+
+        /**
+         *
+         * @param {Array} args
+         * @param {Array} argSchema
+         * @param {string} fnName
+         */
+        const validateArgs = (args, argSchema, fnName = 'Function') => {
+            if (!argSchema) return;
+
+            const errors = [];
+
+            // Check the number of arguments
+            const requiredCount = argSchema.filter(arg => !arg.optional).length;
+            if (args.length < requiredCount) {
+                errors.push(`${fnName}: Expected at least ${requiredCount} arguments, got ${args.length}`);
+            }
+
+            // Validate each argument
+            argSchema.forEach((schema, index) => {
+                const position = index + 1;
+                const value = args[index];
+
+                if (value === undefined) {
+                    if (!schema.optional) {
+                        errors.push(`${fnName}: Missing required argument '${schema.name}' at position ${position}`);
+                    }
+                    return;
+                }
+
+                if (!schema.validate(value)) {
+                    const valueTypeOf = value?.constructor?.name || typeof value;
+                    errors.push(`${fnName}: Invalid argument '${schema.name}' at position ${position}, expected ${schema.type}, got ${valueTypeOf}`);
+                }
+            });
+
+            if (errors.length > 0) {
+                throw new ArgTypesError(`Argument validation failed`, errors);
+            }
+        };
+
+
+
+        /**
+         * @param {Function} fn
+         * @param {Array} argSchema
+         * @param {string} fnName
+         * @returns {Function}
+         */
+        exports.withValidation = (fn, argSchema, fnName = 'Function') => {
+            if(!Validator.isArray(argSchema)) {
+                throw new NativeDocumentError('withValidation : argSchema must be an array');
+            }
+            return function(...args) {
+                validateArgs(args, argSchema, fn.name || fnName);
+                return fn.apply(this, args);
+            };
+        };
+    }
+
+    const normalizeComponentArgs = function(props, children = null) {
+        if(props && children) {
+            return { props, children };
+        }
+        if(typeof props !== 'object' || Array.isArray(props) || props === null || props.constructor.name !== 'Object' ||  props.$hydrate) { // IF it's not a JSON
+            return { props: children, children: props }
+        }
+        return { props, children };
+    };
+
+    const DocumentObserver = {
+        mounted: new WeakMap(),
+        beforeUnmount: new WeakMap(),
+        mountedSupposedSize: 0,
+        unmounted: new WeakMap(),
+        unmountedSupposedSize: 0,
+        observer: null,
+        initObserver: () => {
+            if(DocumentObserver.observer) {
+                return;
+            }
+            DocumentObserver.observer = new MutationObserver(DocumentObserver.checkMutation);
+            DocumentObserver.observer.observe(document.body, {
+                childList: true,
+                subtree: true,
+            });
+        },
+
+        executeMountedCallback(node) {
+            const data = DocumentObserver.mounted.get(node);
+            if(!data) {
+                return;
+            }
+            data.inDom = true;
+            if(!data.mounted) {
+                return;
+            }
+            if(Array.isArray(data.mounted)) {
+                for(const cb of data.mounted) {
+                    cb(node);
+                }
+                return;
+            }
+            data.mounted(node);
+        },
+
+        executeUnmountedCallback(node) {
+            const data = DocumentObserver.unmounted.get(node);
+            if(!data) {
+                return;
+            }
+            data.inDom = false;
+            if(!data.unmounted) {
+                return;
+            }
+
+            let shouldRemove = false;
+            if(Array.isArray(data.unmounted)) {
+                for(const cb of data.unmounted) {
+                    if(cb(node) === true) {
+                        shouldRemove = true;
+                    }
+                }
+            } else {
+                shouldRemove = data.unmounted(node) === true;
+            }
+
+            if(shouldRemove) {
+                data.disconnect();
+                node.nd?.remove();
+            }
+        },
+
+        checkMutation: function(mutationsList) {
+            for(const mutation of mutationsList) {
+                if(DocumentObserver.mountedSupposedSize > 0) {
+                    for(const node of mutation.addedNodes) {
+                        DocumentObserver.executeMountedCallback(node);
+                        if(!node.querySelectorAll) {
+                            continue;
+                        }
+                        const children = node.querySelectorAll('[data--nd-mounted]');
+                        for(const child of children) {
+                            DocumentObserver.executeMountedCallback(child);
+                        }
+                    }
+                }
+
+                if (DocumentObserver.unmountedSupposedSize > 0) {
+                    for (const node of mutation.removedNodes) {
+                        DocumentObserver.executeUnmountedCallback(node);
+                        if(!node.querySelectorAll) {
+                            continue;
+                        }
+                        const children = node.querySelectorAll('[data--nd-unmounted]');
+                        for(const child of children) {
+                            DocumentObserver.executeUnmountedCallback(child);
+                        }
+                    }
+                }
+            }
+        },
+
+        /**
+         * @param {HTMLElement} element
+         * @param {boolean} inDom
+         * @returns {{ disconnect: Function, mounted: Function, unmounted: Function, off: Function }}
+         */
+        watch: function(element, inDom = false) {
+            let mountedRegistered   = false;
+            let unmountedRegistered = false;
+
+            DocumentObserver.initObserver();
+
+            let data = {
+                inDom,
+                mounted: null,
+                unmounted: null,
+                disconnect: () => {
+                    if (mountedRegistered) {
+                        DocumentObserver.mounted.delete(element);
+                        DocumentObserver.mountedSupposedSize--;
+                    }
+                    if (unmountedRegistered) {
+                        DocumentObserver.unmounted.delete(element);
+                        DocumentObserver.unmountedSupposedSize--;
+                    }
+                    data = null;
+                }
+            };
+
+            const addListener = (type, callback) => {
+                if (!data[type]) {
+                    data[type] = callback;
+                    return;
+                }
+                if (!Array.isArray(data[type])) {
+                    data[type] = [data[type], callback];
+                    return;
+                }
+                data[type].push(callback);
+            };
+
+            const removeListener = (type, callback) => {
+                if(!data?.[type]) {
+                    return;
+                }
+                if(Array.isArray(data[type])) {
+                    const index = data[type].indexOf(callback);
+                    if(index > -1) {
+                        data[type].splice(index, 1);
+                    }
+                    if(data[type].length === 1) {
+                        data[type] = data[type][0];
+                    }
+                    if(data[type].length === 0) {
+                        data[type] = null;
+                    }
+                    return;
+                }
+                data[type] = null;
+            };
+
+            return {
+                disconnect: () => data?.disconnect(),
+
+                mounted: (callback) => {
+                    addListener('mounted', callback);
+                    DocumentObserver.mounted.set(element, data);
+                    if (!mountedRegistered) {
+                        DocumentObserver.mountedSupposedSize++;
+                        mountedRegistered = true;
+                    }
+                },
+
+                unmounted: (callback) => {
+                    addListener('unmounted', callback);
+                    DocumentObserver.unmounted.set(element, data);
+                    if (!unmountedRegistered) {
+                        DocumentObserver.unmountedSupposedSize++;
+                        unmountedRegistered = true;
+                    }
+                },
+
+                off: (type, callback) => {
+                    removeListener(type, callback);
+                }
+            };
+        }
+    };
+
+    function NDElement(element) {
+        this.$element = element;
+        this.$attachements = null;
+        {
+            PluginsManager.emit('NDElementCreated', element, this);
+        }
+    }
+
+    NDElement.prototype.__$isNDElement = true;
+
+    NDElement.$getChild = (el) => el;
+
+    NDElement.prototype.ghostDom = function(element) {
+        if(!this.$attachements) {
+            this.$attachements = document.createDocumentFragment();
+        }
+        this.$attachements.appendChild(NDElement.$getChild(element));
+        return this;
+    };
+
+    NDElement.prototype.valueOf = function() {
+        return this.$element;
+    };
+
+    NDElement.prototype.ref = function(target, name) {
+        target[name] = this.$element;
+        return this;
+    };
+
+    NDElement.prototype.refSelf = function(target, name) {
+        target[name] = this;
+        // TODO: @DIM to check
+        // target[name] = new NDElement(this.$element);
+        return this;
+    };
+
+    NDElement.prototype.unmountChildren = function() {
+        let element = this.$element;
+        for(let i = 0, length = element.children.length; i < length; i++) {
+            let elementChildren = element.children[i];
+            if(!elementChildren.$ndProx) {
+                elementChildren.nd?.remove();
+            }
+            elementChildren = null;
+        }
+        element = null;
+        return this;
+    };
+
+    NDElement.prototype.remove = function() {
+        let element = this.$element;
+        element.nd.unmountChildren();
+        element.$ndProx = null;
+
+        $lifeCycleObservers.delete(element);
+
+        element = null;
+        return this;
+    };
+
+    const $lifeCycleObservers = new WeakMap();
+    NDElement.prototype.lifecycle = function(states) {
+        const el = this.$element;
+        if (!$lifeCycleObservers.has(el)) {
+            $lifeCycleObservers.set(el, DocumentObserver.watch(el));
+        }
+        const observer = $lifeCycleObservers.get(el);
+
+        if(states.mounted) {
+            this.$element.setAttribute('data--nd-mounted', '1');
+            observer.mounted(states.mounted);
+        }
+        if(states.unmounted) {
+            this.$element.setAttribute('data--nd-unmounted', '1');
+            observer.unmounted(states.unmounted);
+        }
+        return this;
+    };
+
+    NDElement.prototype.mounted = function(callback) {
+        return this.lifecycle({ mounted: callback });
+    };
+
+    NDElement.prototype.unmounted = function(callback) {
+        return this.lifecycle({ unmounted: callback });
+    };
+
+    NDElement.prototype.beforeUnmount = function(id, callback) {
+        const el = this.$element;
+
+        if(!DocumentObserver.beforeUnmount.has(el)) {
+            DocumentObserver.beforeUnmount.set(el, new Map());
+            const originalRemove = el.remove.bind(el);
+
+            let  $isUnmounting = false;
+
+            el.remove = async () => {
+                if($isUnmounting) {
+                    return;
+                }
+                $isUnmounting = true;
+
+                try {
+                    const callbacks = DocumentObserver.beforeUnmount.get(el);
+                    for (const cb of callbacks.values()) {
+                        await cb.call(this, el);
+                    }
+                } finally {
+                    originalRemove();
+                    $isUnmounting = false;
+                }
+            };
+        }
+
+        DocumentObserver.beforeUnmount.get(el).set(id, callback);
+        return this;
+    };
+
+    NDElement.prototype.htmlElement = function() {
+        return this.$element;
+    };
+
+    NDElement.prototype.node = NDElement.prototype.htmlElement;
+
+    NDElement.prototype.shadow = function(mode, style = null) {
+        const $element = this.$element;
+        const children = Array.from($element.childNodes);
+        const shadowRoot = $element.attachShadow({ mode });
+        if(style) {
+            const styleNode = document.createElement("style");
+            styleNode.textContent = style;
+            shadowRoot.appendChild(styleNode);
+        }
+        $element.append = shadowRoot.append.bind(shadowRoot);
+        $element.appendChild = shadowRoot.appendChild.bind(shadowRoot);
+        shadowRoot.append(...children);
+
+        return this;
+    };
+
+    NDElement.prototype.openShadow = function(style = null) {
+        return this.shadow('open', style);
+    };
+
+    NDElement.prototype.closedShadow = function(style = null) {
+        return this.shadow('closed', style);
+    };
+
+    /**
+     * Extends the current NDElement instance with custom methods.
+     * Methods are bound to the instance and available for chaining.
+     *
+     * @param {Object} methods - Object containing method definitions
+     * @returns {this} The NDElement instance with added methods for chaining
+     * @example
+     * element.nd.with({
+     *   highlight() {
+     *     this.$element.style.background = 'yellow';
+     *     return this;
+     *   }
+     * }).highlight().onClick(() => console.log('Clicked'));
+     */
+    NDElement.prototype.with = function(methods) {
+        if (!methods || typeof methods !== 'object') {
+            throw new NativeDocumentError('extend() requires an object of methods');
+        }
+        {
+            if (!this.$localExtensions) {
+                this.$localExtensions = new Map();
+            }
+        }
+
+        for (const name in methods) {
+            const method = methods[name];
+
+            if (typeof method !== 'function') {
+                DebugManager$1.warn(`⚠️ extends(): "${name}" is not a function, skipping`);
+                continue;
+            }
+            {
+                if (this[name] && !this.$localExtensions.has(name)) {
+                    DebugManager$1.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
+                }
+                this.$localExtensions.set(name, method);
+            }
+
+            this[name] = method.bind(this);
+        }
+
+        return this;
+    };
+
+    /**
+     * Extends the NDElement prototype with new methods available to all NDElement instances.
+     * Use this to add global methods to all NDElements.
+     *
+     * @param {Object} methods - Object containing method definitions to add to prototype
+     * @returns {typeof NDElement} The NDElement constructor
+     * @throws {NativeDocumentError} If methods is not an object or contains non-function values
+     * @example
+     * NDElement.extend({
+     *   fadeIn() {
+     *     this.$element.style.opacity = '1';
+     *     return this;
+     *   }
+     * });
+     * // Now all NDElements have .fadeIn() method
+     * Div().nd.fadeIn();
+     */
+    NDElement.extend = function(methods) {
+        if (!methods || typeof methods !== 'object') {
+            throw new NativeDocumentError('NDElement.extend() requires an object of methods');
+        }
+
+        if (Array.isArray(methods)) {
+            throw new NativeDocumentError('NDElement.extend() requires an object, not an array');
+        }
+
+        const protectedMethods = new Set([
+            'constructor', 'valueOf', '$element', '$observer',
+            'ref', 'remove', 'cleanup', 'with', 'extend', 'attach',
+            'lifecycle', 'mounted', 'unmounted', 'unmountChildren'
+        ]);
+
+        for (const name in methods) {
+            if (!Object.hasOwn(methods, name)) {
+                continue;
+            }
+
+            const method = methods[name];
+
+            if (typeof method !== 'function') {
+                DebugManager$1.warn('NDElement.extend', `"${name}" is not a function, skipping`);
+                continue;
+            }
+
+            if (protectedMethods.has(name)) {
+                DebugManager$1.error('NDElement.extend', `Cannot override protected method "${name}"`);
+                throw new NativeDocumentError(`Cannot override protected method "${name}"`);
+            }
+
+            if (NDElement.prototype[name]) {
+                DebugManager$1.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
+            }
+
+            NDElement.prototype[name] = method;
+        }
+        {
+            PluginsManager.emit('NDElementExtended', methods);
+        }
+
+        return NDElement;
+    };
+
+    const EVENTS = [
+      "Click",
+      "DblClick",
+      "MouseDown",
+      "MouseEnter",
+      "MouseLeave",
+      "MouseMove",
+      "MouseOut",
+      "MouseOver",
+      "MouseUp",
+      "Wheel",
+      "KeyDown",
+      "KeyPress",
+      "KeyUp",
+      "Blur",
+      "Change",
+      "Focus",
+      "Input",
+      "Invalid",
+      "Reset",
+      "Search",
+      "Select",
+      "Submit",
+      "Drag",
+      "DragEnd",
+      "DragEnter",
+      "DragLeave",
+      "DragOver",
+      "DragStart",
+      "Drop",
+      "AfterPrint",
+      "BeforePrint",
+      "BeforeUnload",
+      "Error",
+      "HashChange",
+      "Load",
+      "Offline",
+      "Online",
+      "PageHide",
+      "PageShow",
+      "Resize",
+      "Scroll",
+      "Unload",
+      "Abort",
+      "CanPlay",
+      "CanPlayThrough",
+      "DurationChange",
+      "Emptied",
+      "Ended",
+      "LoadedData",
+      "LoadedMetadata",
+      "LoadStart",
+      "Pause",
+      "Play",
+      "Playing",
+      "Progress",
+      "RateChange",
+      "Seeked",
+      "Seeking",
+      "Stalled",
+      "Suspend",
+      "TimeUpdate",
+      "VolumeChange",
+      "Waiting",
+
+      "TouchCancel",
+      "TouchEnd",
+      "TouchMove",
+      "TouchStart",
+      "AnimationEnd",
+      "AnimationIteration",
+      "AnimationStart",
+      "TransitionEnd",
+      "Copy",
+      "Cut",
+      "Paste",
+      "FocusIn",
+      "FocusOut",
+      "ContextMenu"
+    ];
+
+    const EVENTS_WITH_PREVENT = [
+      "Click",
+      "DblClick",
+      "MouseDown",
+      "MouseUp",
+      "Wheel",
+      "KeyDown",
+      "KeyPress",
+      "Invalid",
+      "Reset",
+      "Submit",
+      "DragOver",
+      "Drop",
+      "BeforeUnload",
+      "TouchCancel",
+      "TouchEnd",
+      "TouchMove",
+      "TouchStart",
+      "Copy",
+      "Cut",
+      "Paste",
+      "ContextMenu"
+    ];
+
+    const EVENTS_WITH_STOP =  [
+      "Click",
+      "DblClick",
+      "MouseDown",
+      "MouseMove",
+      "MouseOut",
+      "MouseOver",
+      "MouseUp",
+      "Wheel",
+      "KeyDown",
+      "KeyPress",
+      "KeyUp",
+      "Change",
+      "Input",
+      "Invalid",
+      "Reset",
+      "Search",
+      "Select",
+      "Submit",
+      "Drag",
+      "DragEnd",
+      "DragEnter",
+      "DragLeave",
+      "DragOver",
+      "DragStart",
+      "Drop",
+      "BeforeUnload",
+      "HashChange",
+      "TouchCancel",
+      "TouchEnd",
+      "TouchMove",
+      "TouchStart",
+      "AnimationEnd",
+      "AnimationIteration",
+      "AnimationStart",
+      "TransitionEnd",
+      "Copy",
+      "Cut",
+      "Paste",
+      "FocusIn",
+      "FocusOut",
+      "ContextMenu"
+    ];
+
+    const property = {
+        configurable: true,
+        get() {
+            return new NDElement(this);
+        }
+    };
+
+    Object.defineProperty(HTMLElement.prototype, 'nd', property);
+
+    Object.defineProperty(DocumentFragment.prototype, 'nd', property);
+
+    Object.defineProperty(NDElement.prototype, 'nd', {
+        configurable: true,
+        get: function() {
+            return this;
+        }
+    });
+
+
+
+    // ----------------------------------------------------------------
+    // Events helpers
+    // ----------------------------------------------------------------
+    EVENTS.forEach(eventSourceName => {
+        const eventName = eventSourceName.toLowerCase();
+        NDElement.prototype['on'+eventSourceName] = function(callback = null) {
+            this.$element.addEventListener(eventName, callback);
+            return this;
+        };
+    });
+
+    EVENTS_WITH_STOP.forEach(eventSourceName => {
+        const eventName = eventSourceName.toLowerCase();
+        NDElement.prototype['onStop'+eventSourceName] = function(callback = null) {
+            _stop(this.$element, eventName, callback);
+            return this;
+        };
+        NDElement.prototype['onPreventStop'+eventSourceName] = function(callback = null) {
+            _preventStop(this.$element, eventName, callback);
+            return this;
+        };
+    });
+
+    EVENTS_WITH_PREVENT.forEach(eventSourceName => {
+        const eventName = eventSourceName.toLowerCase();
+        NDElement.prototype['onPrevent'+eventSourceName] = function(callback = null) {
+            _prevent(this.$element, eventName, callback);
+            return this;
+        };
+    });
+
+    NDElement.prototype.on = function(name, callback, options) {
+        this.$element.addEventListener(name.toLowerCase(), callback, options);
+        return this;
+    };
+
+    const _prevent = function(element, eventName, callback) {
+        const handler = (event) => {
+            event.preventDefault();
+            callback && callback.call(element, event);
+        };
+        element.addEventListener(eventName, handler);
+        return this;
+    };
+
+    const _stop = function(element, eventName, callback) {
+        const handler = (event) => {
+            event.stopPropagation();
+            callback && callback.call(element, event);
+        };
+        element.addEventListener(eventName, handler);
+        return this;
+    };
+
+    const _preventStop = function(element, eventName, callback) {
+        const handler = (event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            callback && callback.call(element, event);
+        };
+        element.addEventListener(eventName, handler);
+        return this;
+    };
+
+
+
+    // ----------------------------------------------------------------
+    // Class attributes binder
+    // ----------------------------------------------------------------
+    const classListMethods = {
+        getClasses() {
+            return this.$element.className?.split(' ').filter(Boolean);
+        },
+        add(value) {
+            const classes = this.getClasses();
+            if(classes.indexOf(value) >= 0) {
+                return;
+            }
+            classes.push(value);
+            this.$element.className = classes.join(' ');
+        },
+        remove(value) {
+            const classes = this.getClasses();
+            const index = classes.indexOf(value);
+            if(index < 0) {
+                return;
+            }
+            classes.splice(index, 1);
+            this.$element.className = classes.join(' ');
+        },
+        toggle(value, force = undefined) {
+            const classes = this.getClasses();
+            const index = classes.indexOf(value);
+            if(index >= 0) {
+                if(force === true) {
+                    return;
+                }
+                classes.splice(index, 1);
+            }
+            else {
+                if(force === false) {
+                    return;
+                }
+                classes.push(value);
+            }
+            this.$element.className = classes.join(' ');
+        },
+        contains(value) {
+            return this.getClasses().indexOf(value) >= 0;
+        }
+    };
+
+    Object.defineProperty(HTMLElement.prototype, 'classes', {
+        configurable: true,
+        get() {
+            return {
+                $element: this,
+                ...classListMethods
+            };
+        }
+    });
+
+    DocumentFragment.prototype.__IS_FRAGMENT = true;
+
+    Function.prototype.args = function(...args) {
+        return exports.withValidation(this, args);
+    };
+
+    Function.prototype.errorBoundary = function(callback) {
+        const handler = (...args)  => {
+            try {
+                return this.apply(this, args);
+            } catch(e) {
+                return callback(e, {caller: handler, args: args });
+            }
+        };
+        return handler;
+    };
+
+    function TemplateBinding(hydrate) {
+        this.$hydrate = hydrate;
+    }
+
+    TemplateBinding.prototype.__$isTemplateBinding = true;
+
+    NDElement.$getChild = ElementCreator.getChild;
+
+    String.prototype.toNdElement = function () {
+        return ElementCreator.createStaticTextNode(null, this);
+    };
+
+    Number.prototype.toNdElement = function () {
+        return ElementCreator.createStaticTextNode(null, this.toString());
+    };
+
+    Element.prototype.toNdElement = function () {
+        return this;
+    };
+    Text.prototype.toNdElement = function () {
+        return this;
+    };
+    Comment.prototype.toNdElement = function () {
+        return this;
+    };
+    Document.prototype.toNdElement = function () {
+        return this;
+    };
+    DocumentFragment.prototype.toNdElement = function () {
+        return this;
+    };
+
+    ObservableItem.prototype.toNdElement = function () {
+        return ElementCreator.createObservableNode(null, this);
+    };
+
+    ObservableChecker.prototype.toNdElement = ObservableItem.prototype.toNdElement;
+
+    NDElement.prototype.toNdElement = function () {
+        const element = this.$element ?? this.$build?.() ?? this.build?.() ?? null;
+        if(this.$attachements) {
+            if(!this.$attachements.contains(this.$element)) {
+                this.$attachements.append(this.$element);
+            }
+            return this.$attachements;
+        }
+        return element;
+    };
+
+    Array.prototype.toNdElement = function () {
+        const fragment = document.createDocumentFragment();
+        for(let i = 0, length = this.length; i < length; i++) {
+            const child = ElementCreator.getChild(this[i]);
+            if(child === null) continue;
+            fragment.appendChild(child);
+        }
+        return fragment;
+    };
+
+    Function.prototype.toNdElement = function () {
+        const child = this;
+        {
+            PluginsManager.emit('BeforeProcessComponent', child);
+        }
+        return ElementCreator.getChild(child());
+    };
+
+    TemplateBinding.prototype.toNdElement = function () {
+        return ElementCreator.createHydratableNode(null, this);
+    };
+
+    /**
+     * @param {HTMLElement} el
+     * @param {number} timeout
+     */
+    const waitForVisualEnd = (el, timeout = 1000) => {
+        return new Promise((resolve) => {
+            let isResolved = false;
+
+            const cleanupAndResolve = (e) => {
+                if (e && e.target !== el) return;
+                if (isResolved) return;
+
+                isResolved = true;
+                el.removeEventListener('transitionend', cleanupAndResolve);
+                el.removeEventListener('animationend', cleanupAndResolve);
+                clearTimeout(timer);
+                resolve();
+            };
+
+            el.addEventListener('transitionend', cleanupAndResolve);
+            el.addEventListener('animationend', cleanupAndResolve);
+
+            const timer = setTimeout(cleanupAndResolve, timeout);
+
+            const style = window.getComputedStyle(el);
+            const hasTransition = style.transitionDuration !== '0s';
+            const hasAnimation = style.animationDuration !== '0s';
+
+            if (!hasTransition && !hasAnimation) {
+                cleanupAndResolve();
+            }
+        });
+    };
+
+    NDElement.prototype.transitionOut = function(transitionName) {
+        const exitClass = transitionName + '-exit';
+        const el = this.$element;
+        this.beforeUnmount('transition-exit', async function() {
+            el.classes.add(exitClass);
+            await waitForVisualEnd(el);
+            el.classes.remove(exitClass);
+        });
+        return this;
+    };
+
+    NDElement.prototype.transitionIn = function(transitionName) {
+        const startClass = transitionName + '-enter-from';
+        const endClass = transitionName + '-enter-to';
+
+        const el = this.$element;
+
+        el.classes.add(startClass);
+
+        this.mounted(() => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    el.classes.remove(startClass);
+                    el.classes.add(endClass);
+
+                    waitForVisualEnd(el).then(() => {
+                        el.classes.remove(endClass);
+                    });
+                });
+            });
+        });
+        return this;
+    };
+
+
+    NDElement.prototype.transition = function (transitionName) {
+        this.transitionIn(transitionName);
+        this.transitionOut(transitionName);
+        return this;
+    };
+
+    NDElement.prototype.animate = function(animationName) {
+        const el = this.$element;
+        el.classes.add(animationName);
+
+        waitForVisualEnd(el).then(() => {
+            el.classes.remove(animationName);
+        });
+
+        return this;
+    };
+
+    ObservableItem.prototype.handleNdAttribute = function(element, attributeName) {
+        if(BOOLEAN_ATTRIBUTES.has(attributeName)) {
+            bindBooleanAttribute(element, attributeName, this);
+            return;
+        }
+
+        bindAttributeWithObservable(element, attributeName, this);
+    };
+
+    ObservableChecker.prototype.handleNdAttribute = ObservableItem.prototype.handleNdAttribute;
+
+        TemplateBinding.prototype.handleNdAttribute = function(element, attributeName) {
+        this.$hydrate(element, attributeName);
+    };
+
+    /**
+     *
+     * @param {*} value
+     * @returns {Text}
+     */
+    const createTextNode = (value) => {
+        if(value) {
+            return value.toNdElement();
+        }
+        return ElementCreator.createTextNode();
+    };
+
+
+    const createHtmlElement = (element, _attributes, _children = null) => {
+        let { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
+
+        ElementCreator.processAttributes(element, attributes);
+        ElementCreator.processChildren(children, element);
+        return element;
+    };
+
+    /**
+     *
+     * @param {string} name
+     * @param {?Function=} customWrapper
+     * @returns {Function}
+     */
+    function HtmlElementWrapper(name, customWrapper = null) {
+        if(name) {
+            if(customWrapper) {
+                let node = null;
+                let createElement = (attr, children) => {
+                    node = document.createElement(name);
+                    createElement = (attr, children) => {
+                        return createHtmlElement(customWrapper(node.cloneNode()), attr, children);
+                    };
+                    return createHtmlElement(customWrapper(node.cloneNode()), attr, children);            };
+
+                return (attr, children) => createElement(attr, children)
+            }
+
+            let node = null;
+            let createElement = (attr, children) => {
+                node = document.createElement(name);
+                createElement = (attr, children) => {
+                    return createHtmlElement(node.cloneNode(), attr, children);
+                };
+                return createHtmlElement(node.cloneNode(), attr, children);
+            };
+
+            return (attr, children) => createElement(attr, children)
+        }
+        return (children, name = '') => {
+            const anchor = Anchor(name);
+            anchor.append(children);
+            return anchor;
+        };
+    }
+
+    function NodeCloner($element) {
+        this.$element = $element;
+        this.$classes = null;
+        this.$styles = null;
+        this.$attrs = null;
+        this.$ndMethods = null;
+    }
+
+
+    /**
+     * Attaches a template binding to the element by hydrating it with the specified method.
+     *
+     * @param {string} methodName - Name of the hydration method to call
+     * @param {BindingHydrator} bindingHydrator - Template binding with $hydrate method
+     * @returns {HTMLElement} The underlying HTML element
+     * @example
+     * const onClick = $binder.attach((event, data) => console.log(data));
+     * element.nd.attach('onClick', onClick);
+     */
+    NDElement.prototype.attach = function(methodName, bindingHydrator) {
+        if(typeof bindingHydrator === 'function') {
+            const element = this.$element;
+            element.nodeCloner = element.nodeCloner || new NodeCloner(element);
+            element.nodeCloner.attach(methodName, bindingHydrator);
+            return element;
+        }
+        bindingHydrator.$hydrate(this.$element, methodName);
+        return this.$element;
+    };
+
+    NodeCloner.prototype.__$isNodeCloner = true;
+
+    const buildProperties = (cache, properties, data) => {
+        for(const key in properties) {
+            cache[key] = properties[key].apply(null, data);
+        }
+        return cache;
+    };
+
+    NodeCloner.prototype.resolve = function() {
+        if(this.$content) {
+            return;
+        }
+        const steps = [];
+        if(this.$ndMethods) {
+            const methods = Object.keys(this.$ndMethods);
+            if(methods.length === 1) {
+                const methodName = methods[0];
+                const callback = this.$ndMethods[methodName];
+                steps.push((clonedNode, data) => {
+                    clonedNode.nd[methodName](callback.bind(clonedNode, ...data));
+                });
+            } else {
+                steps.push((clonedNode, data) => {
+                    const nd = clonedNode.nd;
+                    for(const methodName in this.$ndMethods) {
+                        nd[methodName](this.$ndMethods[methodName].bind(clonedNode, ...data));
+                    }
+                });
+            }
+        }
+        if(this.$classes) {
+            const cache = {};
+            const keys = Object.keys(this.$classes);
+
+            if(keys.length === 1) {
+                const key = keys[0];
+                const callback = this.$classes[key];
+                steps.push((clonedNode, data) => {
+                    cache[key] = callback.apply(null, data);
+                    ElementCreator.processClassAttribute(clonedNode, cache);
+                });
+            } else {
+                steps.push((clonedNode, data) => {
+                    ElementCreator.processClassAttribute(clonedNode, buildProperties(cache, this.$classes, data));
+                });
+            }
+        }
+        if(this.$styles) {
+            const cache = {};
+            const keys = Object.keys(this.$styles);
+
+            if(keys.length === 1) {
+                const key = keys[0];
+                const callback = this.$styles[key];
+                steps.push((clonedNode, data) => {
+                    cache[key] = callback.apply(null, data);
+                    ElementCreator.processStyleAttribute(clonedNode, cache);
+                });
+            } else {
+                steps.push((clonedNode, data) => {
+                    ElementCreator.processStyleAttribute(clonedNode, buildProperties(cache, this.$styles, data));
+                });
+            }
+        }
+        if(this.$attrs) {
+            const cache = {};
+            const keys = Object.keys(this.$attrs);
+
+            if(keys.length === 1) {
+                const key = keys[0];
+                const callback = this.$attrs[key];
+                steps.push((clonedNode, data) => {
+                    cache[key] = callback.apply(null, data);
+                    ElementCreator.processAttributes(clonedNode, cache);
+                });
+            } else {
+                steps.push((clonedNode, data) => {
+                    ElementCreator.processAttributes(clonedNode, buildProperties(cache, this.$attrs, data));
+                });
+            }
+        }
+
+        const stepsCount = steps.length;
+        const $element = this.$element;
+
+        this.cloneNode = (data) => {
+            const clonedNode = $element.cloneNode(false);
+            for(let i = 0; i < stepsCount; i++) {
+                steps[i](clonedNode, data);
+            }
+            return clonedNode;
+        };
+    };
+
+    NodeCloner.prototype.cloneNode = function(data) {
+        return this.$element.cloneNode(false);
+    };
+
+    NodeCloner.prototype.attach = function(methodName, callback) {
+        this.$ndMethods = this.$ndMethods || {};
+        this.$ndMethods[methodName] = callback;
+        return this;
+    };
+
+    NodeCloner.prototype.text = function(value) {
+        this.$content = value;
+        if(typeof value === 'function') {
+            this.cloneNode = (data) => createTextNode(value.apply(null, data));
+            return this;
+        }
+        this.cloneNode = (data) => createTextNode(data[0][value]);
+        return this;
+    };
+
+    NodeCloner.prototype.attr = function(attrName, value) {
+        if(attrName === 'class') {
+            this.$classes = this.$classes || {};
+            this.$classes[value.property] = value.value;
+            return this;
+        }
+        if(attrName === 'style') {
+            this.$styles = this.$styles || {};
+            this.$styles[value.property] = value.value;
+            return this;
+        }
+        this.$attrs = this.$attrs || {};
+        this.$attrs[attrName] = value.value;
+        return this;
+    };
+
+    const $hydrateFn = function(value, targetType, element, property) {
+        element.nodeCloner = element.nodeCloner || new NodeCloner(element);
+        if(targetType === 'value') {
+            element.nodeCloner.text(value);
+            return;
+        }
+        if(targetType === 'attach') {
+            element.nodeCloner.attach(property, value);
+            return;
+        }
+        element.nodeCloner.attr(targetType, { property, value });
+    };
+
+    function TemplateCloner($fn) {
+        let $node = null;
+
+        const assignClonerToNode = ($node) => {
+            const childNodes = $node.childNodes;
+            let containDynamicNode = !!$node.nodeCloner;
+            const childNodesLength = childNodes.length;
+            for(let i = 0; i < childNodesLength; i++) {
+                const child = childNodes[i];
+                if(child.nodeCloner) {
+                    containDynamicNode = true;
+                }
+                const localContainDynamicNode = assignClonerToNode(child);
+                if(localContainDynamicNode) {
+                    containDynamicNode = true;
+                }
+            }
+
+            if(!containDynamicNode) {
+                $node.dynamicCloneNode = $node.cloneNode.bind($node, true);
+            } else {
+                if($node.nodeCloner) {
+                    $node.nodeCloner.resolve();
+                    $node.dynamicCloneNode = (data) => {
+                        const clonedNode = $node.nodeCloner.cloneNode(data);
+                        for(let i = 0; i < childNodesLength; i++) {
+                            clonedNode.appendChild(childNodes[i].dynamicCloneNode(data));
+                        }
+                        return clonedNode;
+                    };
+                } else {
+                    $node.dynamicCloneNode = (data) => {
+                        const clonedNode = $node.cloneNode();
+                        for(let i = 0; i < childNodesLength; i++) {
+                            clonedNode.appendChild(childNodes[i].dynamicCloneNode(data));
+                        }
+                        return clonedNode;
+                    };
+                }
+            }
+
+            return containDynamicNode;
+        };
+
+        this.clone = (data) => {
+            const binder = createTemplateCloner(this);
+            $node = $fn(binder);
+            if(!$node.nodeCloner) {
+                $node.nodeCloner = new NodeCloner($node);
+            }
+            assignClonerToNode($node);
+            this.clone = $node.dynamicCloneNode;
+            return $node.dynamicCloneNode(data);
+        };
+
+
+        const createBinding = (hydrateFunction, targetType) => {
+            return new TemplateBinding((element, property) => {
+                $hydrateFn(hydrateFunction, targetType, element, property);
+            });
+        };
+
+        this.style = (fn) => {
+            return createBinding(fn, 'style');
+        };
+        this.class = (fn) => {
+            return createBinding(fn, 'class');
+        };
+        this.property = (propertyName) => {
+            return this.value(propertyName);
+        };
+        this.value = (callbackOrProperty) => {
+            return createBinding(callbackOrProperty, 'value');
+        };
+        this.text = this.value;
+        this.attr = (fn) => {
+            return createBinding(fn, 'attributes');
+        };
+        this.attach = (fn) => {
+            return createBinding(fn, 'attach');
+        };
+        this.callback = this.attach;
+    }
+
+
+    const createTemplateCloner = ($binder) => {
+        return new Proxy($binder, {
+            get(target, prop) {
+                if(prop in target) {
+                    return target[prop];
+                }
+                if (typeof prop === 'symbol') return target[prop];
+                return target.value(prop);
+            }
+        });
+    };
+
+    function useCache(fn) {
+        let $cache = null;
+
+        let wrapper = (args) => {
+            $cache = new TemplateCloner(fn);
+
+            const node = $cache.clone(args);
+            wrapper = $cache.clone;
+            return node;
+        };
+
+        if(fn.length < 2) {
+            return (...args) => {
+                return wrapper(args);
+            };
+        }
+        return (_, __, ...args) => {
+            return wrapper([_, __, ...args]);
+        };
+    }
+
+    function SingletonView($viewCreator) {
+        let $cacheNode = null;
+        let $components = null;
+
+        this.render = (data) => {
+            if(!$cacheNode) {
+                $cacheNode = $viewCreator(this);
+            }
+            if(!$components) {
+                return $cacheNode;
+            }
+            for(const index in $components) {
+                const updater = $components[index];
+                updater(...data);
+            }
+            return $cacheNode;
+        };
+
+        this.createSection = (name, fn) => {
+            $components = $components || {};
+            const anchor = Anchor('Component '+name);
+
+            $components[name] = function(...args) {
+                anchor.removeChildren();
+                if(!fn) {
+                    anchor.append(args);
+                    return;
+                }
+                anchor.appendChild(fn(...args));
+            };
+            return anchor;
+        };
+    }
+
+
+    function useSingleton(fn) {
+        let $cache = null;
+
+        return function(...args) {
+            if(!$cache) {
+                $cache = new SingletonView(fn);
+            }
+            return $cache.render(args);
+        };
+    }
+
+    const cssPropertyAccumulator = function(initialValue = {}) {
+        let data = Validator.isString(initialValue) ? initialValue.split(';').filter(Boolean) : initialValue;
+
+        return {
+            add(key, value) {
+                if(Array.isArray(data)) {
+                    data.push(key+':  '+value);
+                    return;
+                }
+                if(Validator.isObject(key)) {
+                    value = key;
+                    for(const property in value) {
+                        data[property] = value[property];
+                    }
+                    return;
+                }
+                data[key] = value;
+            },
+            value() {
+                if(Array.isArray(data)) {
+                    return data.join(';').concat(';');
+                }
+                return { ...data };
+            },
+        };
+    };
+
+    const classPropertyAccumulator = function(initialValue = []) {
+        let data = Validator.isString(initialValue) ? initialValue.split(" ").filter(Boolean) : initialValue;
+
+        return {
+            add(key, value = true) {
+                if(Validator.isJson(key)) {
+                    for(const property in key) {
+                        if(key[property]) {
+                            data[property] = key[property];
+                        }
+                    }
+                    return;
+                }
+                if(value != null || key.__$Observable) {
+                    if(Array.isArray(data)) {
+                        data = data.reduce((acc, item) => {
+                            acc[item] = true;
+                            return acc;
+                        }, {});
+                    }
+                    if(key.__$Observable) {
+                        const uniqueId = `obs-${Math.random().toString(36).substr(2, 9)}`;
+                        data[uniqueId] = key;
+                    }
+                    else {
+                        data[key] = value;
+                    }
+                    return;
+                }
+                if(Array.isArray(data)) {
+                    data.push(key);
+                    return;
+                }
+                data[key] = value;
+            },
+            value() {
+                if(Array.isArray(data)) {
+                    return data.join(' ');
+                }
+                return { ...data };
+            },
+        };
+    };
+
+    const once$1 = (fn) => {
+        let result = null;
+        return (...args) => {
+            if(result != null) {
+                return result;
+            }
+            result = fn(...args);
+            return result;
+        };
+    };
+
+    const autoOnce = (fn) => {
+        let target = null;
+        return new Proxy({}, {
+            get: (_, key) => {
+                if(target) {
+                    return target[key];
+                }
+                target = fn();
+                return target[key];
+            }
+        });
+    };
+
+    const memoize$1 = (fn) => {
+        const cache = new Map();
+        return (...args) => {
+            const [key, ...rest] = args;
+            const cached = cache.get(key);
+            if(cached) {
+                return cached;
+            }
+            const result = fn(...rest);
+            cache.set(key, result);
+            return result;
+        };
+    };
+
+    const autoMemoize = (fn) => {
+        const cache = new Map();
+        return new Proxy({}, {
+            get: (_, key) => {
+                const cached = cache.get(key);
+                if(cached) {
+                    return cached;
+                }
+
+                if(fn.length > 0) {
+                    return (...args) => {
+                        const result = fn(...args, key);
+                        cache.set(key, result);
+                        return result;
+                    }
+                }
+                const result = fn(key);
+                cache.set(key, result);
+                return result;
+            }
+        });
     };
 
     const StoreFactory = function() {

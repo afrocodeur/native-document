@@ -1,5 +1,5 @@
-import {Div, Input, Span, Img, Button, ShowIf, Switch} from '../../../../../elements';
-import { $ } from '../../../../../index';
+import {Div, Input, Span, Img, Button, Switch} from '../../../../../elements';
+import { $ } from '../../../../core/data/Observable';
 
 import './file-avatar-mode.css';
 

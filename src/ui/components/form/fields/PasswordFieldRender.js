@@ -1,6 +1,6 @@
 import {Span, Button} from '../../../../../elements';
 import FieldRender from './FieldRender';
-import { $ } from '../../../../../index';
+import { $ } from '../../../../core/data/Observable';
 import './password-field.css';
 
 export default function PasswordFieldRender($desc, instance) {

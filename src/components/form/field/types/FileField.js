@@ -1,6 +1,6 @@
 import Field from "../Field";
 import {Validation} from "../../validation/Validation";
-import { $ } from '../../../../../index';
+import { $ } from '../../../../core/data/Observable';
 import FileItemPreview from "./file-field-mode/FileItemPreview";
 
 export default function FileField(name, props = {}) {

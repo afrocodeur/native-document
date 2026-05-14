@@ -1,5 +1,5 @@
 import BaseComponent from "../BaseComponent";
-import { $ } from '../../../index';
+import { $ } from '../../core/data/Observable';
 
 export default function SplitterPanel(content, props = {}) {
     if(!(this instanceof SplitterPanel)) {

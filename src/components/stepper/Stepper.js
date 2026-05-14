@@ -1,6 +1,6 @@
 import BaseComponent from "../BaseComponent";
 import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import {$, Validator} from "../../../index";
+import { $ } from "../../core/data/Observable";
 import DebugManager from "../../core/utils/debug-manager";
 import StepperStep from "./StepperStep";
 

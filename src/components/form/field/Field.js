@@ -1,4 +1,5 @@
-import {Validator, $} from "../../../../index";
+import { $ } from "../../../core/data/Observable";
+import Validator from "../../../core/utils/validator";
 import BaseComponent from "../../BaseComponent";
 import HasEventEmitter from "../../../core/utils/HasEventEmitter";
 import HasValidation from "../../$traits/has-validation/HasValidation";

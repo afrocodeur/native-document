@@ -1,4 +1,5 @@
 import {Div} from "../../../core/elements";
+
 import './position-stack.css';
 
 export default function PositionStackRender(mainClass, $desc, instance) {

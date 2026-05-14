@@ -10,7 +10,7 @@ const PreventProd = replace({
 export default [
     {
         input: {
-            main: 'index.js'
+            main: 'cdn.js'
         },
         output: {
             dir: 'dist',
@@ -28,7 +28,7 @@ export default [
     },
     {
         input: {
-            main: 'index.js'
+            main: 'cdn.js'
         },
         output: {
             dir: 'dist',

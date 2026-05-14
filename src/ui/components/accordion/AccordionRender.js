@@ -1,4 +1,5 @@
 import {Div, ForEachArray} from '../../../core/elements';
+
 import './accordion.css';
 
 export default function AccordionRender($desc, instance) {

@@ -1,6 +1,6 @@
 import {Div, ListItem, Span } from '../../../core/elements';
 import ShortcutManager from '../../../core/utils/shortcut-manager';
-import { $ } from '../../../../index'
+import { $ } from '../../../core/data/Observable'
 import {buildSubmenu, setupInteraction} from "./helpers";
 
 export default function MenuItemRender($desc, instance) {

@@ -1,8 +1,8 @@
-import {Div, Input, Span, ShowIf} from '../../../../../elements';
-import {Dropdown} from '../../../../../components';
+import { Input, Span, ShowIf} from '../../../../../elements';
 import FieldRender from './FieldRender';
-import { $ } from '../../../../../index';
+import { $ } from '../../../../core/data/Observable';
 import {debounce} from "../../../../core/utils/helpers";
+import {Dropdown} from "../../../../components/dropdown";
 
 export default function AutocompleteFieldRender($desc, instance) {
     const $suggestions = $.array([]);

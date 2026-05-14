@@ -1,6 +1,6 @@
 import BaseComponent from "../BaseComponent";
 import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import {Observable} from "../../../index";
+import {Observable} from "../../core/data/Observable";
 
 export default function Toast(content, props = {}) {
     if (!(this instanceof Toast)) {

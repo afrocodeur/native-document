@@ -1,8 +1,14 @@
-import Validator from "../utils/validator";
 import Anchor from "../elements/anchor/anchor";
 import {ElementCreator} from "./ElementCreator";
-import './NdPrototype';
 import {normalizeComponentArgs} from "../utils/args-types";
+import './NdPrototype';
+
+import './NdPrototype';
+import '../../core/utils/prototypes.js';
+import '../wrappers/prototypes/nd-element-extensions';
+import '../wrappers/prototypes/bind-class-extensions';
+import '../wrappers/prototypes/nd-element.transition.extensions';
+import '../wrappers/prototypes/attributes-extensions';
 
 /**
  *

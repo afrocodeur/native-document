@@ -1,6 +1,7 @@
 import {Div, Label, Input, Span, ShowIf, ForEachArray} from '../../../../../elements';
-import './field.css';
 import {buildInputWithSlots} from "../helpers";
+
+import './field.css';
 
 export default function FieldRender($desc, instance, input = null) {
     const props = instance.getEditableProps();

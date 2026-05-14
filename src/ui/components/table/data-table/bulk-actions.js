@@ -1,6 +1,5 @@
-import {Div, Span} from "../../../../../elements";
+import {Div, Span, ShowIf} from "../../../../../elements";
 import {Button} from "../../../../components/button";
-import {ShowIf} from "../../../../core/elements";
 
 export const buildBulkActions = ({bulkCount, bulkButtons}, $desc, instance) => {
     if(!$desc.bulkActions?.length) return null;

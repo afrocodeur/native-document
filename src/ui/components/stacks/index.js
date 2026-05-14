@@ -1,15 +1,5 @@
-import VStackRender from "./v-stack/VStackRender";
-import HStackRender from "./h-stack/HStackRender";
-import AbsoluteStackRender from "./absolute-stack/AbsoluteStackRender";
-import RelativeStackRender from "./relative-stack/RelativeStackRender";
-import FixedStackRender from "./fixed-stack/FixedStackRender";
-
-
-
-export {
-    VStackRender,
-    HStackRender,
-    AbsoluteStackRender,
-    RelativeStackRender,
-    FixedStackRender,
-}
+export { default as VStackRender } from "./v-stack/VStackRender";
+export { default as HStackRender } from "./h-stack/HStackRender";
+export { default as AbsoluteStackRender } from "./absolute-stack/AbsoluteStackRender";
+export { default as RelativeStackRender } from "./relative-stack/RelativeStackRender";
+export { default as FixedStackRender } from "./fixed-stack/FixedStackRender";

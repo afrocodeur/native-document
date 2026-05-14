@@ -4,7 +4,7 @@ import DropdownGroup from "./DropdownGroup";
 import DropdownDivider from "./DropdownDivider";
 import DebugManager from "../../core/utils/debug-manager";
 import HasFullPosition from "../$traits/has-position/HasFullPosition";
-import { $ } from "../../../index";
+import { $ } from "../../core/data/Observable";
 import {normalizeDropdownItem} from "./helpers";
 import {NDElement} from "../../core/wrappers/NDElement";
 

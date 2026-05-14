@@ -1,5 +1,5 @@
 import BaseComponent from "../BaseComponent";
-import { $ } from '../../../index';
+import { $ } from '../../core/data/Observable';
 
 const NO_VALIDATION = () => true;
 

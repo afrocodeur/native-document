@@ -1,4 +1,6 @@
-import {Table, THead, TBody, TRow, THeadCell, TBodyCell, Div, Span, ShowIf} from '../../../../../elements';
+import {Table, THead, TBody, TRow, THeadCell, TBodyCell, Span, ShowIf} from '../../../../core/elements';
+import {classPropertyAccumulator} from "../../../../core/utils/property-accumulator";
+
 import './simple-table.css';
 
 export default function SimpleTableRender($desc, instance) {
@@ -10,7 +12,7 @@ export default function SimpleTableRender($desc, instance) {
     );
 
     return Table(instance.resolveProps(), [
-        buildHead($desc, visibleColumns),
+        $desc.noHeader ? null : buildHead($desc, visibleColumns),
         buildBody($desc, instance, visibleColumns),
     ]);
 }
@@ -75,6 +77,10 @@ const buildBody = ($desc, instance, visibleColumns) => {
 
             return fragment;
         },
+        set: () => {
+            mutations.clear()
+            mutations.push($desc.data.val());
+        },
         push: (args) => {
             tbody.append(mutations.toFragment(args));
         },
@@ -99,18 +105,18 @@ const buildBody = ($desc, instance, visibleColumns) => {
         },
         swap: (args) => {
             const [a, b]  = args;
-            const rows    = [...tbody.children];
-            const elA     = rows[a];
-            const elB     = rows[b];
+            const children = tbody.children;
+            const elA     = children[a];
+            const elB     = children[b];
             if(!elA || !elB) {
                 return;
             }
             const refB    = elB.nextSibling;
+            tbody.insertBefore(elB, elA);
             tbody.insertBefore(elA, refB);
-            tbody.insertBefore(elB, rows[a]);
         },
         clear: () => {
-            tbody.innerHTML = '';
+            tbody.textContent = '';
         },
         merge: (args) => {
             return mutations.push(args);
@@ -151,16 +157,25 @@ const buildRow = ($desc, visibleColumns, row) => {
             ? column.$description.render(value, row)
             : value ?? '';
 
-        const extraProps = $desc.cellProps?.(value, row, column) || {};
-        const cell = TBodyCell({ class: column.$description.align ? `is-${column.$description.align}` : null, ...extraProps,},
+        const extraProps = column.$description.props || $desc.cellProps?.(value, row, column) || {};
+        const classProperty = classPropertyAccumulator(extraProps.class || {});
+        if(column.$description.align) {
+            classProperty.add(`is-${column.$description.align}`)
+        }
+        const cell = TBodyCell({ ...extraProps, class: classProperty.value() },
             content
         );
+        if(column.$description.onClick) {
+            cell.nd.onClick((event) => column.$description.onClick(row, event));
+        }
         cells.push(cell);
     }
 
     const rowExtraProps = $desc.rowProps?.(row) || {};
+    const classProperty = classPropertyAccumulator(rowExtraProps.class || {});
+    classProperty.add({'has-click': !!$desc.onRowClick})
 
-    const tr = TRow({ class: { 'has-click': !!$desc.onRowClick}, ...rowExtraProps,}, cells);
+    const tr = TRow({ ...rowExtraProps, class: classProperty.value()}, cells);
 
     if($desc.onRowClick) {
         tr.nd.onClick(() => $desc.onRowClick(row));

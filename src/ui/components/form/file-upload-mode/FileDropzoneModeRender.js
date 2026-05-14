@@ -1,5 +1,5 @@
-import {Div, Input, Img, Span, ForEachArray, ShowIf} from '../../../../../elements';
-import { $ } from '../../../../../index';
+import {Div, Input, Span, ForEachArray, ShowIf} from '../../../../../elements';
+import { $ } from '../../../../core/data/Observable';
 import {buildProgress, formatSize, getFileThumbnail} from '../helpers';
 
 import './file-dropzone-mode.css';

@@ -1,5 +1,4 @@
 import {Div, Span, ForEachArray, ShowIf, Switch} from '../../../core/elements';
-import {MenuDivider} from "../../../components/menu";
 
 export default function MenuGroupRender($desc, instance) {
     if($desc.render) {

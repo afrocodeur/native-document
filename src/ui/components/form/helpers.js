@@ -1,5 +1,4 @@
 import {ForEachArray, ShowIf, Div, Span, Img} from "../../../../elements";
-import {clear} from "@babel/traverse/lib/cache";
 
 export const buildErrors = ($desc) => {
     return ShowIf($desc.showErrors, () =>

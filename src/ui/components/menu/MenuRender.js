@@ -1,4 +1,5 @@
 import {Nav, ForEachArray} from '../../../core/elements';
+
 import './menu.css';
 
 export default function MenuRender($desc, instance) {

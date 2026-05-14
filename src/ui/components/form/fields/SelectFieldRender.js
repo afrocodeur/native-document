@@ -1,6 +1,6 @@
 import {Div, Label, Select, Option, Span, ForEachArray, ShowIf} from '../../../../../elements';
-import { $ } from '../../../../../index';
-import {Dropdown} from '../../../../../components';
+import { $ } from '../../../../core/data/Observable';
+import {Dropdown} from '../../../../components/dropdown';
 import {buildErrors} from '../helpers';
 import DebugManager from "../../../../core/utils/debug-manager";
 

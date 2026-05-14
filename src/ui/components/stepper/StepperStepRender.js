@@ -1,5 +1,5 @@
 import {Div, Span} from '../../../core/elements';
-import { Observable } from "../../../../index";
+import { Observable } from "../../../core/data/Observable";
 
 export default function StepperStepRender($desc, instance) {
     if($desc.render) {

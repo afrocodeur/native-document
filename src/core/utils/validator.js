@@ -1,7 +1,5 @@
 import DebugManager from "./debug-manager";
 import NativeDocumentError from "../errors/NativeDocumentError";
-import ObservableChecker from "../data/ObservableChecker";
-import {NDElement} from "../wrappers/NDElement";
 
 const COMMON_NODE_TYPES = {
     ELEMENT: 1,
@@ -40,7 +38,7 @@ const Validator = {
         return value?.__Anchor__
     },
     isObservableChecker(value) {
-        return value?.__$isObservableChecker || value instanceof ObservableChecker;
+        return value?.__$isObservableChecker;
     },
     isArray(value) {
         return Array.isArray(value);
@@ -81,12 +79,12 @@ const Validator = {
     isValidChild(child) {
         return child === null ||
             this.isElement(child) ||
-            this.isObservable(child) ||
-            this.isNDElement(child) ||
+            child.__$Observable ||
+            child?.__$isNDElement ||
             ['string', 'number', 'boolean'].includes(typeof child);
     },
     isNDElement(child) {
-        return child?.__$isNDElement || child instanceof NDElement;
+        return child?.__$isNDElement;
     },
     isValidChildren(children) {
         if (!Array.isArray(children)) {

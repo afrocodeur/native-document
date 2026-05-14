@@ -1,7 +1,6 @@
 import ObservableItem from "../ObservableItem";
-import { Observable } from "../Observable";
 
-const $computed = (fn, dependencies) => Observable.computed(fn, dependencies);
+const $computed = (fn, dependencies) => ObservableItem.computed(fn, dependencies);
 const $checker = (obs, fn) => obs.transform(fn);
 
 //

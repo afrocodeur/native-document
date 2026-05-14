@@ -17,8 +17,10 @@ export default function SimpleTable(props = {}) {
         empty:       null,
         onRowClick:  null,
         rowProps:    null,
+        noHeader:    null,
         cellProps:   null,
         headerProps: null,
+        props
     };
 }
 
@@ -59,6 +61,11 @@ SimpleTable.prototype.data = function(data) {
 
 SimpleTable.prototype.empty = function(content) {
     this.$description.empty = content;
+    return this;
+};
+
+SimpleTable.prototype.noHeader = function() {
+    this.$description.noHeader = true;
     return this;
 };
 

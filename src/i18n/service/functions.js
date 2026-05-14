@@ -1,4 +1,4 @@
-import {Observable} from "../../../index";
+import {Observable} from "../../core/data/Observable";
 import Validator from "../../core/utils/validator";
 
 export const getParams = (params) => {

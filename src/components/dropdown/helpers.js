@@ -1,4 +1,5 @@
-import {DropdownItem} from "./index";
+import DropdownItem from "./DropdownItem";
+
 const resolveField = (raw, mapperField, fallbackKeys) => {
     if(!mapperField) {
         for(const key of fallbackKeys) {

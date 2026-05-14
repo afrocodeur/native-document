@@ -1,6 +1,6 @@
-import {Div, ForEachArray, Span} from '../../../core/elements';
-import './pagination.css';
+import {Div, ForEachArray} from '../../../core/elements';
 
+import './pagination.css';
 
 export default function PaginationRender($desc, instance) {
     const props = instance.getEditableProps();

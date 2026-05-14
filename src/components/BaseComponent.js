@@ -1,11 +1,7 @@
-import {classPropertyAccumulator, cssPropertyAccumulator} from "../../utils";
-import {Observable} from "../../index";
-import {ShowIf} from "../core/elements/index";
-import Anchor from "../core/elements/anchor/anchor";
+import {classPropertyAccumulator, cssPropertyAccumulator} from "../core/utils/property-accumulator";
+import {Observable} from "../core/data/Observable";
+import {ShowIf} from "../core/elements/control/show-if";
 import {NDElement} from "../core/wrappers/NDElement";
-
-import './base-component.css';
-
 
 /**
  *

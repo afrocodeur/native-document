@@ -1,4 +1,5 @@
 import {Span} from '../../../core/elements';
+
 import './badge.css';
 
 export default function BadgeRender($desc, instance) {

@@ -1,7 +1,7 @@
 import Menu from "../menu/Menu";
 import BaseComponent from "../BaseComponent";
 import {NDElement} from "../../core/wrappers/NDElement";
-import { $ } from '../../../index';
+import { $ } from '../../core/data/Observable';
 
 export default function ContextMenu(props = {}) {
     if(!(this instanceof ContextMenu)) {

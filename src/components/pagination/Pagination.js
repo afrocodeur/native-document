@@ -1,5 +1,5 @@
 import BaseComponent from "../BaseComponent";
-import { $ } from "../../../index";
+import { $ } from "../../core/data/Observable";
 import HasEventEmitter from "../../core/utils/HasEventEmitter";
 import DebugManager from "../../core/utils/debug-manager";
 

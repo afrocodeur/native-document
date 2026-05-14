@@ -11,6 +11,7 @@ export default function Column(key, props = {}) {
         pinned: null,
         rowspan: null,
         sortable: null,
+        onClick: null,
         props
     };
 }
@@ -35,6 +36,11 @@ Column.prototype.searchable = function() {
 
 Column.prototype.hidden = function() {
     this.$description.visible = false;
+    return this;
+};
+
+Column.prototype.props = function(props = {}) {
+    this.$description.props = props;
     return this;
 };
 
@@ -98,5 +104,10 @@ Column.prototype.render = function(render) {
 
 Column.prototype.value = function(value) {
     this.$description.value = value;
+    return this;
+};
+
+Column.prototype.onClick = function(handler) {
+    this.$description.onClick = handler;
     return this;
 };

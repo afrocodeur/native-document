@@ -1,5 +1,6 @@
-import {Observable} from "../../index";
+import {Observable} from "../../src/core/data/Observable";
 import {Button, Div, ShowIf, Switch} from "../../elements";
+
 import './widget.css';
 
 export default function Widget() {

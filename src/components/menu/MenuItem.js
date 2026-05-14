@@ -3,7 +3,7 @@ import HasItems from "../$traits/has-items/HasItems";
 import MenuDivider from "./MenuDivider";
 import MenuGroup from "./MenuGroup";
 import HasMenuItem from "./HasMenuItem";
-import { $ } from '../../../index';
+import { $ } from '../../core/data/Observable';
 import HasEventEmitter from "../../core/utils/HasEventEmitter";
 
 const EMPTY_PROPS = {}

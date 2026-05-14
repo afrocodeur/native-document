@@ -1,7 +1,7 @@
 import ObservableItem from "./ObservableItem";
 import Validator from "../utils/validator";
 import {nextTick} from "../utils/helpers";
-import {Observable} from "./Observable";
+import ObservableArray from "./ObservableArray";
 
 export const ObservableObject = function(target, configs) {
     ObservableItem.call(this, target);
@@ -43,24 +43,24 @@ ObservableObject.prototype.$load = function(initialValue) {
             if(configs?.deep !== false) {
                 const mappedItemValue = itemValue.map(item => {
                     if(Validator.isJson(item)) {
-                        return Observable.json(item, configs);
+                        return new ObservableObject(item, configs);
                     }
                     if(Validator.isArray(item)) {
-                        return Observable.array(item, configs);
+                        return new ObservableArray(item, configs);
                     }
-                    return Observable(item, configs);
+                    return new ObservableItem(item, configs);
                 });
-                this.$observables[key] = Observable.array(mappedItemValue, configs);
+                this.$observables[key] = new ObservableArray(mappedItemValue, configs);
                 continue;
             }
-            this.$observables[key] = Observable.array(itemValue, configs);
+            this.$observables[key] = new ObservableArray(itemValue, configs);
             continue;
         }
         if(Validator.isObservable(itemValue) || Validator.isProxy(itemValue)) {
             this.$observables[key] = itemValue;
             continue;
         }
-        this.$observables[key] = (typeof itemValue === 'object') ? Observable.object(itemValue, configs) : Observable(itemValue, configs);
+        this.$observables[key] = (typeof itemValue === 'object') ? new ObservableObject(itemValue, configs) : new ObservableItem(itemValue, configs);
     }
 };
 
@@ -122,9 +122,9 @@ ObservableObject.prototype.set = function(newData) {
             if(Validator.isObservable(firstElementFromOriginalValue) || Validator.isProxy(firstElementFromOriginalValue)) {
                 const newValues = newValue.map(item => {
                     if(Validator.isProxy(firstElementFromOriginalValue)) {
-                        return Observable.init(item, configs);
+                        return new ObservableObject(item, configs);
                     }
-                    return Observable(item, configs);
+                    return ObservableItem(item, configs);
                 });
                 targetItem.set(newValues);
                 continue;
@@ -152,7 +152,7 @@ ObservableObject.prototype.keys = function() {
 };
 ObservableObject.prototype.$keys = ObservableObject.prototype.keys;
 ObservableObject.prototype.clone = function() {
-    return Observable.init(this.val(), this.configs);
+    return new ObservableObject(this.val(), this.configs);
 };
 ObservableObject.prototype.$clone = ObservableObject.prototype.clone;
 ObservableObject.prototype.reset = function() {

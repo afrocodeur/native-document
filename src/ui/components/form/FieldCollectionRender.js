@@ -1,5 +1,5 @@
 import {Div, Button, ForEachArray} from '../../../../elements';
-import { $ } from '../../../../index';
+import { $ } from '../../../core/data/Observable';
 
 import './field-collection.css';
 

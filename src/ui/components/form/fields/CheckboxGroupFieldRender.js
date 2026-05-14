@@ -1,4 +1,4 @@
-import {Div, Label, Input, Span, ShowIf, ForEachArray} from '../../../../../elements';
+import {Div, Label, Input, Span, ForEachArray} from '../../../../../elements';
 import {buildErrors} from "../helpers";
 
 export default function CheckboxGroupFieldRender($desc, instance) {

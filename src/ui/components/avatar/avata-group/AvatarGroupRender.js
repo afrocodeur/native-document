@@ -1,5 +1,6 @@
 import {Div, Span} from '../../../../core/elements';
 import Avatar from '../../../../components/avatar/Avatar';
+
 import './avatar-group.css';
 
 const normalize = (item) => {

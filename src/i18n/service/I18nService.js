@@ -1,5 +1,5 @@
 import i18next from "i18next";
-import {Observable} from "../../../index";
+import {Observable} from "../../core/data/Observable";
 import {hasObservableParams, getObservableParams, getParams} from "./functions";
 
 const I18nService = (function () {

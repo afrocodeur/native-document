@@ -1,6 +1,6 @@
 import BaseComponent from "../BaseComponent";
 import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import { Observable } from "../../../index";
+import { Observable } from "../../core/data/Observable";
 import {ElementCreator} from "../../core/wrappers/ElementCreator";
 import {NDElement} from "../../core/wrappers/NDElement";
 import DebugManager from "../../core/utils/debug-manager";

@@ -12,10 +12,10 @@ import {
     THeadCell,
     TRow
 } from "../../../../../elements";
-import { $ } from "../../../../../index";
+import { $ } from "../../../../core/data/Observable";
 
 export const buildTable = ($desc, instance, visibleColumns) => {
-    const thead = buildTHead($desc, instance, visibleColumns);
+    const thead = $desc.noHeader ? null : buildTHead($desc, instance, visibleColumns);
     const tbody = buildTBody($desc, instance, visibleColumns);
 
     return Div({class: 'data-table-wrapper'}, [
@@ -183,19 +183,19 @@ export const buildTBody = ($desc, instance, visibleColumns) => {
             tbody.children[args[0]]?.remove();
         },
         swap: (args) => {
-            const [a, b] = args;
-            const rows   = [...tbody.children];
-            const elA    = rows[a];
-            const elB    = rows[b];
+            const [a, b]  = args;
+            const children = tbody.children;
+            const elA     = children[a];
+            const elB     = children[b];
             if(!elA || !elB) {
                 return;
             }
-            const refB   = elB.nextSibling;
+            const refB    = elB.nextSibling;
+            tbody.insertBefore(elB, elA);
             tbody.insertBefore(elA, refB);
-            tbody.insertBefore(elB, rows[a]);
         },
         clear: () => {
-            tbody.innerHTML = '';
+            tbody.textContent = '';
         },
         merge: (args) => {
             return mutations.push(args);
@@ -313,7 +313,11 @@ export const buildRow = ($desc, instance, visibleColumns, row) => {
             }
         }
 
-        return TBodyCell({ class: classes, }, content)
+        const cell = TBodyCell({ class: classes, }, content);
+        if($descCol.onClick) {
+            cell.nd.onClick((event) => {$descCol.onClick(row, event);});
+        }
+        return cell;
     });
 
     cells.push(dynamicCells);

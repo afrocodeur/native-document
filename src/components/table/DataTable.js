@@ -1,7 +1,7 @@
 import Column from "./Column";
 import ColumnGroup from "./ColumnGroup";
 import BaseComponent from "../BaseComponent";
-import {Observable as $} from "../../../index";
+import {Observable as $} from "../../core/data/Observable";
 import HasEventEmitter from "../../core/utils/HasEventEmitter";
 import DebugManager from "../../core/utils/debug-manager";
 

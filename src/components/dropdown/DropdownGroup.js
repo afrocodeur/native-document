@@ -1,7 +1,7 @@
 import DropdownItem from "./DropdownItem";
 import BaseComponent from "../BaseComponent";
 import DropdownDivider from "./DropdownDivider";
-import { $ } from "../../../index";
+import { $ } from "../../core/data/Observable";
 import {normalizeDropdownItem} from "./helpers";
 
 export default function DropdownGroup(props) {

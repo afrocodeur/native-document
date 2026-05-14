@@ -1,5 +1,6 @@
 import {Div, ForEachArray, Input, Label, Span} from '../../../../../elements';
 import {buildErrors} from '../helpers';
+
 import './range-field.css';
 
 export default function RangeFieldRender($desc, instance) {

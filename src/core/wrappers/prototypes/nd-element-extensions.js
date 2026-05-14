@@ -5,6 +5,9 @@ import {ElementCreator} from "../ElementCreator";
 import PluginsManager from "../../utils/plugins-manager";
 import ObservableChecker from "../../data/ObservableChecker";
 
+
+NDElement.$getChild = ElementCreator.getChild;
+
 String.prototype.toNdElement = function () {
     return ElementCreator.createStaticTextNode(null, this);
 };

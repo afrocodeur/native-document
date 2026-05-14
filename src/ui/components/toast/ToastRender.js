@@ -1,6 +1,7 @@
 import {Div, Span} from '../../../core/elements';
-import {createPortal} from "../../../../elements";
 import Button from '../../../components/button/Button';
+import {createPortal} from "../../../core/elements/anchor/anchor";
+
 import './toast.css';
 
 const $containers = {};

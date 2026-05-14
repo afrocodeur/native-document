@@ -1,5 +1,5 @@
 import BaseComponent from "../BaseComponent";
-import {Validator} from "../../../index";
+import Validator from "../../core/utils/validator";
 
 export default function ListItem(content, config = {}) {
     if(!(this instanceof ListItem)) {

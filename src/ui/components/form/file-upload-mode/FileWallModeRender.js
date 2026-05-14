@@ -1,6 +1,5 @@
-import {Div, Input, Span, Img, ForEachArray} from '../../../../../elements';
+import {Div, Input, Span, ForEachArray} from '../../../../../elements';
 import {getFileThumbnail} from '../helpers';
-import { $ } from '../../../../../index';
 
 import './file-wall-mode.css';
 

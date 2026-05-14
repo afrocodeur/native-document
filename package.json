@@ -1,6 +1,19 @@
 {
   "name": "native-document",
-  "version": "1.0.140",
+  "version": "1.0.158",
+  "sideEffects":  [
+    "index.js",
+    "elements.js",
+    "**/*.css",
+    "**/prototypes",
+    "**/NdPrototype.js",
+    "**/nd-element-extensions.js",
+    "**/nd-element.transition.extensions.js",
+    "**/attributes-extensions.js",
+    "**/bind-class-extensions.js",
+    "**/observable.prototypes.js",
+    "**/observable.is-to.js"
+  ],
   "main": "index.js",
   "type": "module",
   "scripts": {

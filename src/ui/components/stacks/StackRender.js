@@ -2,7 +2,6 @@ import {Div} from "../../../core/elements";
 
 import './stack.css';
 
-
 export default function StackRender(mainClass, $desc, instance) {
     const props = instance.getEditableProps();
     props.class.add('stack '+mainClass);

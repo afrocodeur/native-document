@@ -1,7 +1,6 @@
 import {match} from "../utils/filters/index";
 import Validator from "../utils/validator";
 import ObservableItem from "./ObservableItem.js";
-import {Observable} from "./Observable.js";
 import PluginsManager from "../utils/plugins-manager.js";
 import NativeDocumentError from "../errors/NativeDocumentError.js";
 import {nextTick} from "../utils/helpers";
@@ -281,7 +280,7 @@ ObservableArray.prototype.where = function(predicates) {
         }
     }
 
-    const viewArray = Observable.array();
+    const viewArray = new ObservableArray([]);
 
     const filters = Object.entries(filterCallbacks);
     const updateView = () => {

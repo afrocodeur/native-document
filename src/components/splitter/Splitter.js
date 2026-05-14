@@ -1,6 +1,6 @@
 import BaseComponent from "../BaseComponent";
 import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import {Validator} from "../../../index";
+import Validator from "../../core/utils/validator";
 import SplitterPanel from "./SplitterPanel";
 
 export default function Splitter(props = {}) {

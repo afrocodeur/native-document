@@ -1,9 +1,9 @@
 import {Div, Input, ForEachArray} from '../../../core/elements';
 import PopoverRender from '../popover/PopoverRender';
 import {createFilter} from "../../../core/utils/filters";
+import {normalizeDropdownItem} from "../../../components/dropdown/helpers";
 
 import './dropdown.css';
-import {normalizeDropdownItem} from "../../../components/dropdown/helpers";
 
 export default function DropdownRender($desc, instance) {
     $desc.content = buildDropdownContent($desc, instance);

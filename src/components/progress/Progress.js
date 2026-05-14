@@ -1,6 +1,5 @@
 import BaseComponent from "../BaseComponent";
 import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import {Validator} from "../../../index";
 import DebugManager from "../../core/utils/debug-manager";
 
 export default function Progress(props = {}) {

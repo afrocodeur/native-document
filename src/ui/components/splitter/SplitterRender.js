@@ -1,6 +1,7 @@
 import {Div} from '../../../core/elements';
 import {ElementCreator} from '../../../core/wrappers/ElementCreator';
 import SplitterGutter from '../../../components/splitter/SplitterGutter';
+
 import './splitter.css';
 
 export default function SplitterRender($desc, instance) {

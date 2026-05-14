@@ -1,6 +1,7 @@
 import {debounce} from "../../core/utils/helpers";
 import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import {Validator, Observable as $} from "../../../index";
+import { $ } from "../../core/data/Observable";
+import Validator from "../../core/utils/validator";
 import NativeDocumentError from "../../../src/core/errors/NativeDocumentError";
 import BaseComponent from "../BaseComponent";
 

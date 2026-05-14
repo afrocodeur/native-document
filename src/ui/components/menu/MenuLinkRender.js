@@ -1,7 +1,7 @@
 import {Link, ListItem, Span} from "../../../core/elements";
 import { Link as RouterLink } from '../../../../router';
 import ShortcutManager from "../../../core/utils/shortcut-manager";
-import { $ } from '../../../../index';
+import { $ } from '../../../core/data/Observable';
 import {buildSubmenu, setupInteraction} from "./helpers";
 
 export default function MenuLinkRender($desc, instance) {

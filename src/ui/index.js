@@ -1,82 +1,39 @@
-import SpinnerRender from "./components/spinner/SpinnerRender";
-import AvatarRender from "./components/avatar/avatar/AvatarRender";
-import AvatarGroupRender from "./components/avatar/avata-group/AvatarGroupRender";
-import BadgeRender from "./components/badge/BadgeRender";
-import DividerRender from "./components/divider/DividerRender";
-import SkeletonRender from "./components/skeleton/SkeletonRender";
-import ProgressRender from "./components/progress/ProgressRender";
-import ButtonRender from "./components/button/ButtonRender";
-import AlertRender from "./components/alert/AlertRender";
-import ToastRender from "./components/toast/ToastRender";
-import PopoverRender from "./components/popover/PopoverRender";
-import TooltipRender from "./components/tooltip/TooltipRender";
-import DropdownRender from "./components/dropdown/DropdownRender";
-import ModalRender from "./components/modal/ModalRender";
-import DropdownItemRender from "./components/dropdown/item/DropdownItemRender";
-import DropdownGroupRender from "./components/dropdown/group/DropdownGroupRender";
-import DropdownDividerRender from "./components/dropdown/divider/DropdownDividerRender";
-import BreadcrumbRender from "./components/breadcrumb/BreadcrumbRender";
-import TabsRender from "./components/tabs/TabsRender";
-import PaginationRender from "./components/pagination/PaginationRender";
-import StepperRender from "./components/stepper/StepperRender";
-import StepperStepRender from "./components/stepper/StepperStepRender";
-import MenuRender from "./components/menu/MenuRender";
-import MenuItemRender from "./components/menu/MenuItemRender";
-import MenuGroupRender from "./components/menu/MenuGroupRender";
-import MenuLinkRender from "./components/menu/MenuLinkRender";
-import MenuDividerRender from "./components/menu/MenuDividerRender";
-import ContextMenuRender, { contextMenuHandler} from "./components/contextmenu/ContextMenuRender";
-import SplitterRender from "./components/splitter/SplitterRender";
-import SplitterGutterRender from "./components/splitter/SplitterGutterRender";
-import SplitterPanelRender from "./components/splitter/SplitterPanelRender";
-import AccordionItemRender from "./components/accordion/AccordionItemRender";
-import AccordionRender from "./components/accordion/AccordionRender";
-
-import SimpleTableRender from "./components/table/simple-table/SimpleTableRender";
-import DataTableRender from "./components/table/data-table/DataTableRender";
-import SwitchRender from "./components/switch/SwitchRender";
+export { default as SpinnerRender } from "./components/spinner/SpinnerRender";
+export { default as AvatarRender } from "./components/avatar/avatar/AvatarRender";
+export { default as AvatarGroupRender } from "./components/avatar/avata-group/AvatarGroupRender";
+export { default as BadgeRender } from "./components/badge/BadgeRender";
+export { default as DividerRender } from "./components/divider/DividerRender";
+export { default as SkeletonRender } from "./components/skeleton/SkeletonRender";
+export { default as ProgressRender } from "./components/progress/ProgressRender";
+export { default as ButtonRender } from "./components/button/ButtonRender";
+export { default as AlertRender } from "./components/alert/AlertRender";
+export { default as ToastRender } from "./components/toast/ToastRender";
+export { default as PopoverRender } from "./components/popover/PopoverRender";
+export { default as TooltipRender } from "./components/tooltip/TooltipRender";
+export { default as DropdownRender } from "./components/dropdown/DropdownRender";
+export { default as ModalRender } from "./components/modal/ModalRender";
+export { default as DropdownItemRender } from "./components/dropdown/item/DropdownItemRender";
+export { default as DropdownGroupRender } from "./components/dropdown/group/DropdownGroupRender";
+export { default as DropdownDividerRender } from "./components/dropdown/divider/DropdownDividerRender";
+export { default as BreadcrumbRender } from "./components/breadcrumb/BreadcrumbRender";
+export { default as TabsRender } from "./components/tabs/TabsRender";
+export { default as PaginationRender } from "./components/pagination/PaginationRender";
+export { default as StepperRender } from "./components/stepper/StepperRender";
+export { default as StepperStepRender } from "./components/stepper/StepperStepRender";
+export { default as MenuRender } from "./components/menu/MenuRender";
+export { default as MenuItemRender } from "./components/menu/MenuItemRender";
+export { default as MenuGroupRender } from "./components/menu/MenuGroupRender";
+export { default as MenuLinkRender } from "./components/menu/MenuLinkRender";
+export { default as MenuDividerRender } from "./components/menu/MenuDividerRender";
+export { default as ContextMenuRender, contextMenuHandler } from "./components/contextmenu/ContextMenuRender";
+export { default as SplitterRender } from "./components/splitter/SplitterRender";
+export { default as SplitterGutterRender } from "./components/splitter/SplitterGutterRender";
+export { default as SplitterPanelRender } from "./components/splitter/SplitterPanelRender";
+export { default as AccordionItemRender } from "./components/accordion/AccordionItemRender";
+export { default as AccordionRender } from "./components/accordion/AccordionRender";
+export { default as SimpleTableRender } from "./components/table/simple-table/SimpleTableRender";
+export { default as DataTableRender } from "./components/table/data-table/DataTableRender";
+export { default as SwitchRender } from "./components/switch/SwitchRender";
 
 export * from './components/stacks';
 export * from './components/form';
-
-export {
-    SpinnerRender,
-    AvatarRender,
-    AvatarGroupRender,
-    BadgeRender,
-    DividerRender,
-    SkeletonRender,
-    ProgressRender,
-    ButtonRender,
-    AlertRender,
-    ToastRender,
-    PopoverRender,
-    TooltipRender,
-    DropdownRender,
-    ModalRender,
-    DropdownDividerRender,
-    DropdownItemRender,
-    DropdownGroupRender,
-    BreadcrumbRender,
-    TabsRender,
-    PaginationRender,
-    StepperRender,
-    StepperStepRender,
-    MenuRender,
-    MenuItemRender,
-    MenuLinkRender,
-    MenuDividerRender,
-    MenuGroupRender,
-    ContextMenuRender,
-    contextMenuHandler,
-    SplitterRender,
-    SplitterGutterRender,
-    SplitterPanelRender,
-    AccordionRender,
-    AccordionItemRender,
-
-    SimpleTableRender,
-    DataTableRender,
-    SwitchRender
-
-};

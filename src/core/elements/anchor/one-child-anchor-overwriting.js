@@ -1,4 +1,4 @@
-import {Validator} from "../../../../index";
+import Validator from "../../utils/validator";
 import {ElementCreator} from "../../wrappers/ElementCreator";
 
 

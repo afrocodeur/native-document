@@ -1,6 +1,7 @@
 import {Div, Span, ShowIf, Form} from '../../../../elements';
-import './form-control.css';
 import {Button} from "../../../components/button";
+
+import './form-control.css';
 
 export default function FormControlRender($desc, instance) {
     const props = instance.getEditableProps();

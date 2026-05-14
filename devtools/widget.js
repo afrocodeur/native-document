@@ -1,8 +1,8 @@
 import Widget from './widget/Widget';
-import {PluginsManager} from "../index";
-import { DevToolsPlugin } from "./plugin/dev-tools-plugin";
+import PluginsManager from "../types/plugins-manager";
+// import { DevToolsPlugin } from "./plugin/dev-tools-plugin";
 
-PluginsManager.add(DevToolsPlugin, 'Devtools');
+// PluginsManager.add(DevToolsPlugin, 'Devtools');
 
 const Devtools = (function () {
 

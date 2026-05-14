@@ -1,7 +1,7 @@
 /**
  * Tooltip - Interface
  */
-import {Observable} from "../../../index";
+import {Observable} from "../../core/data/Observable";
 import {NDElement} from "../../core/wrappers/NDElement";
 import BaseComponent from "../BaseComponent";
 import HasEventEmitter from "../../core/utils/HasEventEmitter";

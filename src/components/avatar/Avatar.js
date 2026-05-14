@@ -1,6 +1,4 @@
-import {Validator} from "../../../index";
 import BaseComponent from "../BaseComponent";
-import Button from "../button/Button";
 import DebugManager from "../../core/utils/debug-manager";
 
 /**

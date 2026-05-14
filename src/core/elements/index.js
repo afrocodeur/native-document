@@ -1,4 +1,4 @@
-import HtmlElementWrapper from "../wrappers/HtmlElementWrapper";
+
 
 export * from './control/for-each';
 export * from './control/for-each-array';
@@ -16,13 +16,7 @@ export * from './medias';
 export * from './meta-data';
 export * from './table';
 export * from './svg';
-/**
- * Creates an empty `DocumentFragment` wrapper.
- * Useful for grouping elements without adding a DOM node.
- * @type {function(GlobalAttributes=, NdChild|NdChild[]=): DocumentFragment}
- */
-export const Fragment = HtmlElementWrapper('');
-
+export * from './fragment';
 
 
 

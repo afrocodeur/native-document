@@ -1,5 +1,6 @@
-import {Div, Span, Table, THead, TBody, TRow, THeadCell, TBodyCell, Input, Select, Option, Button} from '../../../../../elements';
+import {Div} from '../../../../../elements';
 import './data-table.css';
+
 import {buildColumnsBtn, buildExportBtn, buildFiltersBtn, buildSearch, buildToolbar} from "./toolbar";
 import {buildBulkActions, buildBulkButtons, buildBulkCount} from "./bulk-actions";
 import {buildTable} from "./tables";
