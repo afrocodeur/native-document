@@ -4291,7 +4291,7 @@ var NativeDocument = (function (exports) {
      * @param {?Function=} customWrapper
      * @returns {Function}
      */
-    function HtmlElementWrapper(name, customWrapper = null) {
+    function  HtmlElementWrapper(name, customWrapper = null) {
         if(name) {
             if(customWrapper) {
                 let node = null;
@@ -6112,7 +6112,7 @@ var NativeDocument = (function (exports) {
      *   multipartFormData: () => HTMLFormElement,
      * }}
      */
-    const Form = HtmlElementWrapper('form', function(el) {
+    const Form = HtmlElementWrapper('form', (el) => {
 
         el.submit = function(action) {
             if(typeof action === 'function') {

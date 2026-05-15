@@ -37,7 +37,7 @@ export const createHtmlElement = (element, _attributes, _children = null) => {
  * @param {?Function=} customWrapper
  * @returns {Function}
  */
-export default function HtmlElementWrapper(name, customWrapper = null) {
+export default function  HtmlElementWrapper(name, customWrapper = null) {
     if(name) {
         if(customWrapper) {
             let node = null;

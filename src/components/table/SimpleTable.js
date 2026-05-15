@@ -1,6 +1,7 @@
 import Column from "./Column";
 import ColumnGroup from "./ColumnGroup";
 import BaseComponent from "../BaseComponent";
+import {call} from "@babel/traverse/lib/path/context";
 
 export default function SimpleTable(props = {}) {
     if(!(this instanceof SimpleTable)) {
@@ -36,9 +37,14 @@ SimpleTable.create = function(props) {
     return new SimpleTable(props);
 };
 
-SimpleTable.prototype.column = function(key, title, callback) {
+SimpleTable.prototype.column = function(key, title, props, callback) {
+    if(typeof props === 'function') {
+        callback = props;
+        props = {};
+    }
     const column = new Column(key);
     column.title(title);
+    column.props(props);
     callback && callback(column);
     this.$description.columns.push(column);
     this.$description.header.push(column);

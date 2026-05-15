@@ -167,6 +167,10 @@ BaseComponent.prototype.resolveProps = function() {
     return props;
 };
 
+BaseComponent.prototype.props = function(props) {
+    this.$description.props = props;
+    return this;
+};
 
 BaseComponent.prototype.style = function(style) {
     const props = this.getEditableProps();

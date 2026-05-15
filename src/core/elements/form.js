@@ -11,7 +11,7 @@ import HtmlElementWrapper from "../wrappers/HtmlElementWrapper";
  *   multipartFormData: () => HTMLFormElement,
  * }}
  */
-export const Form = HtmlElementWrapper('form', function(el) {
+export const Form = HtmlElementWrapper('form', (el) => {
 
     el.submit = function(action) {
         if(typeof action === 'function') {

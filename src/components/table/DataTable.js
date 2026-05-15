@@ -180,9 +180,15 @@ DataTable.prototype.$beforeRender = function() {
 // COLONNES
 // ---------------------------------------------
 
-DataTable.prototype.column = function(key, title, callback) {
+
+DataTable.prototype.column = function(key, title, props, callback) {
+    if(typeof props === 'function') {
+        callback = props;
+        props = {};
+    }
     const column = new Column(key);
     column.title(title);
+    column.props(props)
     callback && callback(column);
     this.$description.columns.push(column);
     this.$description.header.push(column);

@@ -13,6 +13,7 @@ import {
     TRow
 } from "../../../../../elements";
 import { $ } from "../../../../core/data/Observable";
+import {classPropertyAccumulator} from "../../../../core/utils/property-accumulator";
 
 export const buildTable = ($desc, instance, visibleColumns) => {
     const thead = $desc.noHeader ? null : buildTHead($desc, instance, visibleColumns);
@@ -297,23 +298,23 @@ export const buildRow = ($desc, instance, visibleColumns, row) => {
             ? $descCol.render(value, row)
             : value ?? '';
 
-        const classes = {};
+        const classProperty = classPropertyAccumulator($descCol.props?.class || {});
         if($descCol.align) {
             if($descCol.align.__$Observable) {
-                classes['_'] = $descCol.align.transform((v) => `is-align-${v}`);
+                classProperty.add($descCol.align.transform((v) => `is-align-${v}`))
             } else {
-                classes[`is-align-${$descCol.align}`] = true;
+                classProperty.add(`is-align-${$descCol.align}`, true)
             }
         }
         if($descCol.pinned) {
             if($descCol.pinned.__$Observable) {
-                classes['__'] = $descCol.pinned.transform((v) => `is-pinned-${v}`);
+                classProperty.add($descCol.pinned.transform((v) => `is-pinned-${v}`))
             } else {
-                classes[`is-pinned-${$descCol.pinned}`] = true;
+                classProperty.add(`is-pinned-${$descCol.pinned}`, true)
             }
         }
 
-        const cell = TBodyCell({ class: classes, }, content);
+        const cell = TBodyCell({ ...$descCol.props, class: classProperty.value() }, content);
         if($descCol.onClick) {
             cell.nd.onClick((event) => {$descCol.onClick(row, event);});
         }

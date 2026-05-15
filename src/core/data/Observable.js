@@ -9,6 +9,7 @@ import {ObservableObject} from "./ObservableObject";
 
 import "./observable-helpers/observable.is-to";
 import './observable-helpers/observable.prototypes';
+import ObservableResource from "./ObservableResource";
 /**
  *
  * @param {*} value
@@ -140,9 +141,9 @@ Observable.batch = function(callback) {
  * const computed = Observable.computed(() => { ... }, batch);
  */
 Observable.computed = function(callback, dependencies = []) {
-    const initialValue = callback();
-    const observable = new ObservableItem(initialValue);
     const getValues = () => dependencies.map((item) => item.val());
+    const initialValue = callback(...getValues());
+    const observable = new ObservableItem(initialValue);
     const updatedValue = nextTick(() => observable.set(callback(...getValues())));
     if(process.env.NODE_ENV === 'development') {
         PluginsManager.emit('CreateObservableComputed', observable, dependencies);
@@ -213,3 +214,12 @@ ObservableItem.prototype.resolve = function () {
 
 Observable.object = Observable.init;
 Observable.json = Observable.init;
+
+
+Observable.resource = function(fn, deps = [], options = false) {
+    const config = (typeof options === 'boolean')
+        ? { auto: options, debounce: 0, lazy: false }
+        : { auto: false, debounce: 0, lazy: false, ...options };
+
+    return new ObservableResource(fn, deps, config);
+};
