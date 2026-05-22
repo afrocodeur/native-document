@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-// import { parse } from '@babel/parser';
 import MagicString from 'magic-string';
 
 import { fileURLToPath } from 'node:url';

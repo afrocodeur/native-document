@@ -188,7 +188,7 @@ export function ForEachArray(data, callback, configs = {}) {
                 }
             }
             child = null;
-            element.appendElementRaw(fragment);
+            element.appendChildRaw(fragment);
         },
         removeOne: (element, index) => {
             removeCacheItem(element, true);

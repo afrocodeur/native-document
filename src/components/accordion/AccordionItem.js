@@ -44,7 +44,7 @@ AccordionItem.use = function(template) {
  */
 Object.defineProperty(AccordionItem.prototype, 'id', {
     get() {
-        this.$description.id;
+        return this.$description.id;
     }
 });
 
@@ -187,6 +187,7 @@ AccordionItem.prototype.renderHeader = function(renderFn) {
  */
 AccordionItem.prototype.renderContent = function(renderFn) {
     this.$description.renderContent = renderFn;
+    return this;
 };
 
 /**

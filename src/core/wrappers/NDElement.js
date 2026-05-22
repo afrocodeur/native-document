@@ -2,6 +2,11 @@ import DocumentObserver from "./DocumentObserver";
 import PluginsManager from "../utils/plugins-manager";
 import NativeDocumentError from "../errors/NativeDocumentError.js";
 import DebugManager from "../utils/debug-manager.js";
+import attributesWrapper, {
+    bindAttributeWithObservable,
+    bindClassAttribute,
+    bindStyleAttribute
+} from "./AttributesWrapper";
 
 export function NDElement(element) {
     this.$element = element;
@@ -194,6 +199,31 @@ NDElement.prototype.with = function(methods) {
 
     return this;
 };
+
+
+NDElement.prototype.attr = function(name, value) {
+    if(value?.__$Observable) {
+        bindAttributeWithObservable(this.$element, name, value);
+        return this;
+    }
+    this.$element.setAttribute(name, value);
+};
+
+NDElement.prototype.attrs = function(attrs) {
+    attributesWrapper(this.$element, attrs);
+    return this;
+};
+
+NDElement.prototype.class = function(classes) {
+    bindClassAttribute(this.$element, classes);
+    return this;
+};
+
+NDElement.prototype.style = function(style) {
+    bindStyleAttribute(this.$element, style);
+    return this;
+};
+
 
 /**
  * Extends the NDElement prototype with new methods available to all NDElement instances.

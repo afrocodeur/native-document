@@ -32,9 +32,7 @@ export function RouterComponent(router, container) {
     };
 
     const removeLastNodeInserted = () => {
-        if(Validator.isAnchor($lastNodeInserted)) {
-            $lastNodeInserted.remove();
-        }
+        $lastNodeInserted?.remove();
     };
 
     const cleanContainer = () => {

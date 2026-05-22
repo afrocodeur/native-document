@@ -100,7 +100,7 @@ ObservableItem.prototype.isEmpty = function () {
 };
 
 ObservableItem.prototype.isNotEmpty = function () {
-    return $checker(this, x => x == null || x === '' || (Array.isArray(x) && x.length !== 0));
+    return $checker(this, x => x != null && x !== '' && !(Array.isArray(x) && x.length === 0));
 };
 
 ObservableItem.prototype.isIncludes = function (value) {

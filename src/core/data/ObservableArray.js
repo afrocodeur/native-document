@@ -443,4 +443,8 @@ ObservableArray.prototype.clone = function() {
     return new ObservableArray(this.resolve());
 };
 
+ObservableArray.prototype.isNotEmpty = function () {
+    return this.is((x) => x.length > 0);
+};
+
 export default ObservableArray;

@@ -1,6 +1,6 @@
 {
   "name": "native-document",
-  "version": "1.0.160",
+  "version": "1.0.161",
   "sideEffects":  [
     "index.js",
     "elements.js",
