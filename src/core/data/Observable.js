@@ -10,6 +10,7 @@ import {ObservableObject} from "./ObservableObject";
 import "./observable-helpers/observable.is-to";
 import './observable-helpers/observable.prototypes';
 import ObservableResource from "./ObservableResource";
+import {Formatters} from "../utils/formatters";
 /**
  *
  * @param {*} value
@@ -38,6 +39,10 @@ Observable.useValueProperty = function(propertyName = 'value') {
         },
         configurable: true,
     });
+};
+
+Observable.setLocale = function(locale) {
+    Formatters.locale = locale.__$Observable ? locale : Observable(locale);
 };
 
 
