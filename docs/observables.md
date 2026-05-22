@@ -1,162 +1,107 @@
+---
+title: Observables
+description: Reactive state management at the core of NativeDocument - create values that automatically update the UI when they change
+---
+
 # Observables
 
-Observables are the reactive core of NativeDocument. They allow you to create values that automatically update in the user interface when they change.
+Observables are the reactive core of NativeDocument. They wrap values and automatically update the UI when those values change.
 
-## Creating Simple Observables
+## Creating Observables
 
 ```javascript
-const count = Observable(0);
-const message = Observable("Hello World");
+const count     = Observable(0);
+const message   = Observable('Hello World');
 const isVisible = Observable(true);
 ```
 
 ## Reading and Modifying Values
 
 ```javascript
-const name = Observable("John");
+const name = Observable('John');
 
 // Read the current value
-console.log(name.val()); // "John"
-
-// Using the proxy syntax (shorthand)
-console.log(name.$value); // "John"
+console.log(name.val());    // "John"
+console.log(name.$value);   // "John" - proxy shorthand
 
 // Update the value
-name.set("Jane");
-console.log(name.val()); // "Jane"
+name.set('Jane');
+console.log(name.val());    // "Jane"
 
-// Update using proxy syntax
-name.$value = "Bob";
-console.log(name.val()); // "Bob"
+// Update with proxy syntax
+name.$value = 'Bob';
+console.log(name.val());    // "Bob"
 
 // Update with a function
-name.set(currentName => currentName.toUpperCase());
-console.log(name.val()); // "BOB"
+name.set(current => current.toUpperCase());
+console.log(name.val());    // "BOB"
 ```
 
 ## Listening to Changes
 
-The `.subscribe()` method allows you to listen to every change in an observable. The callback receives both the new value and the previous value.
+`.subscribe()` runs on every value change, receiving the new and old values:
 
 ```javascript
 const counter = Observable(0);
 
-counter.subscribe(newValue => {
-    console.log("Counter is now:", newValue);
+counter.subscribe((newValue, oldValue) => {
+    console.log(`Counter: ${oldValue} -> ${newValue}`);
 });
 
-counter.set(1); // Logs: "Counter is now: 1"
-counter.set(2); // Logs: "Counter is now: 2"
+counter.set(1); // "Counter: 0 -> 1"
+counter.set(2); // "Counter: 1 -> 2"
 ```
 
-## Value-Specific Watchers with .on()
+## Value-Specific Watchers - `.on()`
 
-The `.on()` method allows you to watch for specific values in an observable. The callback is triggered twice: once with `true` when the value is reached, and once with `false` when the value changes to something else.
+`.on()` fires only when a specific value is entered (passes `true`) or left (passes `false`). More efficient than `.subscribe()` when you only care about specific states:
 
 ```javascript
-const status = Observable("idle");
+const status = Observable('idle');
 
-status.on("loading", (isActive) => {
+status.on('loading', (isActive) => {
     console.log(`Loading state: ${isActive}`);
 });
 
-status.on("success", (isActive) => {
+status.on('success', (isActive) => {
     console.log(`Success state: ${isActive}`);
 });
 
-status.set("loading"); // Logs: "Loading state: true"
-status.set("success"); // Logs: "Loading state: false", "Success state: true"
-status.set("idle");    // Logs: "Success state: false"
+status.set('loading'); // "Loading state: true"
+status.set('success'); // "Loading state: false", "Success state: true"
+status.set('idle');    // "Success state: false"
 ```
 
-**Key Features:**
-- Works with all value types (string, number, boolean...)
-- Can use an observable as callback (will be set to true/false automatically)
-- Returns an unsubscribe function for cleanup
-- More efficient than `.subscribe()` when only watching specific values
+| | `.on(value, callback)` | `.subscribe(callback)` |
+|---|---|---|
+| **When called** | Entering / leaving a specific value | Every change |
+| **Signature** | `(isActive: boolean) => void` | `(newValue, oldValue) => void` |
+| **Performance** | Only relevant callbacks run | All callbacks run on every change |
+| **Use case** | Specific states | General change detection |
 
-**Comparison with .subscribe():**
-- `.subscribe()`: called on EVERY change with old/new values
-- `.on()`: called when **entering** a specific value (true) and when **leaving** it (false)
+## `.when()` - Lightweight Conditional
 
-## .on() vs .subscribe() Comparison
-
-| Aspect | `.on(value, callback)` | `.subscribe(callback)` |
-|--------|------------------------|------------------------|
-| **When Called** | Only when entering/leaving specific values | On every value change |
-| **Callback Signature** | `(isActive: boolean) => void` | `(newValue, oldValue) => void` |
-| **Performance** | ✅ Efficient with many watchers | ❌ Slow with many subscribers |
-| **Use Case** | Watching specific states/values | General change detection |
-| **Example** | `status.on("loading", show => ...)` | `status.subscribe((new, old) => ...)` |
-
-### Performance Impact Example
+`.when()` creates a lightweight transitive object (no new observable) - ideal for CSS class binding:
 
 ```javascript
-const status = Observable("idle");
-
-// ❌ .subscribe() — ALL 1000 callbacks run on EVERY change
-for (let i = 0; i < 1000; i++) {
-    status.subscribe(value => {
-        if (value === `state-${i}`) updateComponent(i);
-    });
-}
-
-// ✅ .on() — Only relevant callback runs
-for (let i = 0; i < 1000; i++) {
-    status.on(`state-${i}`, (isActive) => {
-        if (isActive) updateComponent(i);
-    });
-}
-```
-
-## Observable .when() Method
-
-The `.when()` method creates a transitive object that passes the observable and target value without creating additional observables. It's memory-efficient for conditional operations like CSS class binding.
-
-```javascript
-observable.when(targetValue)
-```
-
-Returns an object with `{$target: targetValue, $observer: observable}` that can be used with conditional operations.
-
-### Primary Use Case: CSS Class Binding
-
-```javascript
-const status = Observable("loading");
+const status = Observable('loading');
 
 const element = Div({
     class: {
-        "spinner": status.when("loading"),
-        "success": status.when("success"),
-        "error":   status.when("error")
+        'spinner': status.when('loading'),
+        'success': status.when('success'),
+        'error':   status.when('error')
     }
 });
 ```
 
-### Benefits
-
-- **Zero memory overhead**: No new observables created
-- **Optimized for class binding**: Works seamlessly with NativeDocument's class system
-- **Simple API**: Just pass the value to watch for
-
-## Method Comparison
-
-| Method | Memory Impact | Use Case | Return Value               |
-|--------|---------------|----------|----------------------------|
-| `.when(value)` | ✅ Zero — transitive object | CSS classes, conditional checks | `{$target, $observer}`     |
-| `.on(value, callback)` | ✅ Minimal — single listener per value | Specific value watching | void                       |
-| `.check(callback)` | ❌ Creates new ObservableChecker | Complex conditions | ObservableChecker instance |
-| `.subscribe(callback)` | ❌ Creates listener for all changes | General change detection | void                       |
-| `.persist(key, options?)` | ✅ No new observable | localStorage binding | `this` (chainable) |
-
 ## Observable Checkers
 
-Create derived observables with conditions or transformations. All aliases point to the same underlying `ObservableChecker` — use whichever reads most naturally for your use case.
+Observable checkers are derived observables that transform or evaluate the current value. The aliases `.check()`, `.is()`, `.select()`, `.pluck()`, and `.transform()` all create the same `ObservableChecker` - they exist purely to make code more expressive and readable:
 
 ```javascript
 const age = Observable(17);
 
-// check — canonical name
 const isAdult = age.check(value => value >= 18);
 console.log(isAdult.val()); // false
 
@@ -164,92 +109,739 @@ age.set(20);
 console.log(isAdult.val()); // true
 ```
 
-### Available Aliases
-
 | Alias | Best suited for |
-|-------|-----------------|
+|---|---|
 | `.check(fn)` | General conditions |
-| `.is(fn)` | Boolean / state checks |
+| `.is(fn \| value)` | Boolean / state checks |
 | `.select(fn)` | Extracting a field |
-| `.pluck(fn)` | Extracting a field (Lodash style) |
+| `.pluck(property)` | Extracting a field (Lodash-style) |
 | `.transform(fn)` | Explicit value transformation |
 
 ```javascript
-// All return an ObservableChecker — pick what reads best
-ShowIf(user.is(u => u.isAdmin), AdminPanel())
+ShowIf(user.is(u => u.isAdmin), AdminPanel)
 
-const email = user.select(u => u.email);
-const label = status.transform(s => s.toUpperCase());
-const name  = user.pluck(u => u.name);
+const email  = user.select(u => u.email);
+const label  = status.transform(s => s.toUpperCase());
+const name   = user.pluck('name');
 ```
+
+## Utility Methods
+
+### `toggle()` - Boolean toggle
+
+```javascript
+const isVisible = Observable(false);
+
+isVisible.toggle(); // true
+isVisible.toggle(); // false
+
+Button('Toggle').nd.onClick(() => isVisible.toggle());
+```
+
+### `equals()` / `toBool()`
+
+```javascript
+const num = Observable(5);
+
+console.log(num.equals(5));             // true
+console.log(num.equals(Observable(5))); // true
+
+const text = Observable('');
+console.log(text.toBool()); // false
+text.set('Hello');
+console.log(text.toBool()); // true
+```
+
+### Convenience checkers - `is...()`
+
+All `is...()` methods return an `ObservableChecker<boolean>` and accept an observable or a plain value where noted:
+
+| Method | Returns `true` when... |
+|---|---|
+| `isTruthy()` | value is truthy |
+| `isFalsy()` | value is falsy |
+| `isNull()` | value is `null` or `undefined` |
+| `isEmpty()` | value is `null`, `''`, or an empty array |
+| `isNotEmpty()` | value is not `null`, not `''`, and not an empty array |
+| `isEqualTo(value)` | value equals `value` (observable-aware) |
+| `isNotEqualTo(value)` | value does not equal `value` (observable-aware) |
+| `isGreaterThan(value)` | value > `value` (observable-aware) |
+| `isGreaterThanOrEqualTo(value)` | value >= `value` (observable-aware) |
+| `isLessThan(value)` | value < `value` (observable-aware) |
+| `isLessThanOrEqualTo(value)` | value <= `value` (observable-aware) |
+| `isBetween(min, max)` | min <= value <= max (observable-aware) |
+| `isStartingWith(str)` | string starts with `str` (observable-aware) |
+| `isEndingWith(str)` | string ends with `str` (observable-aware) |
+| `isMatchingPattern(regex)` | string matches `regex` (observable-aware) |
+| `isIncludes(value)` | array includes `value`, or string contains `value` (observable-aware) |
+| `isIncludedIn(array)` / `isOneOf(array)` | value is in `array` (observable-aware) |
+| `isHaving(key)` | object has property `key` (observable-aware) |
+
+```javascript
+const score  = Observable(72);
+const list   = Observable.array([]);
+const name   = Observable('');
+const status = Observable('active');
+const user   = Observable({ role: 'admin' });
+const minAge = Observable(18);
+
+ShowIf(list.isEmpty(),                         Div('No items yet'))
+ShowIf(name.isFalsy(),                         Div('Name is required'))
+ShowIf(name.isTruthy(),                        Div(['Hello, ', name]))
+ShowIf(score.isGreaterThan(50),                Div('Passing grade'))
+ShowIf(score.isBetween(0, 100),                Div('Valid score'))
+ShowIf(score.isBetween(minAge, 100),           Div('Reactive min'))
+ShowIf(name.isStartingWith('A'),               Div('Starts with A'))
+ShowIf(status.isOneOf(['active', 'pending']),  Div('In progress'))
+ShowIf(user.isHaving('role'),                  Div('Has a role'))
+```
+
+### Convenience transformers - `to...()`
+
+All `to...()` methods return an `ObservableChecker<any>` - a derived observable with the transformed value:
+
+| Method | Returns... |
+|---|---|
+| `toUpperCase()` | uppercased string |
+| `toLowerCase()` | lowercased string |
+| `toTrimmed()` | trimmed string |
+| `toBoolean()` | `!!value` |
+| `toLiteral(template, placeholder?)` / `toFormatted(...)` | string with value interpolated into template |
+| `toProperty(key)` | deep property via dot-path (e.g. `'address.city'`) |
+| `toLength()` | length of string or array (`0` if null) |
+| `toClamped(min, max)` | value clamped between min and max (observable-aware) |
+| `toPercent(total)` | `(value / total) * 100` (observable-aware) |
+
+```javascript
+const name     = Observable('  Alice  ');
+const score    = Observable(72);
+const progress = Observable(350);
+const user     = Observable({ address: { city: 'Paris' } });
+
+name.toTrimmed()                          // "Alice"
+name.toUpperCase()                        // "  ALICE  "
+score.toClamped(0, 100)                   // 72
+score.toClamped(Observable(0), 100)       // reactive min
+progress.toPercent(500)                   // 70
+user.toProperty('address.city')           // "Paris"
+
+name.toLiteral('Hello ${v}!')             // "Hello   Alice  !"
+name.toTrimmed().toLiteral('Hello ${v}!') // "Hello Alice!"
+
+name.toLiteral('Hello [name]!', '[name]') // custom placeholder
+```
+
+### `reset()` - Reset to initial value
+
+```javascript
+const name = Observable('Alice', { reset: true });
+
+name.set('Bob');
+name.reset();
+console.log(name.val()); // "Alice"
+```
+
+### `intercept(callback)` - Transform or abort before setting
+
+The interceptor runs before every `.set()` call. Return a new value to replace it, or return `undefined` to abort the assignment entirely:
+
+```javascript
+const age = Observable(0);
+
+age.intercept((newValue, currentValue) => {
+    if (newValue < 0)   return 0;   // clamp minimum
+    if (newValue > 120) return 120; // clamp maximum
+    return newValue;
+});
+
+age.set(-5);  // sets 0
+age.set(150); // sets 120
+age.set(25);  // sets 25
+
+// Abort example - reject the value without changing anything
+const username = Observable('alice');
+
+username.intercept((newValue, currentValue) => {
+    if (newValue.trim() === '') return undefined; // abort - keeps 'alice'
+    return newValue.toLowerCase().trim();
+});
+
+username.set('');        // aborted - still 'alice'
+username.set('  Bob  '); // sets 'bob'
+```
+
+### `interceptMutations(callback)` - Intercept array/object mutations
+
+Intercepts mutations (push, splice, etc.) on arrays and objects separately from `.intercept()`:
+
+```javascript
+const items = Observable.array([]);
+
+items.interceptMutations((operations) => {
+    console.log('Mutation:', operations);
+});
+
+items.push('apple'); // logs mutation details
+```
+
+### `once(predicate, callback)` - Single-time listener
+
+```javascript
+const count = Observable(0);
+
+count.once(5, () => console.log('Reached 5!'));           // fires once when value === 5
+count.once(val => val > 10, () => console.log('Over 10!')); // fires once on condition
+
+count.set(5);  // "Reached 5!"
+count.set(5);  // nothing - already fired
+```
+
+### `off(value, callback?)` - Remove watchers
+
+```javascript
+const status = Observable('idle');
+const handler = (isActive) => console.log('Loading:', isActive);
+
+status.on('loading', handler);
+
+status.off('loading', handler); // remove specific callback
+status.off('loading');          // remove all watchers for this value
+```
+
+### `onCleanup(callback)` - Register cleanup callback
+
+Registers a callback that runs when the observable is cleaned up:
+
+```javascript
+const data = Observable('test');
+
+data.onCleanup(() => {
+    console.log('Observable cleaned up');
+});
+
+data.cleanup(); // triggers the cleanup callback
+```
+
+### `persist(key, options?)` - Bind to localStorage
+
+Automatically saves on every change and restores on load:
+
+```javascript
+const theme = Observable('light').persist('theme');
+theme.set('dark'); // saved to localStorage
+
+// On next page load
+const theme = Observable('light').persist('theme');
+theme.val(); // "dark" - restored
+```
+
+With transform options:
+
+```javascript
+const selectedDate = Observable(new Date()).persist('event:date', {
+    get: value => new Date(value),    // transform on load
+    set: value => value.toISOString() // transform on save
+});
+```
+
+### `clone()` - Create a copy
+
+Creates a deep clone of the observable's current value:
+
+```javascript
+const original = Observable({ name: 'Alice', scores: [1, 2, 3] });
+const copy = original.clone();
+
+copy.set({ ...copy.val(), name: 'Bob' });
+original.val().name; // still "Alice"
+```
+
+### `resolve()` - Extract plain value
+
+Recursively extracts plain values from observables, arrays, and proxies:
+
+```javascript
+const name = Observable('Alice');
+name.resolve(); // "Alice" - same as Observable.value(name)
+
+const user = Observable.object({ name: Observable('Bob') });
+Observable.value(user); // { name: 'Bob' } - deeply resolved
+```
+
+### `trigger()` - Force update without value change
+
+```javascript
+const data = Observable('test');
+data.trigger(); // notifies all subscribers without changing the value
+```
+
+### `cleanup()` - Remove all listeners
+
+```javascript
+const data = Observable('test');
+data.cleanup(); // removes all listeners and prevents new subscriptions
+```
+
+### `deepSubscribe(callback)` - Deep change detection
+
+Reacts to changes at any depth - array mutations and property changes on nested observables:
+
+```javascript
+const tags = Observable.array([{ label: Observable('admin') }]);
+
+const unsub = tags.deepSubscribe(value => console.log('changed:', value));
+
+tags.push({ label: Observable('editor') }); // triggers
+tags.at(0).label.set('superadmin');         // triggers
+tags.splice(0, 1);                          // triggers + cleans up listener
+
+unsub(); // manual cleanup
+```
+
+---
+
+## Observable Static Methods
+
+### `Observable.setLocale(locale)`
+
+Sets the locale observable used by `.format()`. Accepts an observable or a plain string:
+
+```javascript
+Observable.setLocale(I18nService.current); // observable (recommended)
+Observable.setLocale(Observable('fr'));     // plain observable
+Observable.setLocale('fr');                // plain string - wrapped automatically
+```
+
+### `Observable.value(data)`
+
+Recursively extracts plain values from observables, arrays, and proxies:
+
+```javascript
+Observable.value(Observable(42));                    // 42
+Observable.value(Observable.array([Observable(1)])); // [1]
+Observable.value(Observable.object({ n: Observable('x') })); // { n: 'x' }
+Observable.value('plain string');                    // 'plain string'
+```
+
+### `Observable.cleanup(observable)`
+
+Static alias for `observable.cleanup()`:
+
+```javascript
+Observable.cleanup(myObservable);
+```
+
+### `Observable.autoCleanup(enable, options?)`
+
+Enables automatic cleanup on page unload and via a periodic interval:
+
+```javascript
+Observable.autoCleanup(true, {
+    interval:  60000, // run cleanup every 60s (default)
+    threshold: 100    // clean up when > 100 unreferenced observables (default)
+});
+```
+
+### `Observable.getById(id)`
+
+Retrieves a registered observable by its internal memory ID. Useful for debugging:
+
+```javascript
+const obs = Observable(42);
+const id  = obs.toString(); // "{{#ObItem::(N)}}"
+
+Observable.getById(N); // returns obs
+```
+
+### `Observable.useValueProperty(propertyName?)`
+
+Defines a property name as an alias for `$value`. Default is `'value'`, but you can pass any name:
+
+```javascript
+Observable.useValueProperty();          // enables .value
+Observable.useValueProperty('val');     // enables .val (overrides the method!)
+Observable.useValueProperty('current'); // enables .current
+
+const count = Observable(0);
+
+// With default
+Observable.useValueProperty();
+count.value;      // 0 - same as count.$value
+count.value = 5;  // same as count.$value = 5
+
+// With custom name
+Observable.useValueProperty('current');
+count.current;     // 0
+count.current = 5; // sets to 5
+```
+
+> Be careful not to pick a name that conflicts with an existing method - for example `'val'` would shadow the `.val()` method.
+
+---
+
+## Observable Objects
+
+### `Observable(object)` vs `Observable.object(object)`
+
+```javascript
+// Observable(object) - single observable wrapping the whole object
+const userSingle = Observable({ name: 'Alice', age: 25 });
+userSingle.val();
+userSingle.set({ name: 'Bob', age: 30 });
+
+// Observable.object() - proxy with each property as its own observable
+const userProxy = Observable.object({ name: 'Alice', age: 25 });
+userProxy.name.val();  // "Alice"
+userProxy.name.set('Bob');
+userProxy.$value;      // { name: 'Bob', age: 25 }
+```
+
+`Observable.object` has aliases:
+
+```javascript
+Observable.object(data) // same as:
+Observable.json(data)
+Observable.init(data)
+```
+
+### Subscribing to an object observable
+
+Subscribing to `Observable.object()` reacts to any property change:
+
+```javascript
+const user = Observable.object({ name: 'Alice', age: 25 });
+
+user.subscribe(value => {
+    console.log('User changed:', value);
+});
+
+user.name.set('Bob'); // triggers the parent subscribe
+user.age.set(30);     // triggers the parent subscribe
+```
+
+---
+
+## Observable Arrays
+
+```javascript
+const todos = Observable.array(['Buy groceries', 'Call doctor']);
+
+todos.push('Clean house');
+todos.pop();
+todos.splice(0, 1);
+
+console.log(todos.val().length); // 1
+```
+
+### Array-specific methods
+
+| Method | Description |
+|---|---|
+| `push(item)` | Add item at the end |
+| `pop()` | Remove last item |
+| `splice(index, count)` | Remove items at index |
+| `at(index)` | Get observable at index |
+| `merge(values)` | Merge new values |
+| `clear()` | Empty the array |
+| `empty()` | Alias for `clear()` |
+| `count(condition?)` | Count items matching a condition |
+| `swap(indexA, indexB)` | Swap two items by index |
+| `swapItems(itemA, itemB)` | Swap two items by reference |
+| `insertAfter(data, target)` | Insert after a target item |
+| `remove(index)` | Remove item at index |
+| `removeItem(item)` | Remove item by reference |
+| `clone()` | Deep clone the array |
+| `isEmpty()` | Returns an `ObservableChecker` |
+
+### Filtering with `.where()`
+
+> `.where()`, `.whereSome()`, and `.whereEvery()` are available on **`ObservableArray` only** - not on plain observables. They return a new live `ObservableArray` that re-filters automatically when the source or any reactive predicate changes.
+
+**Function predicate** - full item passed to the callback:
+
+```javascript
+const users = Observable.array([
+    { name: 'Alice', age: 17, role: 'user'  },
+    { name: 'Bob',   age: 25, role: 'admin' },
+    { name: 'Carol', age: 32, role: 'user'  },
+    { name: 'Dave',  age: 28, role: 'admin' },
+]);
+
+const adults = users.where(item => item.age >= 18);
+// -> Bob, Carol, Dave
+```
+
+**Object predicate** - filter per field:
+
+```javascript
+const activeAdmins = users.where({
+    role: 'admin',         // shorthand for equals
+    age:  val => val >= 18 // plain function on the field value
+});
+// -> Bob, Dave
+```
+
+**Reactive predicate** - re-filters when an observable changes:
+
+```javascript
+import { match } from 'native-document/filters';
+
+const search = Observable('');
+
+const results = users.where({
+    name: match(search) // re-filters every time search changes
+});
+
+search.set('ali'); // -> Alice
+search.set('');    // -> all users
+```
+
+**`and` / `or` / `not`** - composable per-field filters:
+
+> `and`, `or`, and `not` operate on filter result objects (the kind returned by `equals`, `greaterThan`, `match`, etc.) **within a single field**. For cross-field logic, use the `_` key with a plain function.
+
+```javascript
+import { equals, greaterThan, lessThan, and, or, not } from 'native-document/filters';
+
+// and - field must pass ALL conditions
+const youngAdults = users.where({
+    age: and(greaterThan(18), lessThan(30))
+});
+// -> Bob (25), Dave (28)
+
+// or - field must pass AT LEAST ONE condition
+const adminOrEditor = users.where({
+    role: or(equals('admin'), equals('editor'))
+});
+// -> Bob, Dave
+
+// not - inverts a filter
+const nonAdmins = users.where({
+    role: not(equals('admin'))
+});
+// -> Alice, Carol
+
+// Cross-field OR - use the _ key with a plain function
+const adminsOrMinors = users.where({
+    _: item => item.role === 'admin' || item.age < 18
+});
+// -> Alice (minor), Bob (admin), Dave (admin)
+```
+
+**`whereSome(fields, filter)`** - at least one field matches (OR across fields):
+
+```javascript
+import { match } from 'native-document/filters';
+
+const search = Observable('car');
+
+const results = products.whereSome(['name', 'category'], match(search));
+// matches if name OR category contains 'car'
+```
+
+**`whereEvery(fields, filter)`** - all fields match (AND across fields):
+
+```javascript
+import { equals } from 'native-document/filters';
+
+const verified = items.whereEvery(['status', 'verified'], equals('active'));
+// matches only if both status AND verified equal 'active'
+```
+
+---
+
+## Computed Observables
+
+Computed observables automatically recalculate when their dependencies change. The callback receives the current value of each dependency **as arguments, in the order they are declared**:
+
+```javascript
+const firstName = Observable('John');
+const lastName  = Observable('Doe');
+
+const fullName = Observable.computed((first, last) => {
+    return `${first} ${last}`;
+}, [firstName, lastName]);
+
+console.log(fullName.val()); // "John Doe"
+
+firstName.set('Jane');
+console.log(fullName.val()); // "Jane Doe"
+```
+
+Another example with more dependencies:
+
+```javascript
+const price    = Observable(100);
+const quantity = Observable(2);
+const tax      = Observable(0.2);
+
+const total = Observable.computed((p, q, t) => {
+    return p * q * (1 + t);
+}, [price, quantity, tax]);
+
+console.log(total.val()); // 240
+
+quantity.set(3);
+console.log(total.val()); // 360
+```
+
+---
+
+## Batching Updates
+
+`Observable.batch()` delays notifications to **dependent computed observables** until all changes are done. Individual subscribers still fire immediately.
+
+```javascript
+const firstName = Observable('John');
+const lastName  = Observable('Doe');
+
+const updateName = Observable.batch((first, last) => {
+    firstName.set(first);
+    lastName.set(last);
+});
+
+const fullName = Observable.computed((first, last) => {
+    return `${first} ${last}`;
+}, updateName); // depends on the batch - recalculates once
+
+fullName.subscribe(name => console.log('Full name:', name));
+
+updateName('Alice', 'Smith');
+// "Full name: Alice Smith" - single notification
+```
+
+Async batching is also supported:
+
+```javascript
+const isLoading = Observable(false);
+const userData  = Observable(null);
+const error     = Observable(null);
+
+const fetchUser = Observable.batch(async (userId) => {
+    isLoading.set(true);
+    error.set(null);
+    try {
+        const data = await fetch(`/api/users/${userId}`).then(r => r.json());
+        userData.set(data);
+    } catch (err) {
+        error.set(err.message);
+    } finally {
+        isLoading.set(false);
+    }
+});
+
+const userDisplay = Observable.computed((loading, data, err) => {
+    if (loading) return 'Loading...';
+    if (err)     return `Error: ${err}`;
+    if (data)    return `Hello ${data.name}`;
+    return 'No user';
+}, fetchUser);
+
+await fetchUser(123);
+```
+
+> A computed observable can depend on **one batch function** only, not multiple.
+
+---
+
+## Observable Resources
+
+`Observable.resource()` manages async data fetching with built-in states, `AbortController` support, and reactive dependencies. See **[Observable Resource](./observable-resource.md)** for the full guide.
+
+```javascript
+const userId = Observable(1);
+
+const user = Observable.resource(
+    async (id, signal) => {
+        const res = await fetch(`/api/users/${id}`, { signal });
+        return res.json();
+    },
+    [userId],
+    { auto: true }
+);
+
+Div([
+    ShowIf(user.loading,  () => Div('Loading...')),
+    ShowIf(user.isReady(), () => Div(user.data.select(u => u.name))),
+    ShowIf(user.isErrored(), () => Div(['Error: ', user.error]))
+]);
+```
+
+---
+
 ## Observable.format()
 
-Creates a derived observable that formats the current value using `Intl`.
-Automatically reacts to both value changes and locale changes via `Store.setLocale()`.
+Creates a derived observable that formats the current value using `Intl`. You must set a locale observable before using `format()`. When using the CLI template, pass `I18nService.current` as the locale:
+
 ```javascript
+import { Observable } from 'native-document';
+import { I18nService } from '@/core/services';
+
+// Using the CLI template i18n service (recommended)
+Observable.setLocale(I18nService.current);
+
+// Or with a plain observable
+const $locale = Observable('fr');
+Observable.setLocale($locale);
+
 const price = Observable(15000);
 const date  = Observable(new Date());
 const count = Observable(3);
 
-// Currency
-price.format('currency')                           // "15 000 FCFA"
-price.format('currency', { currency: 'EUR' })      // "15 000,00 €"
-price.format('currency', { notation: 'compact' })  // "15 K FCFA"
+price.format('currency')                            // "15 000 FCFA"
+price.format('currency', { currency: 'EUR' })       // "15 000,00 €"
+price.format('currency', { notation: 'compact' })   // "15 K FCFA"
 
-// Number
-price.format('number')                             // "15 000"
+price.format('number')                              // "15 000"
 
-// Percent
-Observable(0.15).format('percent')                 // "15,0 %"
-Observable(0.15).format('percent', { decimals: 2}) // "15,00 %"
+Observable(0.15).format('percent')                  // "15,0 %"
+Observable(0.15).format('percent', { decimals: 2 }) // "15,00 %"
 
-// Date
-date.format('date')                                // "3 mars 2026"
-date.format('date', { dateStyle: 'full' })         // "mardi 3 mars 2026"
-date.format('date', { format: 'DD/MM/YYYY' })      // "03/03/2026"
-date.format('date', { format: 'DD MMM YYYY' })     // "03 mar 2026"
-date.format('date', { format: 'DD MMMM YYYY' })    // "03 mars 2026"
+date.format('date')                                 // "3 mars 2026"
+date.format('date', { dateStyle: 'full' })          // "mardi 3 mars 2026"
+date.format('date', { format: 'DD/MM/YYYY' })       // "03/03/2026"
 
-// Time
-date.format('time')                                // "20:30"
-date.format('time', { second: '2-digit' })         // "20:30:00"
-date.format('time', { format: 'HH:mm:ss' })        // "20:30:00"
+date.format('time')                                 // "20:30"
+date.format('time', { second: '2-digit' })          // "20:30:00"
 
-// Datetime
-date.format('datetime')                            // "3 mars 2026, 20:30"
-date.format('datetime', { dateStyle: 'full' })     // "mardi 3 mars 2026, 20:30"
-date.format('datetime', { format: 'DD/MM/YYYY HH:mm' }) // "03/03/2026 20:30"
+date.format('datetime')                             // "3 mars 2026, 20:30"
 
-// Relative
-date.format('relative')                            // "dans 11 jours"
-date.format('relative', { unit: 'month' })         // "dans 1 mois"
+date.format('relative')                             // "dans 11 jours"
+date.format('relative', { unit: 'month' })          // "dans 1 mois"
 
-// Plural
 count.format('plural', { singular: 'billet', plural: 'billets' }) // "3 billets"
 
-// Custom formatter — works like transform()
+// Custom formatter - works like transform()
 price.format(value => `${value.toLocaleString()} FCFA`)
 ```
 
-### Locale Reactivity
+Formatted observables react to locale changes automatically:
 
-All formatted observables automatically recalculate when the locale changes:
 ```javascript
-const price = Observable(15000);
-const label = price.format('currency', { currency: 'XOF' });
+Observable.setLocale(I18nService.current);
 
-label.val();               // "15 000 FCFA"
+const label = Observable(15000).format('currency', { currency: 'XOF' });
+label.val(); // "15 000 FCFA"
 
-Store.get('locale').set('en-US');
-label.val();               // "$15,000.00"
-
-Store.get('locale').set('fr-TG');
-label.val();               // "15 000 FCFA"
+I18nService.current.set('en-US');
+label.val(); // "$15,000.00"
 ```
+
+### Available format types
+
+| Type | Input | Key options |
+|---|---|---|
+| `currency` | `number` | `currency`, `notation`, `minimumFractionDigits`, `maximumFractionDigits` |
+| `number` | `number` | `notation`, `minimumFractionDigits`, `maximumFractionDigits` |
+| `percent` | `number` | `decimals` |
+| `date` | `Date \| number` | `dateStyle`, `format` |
+| `time` | `Date \| number` | `hour`, `minute`, `second`, `format` |
+| `datetime` | `Date \| number` | `dateStyle`, `hour`, `minute`, `second`, `format` |
+| `relative` | `Date \| number` | `unit`, `numeric` |
+| `plural` | `number` | `singular`, `plural` |
 
 ### Extending Formatters
 
-Add custom format types via `Formatters`:
 ```javascript
 import { Formatters } from 'native-document';
 
@@ -263,551 +855,25 @@ const duration = Observable(3661);
 duration.format('duration'); // "1h01"
 ```
 
-### Available Format Types
-
-| Type | Input | Options |
-|------|-------|---------|
-| `currency` | `number` | `currency`, `notation`, `minimumFractionDigits`, `maximumFractionDigits` |
-| `number` | `number` | `notation`, `minimumFractionDigits`, `maximumFractionDigits` |
-| `percent` | `number` | `decimals` |
-| `date` | `Date \| number` | `dateStyle`, `format` |
-| `time` | `Date \| number` | `hour`, `minute`, `second`, `format` |
-| `datetime` | `Date \| number` | `dateStyle`, `hour`, `minute`, `second`, `format` |
-| `relative` | `Date \| number` | `unit`, `numeric` |
-| `plural` | `number` | `singular`, `plural` |
-
-## Observable Objects vs Simple Objects
-
-```javascript
-// Observable.object() creates a PROXY with reactive properties
-const userProxy = Observable.object({
-    name: "Alice",
-    age: 25
-});
-
-// Each property is an individual observable
-console.log(userProxy.name.val()); // "Alice"
-userProxy.name.set("Bob");
-
-// Get all values as plain object
-console.log(userProxy.$value);           // { name: "Bob", age: 25 }
-console.log(userProxy.val()); // { name: "Bob", age: 25 }
-
-// Observable(object) creates a SINGLE observable containing the whole object
-const userSingle = Observable({
-    name: "Alice",
-    age: 25
-});
-
-console.log(userSingle.val()); // { name: "Alice", age: 25 }
-userSingle.set({ name: "Bob", age: 30 });
-```
-
-**Observable.object is an alias:**
-```javascript
-// These are identical
-Observable.object(data) === Observable.json(data) === Observable.init(data)
-```
-
-## Working with Object Observable
-
-```javascript
-const user = Observable.object({
-    name: "Alice",
-    age: 25,
-    email: "alice@example.com"
-});
-
-// Access individual properties
-console.log(user.name.val());    // "Alice"
-console.log(user.name.$value);   // "Alice"
-
-// Update individual properties
-user.name.set("Bob");
-user.age.$value = 30;
-
-// Get the complete object value
-console.log(user.$value);             // { name: "Bob", age: 30, email: "alice@example.com" }
-console.log(user.val());  // Same as above
-
-// Listen to individual property changes
-user.name.subscribe(newName => {
-    console.log("New name:", newName);
-});
-
-// Update multiple properties at once
-user.set({
-    name: "Charlie",
-    age: 35
-});
-```
-
-```javascript
-const todos = Observable.array([
-    "Buy groceries",
-    "Call doctor"
-]);
-
-todos.push("Clean house");
-todos.pop();
-
-const completed = todos.filter(todo => todo.includes("✓"));
-```
-
-### Subscribing to an Observable Object
-
-Subscribing to an `Observable.object()` reacts to changes on any individual property — you don't need to subscribe to each property separately.
-```javascript
-const user = Observable.object({ name: 'Alice', age: 25 });
-
-user.subscribe(value => {
-    console.log('User changed:', value); // { name: 'Bob', age: 25 }
-});
-
-user.name.set('Bob'); // triggers the parent subscribe
-user.age.set(30);     // triggers the parent subscribe
-```
-
-## Computed Observables
-
-Computed observables automatically recalculate when their dependencies change.
-
-```javascript
-const firstName = Observable("John");
-const lastName  = Observable("Doe");
-
-const fullName = Observable.computed(() => {
-    return `${firstName.val()} ${lastName.val()}`;
-}, [firstName, lastName]);
-
-console.log(fullName.val()); // "John Doe"
-
-firstName.set("Jane");
-console.log(fullName.val()); // "Jane Doe"
-```
-
-## Practical Example: Simple Counter
-
-```javascript
-const count = Observable(0);
-
-const increment = () => count.set(count.val() + 1);
-const decrement = () => (count.$value--);
-
-const app = Div({ class: "counter" }, [
-    Button("-").nd.onClick(decrement),
-    Span({ class: "count" }, count),
-    Button("+").nd.onClick(increment)
-]);
-```
-
-## Batching Operations
-
-Batching is a performance optimization technique that delays notifications to **dependent computed observables** until the end of a batch operation. Individual observable subscribers still receive their notifications immediately.
-
-### Understanding Batch Behavior
-
-```javascript
-const name = Observable("John");
-const age  = Observable(25);
-
-name.subscribe(value => console.log("Name changed to:", value));
-age.subscribe(value  => console.log("Age changed to:", value));
-
-const updateProfile = Observable.batch(() => {
-    name.set("Alice"); // Logs: "Name changed to: Alice"
-    age.set(30);       // Logs: "Age changed to: 30"
-});
-
-updateProfile(); // Individual subscribers are notified immediately
-```
-
-### Batching with Computed Dependencies
-
-```javascript
-const firstName = Observable("John");
-const lastName  = Observable("Doe");
-
-firstName.subscribe(name => console.log("First name:", name));
-lastName.subscribe(name  => console.log("Last name:", name));
-
-const updateName = Observable.batch((first, last) => {
-    firstName.set(first); // Logs: "First name: Alice"
-    lastName.set(last);   // Logs: "Last name: Smith"
-});
-
-const fullName = Observable.computed(() => {
-    return `${firstName.val()} ${lastName.val()}`;
-}, updateName); // ← Depends on the batch function
-
-fullName.subscribe(name => console.log("Full name:", name));
-
-updateName("Alice", "Smith");
-// Logs:
-// "First name: Alice"      ← immediate
-// "Last name: Smith"       ← immediate
-// "Full name: Alice Smith" ← single notification at the end
-```
-
-### Comparison: Normal vs Batch Dependencies
-
-```javascript
-const score = Observable(0);
-const lives = Observable(3);
-
-// Method 1: depends on individual observables — recalculates twice
-const gameStatus1 = Observable.computed(() => {
-    return `Score: ${score.val()}, Lives: ${lives.val()}`;
-}, [score, lives]);
-
-// Method 2: depends on batch function — recalculates once
-const updateGame = Observable.batch(() => {
-    score.set(score.val() + 100);
-    lives.set(lives.val() - 1);
-});
-
-const gameStatus2 = Observable.computed(() => {
-    return `Score: ${score.val()}, Lives: ${lives.val()}`;
-}, updateGame);
-
-score.set(100); // gameStatus1 recalculates
-lives.set(2);   // gameStatus1 recalculates again
-
-updateGame();   // gameStatus2 recalculates only once
-```
-
-### Practical Example: Shopping Cart
-
-```javascript
-const items        = Observable.array([]);
-const discount     = Observable(0);
-const shippingCost = Observable(0);
-
-items.subscribe(items       => console.log('Items count: ' + items.length));
-discount.subscribe(discount => console.log(`Discount: ${discount}%`));
-
-const updateCart = Observable.batch((cartData) => {
-    items.splice(0);
-    cartData.items.forEach(item => items.push(item));
-    discount.set(cartData.discount);
-    shippingCost.set(cartData.shipping);
-});
-
-const cartTotal = Observable.computed(() => {
-    const itemsTotal      = items.val().reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const discountAmount  = itemsTotal * (discount.val() / 100);
-    return itemsTotal - discountAmount + shippingCost.val();
-}, updateCart);
-
-updateCart({
-    items: [
-        { name: "Product A", price: 29.99, quantity: 2 },
-        { name: "Product B", price: 19.99, quantity: 1 }
-    ],
-    discount: 10,
-    shipping: 5.99
-});
-```
-
-### Async Batching
-
-```javascript
-const isLoading = Observable(false);
-const userData  = Observable(null);
-const error     = Observable(null);
-
-isLoading.subscribe(loading => console.log('Loading.....'));
-
-const fetchUser = Observable.batch(async (userId) => {
-    isLoading.set(true);
-    error.set(null);
-
-    try {
-        const response = await fetch(`/api/users/${userId}`);
-        const data     = await response.json();
-        userData.set(data);
-    } catch (err) {
-        error.set(err.message);
-    } finally {
-        isLoading.set(false);
-    }
-});
-
-const userDisplay = Observable.computed(() => {
-    if (isLoading.val()) return "Loading...";
-    if (error.val())     return `Error: ${error.val()}`;
-    if (userData.val())  return `Hello ${userData.val().name}`;
-    return "No user";
-}, fetchUser);
-
-await fetchUser(123);
-```
-
-### Single Batch Dependency Only
-
-Computed observables can only depend on **one batch function**, not multiple:
-
-```javascript
-const updateProfile = Observable.batch((profileData) => {
-    user.name.set(profileData.name);
-    user.email.set(profileData.email);
-    settings.theme.set(profileData.theme);
-});
-
-// ✅ Single batch dependency
-const profileSummary = Observable.computed(() => ({
-    user:        user.$value,
-    settings:    settings.$value,
-    lastUpdated: Date.now()
-}), updateProfile);
-
-// ❌ Not supported
-// Observable.computed(callback, [batch1, batch2])
-```
-
-### Best Practices
-
-- Use batch dependencies for expensive computations that shouldn't recalculate on every individual change
-- Keep individual subscribers for immediate feedback (input validation, UI updates)
-- Group logically connected updates that should trigger dependent computations together
-- Don't over-batch — only use when computed observables benefit from delayed updates
-
-### When NOT to Use Batch Dependencies
-
-- Real-time updates where computed observables need to update immediately
-- Simple computations where the cost is minimal
-- Debugging contexts — batching can make the flow harder to trace
-- Single observable changes — no benefit when only one observable changes
-
-## String Templates with Observables
-
-### The .use() Method
-
-```javascript
-const name = Observable("Alice");
-const age  = Observable(25);
-
-const template = "Hello ${name}, you are ${age} years old";
-const message  = template.use({ name, age });
-
-console.log(message.val()); // "Hello Alice, you are 25 years old"
-
-name.set("Bob");
-console.log(message.val()); // "Hello Bob, you are 25 years old"
-```
-
-### Automatic Template Resolution
-
-```javascript
-const greeting = Observable("Hello");
-const user     = Observable("Marie");
-
-const element = Div(null, `${greeting} ${user}!`);
-```
-
-## Memory Management
-
-```javascript
-const data = Observable("test");
-
-const handler = value => console.log(value);
-data.subscribe(handler);
-
-// Remove specific subscription
-data.unsubscribe(handler);
-
-// Complete observable cleanup
-data.cleanup(); // Removes all listeners and prevents new subscriptions
-
-// Manual trigger — forces update without changing the value
-data.trigger();
-
-// Extract values from any observable structure
-const complexData = Observable.object({ user: "John", items: [1, 2, 3] });
-console.log(complexData.val()); // Plain object with extracted values
-```
-
-## Utility Methods
-
-### `off(value, callback?)` — Remove Watchers
-
-```javascript
-const status = Observable("idle");
-
-const loadingHandler = (isActive) => console.log("Loading:", isActive);
-status.on("loading", loadingHandler);
-
-status.off("loading", loadingHandler); // Remove specific callback
-status.off("loading");                 // Remove all watchers for this value
-```
-
-### `once(predicate, callback)` — Single-Time Listener
-
-```javascript
-const count = Observable(0);
-
-count.once(5, (value) => {
-    console.log("Reached 5!"); // Only called once
-});
-
-count.once(val => val > 10, (value) => {
-    console.log("Greater than 10!"); // Only called once
-});
-
-count.set(5); // Callback fires and unsubscribes
-count.set(5); // Callback doesn't fire again
-```
-
-### `toggle()` — Boolean Toggle
-
-```javascript
-const isVisible = Observable(false);
-
-isVisible.toggle(); // true
-isVisible.toggle(); // false
-
-Button("Toggle").nd.onClick(() => isVisible.toggle());
-```
-
-### `reset()` — Reset to Initial Value
-
-```javascript
-const name = Observable("Alice", { reset: true });
-
-name.set("Bob");
-name.reset();
-console.log(name.val()); // "Alice"
-
-const user = Observable({ name: "Alice", age: 25 }, { reset: true });
-user.set({ name: "Bob", age: 30 });
-user.reset(); // Back to { name: "Alice", age: 25 }
-```
-
-### `equals(other)` — Value Comparison
-
-```javascript
-const num1 = Observable(5);
-const num2 = Observable(5);
-const num3 = Observable(10);
-
-console.log(num1.equals(num2)); // true
-console.log(num1.equals(5));    // true
-console.log(num1.equals(num3)); // false
-```
-
-### `toBool()` — Boolean Conversion
-
-```javascript
-const text = Observable("");
-console.log(text.toBool()); // false
-
-text.set("Hello");
-console.log(text.toBool()); // true
-```
-
-### `intercept(callback)` — Value Interception
-
-```javascript
-const age = Observable(0);
-
-age.intercept((newValue, oldValue) => {
-    if (newValue < 0)   return 0;
-    if (newValue > 120) return 120;
-    return newValue;
-});
-
-age.set(-5);  // Sets 0
-age.set(150); // Sets 120
-age.set(25);  // Sets 25
-
-const username = Observable("");
-username.intercept((value) => value.toLowerCase().trim());
-
-username.set("  JohnDoe  ");
-console.log(username.val()); // "johndoe"
-```
-
-### `persist(key, options?)` — Persist to localStorage
-
-Binds an observable to localStorage. The value is automatically restored on load and saved on every change.
-```javascript
-// Simple persistence — key defaults to the variable name
-const theme = Observable('light').persist('theme');
-theme.set('dark'); // saved to localStorage automatically
-
-// On next page load
-const theme = Observable('light').persist('theme');
-theme.val(); // "dark" — restored from localStorage
-```
-
-With transform options — useful when the stored format differs from the runtime format:
-```javascript
-// Store as ISO string, restore as Date object
-const selectedDate = Observable(new Date()).persist('event:date', {
-    get: value => new Date(value),   // transform on load
-    set: value => value.toISOString() // transform on save
-});
-
-// Store only the user id, restore the full object later
-const user = Observable(null).persist('session:user', {
-    get: value => value ? JSON.parse(value) : null,
-    set: value => value ? JSON.stringify(value) : null
-});
-```
-
-**Without Store** — use `.persist()` directly on any observable for component-level persistence without polluting the global store:
-```javascript
-const FiltersPanel = () => {
-    const expanded = Observable(false).persist('filters:expanded');
-    const columns  = Observable(['name', 'date']).persist('table:columns');
-
-    return Div([/* ... */]);
-};
-```
-
-### `deepSubscribe(callback)` — Deep Change Detection
-
-Reacts to changes at any depth — array mutations, and property changes on nested observables.
-```javascript
-const tags = Observable.array([{ label: 'admin' }]);
-
-const unsub = tags.deepSubscribe(value => console.log('changed:', value));
-
-tags.push({ label: 'editor' });      // ✅ déclenche
-tags[0].label.set('superadmin');     // ✅ déclenche
-tags.splice(0, 1);                   // ✅ déclenche + cleanup du listener
-
-// Cleanup
-unsub();
-```
+---
 
 ## Best Practices
 
-1. **Use descriptive names** for your observables
-2. **Understand the difference**: `Observable(object)` vs `Observable.object(object)`
-3. **Group related data** with `Observable.object()` for individual property reactivity
-4. **Use `Observable.value()`** to extract plain values from complex structures
-5. **Prefer computed** for derived values
-6. **Clean up** unused observables to prevent memory leaks
-7. **Use `trigger()`** when you need to force updates without value changes
-8. **Avoid** direct modifications in subscription callbacks
+1. Use descriptive names for your observables
+2. Know the difference between `Observable(object)` (single observable) and `Observable.object(object)` (per-property observables)
+3. Use `Observable.computed()` for derived values instead of manual subscriptions
+4. Use `.persist()` for component-level localStorage binding instead of the global Store
+5. Use `.intercept()` to sanitize, clamp, or abort values at the source
+6. Use `.on()` instead of `.subscribe()` when you only care about specific values
+7. Use `Observable.autoCleanup(true)` in long-running applications
+8. Use `Observable.resource()` for async data instead of manual fetch + observable patterns
 
 ## Next Steps
 
-- **[Elements](elements.md)** - Creating and composing UI
-- **[Conditional Rendering](conditional-rendering.md)** - Dynamic content
-- **[List Rendering](list-rendering.md)** - (ForEach | ForEachArray) and dynamic lists
-- **[Routing](routing.md)** - Navigation and URL management
-- **[State Management](state-management.md)** - Global state patterns
-- **[Lifecycle Events](lifecycle-events.md)** - Lifecycle events
-- **[NDElement](native-document-element.md)** - Native Document Element
-- **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
-- **[Args Validation](validation.md)** - Function Argument Validation
-- **[Memory Management](memory-management.md)** - Memory management
-- **[Anchor](anchor.md)** - Anchor
-
-## Utilities
-
-- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
-- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
-- **[Filters](docs/utils/filters.md)** - Data filtering helpers
+- **[Elements](./elements.md)** - Creating and composing UI
+- **[Conditional Rendering](./conditional-rendering.md)** - Dynamic content
+- **[List Rendering](./list-rendering.md)** - ForEach and dynamic lists
+- **[State Management](./state-management.md)** - Global state with Store
+- **[Observable Resource](./observable-resource.md)** - Async data fetching
+- **[i18n & Formatting](./i18n.md)** - Locale-aware formatting
+- **[Filters](./filters.md)** - Data filtering helpers

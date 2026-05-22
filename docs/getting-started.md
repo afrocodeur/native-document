@@ -1,14 +1,46 @@
+---
+title: Getting Started
+description: Install NativeDocument and build your first application in minutes
+---
+
 # Getting Started
 
-Welcome to NativeDocument! This guide will help you set up and create your first application with NativeDocument.
+Welcome to NativeDocument! This guide will help you set up and create your first application.
 
 ## Installation
 
-NativeDocument offers multiple installation methods to fit your development workflow.
+NativeDocument offers multiple installation methods to fit your workflow.
 
-### Method 1: CDN (Recommended for beginners)
+### Option 1: CLI (Recommended)
 
-The fastest way to get started is using our CDN. Simply add this script tag to your HTML:
+The fastest way to start a complete project with Vite, routing, i18n, and a ready-to-use folder structure:
+
+```bash
+npm install -g @native-document/cli
+
+nd create MyApp            # default structure
+nd create MyApp --feature  # feature-based architecture
+
+cd MyApp
+npm install
+npm start
+```
+
+Verify the CLI is installed correctly:
+
+```bash
+nd --help
+```
+
+> The CLI source is available at [github.com/afrocodeur/native-document-cli](https://github.com/afrocodeur/native-document-cli).
+
+See the **[CLI guide](./cli.md)** for all available commands.
+
+---
+
+### Option 2: CDN (No build step)
+
+The quickest way to experiment without any tooling:
 
 ```html
 <!DOCTYPE html>
@@ -24,12 +56,11 @@ The fastest way to get started is using our CDN. Simply add this script tag to y
     const { Div, Button } = NativeDocument.elements;
     const { Observable } = NativeDocument;
 
-    // Your code here
     const count = Observable(0);
 
     const App = Div({ class: 'app' }, [
         Div(['Count: ', count]),
-        Button('Increment').nd.onClick(() => count.set(count.val() + 1))
+        Button('Increment').nd.onClick(() => count.$value++)
     ]);
 
     document.body.appendChild(App);
@@ -38,26 +69,11 @@ The fastest way to get started is using our CDN. Simply add this script tag to y
 </html>
 ```
 
-### Method 2: Vite Template (Recommended for projects)
+---
 
-For a complete development setup with Vite, use our official template:
+### Option 3: NPM/Yarn (existing project)
 
-```bash
-npx degit afrocodeur/native-document-vite my-app
-cd my-app
-npm install
-npm run dev
-```
-
-This template includes:
-- Pre-configured Vite setup
-- Development server with auto reload
-- Build optimization
-- Example components
-
-### Method 3: NPM/Yarn Package
-
-Install NativeDocument as a dependency in your existing project:
+Install NativeDocument into an existing Vite project:
 
 ```bash
 npm install native-document
@@ -68,132 +84,148 @@ yarn add native-document
 Then import what you need:
 
 ```javascript
-import { Div, Button } from 'native-document/src/elements'
-import { Observable } from 'native-document'
+import { Div, Button } from 'native-document/elements';
+import { Observable } from 'native-document';
 
 const count = Observable(0);
 
 const App = Div({ class: 'app' }, [
     Div(['Count: ', count]),
-    Button('Increment').nd.onClick(() => count.set(count.val() + 1))
+    Button('Increment').nd.onClick(() => count.$value++)
 ]);
 
 document.body.appendChild(App);
 ```
 
-## Your First Application
+---
 
-Let's build a simple counter application to understand NativeDocument basics.
+## Project Structure
 
-### Step 1: Create the HTML Structure
+### Default structure
 
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Counter App</title>
-    <style>
-        .counter-app {
-            max-width: 400px;
-            margin: 50px auto;
-            padding: 20px;
-            text-align: center;
-            font-family: Arial, sans-serif;
-        }
-        .count-display {
-            font-size: 2rem;
-            margin: 20px 0;
-            color: #333;
-        }
-        button {
-            margin: 0 10px;
-            padding: 10px 20px;
-            font-size: 1rem;
-            cursor: pointer;
-        }
-    </style>
-</head>
-<body>
-<script src="https://cdn.jsdelivr.net/gh/afrocodeur/native-document@latest/dist/native-document.min.js"></script>
-<script>
-    // Your JavaScript code will go here
-</script>
-</body>
-</html>
+```
+src/
+├── main.js                        # Entry point
+├── index.css                      # Global styles
+│
+├── core/
+│   ├── lang/
+│   │   ├── lang.js                # i18n configuration
+│   │   └── locales/
+│   │       ├── en.json            # English translations
+│   │       └── fr.json            # French translations
+│   ├── middlewares/               # Route middlewares
+│   └── services/                  # Core services (http, i18n...)
+│
+├── routes/
+│   ├── routes.js                  # Route definitions
+│   └── layouts/
+│       └── DefaultLayout/         # Default layout
+│
+├── components/                    # Reusable UI components
+│
+├── pages/
+│   ├── home/
+│   │   ├── HomePage.js
+│   │   └── home.css
+│   └── not-found/
+│       ├── NotFoundPage.js
+│       └── not-found.css
+│
+└── services/                      # Business logic + observables
 ```
 
-### Step 2: Add the JavaScript Logic
+### Feature-based structure (`--feature`)
+
+When created with `nd create MyApp --feature`, a `src/features/` folder is added. Each feature is self-contained:
+
+```
+src/features/auth/
+├── components/
+├── services/
+│   └── AuthService/
+│       └── AuthService.js
+├── utils/
+└── index.js              # Public API - import from here
+```
+
+Import from a feature via its public API:
 
 ```javascript
-const { Div, Button, H1 } = NativeDocument.elements;
-const { Observable } = NativeDocument;
+import { AuthService } from '@/features/auth';
+```
 
-// Create reactive state
+---
+
+## Available Scripts
+
+```bash
+npm start          # Start the development server
+npm run build      # Build for production
+npm run preview    # Preview the production build
+npm run lint       # Run ESLint
+npm run i18n:scan  # Scan for missing translation keys
+```
+
+---
+
+## Your First Application
+
+Let's build a counter to understand NativeDocument basics.
+
+```javascript
+import { Div, Button, H1 } from 'native-document/elements';
+import { Observable } from 'native-document';
+
+// Reactive state
 const count = Observable(0);
 
-// Create the application
+// Build the UI
 const CounterApp = Div({ class: 'counter-app' }, [
-    H1('Counter Application'),
+    H1('Counter'),
 
-    Div({ class: 'count-display' }, [
-        'Current count: ', count
-    ]),
+    Div({ class: 'count-display' }, ['Current count: ', count]),
 
     Div([
-        Button('Decrease').nd.onClick(() => {
-            count.$value--;
-        }),
-
-        Button('Reset').nd.onClick(() => {
-            count.set(0);
-        }),
-
-        Button('Increase').nd.onClick(() => {
-            count.$value++;
-        })
+        Button('−').nd.onClick(() => count.$value--),
+        Button('Reset').nd.onClick(() => count.set(0)),
+        Button('+').nd.onClick(() => count.$value++),
     ])
 ]);
 
-// Mount the application
 document.body.appendChild(CounterApp);
 ```
 
-### Step 3: Understanding What Happened
+### What happened
 
-1. **Imported Components**: We used `Div`, `Button`, and `H1` from `NativeDocument.elements`
-2. **Created Reactive State**: `Observable(0)` creates a reactive value that starts at 0
-3. **Built the UI**: Elements are created with attributes and children
-4. **Added Event Handlers**: `.nd.onClick()` attaches click event listeners
-5. **Automatic Updates**: When `count` changes, the UI updates automatically
+1. `Observable(0)` creates a reactive value starting at `0`
+2. `count` is passed directly as a child - the DOM updates automatically when it changes
+3. `.nd.onClick()` attaches a native click listener
+4. `count.$value++` mutates the value and triggers a DOM update
 
-## Todo List Application
+---
 
-Let's build something more complex - a todo list with add, delete, and filter functionality:
+## Todo List Example
+
+A more complete example with list rendering, filtering, and computed values:
 
 ```javascript
-const { Div, Input, Button, ShowIf, ForEach } = NativeDocument.elements;
-const { Observable } = NativeDocument;
+import { Div, Input, Button, ShowIf, ForEachArray } from 'native-document/elements';
+import { Observable } from 'native-document';
 
-// Reactive state
 const todos = Observable.array([]);
 const newTodo = Observable('');
-const filter = Observable('all'); // 'all', 'active', 'completed'
+const filter = Observable('all'); // 'all' | 'active' | 'completed'
 
-// Computed values
 const filteredTodos = Observable.computed(() => {
-    const allTodos = todos.val();
-    const currentFilter = filter.val();
-
-    if (currentFilter === 'active') {
-        return allTodos.filter(todo => !todo.done);
+    const all = todos.val();
+    if (filter.val() === 'active') {
+        return all.filter(t => t.done.equals(false));
     }
-    if (currentFilter === 'completed') {
-        return allTodos.filter(todo => todo.done);
+    if (filter.val() === 'completed') {
+        return all.filter(t => t.done.equals(true));
     }
-
-    return [...allTodos];
+    return [...all];
 }, [todos, filter]);
 
 const addTodo = () => {
@@ -205,212 +237,106 @@ const addTodo = () => {
         text: newTodo.val().trim(),
         done: false
     });
+    
     todos.push(todo);
     newTodo.set('');
 };
 
-// Todo application
 const TodoApp = Div({ class: 'todo-app' }, [
-    // Header
+
     Div({ class: 'header' }, [
-        Input({
-            placeholder: 'What needs to be done?',
-            value: newTodo
-        }),
+        Input({ placeholder: 'What needs to be done?', value: newTodo }),
         Button('Add').nd.onClick(addTodo)
     ]),
 
-    // Todo list container
-    Div({ class: 'todos-list'}, [
-        ShowIf(todos.check(list => list.length === 0),
-            Div({ class: 'empty' }, 'No todos yet! Add one above.')), // Empty state
+    ShowIf(todos.isEmpty(),
+        Div({ class: 'empty' }, 'No todos yet! Add one above.')
+    ),
 
-        // List of todos
-        ForEach(filteredTodos, (todo, index) => // Todo list
-                Div({ class: 'todo-item' }, [
-                    Input({
-                        type: 'checkbox',
-                        checked: todo.done
-                    }).nd.onChange((e) => {
-                        const todoList = todos.val();
-                        todoList[index.val()].done = e.target.checked;
-                        todos.set([...todoList]);
-                    }),
+    ForEachArray(filteredTodos, (todo, index) =>
+            Div({ class: 'todo-item' }, [
+                Input({ type: 'checkbox', checked: todo.done }),
+                Div(todo.text),
+                Button('Delete').nd.onClick(() => todos.removeItem(todo))
+            ]),
+        (item) => item.id
+    ),
 
-                    Div({ class: todo.done.check(d => d ? 'completed' : '') }, ['Task: ', todo.text]),
-
-                    Button('Delete').nd.onClick(() => {
-                        todos.splice(index.val(), 1);
-                    })
-                ]),
-            // Key function for efficient updates
-            (item) => item.id
-        )
-    ]),
-
-    // Filters
     Div({ class: 'filters' }, [
         Button('All').nd.onClick(() => filter.set('all')),
         Button('Active').nd.onClick(() => filter.set('active')),
         Button('Completed').nd.onClick(() => filter.set('completed'))
     ])
-
 ]);
 
 document.body.appendChild(TodoApp);
 ```
 
-## Key Concepts Demonstrated
-
-### Observables
-- `Observable(value)` - Creates reactive primitive values
-- `Observable.array([])` - Creates reactive arrays with array methods
-- `Observable.computed(() => {}, [deps])` - Creates computed values
-
-### Elements
-- Elements are functions that return DOM nodes
-- First parameter is attributes object (optional)
-- Second parameter is children array or single child
-- Children can be strings, numbers, elements, or observables
-
-### Event Handling
-- `.nd.onClick()` - Add click event listener
-- `.nd.onChange()` - Add change event listener
-- Event handlers receive the native event object
-
-### Conditional Rendering
-- `ShowIf(condition, content)` - Show content when condition is true
-- `ForEach(array, callback, propertyKey || keyFn)` - Render lists efficiently
-
-## Project Structure
-
-For larger applications, organize your code like this:
-
-```
-my-app/
-├── index.html
-├── src/
-│   ├── main.js          # Application entry point
-│   ├── components/      # Reusable components
-│   │   ├── TodoItem.js
-│   │   └── Header.js
-│   ├── stores/          # Global state
-│   │   └── TodoStore.js
-│   └── utils/           # Helper functions
-│       └── validators.js
-├── styles/
-│   └── main.css
-└── package.json
-```
-
-### Example Component (components/TodoItem.js)
-
-```javascript
-import { Div, Input, Button } from 'native-document/src/elements';
-
-export function TodoItem(todo, onToggle, onDelete) {
-    return Div({ class: 'todo-item' }, [
-        Input({
-            type: 'checkbox',
-            checked: todo.done
-        }).nd.onChange(onToggle),
-
-        Div(['Task: ', todo.text]),
-
-        Button('Delete').nd.onClick(onDelete)
-    ]);
-}
-```
-
-## Development Workflow
-
-### Auto Reload with Vite
-
-When using the Vite template, your development server automatically reloads when you make changes:
-
-```bash
-npm run dev  # Start development server
-npm run build  # Build for production
-npm run preview  # Preview production build
-```
+---
 
 ## Browser Support
 
-NativeDocument works in all modern browsers that support:
+NativeDocument requires:
 - ES6 Modules
 - Proxy objects
-- FinalizationRegistry (for automatic memory management)
+- `FinalizationRegistry` (for automatic memory management)
 
-**Supported browsers:**
-- Chrome 84+
-- Firefox 79+
-- Safari 14.1+
-- Edge 84+
+| Browser | Minimum version |
+|---------|----------------|
+| Chrome  | 84+            |
+| Firefox | 79+            |
+| Safari  | 14.1+          |
+| Edge    | 84+            |
 
-## Next Steps
-
-Now that you've built your first NativeDocument applications, explore these topics:
-
-- **[Core Concepts](core-concepts.md)** - Understanding the fundamentals
-- **[Observables](observables.md)** - Reactive state management
-- **[Elements](elements.md)** - Creating and composing UI
-- **[Conditional Rendering](conditional-rendering.md)** - Dynamic content
-- **[List Rendering](list-rendering.md)** - (ForEach | ForEachArray) and dynamic lists
-- **[Routing](routing.md)** - Navigation and URL management
-- **[State Management](state-management.md)** - Global state patterns
-- **[Lifecycle Events](lifecycle-events.md)** - Lifecycle events
-- **[NDElement](native-document-element.md)** - Native Document Element
-- **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
-- **[Advanced Components](advanced-components.md)** - Template caching and singleton views
-- **[Args Validation](validation.md)** - Function Argument Validation
-- **[Memory Management](memory-management.md)** - Memory management
-- **[Anchor](anchor.md)** - Anchor
-
-## Utilities
-
-- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
-- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
-- **[Filters](docs/utils/filters.md)** - Data filtering helpers
-
+---
 
 ## Common Issues
 
-### Import Errors
-**Problem**: `Cannot resolve module 'native-document'`
+### Import errors
 
-**Solution**: Make sure you're using the correct import path:
 ```javascript
-// Correct
-import { Div } from 'native-document/src/elements'
-import { Observable } from 'native-document'
+// ✅ Correct
+import { Div, Button } from 'native-document/elements';
+import { Observable } from 'native-document';
+import { Router, Link } from 'native-document/router';
+import { tr } from 'native-document/i18n';
 
 // CDN
-const { Div } = NativeDocument.elements;
+const { Div, Button } = NativeDocument.elements;
 const { Observable } = NativeDocument;
 ```
 
-### Observable Not Updating
-**Problem**: UI doesn't update when you change observable values
+### Observable not updating the DOM
 
-**Solution**: Make sure you're using `.set()` method:
 ```javascript
-// Wrong
+// ❌ Wrong - direct assignment on the outer variable
 count = 5;
 
-// Correct  
+// ✅ Correct
 count.set(5);
-// Correct  
 count.$value = 5;
 ```
 
-### Memory Leaks
-**Problem**: Application slows down over time
+### Memory leaks
 
-**Solution**: NativeDocument has automatic memory management, but you can help by cleaning up manual subscriptions:
+NativeDocument handles cleanup automatically. For manual subscriptions, store and call the unsubscribe function:
+
 ```javascript
-const unsubscribe = observable.subscribe(callback);
+const callback = () => {};
+observable.subscribe(callback);
+
 // Later...
-unsubscribe(); // Clean up manually if needed
+observable.unsubscribe(callback)
 ```
 
-Ready to dive deeper? Continue with [Core Concepts](core-concepts.md)!
+---
+
+## Next Steps
+
+- **[Core Concepts](./core-concepts.md)** - Understanding the fundamentals
+- **[Observables](./observables.md)** - Reactive state management
+- **[Elements](./elements.md)** - Creating and composing UI
+- **[Routing](./routing.md)** - Navigation and URL management
+- **[State Management](./state-management.md)** - Global state patterns
+- **[CLI](./cli.md)** - All scaffolding commands
+- **[i18n & Formatting](./i18n.md)** - Translations and locale-aware formatting

@@ -1,274 +1,259 @@
-# Extending NDElement - Custom Methods Guide
+---
+title: Extending NDElement
+description: Add custom methods to NDElement to create reusable, domain-specific APIs across your application
+---
 
-NDElement is designed to be extensible, allowing developers to add custom methods that make their code more readable and maintainable. This guide shows how to create custom NDElement extensions for common patterns.
+# Extending NDElement
 
-## Why Extend NDElement?
+NDElement is designed to be extensible. You can add custom methods to make your code more expressive, reduce boilerplate, and create a consistent API across your application.
 
-Extending NDElement allows you to:
-- **Encapsulate common patterns** into reusable methods
-- **Improve code readability** with domain-specific method names
-- **Reduce boilerplate** by abstracting complex event handling
-- **Create a consistent API** across your application
+## Two Ways to Extend
 
-## Basic Extension Pattern
+### `NDElement.extend()` - App-wide methods
 
-The simplest way to extend NDElement is by adding methods to its prototype:
+Use `NDElement.extend()` to add methods to **all NDElement instances**. This is the recommended public API:
 
 ```javascript
-// Basic extension
-NDElement.prototype.customMethod = function(/* parameters */) {
-    // Your logic here
-    return this; // Return 'this' for method chaining
-};
+import { NDElement } from 'native-document';
+
+NDElement.extend({
+    onEnter(callback) {
+        this.$element.addEventListener('keyup', e => {
+            if (e.key === 'Enter') callback(e);
+        });
+        return this;
+    }
+});
+
+// Now available on every element
+Input({ type: 'text' }).nd.onEnter(e => console.log('Enter pressed'));
 ```
+
+### `.nd.with()` - Instance-level methods
+
+Use `.nd.with()` to add methods to a **single element instance** only. See [NDElement](./native-document-element.md) for the full explanation and the `Counter` use case.
+
+```javascript
+const card = Div({ class: 'card' })
+    .nd.with({
+        highlight() {
+            this.$element.style.outline = '2px solid blue';
+            return this;
+        }
+    })
+    .highlight();
+```
+
+> Always `return this` at the end of every method to enable chaining.
+
+---
 
 ## Common Extension Examples
 
-### 1. Keyboard Event Shortcuts
-
-Instead of writing complex keyboard event handlers, create semantic shortcuts:
+### Keyboard shortcuts
 
 ```javascript
-// Enter key handler
-NDElement.prototype.onEnter = function(callback) {
-    this.$element.addEventListener('keyup', e => {
-        if (e.key === 'Enter') {
-            callback(e);
-        }
-    });
-    return this;
-};
-
-// Escape key handler
-NDElement.prototype.onEscape = function(callback) {
-    this.$element.addEventListener('keyup', e => {
-        if (e.key === 'Escape') {
-            callback(e);
-        }
-    });
-    return this;
-};
-
-// Arrow keys handler
-NDElement.prototype.onArrowKey = function(callback) {
-    this.$element.addEventListener('keydown', e => {
-        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-            callback(e, e.key);
-        }
-    });
-    return this;
-};
+NDElement.extend({
+    onEnter(callback) {
+        this.$element.addEventListener('keyup', e => {
+            if (e.key === 'Enter') callback(e);
+        });
+        return this;
+    },
+    onEscape(callback) {
+        this.$element.addEventListener('keyup', e => {
+            if (e.key === 'Escape') callback(e);
+        });
+        return this;
+    },
+    onArrowKey(callback) {
+        this.$element.addEventListener('keydown', e => {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                callback(e, e.key);
+            }
+        });
+        return this;
+    }
+});
 
 // Usage
 Input({ type: 'text' })
-    .nd.onEnter(e => console.log('Form submitted'))
+    .nd
+    .onEnter(e => console.log('Submitted'))
     .onEscape(e => e.target.blur())
-    .onArrowKey((e, direction) => console.log('Arrow pressed:', direction));
+    .onArrowKey((e, direction) => console.log('Arrow:', direction));
 ```
 
-### 2. Form Validation Extensions
-
-Create semantic validation methods:
+### Form validation
 
 ```javascript
-// Required field validation
-NDElement.prototype.required = function(message = 'This field is required') {
-    this.$element.addEventListener('blur', e => {
-        const value = e.target.value.trim();
-        if (!value) {
-            this.showError(message);
-        } else {
-            this.clearError();
-        }
-    });
-    return this;
-};
-
-// Email validation
-NDElement.prototype.email = function(message = 'Please enter a valid email') {
-    this.$element.addEventListener('blur', e => {
-        const email = e.target.value.trim();
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (email && !emailRegex.test(email)) {
-            this.showError(message);
-        } else {
-            this.clearError();
-        }
-    });
-    return this;
-};
-
-// Min length validation
-NDElement.prototype.minLength = function(length, message) {
-    message = message || `Minimum ${length} characters required`;
-    this.$element.addEventListener('input', e => {
-        if (e.target.value.length < length && e.target.value.length > 0) {
-            this.showError(message);
-        } else {
-            this.clearError();
-        }
-    });
-    return this;
-};
-
-// Error display helpers
-NDElement.prototype.showError = function(message) {
-    this.clearError();
-    const errorElement = Span({
-        class: 'error-message',
-        style: 'color: red; font-size: 0.8rem'
-    }, message);
-
-    this.$element.parentNode.appendChild(errorElement);
-    this.$element.classList.add('error');
-    return this;
-};
-
-NDElement.prototype.clearError = function() {
-    const parent = this.$element.parentNode;
-    const existingError = parent.querySelector('.error-message');
-    if (existingError) {
-        existingError.remove();
+NDElement.extend({
+    required(message = 'This field is required') {
+        this.$element.addEventListener('blur', e => {
+            e.target.value.trim() ? this.clearError() : this.showError(message);
+        });
+        return this;
+    },
+    email(message = 'Please enter a valid email') {
+        this.$element.addEventListener('blur', e => {
+            const value = e.target.value.trim();
+            const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+            value && !valid ? this.showError(message) : this.clearError();
+        });
+        return this;
+    },
+    minLength(length, message) {
+        message = message || `Minimum ${length} characters required`;
+        this.$element.addEventListener('input', e => {
+            const len = e.target.value.length;
+            len > 0 && len < length ? this.showError(message) : this.clearError();
+        });
+        return this;
+    },
+    showError(message) {
+        this.clearError();
+        this.$element.parentNode.appendChild(
+            Span({ class: 'error-message', style: 'color: red; font-size: 0.8rem' }, message)
+        );
+        this.$element.classList.add('error');
+        return this;
+    },
+    clearError() {
+        this.$element.parentNode.querySelector('.error-message')?.remove();
+        this.$element.classList.remove('error');
+        return this;
     }
-    this.$element.classList.remove('error');
-    return this;
-};
+});
 
 // Usage
 Input({ type: 'email', placeholder: 'Email' })
-    .nd.required()
+    .nd
+    .required()
     .email();
 
 Input({ type: 'password', placeholder: 'Password' })
-    .nd.required()
+    .nd
+    .required()
     .minLength(8, 'Password must be at least 8 characters');
 ```
 
-### 3. Animation Extensions
-
-Create smooth animation helpers:
+### Animations
 
 ```javascript
-// Fade in animation
-NDElement.prototype.fadeIn = function(duration = 300) {
-    this.$element.style.opacity = '0';
-    this.$element.style.transition = `opacity ${duration}ms ease-in-out`;
-    
-    requestAnimationFrame(() => {
-        this.$element.style.opacity = '1';
-    });
-    
-    return this;
-};
-
-// Fade out animation
-NDElement.prototype.fadeOut = function(duration = 300, callback) {
-    this.$element.style.transition = `opacity ${duration}ms ease-in-out`;
-    this.$element.style.opacity = '0';
-    
-    setTimeout(() => {
-        if (callback) callback();
-    }, duration);
-    
-    return this;
-};
-
-// Slide down animation
-NDElement.prototype.slideDown = function(duration = 300) {
-    const element = this.$element;
-    element.style.maxHeight = '0';
-    element.style.overflow = 'hidden';
-    element.style.transition = `max-height ${duration}ms ease-in-out`;
-    
-    requestAnimationFrame(() => {
-        element.style.maxHeight = element.scrollHeight + 'px';
-    });
-    
-    return this;
-};
+NDElement.extend({
+    fadeIn(duration = 300) {
+        duration = Math.max(0, parseInt(duration) || 300);
+        this.$element.style.opacity = '0';
+        this.$element.style.transition = `opacity ${duration}ms ease-in-out`;
+        requestAnimationFrame(() => {
+            this.$element.style.opacity = '1';
+        });
+        return this;
+    },
+    fadeOut(duration = 300, callback) {
+        duration = Math.max(0, parseInt(duration) || 300);
+        this.$element.style.transition = `opacity ${duration}ms ease-in-out`;
+        this.$element.style.opacity = '0';
+        setTimeout(() => { if (callback) callback(); }, duration);
+        return this;
+    },
+    slideDown(duration = 300) {
+        const el = this.$element;
+        el.style.maxHeight = '0';
+        el.style.overflow = 'hidden';
+        el.style.transition = `max-height ${duration}ms ease-in-out`;
+        requestAnimationFrame(() => {
+            el.style.maxHeight = el.scrollHeight + 'px';
+        });
+        return this;
+    }
+});
 
 // Usage
-Div("Animated content")
-    .nd.onClick(function() {
-        this.nd.fadeOut(300, () => this.remove());
-    });
+Div('Animated content').nd.onClick(function() {
+    this.nd.fadeOut(300, () => this.nd.remove());
+});
 ```
+
+---
 
 ## Best Practices
 
-### 1. Always Return `this`
-Enable method chaining by returning the NDElement instance:
+### Always return `this`
+
+Every method must return `this` to keep the chain alive:
 
 ```javascript
-NDElement.prototype.myMethod = function() {
-    // Your logic here
-    return this; // Enable chaining
-};
+NDElement.extend({
+    myMethod() {
+        // your logic
+        return this; // required
+    }
+});
 ```
 
-### 2. Use Descriptive Method Names
-Choose names that clearly describe what the method does:
+### Use descriptive names
 
 ```javascript
 // Good
-NDElement.prototype.onEnter = function(callback) { /* ... */ };
-NDElement.prototype.fadeIn = function(duration) { /* ... */ };
+NDElement.extend({ onEnter(cb) { ... } });
+NDElement.extend({ fadeIn(duration) { ... } });
 
 // Avoid
-NDElement.prototype.ke = function(callback) { /* ... */ }; // Unclear
-NDElement.prototype.doStuff = function() { /* ... */ }; // Too vague
+NDElement.extend({ ke(cb) { ... } });     // unclear
+NDElement.extend({ doStuff() { ... } });  // too vague
 ```
 
-### 3. Handle Edge Cases
-Always consider edge cases and provide sensible defaults:
+### Guard against edge cases
 
 ```javascript
-NDElement.prototype.fadeIn = function(duration = 300) {
-    // Ensure duration is valid
-    duration = Math.max(0, parseInt(duration) || 300);
-    
-    // Check if element exists
-    if (!this.$element) return this;
-    
-    // Your animation logic
-    return this;
-};
+NDElement.extend({
+    fadeIn(duration = 300) {
+        if (!this.$element) return this;
+        duration = Math.max(0, parseInt(duration) || 300);
+        // animation logic
+        return this;
+    }
+});
 ```
 
-### 4. Document Your Extensions
-
-Always document your custom methods:
+### Document your extensions
 
 ```javascript
 /**
- * Handles Enter key press events
- * @param {Function} callback - Function to call when Enter is pressed
- * @returns {NDElement} Returns this for method chaining
+ * Fires callback when the Enter key is pressed
+ * @param {Function} callback - receives the KeyboardEvent
+ * @returns {NDElement} this - for chaining
  * @example
- * Input().nd.onEnter(e => console.log('Enter pressed'));
+ * Input().nd.onEnter(e => submitForm());
  */
-NDElement.prototype.onEnter = function(callback) {
-    this.$element.addEventListener('keyup', e => {
-        if (e.key === 'Enter') {
-            callback(e);
-        }
-    });
-    return this;
-};
+NDElement.extend({
+    onEnter(callback) {
+        this.$element.addEventListener('keyup', e => {
+            if (e.key === 'Enter') callback(e);
+        });
+        return this;
+    }
+});
 ```
 
-By extending NDElement thoughtfully, you can create a powerful, domain-specific API that makes your code more readable, maintainable, and enjoyable to work with.
+### Respect protected methods
+
+The following names cannot be used - attempting to extend with them throws a `NativeDocumentError`:
+
+`constructor`, `valueOf`, `$element`, `$observer`, `ref`, `remove`, `cleanup`, `with`, `extend`, `attach`, `lifecycle`, `mounted`, `unmounted`, `unmountChildren`
+
+---
 
 ## Next Steps
 
-Explore these related topics to build complete applications:
-
-- **[Args Validation](validation.md)** - Function Argument Validation
-- **[Memory Management](memory-management.md)** - Memory management
-- **[Anchor](anchor.md)** - Anchor
+- **[NDElement](./native-document-element.md)** - Full NDElement API reference
+- **[Lifecycle Events](./lifecycle-events.md)** - Lifecycle in depth
+- **[Args Validation](./validation.md)** - Function argument validation
+- **[Memory Management](./memory-management.md)** - Memory management
 
 ## Utilities
 
-- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
-- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
-- **[Filters](docs/utils/filters.md)** - Data filtering helpers
+- **[Cache](./cache.md)** - Lazy initialization and singleton patterns
+- **[NativeFetch](./native-fetch.md)** - HTTP client with interceptors
+- **[Filters](./filters.md)** - Data filtering helpers

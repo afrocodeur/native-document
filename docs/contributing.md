@@ -1,51 +1,326 @@
+---
+title: Contributing
+description: How to contribute to NativeDocument - bug reports, feature requests, code contributions, and documentation improvements
+---
+
 # Contributing to NativeDocument
 
 Thank you for your interest in contributing to NativeDocument! We welcome all types of contributions.
 
-## Quick Start for Contributors
+## Quick Start
 
-1. **Fork the repository** on GitHub
-2. **Clone your fork** locally: `git clone https://github.com/your-username/native-document.git`
-3. **Install dependencies**: `npm install`
-4. **Start development**: `npm run dev`
+```bash
+git clone https://github.com/afrocodeur/native-document.git
+cd native-document
+npm install
+npm run dev
+```
+
+## Available Scripts
+
+```bash
+npm run dev      # Start development mode
+npm run build    # Build for production
+npm run lint     # Run ESLint
+```
+
+> There is currently no automated test suite. Changes are verified manually using the provided examples.
+
+---
 
 ## Types of Contributions
 
 ### Bug Reports
-Found a bug? Please include:
+
+Found a bug? Please open an issue and include:
+
 - Steps to reproduce
 - Expected vs actual behavior
-- Browser/environment details
-- Minimal code example
+- Browser and environment details
+- A minimal code example
 
 ### Feature Requests
-Have an idea? We'd love to hear it! Please describe:
-- The problem you're solving
+
+Have an idea? Please describe:
+
+- The problem you are solving
 - Your proposed solution
 - Alternative approaches considered
 
 ### Code Contributions
-- Fork and create a feature branch: `git checkout -b feature/amazing-feature`
-- Test your changes manually with examples
-- Follow our coding standards
-- Submit a pull request with clear description
+
+```bash
+# Fork the repo, then:
+git checkout -b feature/my-feature
+# Make your changes
+# Test manually with examples
+# Submit a pull request with a clear description
+```
+
+### Documentation
+
+Help improve the docs:
+
+- Fix typos and unclear explanations
+- Add missing examples
+- Create tutorial content
+
+---
 
 ## Development Guidelines
 
 ### Code Style
+
 - Use camelCase for variables and functions
-- Add JSDoc comments for public APIs
+- Add JSDoc comments for all public APIs
 - Keep functions small and focused
 - Use meaningful variable names
+- Always use braces for `if` blocks
 
-### Manual Testing
-- Test your changes with provided examples
-- Create new examples to demonstrate features
-- Verify cross-browser compatibility
+### Build Output
 
-## Documentation
-Help improve our docs:
-- Fix typos and unclear explanations
-- Add missing examples
-- Translate to other languages
-- Create tutorial content
+Running `npm run build` produces:
+
+- `dist/native-document.min.js` - CDN bundle (all features)
+- `dist/native-document.js` - Full unminified bundle
+- Tree-shakeable ESM output for bundlers
+
+### Commit Messages
+
+Follow the conventional commits format:
+
+```
+feat(observable): add resource() async data fetching
+fix(singleton): route section updates by named key
+docs(routing): document RouteParamPatterns built-in entries
+```
+
+---
+
+## CLI Contributions
+
+The CLI is a separate repository:
+
+- [github.com/afrocodeur/native-document-cli](https://github.com/afrocodeur/native-document-cli)
+
+---
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the MIT License.
+
+---
+
+# Documentation Conventions
+
+This section is for contributors working on the documentation itself.
+
+## Frontmatter
+
+Every markdown file must start with a frontmatter block:
+
+```yaml
+---
+title: Page Title
+description: One sentence description for SEO and sidebar tooltip
+---
+```
+
+Special pages:
+- Home page (`index.md`) uses the `layout: home` frontmatter with hero and features blocks
+- API reference pages can add `outline: deep` to show all heading levels in the right sidebar
+
+---
+
+## Folder & File Structure
+
+```
+docs/
+├── index.md                        # Home page (layout: home)
+├── getting-started.md
+├── core-concepts.md
+├── observables.md
+├── elements.md
+├── conditional-rendering.md
+├── list-rendering.md
+├── routing.md
+├── state-management.md
+├── lifecycle-events.md
+├── native-document-element.md
+├── extending-native-document-element.md
+├── advanced-components.md
+├── validation.md
+├── memory-management.md
+├── anchor.md
+├── svg-elements.md
+├── i18n.md
+├── components/
+│   ├── index.md
+│   ├── getting-started.md
+│   ├── traits.md
+│   ├── layout.md
+│   ├── accordion.md
+│   ├── alert.md
+│   ├── avatar.md
+│   ├── breadcrumb.md
+│   ├── button.md
+│   ├── context-menu.md
+│   ├── data-table.md
+│   ├── dropdown.md
+│   ├── file.md
+│   ├── form-fields.md
+│   ├── form/checkbox-field.md
+│   ├── select.md
+│   ├── menu.md
+│   ├── modal.md
+│   ├── slider-stepper.md
+│   ├── splitter.md
+│   ├── switch.md
+│   ├── tabs.md
+│   ├── toast.md
+│   └── tooltip.md
+└── utils/
+    ├── cache.md
+    ├── native-fetch.md
+    └── filters.md
+```
+
+---
+
+## Internal Links
+
+VitePress resolves links relative to the current file.
+Always use `.md` extension - VitePress strips it at build time.
+
+```markdown
+<!-- From docs/readme.md or docs/getting-started.md -->
+[Observables](./observables.md)
+[Cache](./cache.md)
+[Components](./components/index.md)
+
+<!-- From docs/components/accordion.md -->
+[Getting Started](./getting-started.md)          <!-- components/getting-started.md -->
+[Observables](./observables.md)                 <!-- docs/observables.md -->
+[Cache](../utils/cache.md)                       <!-- docs/utils/cache.md -->
+```
+
+Never use absolute paths (`/docs/...`) or paths without `.md`.
+
+---
+
+## `.vitepress/config.js` - Sidebar & Nav
+
+```javascript
+// .vitepress/config.js
+export default {
+    title: 'NativeDocument',
+    description: 'A reactive JavaScript framework that preserves native DOM simplicity',
+    themeConfig: {
+        nav: [
+            { text: 'Guide',      link: '/getting-started' },
+            { text: 'Components', link: '/components/' },
+            { text: 'Utilities',  link: '/cache' },
+        ],
+        sidebar: {
+            '/components/': [
+                {
+                    text: 'Components',
+                    items: [
+                        { text: 'Overview',          link: '/components/' },
+                        { text: 'Getting Started',   link: '/components/getting-started' },
+                        { text: 'Traits',            link: '/components/traits' },
+                        { text: 'Layout',            link: '/components/layout' },
+                        { text: 'Accordion',         link: '/components/accordion' },
+                        { text: 'Alert & Feedback',  link: '/components/alert' },
+                        { text: 'Avatar',            link: '/components/avatar' },
+                        { text: 'Breadcrumb',        link: '/components/breadcrumb' },
+                        { text: 'Button',            link: '/components/button' },
+                        { text: 'Context Menu',      link: '/components/context-menu' },
+                        { text: 'Data Table',        link: '/components/data-table' },
+                        { text: 'Dropdown',          link: '/components/dropdown' },
+                        { text: 'File Upload',       link: '/components/form/file-field' },
+                        { text: 'Form Fields',       link: '/components/form-fields' },
+                        { text: 'Checkbox & Radio',  link: '/components/form/checkbox-field' },
+                        { text: 'Select',            link: '/components/form/select-field' },
+                        { text: 'Menu',              link: '/components/menu' },
+                        { text: 'Modal & Popover',   link: '/components/modal' },
+                        { text: 'Slider',            link: '/components/form/slider' },
+                        { text: 'Stepper',           link: '/components/stepper' },
+                        { text: 'Splitter',          link: '/components/splitter' },
+                        { text: 'Switch',            link: '/components/switch' },
+                        { text: 'Tabs',              link: '/components/tabs' },
+                        { text: 'Toast',             link: '/components/toast' },
+                        { text: 'Tooltip',           link: '/components/tooltip' },
+                    ]
+                }
+            ],
+            '/': [
+            '/': [
+                {
+                    text: 'Guide',
+                    items: [
+                        { text: 'Getting Started',        link: '/getting-started' },
+                        { text: 'Core Concepts',          link: '/core-concepts' },
+                        { text: 'Observables',            link: '/observables' },
+                        { text: 'Elements',               link: '/elements' },
+                        { text: 'Conditional Rendering',  link: '/conditional-rendering' },
+                        { text: 'List Rendering',         link: '/list-rendering' },
+                        { text: 'Routing',                link: '/routing' },
+                        { text: 'State Management',       link: '/state-management' },
+                        { text: 'Lifecycle Events',       link: '/lifecycle-events' },
+                        { text: 'NDElement',              link: '/native-document-element' },
+                        { text: 'Extending NDElement',    link: '/extending-native-document-element' },
+                        { text: 'Advanced Components',    link: '/advanced-components' },
+                        { text: 'Args Validation',        link: '/validation' },
+                        { text: 'Memory Management',      link: '/memory-management' },
+                        { text: 'Anchor',                 link: '/anchor' },
+                        { text: 'SVG Elements',           link: '/svg-elements' },
+                        { text: 'i18n & Formatting',      link: '/i18n' },
+                    ]
+                }
+            ]
+        },
+        socialLinks: [
+            { icon: 'github', link: 'https://github.com/afrocodeur/native-document' }
+        ]
+    }
+}
+```
+
+---
+
+## Page Template
+
+Every doc page follows this structure:
+
+```markdown
+---
+title: Page Title
+description: One sentence description
+---
+
+# Page Title
+
+Brief intro paragraph.
+
+## Section
+
+Content.
+
+## Next Steps
+
+- [Link to related page](./related.md)
+- [Another link](./other.md)
+```
+
+---
+
+## Rules Applied to All Files
+
+1. Every file starts with frontmatter (`title` + `description`)
+2. All internal links use relative paths with `.md` extension
+3. No `docs/` prefix in any link (files are already inside `docs/`)
+4. Utility links: `./utils/cache.md`, `./utils/native-fetch.md`, `./utils/filters.md`
+5. Component links from guide pages: `./components/index.md`
+6. Component links from component pages: `../observables.md` to go up to guide
+7. The "Next Steps" section at the bottom of each page replaces the old flat link lists

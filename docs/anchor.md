@@ -1,438 +1,299 @@
+---
+title: Anchor
+description: Anchors enable dynamic DOM manipulation without wrapper elements using invisible comment node boundaries
+---
+
 # Anchor
 
 Anchors enable dynamic DOM manipulation without wrapper elements. They use two invisible comment nodes as boundaries, allowing you to insert, remove, and replace content between them while keeping your DOM clean.
 
-## What are Anchors?
+All conditional rendering and list rendering utilities in NativeDocument (`ShowIf`, `ForEach`, `Match`, etc.) are built on top of `Anchor`.
 
-Anchors are instances of the Anchor class that use two comment nodes as invisible markers:
-> **Important:** Anchors must be appended to a parent element to function. The comment markers only exist once the anchor is in the DOM.
+## What is an Anchor?
 
-> **Note:** `NativeDocumentFragment` is an alias for `Anchor` - both create the same anchor system.
+An `Anchor` creates two invisible comment nodes as markers in the DOM:
 
 ```javascript
-// Create an anchor instance
-const anchor = Anchor("My Content");
-// Or using the alias
-const anchor = NativeDocumentFragment("My Content");
+import { Anchor } from 'native-document/elements';
 
-// In the DOM, this creates:
-// <!-- Anchor Start : My Content -->
-// <!-- / Anchor End My Content -->
+const anchor = Anchor('My Section');
 
-// Content can be inserted between these markers
-anchor.appendChild(Div("Dynamic content"));
-// <!-- Anchor Start : My Content -->
+// Once in the DOM, creates:
+// <!-- Anchor Start : My Section -->
+// <!-- / Anchor End My Section -->
+
+anchor.appendChild(Div('Dynamic content'));
+// <!-- Anchor Start : My Section -->
 // <div>Dynamic content</div>
-// <!-- / Anchor End My Content -->
+// <!-- / Anchor End My Section -->
 ```
+
+> `NativeDocumentFragment` is a valid alias for `Anchor` - both create the same system.
+
+> Anchors must be appended to a parent element before their methods work. The comment markers only exist once the anchor is in the DOM.
+
+---
 
 ## Fragment vs Anchor
 
-**Fragment** is a wrapper around `document.createDocumentFragment()`:
+**`Fragment`** wraps `document.createDocumentFragment()` - for one-time static content grouping:
 
 ```javascript
-// Fragment creates a standard DOM DocumentFragment
-const fragment = Fragment(); // Wraps document.createDocumentFragment()
-fragment.appendChild([
-    Div("Standard fragment content"),
-    Div("Standard fragment content 2"),
-]); // Returns document.createDocumentFragment() with children
+const fragment = Fragment(
+    H1('Static Title'),
+    P('Static content')
+);
+// Replaced entirely when appended to parent
 ```
 
-**Anchor** is a NativeDocument class for dynamic content management:
+**`Anchor`** is for dynamic content that updates over time:
 
 ```javascript
-// Anchor is a NativeDocument class
-const anchor = Anchor("Dynamic Area");
-anchor.appendChild(Div("Dynamic content")); // Uses comment markers system
+const anchor = Anchor('Dynamic Area');
+anchor.appendChild(Div('Initial content'));
+anchor.replaceContent(Div('Updated content')); // markers stay, content swaps
 ```
 
-## Anchor vs DOM Elements
+---
 
-### Why Use Anchors?
+## Why Use Anchors?
 
-**Without Anchors (wrapper element):**
+Without an anchor you need a wrapper element:
+
 ```javascript
-const wrapper = Div({ class: 'wrapper' }); // Extra DOM node
-
-if (condition) {
-    wrapper.appendChild(Div("Content"));
-}
-// DOM: Content
+// Extra div in the DOM
+const wrapper = Div({ class: 'wrapper' });
+wrapper.appendChild(Div('Content'));
 ```
 
-**With Anchors (no wrapper):**
-```javascript
-const anchor = Anchor("Content");
+With an anchor, no wrapper is needed:
 
-if (condition) {
-    anchor.appendChild(Div("Content"));
-}
-// DOM: Content<!-- / Anchor End Content -->
+```javascript
+const anchor = Anchor('Content');
+anchor.appendChild(Div('Content'));
+// DOM: just the div between two comment nodes
 ```
 
-**Benefits:**
-- ✅ No extra DOM nodes
-- ✅ Cleaner HTML structure
-- ✅ Better semantic markup
-- ✅ Easier CSS targeting (no wrapper interference)
+Benefits: no extra DOM nodes, cleaner HTML, no CSS interference from wrapper elements.
 
-## Creating and Using Anchors
+---
 
-### Creating Anchors
+## API Reference
+
+### `appendChild(child)` / `append(child)`
+
+Inserts content before the end marker. Accepts an element, array, or any valid child:
 
 ```javascript
-// Create anchor with custom identifier
-const contentAnchor = Anchor("Content Area");
-const listAnchor = Anchor("Todo List");
-
-// Anchor needs to be added to parent container
-const container = Div();
-container.appendChild(contentAnchor);
+anchor.appendChild(Div('Content'));
+anchor.appendChild([H1('Title'), P('Body'), Button('Action')]);
+anchor.append(Div('Same as appendChild'));
 ```
 
-### appendChild() - Add Content Between Markers
+### `insertAtStart(child)`
+
+Inserts content inside the anchor, immediately after the start marker - the opposite of `appendChild` which inserts before the end marker:
 
 ```javascript
-const anchor = Anchor("Dynamic Section");
-const container = Div();
-container.appendChild(anchor);
-
-// Add content between the markers
-anchor.appendChild(Div("Dynamic content 1"));
-anchor.appendChild(Div("Dynamic content 2"));
-
-// DOM structure:
-// <div>
-//   <!-- Anchor Start : Dynamic Section -->
-//   <div>Dynamic content 1</div>
-//   <div>Dynamic content 2</div>
-//   <!-- / Anchor End Dynamic Section -->
-// </div>
+anchor.insertAtStart(Div('Just before the anchor start'));
+// DOM:
+// <!-- Anchor Start : My Section -->
+// <div>Just before the anchor start</div>  <- inserted here
+// ... anchor content ...
+// <!-- / Anchor End My Section -->
 ```
 
-### appendChild() with Arrays
+### `replaceContent(child)` / `setContent(child)`
+
+Removes all current content and inserts new content in one operation:
+
 ```javascript
-const anchor = Anchor("Multi Insert");
-
-// Append multiple elements at once
-anchor.appendChild([
-    Div("Element 1"),
-    Div("Element 2"),
-    Div("Element 3")
-]);
-
-// More efficient than multiple calls:
-// anchor.appendChild(Div("Element 1"));
-// anchor.appendChild(Div("Element 2"));
-// anchor.appendChild(Div("Element 3"));
+anchor.replaceContent(Div('New content'));
+anchor.setContent(Div('Same as replaceContent'));
 ```
 
-### insertBefore() - Positioned Insertion
+Prefer `replaceContent()` over `remove()` + `appendChild()` - it's a single DOM operation.
+
+### `removeChildren()`
+
+Removes all content between the markers. The markers stay in place and the anchor can be reused. Children are **destroyed**:
 
 ```javascript
-const anchor = Anchor("Ordered Content");
-const element1 = Div("First");
-const element2 = Div("Second");
-
-anchor.appendChild(element1);
-anchor.insertBefore(element2, element1); // Inserts before element1
-// Result: element2, element1
+anchor.removeChildren(); // content gone, markers remain
+anchor.appendChild(Div('Fresh content')); // reuse the anchor
 ```
 
-### replaceContent() - Replace All Content
+### `remove()`
+
+Moves all content out of the DOM back into the internal fragment - content is **preserved** but detached. The markers stay in place:
 
 ```javascript
-const anchor = Anchor("Replaceable");
-anchor.appendChild(Div("Old content"));
-
-// Replace all content between markers with new content
-anchor.replaceContent(Div("New content"));
+anchor.remove(); // content detached but kept internally
+anchor.appendChild(previousContent); // can be re-attached
 ```
 
-## Content Management Methods
+> **Difference:** `removeChildren()` destroys children. `remove()` moves them back into the fragment, preserving them for potential re-use.
 
-### remove() vs removeChildren() vs clear()
+### `removeWithAnchors()` / `delete()`
+
+Destroys the content **and** removes the comment markers from the DOM. The anchor becomes unusable:
 
 ```javascript
-const anchor = Anchor("Content Management");
-
-// Remove all content between markers (markers remain)
-anchor.remove(); // Content cleared, anchor can be reused
-anchor.removeChildren(); // Same as remove() - more explicit name
-
-// Alias for remove() - clears content but keeps anchor
-anchor.clear();
+anchor.removeWithAnchors(); // or anchor.delete()
+// anchor is now permanently gone
 ```
 
-### removeWithAnchors() - Complete Removal
-> **Warning:** Once `removeWithAnchors()` is called, the anchor instance becomes unusable. Create a new anchor if you need dynamic content again.
+### `getParent()`
+
+Returns the current parent node:
 
 ```javascript
-// Remove markers AND all content permanently  
-anchor.removeWithAnchors(); // Destroys the entire anchor system
+const parent = anchor.getParent();
 ```
 
-## Anchor Access Methods
+### `startElement()` / `endElement()`
 
-### Access Markers
+Returns the start or end comment node:
 
 ```javascript
-const anchor = Anchor("My Anchor");
-
-// Get the start and end comment nodes
 const start = anchor.startElement();
-const end = anchor.endElement();
+const end   = anchor.endElement();
 
-console.log(start.textContent); // "Anchor Start : My Anchor"
-console.log(end.textContent);   // "/ Anchor End My Anchor"
+console.log(start.textContent); // "Anchor Start : My Section"
+console.log(end.textContent);   // "/ Anchor End My Section"
 ```
 
-## Practical Usage Examples
+---
 
-### Working with Arrays of Content
+## Method Aliases
 
-```javascript
-const anchor = Anchor("Multi Content");
-const container = Div();
-container.appendChild(anchor);
+| Primary | Aliases |
+|---|---|
+| `appendChild(child)` | `append(child)` |
+| `replaceContent(child)` | `setContent(child)` |
+| `removeWithAnchors()` | `delete()` |
 
-// Insert multiple elements without a containing wrapper
-anchor.appendChild([
-    H1("Title"),
-    P("Paragraph"),
-    Button("Action")
-]);
+---
 
-// DOM: No wrapper element, just the three elements between markers
-```
+## Practical Examples
 
-### Dynamic Content Updates
+### Dynamic content updates
 
 ```javascript
-const contentAnchor = Anchor("Dynamic Updates");
+const anchor = Anchor('Status');
 const isLoading = Observable(true);
-const data = Observable(null);
+const data      = Observable(null);
 
-// Initial loading state
-contentAnchor.appendChild(Div("Loading..."));
+anchor.appendChild(Div('Loading...'));
 
-// Update content based on state changes
 isLoading.subscribe(loading => {
     if (loading) {
-        contentAnchor.replaceContent(Div("Loading..."));
-    } else if (data.val()) {
-        contentAnchor.replaceContent(
-            Div(`Data: ${data.val()}`)
+        anchor.replaceContent(Div('Loading...'));
+    } else {
+        anchor.replaceContent(
+            data.val()
+                ? Div(['Data: ', data.select(d => d.name)])
+                : Div('No data')
         );
     }
 });
 ```
 
-## Built-in Components Using Anchors
-
-### ShowIf with Anchors
+### Custom anchor-based component
 
 ```javascript
-const isVisible = Observable(false);
-
-// ShowIf returns an anchor, not a wrapper element
-const content = ShowIf(isVisible, () =>
-    Div("This content appears/disappears dynamically")
-);
-
-// No wrapper div created - content inserted directly between markers
-isVisible.set(true);  // Content appears between comment nodes
-isVisible.set(false); // Content disappears, markers remain for reuse
-```
-
-### ForEach with Anchors
-
-```javascript
-const items = Observable.array(["Item 1", "Item 2"]);
-
-// ForEach returns an anchor managing multiple elements
-const list = ForEach(items, (item) => 
-    Div(item)
-);
-
-// Multiple divs managed between the same anchor markers
-items.push("Item 3"); // New div inserted at anchor position
-items.splice(0, 1);   // First div removed, others shift within markers
-```
-
-### Match/Switch Components
-
-```javascript
-const currentView = Observable('loading');
-
-// Match returns an anchor managing different content states
-const content = Match(currentView, {
-    loading: () => Div("Loading..."),
-    success: () => Div("Data loaded!"),
-    error: () => Div("Error occurred")
-});
-
-currentView.set('success'); // Content switches without wrapper changes
-```
-
-## When to Use Fragment vs Anchor
-
-### Use Fragment for:
-- **One-time content creation** that won't change
-- **Standard DOM operations** following web standards
-- **Static content grouping** before insertion
-
-```javascript
-// Standard DocumentFragment behavior
-const fragment = Fragment(
-    H1("Static Title"),
-    P("Static content")
-);
-// Gets replaced entirely when appended to parent
-```
-
-### Use Anchor for:
-- **Dynamic content management** that updates frequently
-- **Conditional rendering** systems
-- **List management** with add/remove operations
-- **Custom rendering patterns**
-
-```javascript
-// Dynamic content area that can be updated multiple times
-const anchor = Anchor("Updates");
-anchor.appendChild(Div("Initial content"));
-anchor.remove(); // Clear content
-anchor.appendChild(Div("New content")); // Add different content - markers remain
-```
-
-## Performance Considerations
-
-### Memory Management
-```javascript
-// Anchors are automatically cleaned up when removed from DOM
-const anchor = Anchor("Temporary");
-
-// Manual cleanup if needed
-anchor.removeWithAnchors(); // Fully destroys anchor and frees memory
-```
-
-### Batch Operations
-```javascript
-// Efficient: batch multiple updates
-const fragment = document.createDocumentFragment();
-fragment.appendChild(Div("Item 1"));
-fragment.appendChild(Div("Item 2"));
-anchor.appendChild(fragment);
-
-// Less efficient: individual appendChild calls
-anchor.appendChild(Div("Item 1"));
-anchor.appendChild(Div("Item 2"));
-```
-
-## Advanced Patterns
-
-### Creating Custom Anchor-Based Components
-
-```javascript
-
 function ConditionalList(condition, items) {
-    const anchor = Anchor("ConditionalList");
+    const anchor = Anchor('ConditionalList');
 
-    const updateContent = () => {
-        const value = items.val();
-        console.log(value);
-        if (value) {
-            const listItems = items.val().map(item => Li(item));
-            anchor.replaceContent(Ul(listItems));
+    const update = () => {
+        if (condition.val() && items.val().length) {
+            anchor.replaceContent(
+                Ul(items.val().map(item => Li(item)))
+            );
         } else {
-            anchor.remove();
+            anchor.removeChildren();
         }
     };
 
-    condition.subscribe(updateContent);
-    items.subscribe(updateContent);
-    updateContent(); // Initial render
+    condition.subscribe(update);
+    items.subscribe(update);
+    update();
 
     return anchor;
 }
 
-// Usage example
 const condition = Observable(true);
+const items     = Observable.array([]);
 let id = 0;
-const items = Observable.array([]);
 
 document.body.appendChild(Div([
     ConditionalList(condition, items),
-    Button("Toggle").nd.onClick(() => condition.set(!condition.val())),
-    Button("Add").nd.onClick(() => items.push('Item '+(++id))),
+    Button('Toggle').nd.onClick(() => condition.toggle()),
+    Button('Add').nd.onClick(() => items.push('Item ' + (++id)))
 ]));
 ```
 
-### Anchor-Based Layout Manager
+### Layout manager
 
 ```javascript
 function LayoutManager() {
-    const header = Anchor("Header");
-    const content = Anchor("Content");
-    const footer = Anchor("Footer");
-    
+    const header  = Anchor('Header');
+    const content = Anchor('Content');
+    const footer  = Anchor('Footer');
+
     return {
-        setHeader: (component) => header.replaceContent(component),
-        setContent: (component) => content.replaceContent(component),
-        setFooter: (component) => footer.replaceContent(component),
-        render: () => Div([header, content, footer])
+        setHeader:  component => header.replaceContent(component),
+        setContent: component => content.replaceContent(component),
+        setFooter:  component => footer.replaceContent(component),
+        render:     () => Div([header, content, footer])
     };
 }
 ```
 
+---
+
+## How Conditional Rendering Uses Anchors
+
+Every conditional and list rendering utility returns an anchor:
+
+```javascript
+// ShowIf returns an anchor
+const content = ShowIf(isVisible, () => Div('Hello'));
+isVisible.toggle(); // anchor replaces content between its markers
+
+// ForEach returns an anchor
+const list = ForEach(items, item => Div(item));
+items.push('New'); // anchor inserts new div before end marker
+
+// Match returns an anchor
+const view = Match(status, {
+    loading: Div('Loading...'),
+    success: Div('Done!')
+});
+status.set('success'); // anchor swaps content
+```
+
+---
+
 ## Best Practices
 
-1. **Use descriptive anchor names** for easier debugging
-2. **Anchors are reusable** - Content can be added/removed multiple times
-3. **Use `removeWithAnchors()` only when permanently destroying** the anchor
-4. **Anchors are invisible** - They don't affect layout or styling
-5. **Prefer `replaceContent()` over `remove()` + `appendChild()`** for better performance
-6. **Create custom patterns** - Anchors enable custom rendering solutions
-7. **Consider memory implications** when creating many anchors
-8. **Use batch operations** for multiple content updates
+1. Use descriptive names - they appear in DOM comments and help debugging
+2. Prefer `replaceContent()` over `remove()` + `appendChild()` - it's one DOM operation
+3. Use `removeChildren()` when you want to clear and reuse the anchor
+4. Use `removeWithAnchors()` / `delete()` only when permanently destroying the anchor
+5. Anchors must be in the DOM before their methods work - always append to a parent first
 
-## Common Pitfalls
-
-❌ **Don't do this:**
-```javascript
-// Inefficient - creates unnecessary DOM manipulations
-anchor.remove();
-anchor.appendChild(content1);
-anchor.remove();
-anchor.appendChild(content2);
-```
-
-✅ **Do this instead:**
-```javascript
-// Efficient - direct replacement
-anchor.replaceContent(content1);
-anchor.replaceContent(content2);
-```
+---
 
 ## Next Steps
 
-- **[Getting Started](getting-started.md)** - Installation and first steps
-- **[Core Concepts](core-concepts.md)** - Understanding the fundamentals
-- **[Observables](observables.md)** - Reactive state management
-- **[Elements](elements.md)** - Creating and composing UI
-- **[Conditional Rendering](conditional-rendering.md)** - Dynamic content
-- **[List Rendering](list-rendering.md)** - (ForEach | ForEachArray) and dynamic lists
-- **[Routing](routing.md)** - Navigation and URL management
-- **[State Management](state-management.md)** - Global state patterns
-- **[NDElement](native-document-element.md)** - Native Document Element
-- **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
-- **[Advanced Components](advanced-components.md)** - Template caching and singleton views
-- **[Args Validation](validation.md)** - Function Argument Validation
-- **[Memory Management](memory-management.md)** - Memory management
+- **[Conditional Rendering](./conditional-rendering.md)** - ShowIf, Match, Switch built on Anchor
+- **[List Rendering](./list-rendering.md)** - ForEach and ForEachArray built on Anchor
+- **[Elements](./elements.md)** - Creating and composing UI
+- **[Memory Management](./memory-management.md)** - Cleanup and memory management
 
 ## Utilities
 
-- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
-- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
-- **[Filters](docs/utils/filters.md)** - Data filtering helpers
+- **[Cache](./cache.md)** - Lazy initialization and singleton patterns
+- **[NativeFetch](./native-fetch.md)** - HTTP client with interceptors
+- **[Filters](./filters.md)** - Data filtering helpers

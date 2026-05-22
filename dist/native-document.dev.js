@@ -3285,6 +3285,8 @@ var NativeDocument = (function (exports) {
      * // Reacts to locale changes automatically
      * Store.setLocale('en-US');
      */
+
+
     ObservableItem.prototype.format = function(type, options = {}) {
         const self = this;
 

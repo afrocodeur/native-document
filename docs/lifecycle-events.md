@@ -1,117 +1,185 @@
+---
+title: Lifecycle Events
+description: Execute code when elements are added to or removed from the DOM using mounted, unmounted, beforeUnmount, destroyOnUnmount, and destroy hooks
+---
+
 # Lifecycle Events
 
-NativeDocument provides lifecycle hooks that let you execute code when elements are added to or removed from the DOM. This is essential for setup, cleanup, and managing resources.
+NativeDocument provides lifecycle hooks that let you execute code when elements are added to or removed from the DOM. This is essential for setup, cleanup, and managing external resources.
 
-## Basic Lifecycle Hooks
+---
 
-### mounted() - Element Added to DOM
+## `mounted(callback)`
+
+Fires when the element is added to the DOM:
 
 ```javascript
-const myComponent = Div("Hello World")
-  .nd.mounted(element => {
-    console.log("Element is now in the DOM!", element);
-    // Setup code here
-  });
+const myComponent = Div('Hello World')
+    .nd
+    .mounted(element => {
+        console.log('In the DOM:', element);
+    });
 
-document.body.appendChild(myComponent); // Triggers mounted callback
+document.body.appendChild(myComponent); // triggers mounted
 ```
 
-### unmounted() - Element Removed from DOM
+### Auto-focus example
 
 ```javascript
-const myComponent = Div("Temporary content")
-  .nd.unmounted(element => {
-    console.log("Element removed from DOM!", element);
-    // Cleanup external resources only
-    // Element can be re-injected later
-  });
-
-// Later, when element is removed
-myComponent.remove(); // Triggers unmounted callback
+const searchInput = Input({ placeholder: 'Search...' })
+    .nd
+    .mounted(element => {
+        element.focus();
+    });
 ```
 
-## Combined Lifecycle Management
+---
+
+## `unmounted(callback)`
+
+Fires when the element is removed from the DOM. Only clean up **external resources** here - do not clean up observables unless the element is permanently destroyed:
 
 ```javascript
-const timer = Div("Timer: 0")
-  .nd.lifecycle({
-    mounted(element) {
-      console.log("Timer started");
-      element.intervalId = setInterval(() => {
-        element.textContent = `Timer: ${Date.now()}`;
-      }, 1000);
-    },
-    unmounted(element) {
-      console.log("Timer stopped");
-      clearInterval(element.intervalId);
-    }
-  });
+const myComponent = Div('Content')
+    .nd
+    .unmounted(element => {
+        clearInterval(element.timerId);
+        element.websocket?.close();
+
+        // Do NOT call observable.cleanup() here
+        // unless the element will never be re-injected
+    });
 ```
 
-## Practical Examples
-
-### Auto-focus Input Field
+### External event listener cleanup
 
 ```javascript
-const focusInput = Input({ placeholder: "Auto-focused" })
-  .nd.mounted(element => {
-      element.focus();
-  });
-```
+function MyButton() {
+    const handler = () => console.log('Global click');
 
-### Event Listener Cleanup
-
-```javascript
-
-const MyButton = function() {
-    const handler = () => console.log("Global click detected");
-    return Button("Click me")
-        .nd.mounted(button => {
+    return Button('Click me')
+        .nd
+        .mounted(el => {
             document.addEventListener('click', handler);
         })
-        .nd.unmounted(button => {
-            // Clean up external listeners, but keep observables intact
+        .unmounted(el => {
             document.removeEventListener('click', handler);
-            // DON'T cleanup observables unless element won't be reused
         });
 }
 ```
 
-### Observable Management Warning
+---
+
+## `lifecycle({ mounted, unmounted })`
+
+Configure both hooks at once:
 
 ```javascript
-const reusableComponent = Div()
-  .nd.unmounted(element => {
-    // AVOID: Don't cleanup observables if element might be re-injected
-    // myObservable.cleanup(); // Only do this if element is permanently destroyed
-    
-    // GOOD: Only cleanup external resources
-    clearInterval(element.timerId);
-    element.websocket?.close();
-  });
-
-// Element can be safely re-appended later
-document.body.appendChild(reusableComponent);
+const timer = Div('Timer: 0')
+    .nd
+    .lifecycle({
+        mounted(element) {
+            element.intervalId = setInterval(() => {
+                element.textContent = `Timer: ${Date.now()}`;
+            }, 1000);
+        },
+        unmounted(element) {
+            clearInterval(element.intervalId);
+        }
+    });
 ```
+
+---
+
+## `beforeUnmount(id, callback)`
+
+Registers an async callback that runs **before** the element is removed from the DOM. Useful for exit animations or saving data before removal.
+
+Multiple callbacks can be registered using different IDs - they all run sequentially before the element is removed:
+
+```javascript
+Div('Content')
+    .nd
+    .beforeUnmount('save', async el => {
+        await saveData();
+    })
+    .beforeUnmount('animate', async el => {
+        await playExitAnimation(el);
+    });
+```
+
+The element's `remove()` method is patched to be async when `beforeUnmount` is used - all callbacks are awaited before the element is actually removed:
+
+```javascript
+const modal = Div({ class: 'modal' }, 'Content')
+    .nd
+    .beforeUnmount('fade-out', async el => {
+        el.style.opacity = '0';
+        await new Promise(resolve => setTimeout(resolve, 300));
+    });
+
+await modal.nd.remove();
+```
+
+> The `id` parameter lets you register multiple `beforeUnmount` callbacks and also allows replacing a specific one by re-using the same id.
+
+---
+
+## `destroyOnUnmount()`
+
+Registers an `unmounted` callback that calls `destroy()` automatically. Use when the element will **never** be re-injected into the DOM:
+
+```javascript
+const widget = Div('Content')
+    .nd
+    .mounted(el => {
+        el.intervalId = setInterval(() => doWork(), 1000);
+    })
+    .destroyOnUnmount();
+```
+
+> Do not use `destroyOnUnmount()` on elements that may be temporarily removed and re-appended (e.g. inside `ShowIf` with `shouldKeepInCache: true`). Use explicit `unmounted()` + `mounted()` pairs in that case.
+
+---
+
+## `destroy()`
+
+Aborts the element's internal `AbortController`, clears all lifecycle observers, and removes all `beforeUnmount` callbacks. The element's `$element` reference is set to `null`:
+
+```javascript
+const el = Div('Temporary content')
+    .nd
+    .beforeUnmount('animate', async () => { /* ... */ });
+
+el.nd.destroy();
+```
+
+`destroy()` is called internally by `destroyOnUnmount()`. You rarely need to call it directly.
+
+---
+
+## Element Reuse
+
+Elements can be removed and re-appended safely. Observables bound to the element remain intact through remove/re-append cycles:
+
+```javascript
+const reusable = Div('Content')
+    .nd
+    .mounted(el => console.log('Mounted'))
+    .unmounted(el => {
+        clearInterval(el.timerId);
+    });
+
+document.body.appendChild(reusable); // "Mounted"
+reusable.nd.remove();                // "Unmounted"
+document.body.appendChild(reusable); // "Mounted" again
+```
+
+---
 
 ## Next Steps
 
-Now that you understand lifecycle events, explore these related topics:
-
-- **[NDElement](native-document-element.md)** - Native Document Element
-- **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
-- **[Advanced Components](advanced-components.md)** - Template caching and singleton views
-- **[Args Validation](validation.md)** - Function Argument Validation
-- **[Memory Management](memory-management.md)** - Memory management
-- **[Anchor](anchor.md)** - Anchor
-
-## Utilities
-
-- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
-- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
-- **[Filters](docs/utils/filters.md)** - Data filtering helpers
-
-
-
-
-
+- **[NDElement](./native-document-element.md)** - Full `.nd` API reference
+- **[Memory Management](./memory-management.md)** - When and how to clean up observables
+- **[Extending NDElement](./extending-native-document-element.md)** - Custom methods guide
+- **[Advanced Components](./advanced-components.md)** - Template caching and singleton views

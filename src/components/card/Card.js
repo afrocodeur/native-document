@@ -41,7 +41,9 @@ Card.defaultTemplate = null;
  *     props: GlobalAttributes,
  * }, instance: Card) => NdChild} template
  */
-Card.use = function(template) {};
+Card.use = function(template) {
+    Card.defaultTemplate = template;
+};
 
 /**
  * @param {NdChild} title

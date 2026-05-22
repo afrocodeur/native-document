@@ -1,154 +1,237 @@
+---
+title: Elements
+description: Create reactive HTML elements with a declarative syntax - every HTML element has a corresponding function in NativeDocument
+---
+
 # Elements
 
-NativeDocument provides a simple and intuitive way to create HTML elements with a declarative syntax. Every HTML element has a corresponding function that creates reactive DOM elements.
+NativeDocument provides a simple and intuitive way to create HTML elements with a declarative syntax. Every HTML element has a corresponding function that creates a reactive DOM element.
 
 ## Basic Element Creation
 
 ```javascript
-// Simple elements with attributes
-const title = H1({ class: "main-title" }, "Welcome to my app");
-const description = P({ class: "description" }, "This is a paragraph");
+// With attributes
+const title       = H1({ class: 'main-title' }, 'Welcome to my app');
+const description = P({ class: 'description' }, 'This is a paragraph');
 
-// Elements without attributes (attributes omitted)
-const simpleTitle = H1("Welcome to my app");
-const simplePara = P("This is a paragraph");
-const container = Div("Content here");
+// Without attributes
+const simpleTitle = H1('Welcome to my app');
+const simplePara  = P('This is a paragraph');
+const container   = Div('Content here');
 
-// Elements without content
+// Self-closing elements
 const separator = Hr();
-const lineBreak = Br();
+const lineBreak  = Br();
 ```
 
 ## Element Structure
 
 All element functions follow the same pattern:
+
 ```javascript
 ElementName(attributes, children)
 // or
 ElementName(children) // attributes are optional
 ```
 
-- **attributes**: Object with HTML attributes (optional, can be `null` or omitted)
-- **children**: Content inside the element (text, number, observable, other elements, or arrays)
+- **attributes** - object with HTML attributes (optional, can be `null` or omitted)
+- **children** - text, number, observable, other elements, closures (no-param functions), or an array of any of these. Closures are accepted as-is - no need to call them if they take no parameters.
 
 ## Working with Attributes
 
 ```javascript
 // Static attributes
-const link = Link({ 
-  href: "/about", 
-  class: "nav-link",
-  id: "about-link"
-}, "About Us");
+const link = Link({
+    href:  '/about',
+    class: 'nav-link',
+    id:    'about-link'
+}, 'About Us');
 
 // Boolean attributes
-const input = Input({ 
-  type: "checkbox",
-  checked: true,
-  disabled: false
+const checkbox = Input({
+    type:     'checkbox',
+    checked:  true,
+    disabled: false
 });
 
 // Data attributes
-const element = Div({
-  "data-id": "123",
-  "data-category": "important"
-}, "Content");
+const card = Div({
+    'data-id':       '123',
+    'data-category': 'important'
+}, 'Content');
 ```
 
-## Reactive Attributes with Observables
+## Reactive Attributes
+
+Pass an observable directly as an attribute value - it updates automatically when the observable changes:
 
 ```javascript
 const isVisible = Observable(true);
-const userName = Observable("Guest");
-const theme = Observable("dark");
+const userName  = Observable('Guest');
+const theme     = Observable('dark');
 
-// Reactive attributes
 const greeting = Div({
-  class: theme, // Updates when theme changes
-  hidden: isVisible.check(val => !val) // Hide when isVisible is false
-}, ['Hello ', userName, '!']); // Reactive text content
+    class:  theme,
+    hidden: isVisible.isFalsy()
+}, ['Hello ', userName, '!']);
 
 // Reactive styles
 const box = Div({
-  style: {
-    backgroundColor: theme.check(t => t === "dark" ? "#333" : "#fff"),
-    color: theme.check(t => t === "dark" ? "#fff" : "#333")
-  }
-}, "Themed content");
+    style: {
+        backgroundColor: theme.is('dark').check(v => v ? '#333' : '#fff'),
+        color:           theme.is('dark').check(v => v ? '#fff' : '#333')
+    }
+}, 'Themed content');
+```
+
+## Conditional Classes
+
+```javascript
+const isActive = Observable(false);
+const count    = Observable(0);
+
+const item = Div({
+    class: {
+        'item':        true,                    // always present
+        'active':      isActive,                // present when isActive is true
+        'highlighted': count.check(c => c > 5) // present when count > 5
+    }
+}, 'List item');
 ```
 
 ## Children and Content
 
 ```javascript
-// Text content (no attributes needed)
-const simple = P("Simple text");
+// Single text child
+const simple = P('Simple text');
 
-// Single child element
-const wrapper = Div({ class: "wrapper" }, 
-  P("Wrapped paragraph")
-);
+// Single element child
+const wrapper = Div({ class: 'wrapper' }, P('Wrapped paragraph'));
 
 // Multiple children as array
-const list = Div({ class: "item-list" }, [
-  P("First item"),
-  P("Second item"),
-  P("Third item")
+const list = Div({ class: 'item-list' }, [
+    P('First item'),
+    P('Second item'),
+    P('Third item')
 ]);
 
 // Mixed content
 const mixed = Div([
-  H2("Title"),
-  "Some text between elements",
-  P("A paragraph"),
-  Button("Click me")
+    H2('Title'),
+    'Some text between elements',
+    P('A paragraph'),
+    Button('Click me')
 ]);
 ```
 
-## Event Handling with .nd API
+## Event Handling with the `.nd` API
 
-The `.nd` (NativeDocument) API provides a fluent interface for adding functionality to elements.
+The `.nd` API provides a fluent interface for events, lifecycle, and DOM utilities:
 
 ```javascript
-const button = Button("Click me")
-  .nd.onClick(() => {
-    console.log("Button clicked!");
-  });
+const button = Button('Click me')
+    .nd.onClick(() => console.log('Clicked!'));
 
-// With attributes and events
-const styledButton = Button({ class: "btn" }, "Click me")
-  .nd.onClick(() => {
-    console.log("Button clicked!");
-  });
+// With attributes
+const styledButton = Button({ class: 'btn' }, 'Click me')
+    .nd.onClick(() => console.log('Clicked!'));
 
-// Multiple events
-const input = Input({ type: "text", placeholder: "Type here..." })
-  .nd.onFocus(() => console.log("Input focused"))
-  .nd.onBlur(() => console.log("Input blurred"))
-  .nd.onInput(event => console.log("Input value:", event.target.value));
+// Multiple events - chained
+const input = Input({ type: 'text', placeholder: 'Type here...' })
+    .nd
+    .onFocus(() => console.log('Focused'))
+    .onBlur(() => console.log('Blurred'))
+    .onInput(e => console.log('Value:', e.target.value));
 
-// Or
-const input = Input({ type: "text", placeholder: "Type here..." })
-  .nd.on({
-        focus: () => console.log("Input focused"),
-        blur: () => console.log("Input blurred"),
-        input: event => console.log("Input value:", event.target.value)
-    });
+// Single event via .on() - name, callback, options (standard addEventListener signature)
+const input2 = Input({ type: 'text' })
+    .nd
+    .on('input', e => console.log('Value:', e.target.value))
+    .on('focus', () => console.log('Focused'), { once: true });
 
-// Prevent default behavior
+// Prevent default
 const form = Form()
-  .nd.onPreventSubmit(event => {
-    console.log("Form submitted without page reload");
-    // Handle form submission
-  });
+    .nd.onPreventSubmit(e => {
+        console.log('Submitted without page reload');
+    });
 ```
 
-## Advanced Element Composition
+## Form Elements and Two-Way Binding
 
-### Extending Elements with Custom Methods
+Passing an observable to `value` or `checked` creates automatic two-way binding:
 
-Use `.nd.with()` to add custom methods to elements:
 ```javascript
-const customButton = Button("Click me")
+const name      = Observable('');
+const email     = Observable('');
+const isChecked = Observable(false);
+
+const nameInput  = Input({ type: 'text',     value: name,      placeholder: 'Your name' });
+const emailInput = Input({ type: 'email',    value: email,     placeholder: 'Your email' });
+const checkbox   = Input({ type: 'checkbox', checked: isChecked });
+```
+
+## Lifecycle Management
+
+```javascript
+const component = Div('Component content')
+    .nd.mounted(element => {
+        console.log('Mounted to DOM');
+    })
+    .nd.unmounted(element => {
+        console.log('Removed from DOM');
+    });
+
+// Combined
+const widget = Div('Widget')
+    .nd.lifecycle({
+        mounted:   element => console.log('Mounted'),
+        unmounted: element => console.log('Unmounted')
+    });
+```
+
+## Manual DOM Manipulation
+
+```javascript
+// Remove all children
+const container = Div([P('Child 1'), P('Child 2')]);
+container.nd.unmountChildren();
+
+// Remove element from DOM
+const element = Div('Content');
+element.nd.remove();
+```
+
+## Element References
+
+`.ref()` and `.refSelf()` both store a reference on a target object, but they store different things:
+
+- **`.ref(target, name)`** - stores the **native HTML element** (`this.$element`) → use when you need direct DOM access
+- **`.refSelf(target, name)`** - stores the **`NDElement` instance** (`this`) → use when you need to keep calling `.nd` methods
+
+```javascript
+const refs = {};
+
+const app = Div([
+    Input({ type: 'text' })
+        .nd.ref(refs, 'nameInput'),       // refs.nameInput → HTMLInputElement
+
+    Input({ type: 'text' })
+        .nd.refSelf(refs, 'emailInput'),  // refs.emailInput → NDElement instance
+
+    Button('Actions')
+        .nd.onClick(() => {
+        refs.nameInput.focus();                              // native DOM method
+        refs.emailInput.onInput(e => console.log(e.target.value)); // nd method
+    })
+]);
+```
+
+## `.nd.with()` - Instance-level Custom Methods
+
+Add custom methods to a single element instance without affecting other elements:
+
+```javascript
+const customButton = Button('Click me')
     .nd.with({
         highlight() {
             this.$element.style.backgroundColor = 'yellow';
@@ -161,13 +244,27 @@ const customButton = Button("Click me")
     })
     .highlight();
 
-// Chain custom methods
 customButton.resetStyle().highlight();
 ```
 
-### Class and Style Accumulators
+> `.nd.with()` only affects the current instance. To add methods to **all** elements, extend `NDElement.prototype` - see [Extending NDElement](./extending-native-document-element.md).
 
-Build classes and styles programmatically:
+## `.nd.attach()` - Template Binding
+
+Attaches a template binding hydrator to the element. Used internally by the `useCache` and `useSingleton` rendering systems:
+
+```javascript
+// methodName - the event/method name to hydrate
+// bindingHydrator - a binding with a $hydrate method, or a plain function
+element.nd.attach('onClick', bindingHydrator);
+```
+
+See [Advanced Components](./advanced-components.md) for practical usage with `useCache`.
+
+## Class and Style Accumulators
+
+Build classes and styles programmatically before passing them to an element:
+
 ```javascript
 import { classPropertyAccumulator, cssPropertyAccumulator } from 'native-document';
 
@@ -176,337 +273,124 @@ const classes = classPropertyAccumulator(['btn']);
 classes.add('primary');
 classes.add('large');
 
-const button = Button({ class: classes.value() }, "Submit");
-// Result: class="btn primary large"
+const button = Button({ class: classes.value() }, 'Submit');
+// class="btn primary large"
 
-// Or with object
+// Object form
 const classObj = classPropertyAccumulator({ btn: true });
 classObj.add('primary', true);
 classObj.add('disabled', false);
-console.log(classObj.value()); // { btn: true, primary: true, disabled: false }
+classObj.value(); // { btn: true, primary: true, disabled: false }
 
 // CSS accumulator
 const styles = cssPropertyAccumulator({ color: 'red' });
 styles.add('font-size', '16px');
 styles.add('margin', '10px');
 
-const element = Div({ style: styles.value() }, "Styled content");
-// Result: style="color: red; font-size: 16px; margin: 10px"
-
-// Or with array
-const styleArr = cssPropertyAccumulator('color: red; font-size: 16px');
-styleArr.add('margin', '10px');
-console.log(styleArr.value()); // "color: red; font-size: 16px; margin: 10px;"
-```
-
-## Form Elements and Two-Way Binding
-
-```javascript
-const name = Observable("");
-const email = Observable("");
-const isChecked = Observable(false);
-
-// Text input with two-way binding
-const nameInput = Input({ 
-  type: "text",
-  value: name, // Automatic two-way binding
-  placeholder: "Enter your name"
-});
-
-// Email input
-const emailInput = Input({
-  type: "email", 
-  value: email,
-  placeholder: "Enter your email"
-});
-
-// Checkbox with binding
-const checkbox = Input({
-  type: "checkbox",
-  checked: isChecked // Automatic two-way binding
-});
-```
-
-## Conditional Classes and Styles
-
-```javascript
-const isActive = Observable(false);
-const count = Observable(0);
-
-// Conditional classes
-const item = Div({
-  class: {
-    "item": true, // Always present
-    "active": isActive, // Present when isActive is true
-    "highlighted": count.check(c => c > 5) // Present when count > 5
-  }
-}, "List item");
-
-// Dynamic styles
-const progress = Div({
-  style: {
-    width: count.check(c => `${c}%`),
-    backgroundColor: count.check(c => c > 50 ? "green" : "red")
-  }
-}, "Progress bar");
-```
-
-## Lifecycle Management
-
-```javascript
-const component = Div("Component content")
-    .nd.mounted(element => {
-        console.log("Component mounted to DOM");
-        // Initialize component
-    })
-    .nd.unmounted(element => {
-        console.log("Component removed from DOM");
-        // Cleanup resources
-    });
-
-// Combined lifecycle
-const widget = Div("Widget")
-    .nd.lifecycle({
-        mounted: element => console.log("Widget mounted"),
-        unmounted: element => console.log("Widget unmounted")
-    });
-```
-## Manual DOM Manipulation
-
-### Unmounting Children
-
-Remove all children from an element:
-```javascript
-const container = Div([
-    P("Child 1"),
-    P("Child 2"),
-    P("Child 3")
-]);
-
-// Remove all children
-container.nd.unmountChildren();
-// container is now empty but still in DOM
-```
-
-### Removing Elements
-
-Remove an element from the DOM:
-```javascript
-const element = Div("Content");
-document.body.appendChild(element.nd.node());
-
-// Remove from DOM
-element.nd.remove();
-// Element is detached from DOM
-```
-
-## Element References
-
-```javascript
-const refs = {};
-
-const app = Div([
-    Input({ type: "text" })
-        .nd.ref(refs, "nameInput"), // Store reference as refs.nameInput
-
-    Button("Focus Input")
-        .nd.onClick(() => {
-        refs.nameInput.focus(); // Use the reference
-    })
-]);
+const element = Div({ style: styles.value() }, 'Styled content');
+// style="color: red; font-size: 16px; margin: 10px"
 ```
 
 ## Shadow DOM
 
-NativeDocument supports Shadow DOM for encapsulated components:
 ```javascript
-// Open shadow DOM (inspectable)
-const widget = Div("Widget content")
+// Open shadow DOM (inspectable in DevTools)
+const widget = Div('Widget content')
     .nd.openShadow(`
-            :host {
-                display: block;
-                padding: 20px;
-                background: #f0f0f0;
-            }
-            p { color: blue; }
-        
+        :host { display: block; padding: 20px; }
+        p { color: blue; }
     `);
 
 // Closed shadow DOM (private)
-const privateWidget = Div("Private content")
-    .nd.closedShadow(`
-            p { color: red; }
-        
-    `);
+const privateWidget = Div('Private content')
+    .nd.closedShadow(`p { color: red; }`);
 
-// Manual shadow DOM with mode
-const customWidget = Div("Custom")
-    .nd.shadow('open', `
-            /* Scoped styles */
-        
-    `);
-```
-
-## Practical Example: Simple Button with Event
-
-```javascript
-const count = Observable(0);
-
-const incrementButton = Button({
-    class: "btn btn-primary",
-    type: "button"
-}, "Increment")
-    .nd.onClick(() => {
-        count.set(count.val() + 1);
-    });
-
-const display = Div({ class: "counter-display" }, [
-    P("Current count: "),
-    Strong(count) // Reactive display
-]);
-
-const app = Div({ class: "counter-app" }, [
-    display,
-    incrementButton
-]);
+// Manual mode
+const customWidget = Div('Custom')
+    .nd.shadow('open', `/* scoped styles */`);
 ```
 
 ## Practical Example: Form with Validation
 
 ```javascript
-const formData = Observable.object({
-    name: "",
-    email: "",
-    age: ""
-});
+const formData = Observable.object({ name: '', email: '', age: '' });
+const errors   = Observable.object({ name: '', email: '', age: '' });
 
-const errors = Observable.object({
-    name: "",
-    email: "",
-    age: ""
-});
-
-// Validation function
 const validateForm = () => {
     const data = formData.$value;
-    const newErrors = {};
 
-    newErrors.name = data.name.length < 2 ? "Name must be at least 2 characters" : "";
-    newErrors.email = !data.email.includes("@") ? "Invalid email address" : "";
-    newErrors.age = isNaN(data.age) || data.age < 1 ? "Age must be a valid number" : "";
+    errors.name.set(data.name.length < 2 ? 'Name must be at least 2 characters' : '');
+    errors.email.set(!data.email.includes('@') ? 'Invalid email address' : '');
+    errors.age.set(isNaN(data.age) || data.age < 1 ? 'Age must be a valid number' : '');
 
-    Observable.update(errors, newErrors);
-
-    errors.set(newErrors);
-
-    return Object.values(newErrors).every(error => error === "");
+    return [errors.name, errors.email, errors.age].every(e => e.val() === '');
 };
 
-const contactForm = Form({ class: "contact-form" }, [
-    // Name field
-    Div({ class: "field" }, [
-        Label("Name:"),
-        Input({
-            type: "text",
-            value: formData.name,
-            placeholder: "Enter your name"
-        }).nd.onBlur(validateForm),
+const contactForm = Form({ class: 'contact-form' }, [
 
-        ShowIf(errors.name.check(err => err !== ""),
-            Span({ class: "error" }, errors.name)
-        )
+    Div({ class: 'field' }, [
+        Label('Name:'),
+        Input({ type: 'text', value: formData.name, placeholder: 'Enter your name' })
+            .nd.onBlur(validateForm),
+        ShowIf(errors.name.isTruthy(), Span({ class: 'error' }, errors.name))
     ]),
 
-    // Email field
-    Div({ class: "field" }, [
-        Label("Email:"),
-        Input({
-            type: "email",
-            value: formData.email,
-            placeholder: "Enter your email"
-        }).nd.onBlur(validateForm),
-
-        ShowIf(errors.email.check(err => err !== ""),
-            Span({ class: "error" }, errors.email)
-        )
+    Div({ class: 'field' }, [
+        Label('Email:'),
+        Input({ type: 'email', value: formData.email, placeholder: 'Enter your email' })
+            .nd.onBlur(validateForm),
+        ShowIf(errors.email.isTruthy(), Span({ class: 'error' }, errors.email))
     ]),
 
-    // Age field
-    Div({ class: "field" }, [
-        Label("Age:"),
-        Input({
-            type: "number",
-            value: formData.age,
-            placeholder: "Enter your age"
-        }).nd.onBlur(validateForm),
-
-        ShowIf(errors.age.check(err => err !== ""),
-            Span({ class: "error" }, errors.age)
-        )
+    Div({ class: 'field' }, [
+        Label('Age:'),
+        Input({ type: 'number', value: formData.age, placeholder: 'Enter your age' })
+            .nd.onBlur(validateForm),
+        ShowIf(errors.age.isTruthy(), Span({ class: 'error' }, errors.age))
     ]),
 
-    // Submit button
-    Button({
-        type: "submit",
-        class: "btn btn-primary"
-    }, "Submit")
-])
-    .nd.onPreventSubmit(() => {
-        if (validateForm()) {
-            console.log("Form is valid!", formData.$value);
-            // Handle successful submission
-        } else {
-            console.log("Form has errors");
-        }
-    });
+    Button({ type: 'submit', class: 'btn btn-primary' }, 'Submit')
+
+]).nd.onPreventSubmit(() => {
+    if (validateForm()) {
+        console.log('Form is valid!', formData.$value);
+    }
+});
 ```
 
-## Available Elements
+## Available HTML Elements
 
-NativeDocument provides functions for all standard HTML elements:
+**Text:** `H1`, `H2`, `H3`, `H4`, `H5`, `H6`, `P`, `Span`, `Strong`, `Em`, `Small`, `Mark`, `BlockQuote`, `Pre`, `Code`
 
-**Text Elements:** `H1`, `H2`, `H3`, `H4`, `H5`, `H6`, `P`, `Span`, `Strong`, `Em`, `Small`, `Mark`
+**Layout:** `Div`, `Section`, `Article`, `Aside`, `Header`, `Footer`, `Nav`, `Main`
 
-**Layout Elements:** `Div`, `Section`, `Article`, `Aside`, `Header`, `Footer`, `Nav`, `Main`
+**Form:** `Form`, `Input`, `TextArea`, `Select`, `Option`, `Button`, `Label`, `FieldSet`, `Legend`
 
-**Form Elements:** `Form`, `Input`, `TextArea`, `Select`, `Option`, `Button`, `Label`, `FieldSet`, `Legend`
+**List:** `Ul`, `Ol`, `Li`, `Dl`, `Dt`, `Dd`
 
-**List Elements:** `Ul`, `Ol`, `Li`, `Dl`, `Dt`, `Dd`
+**Media:** `Img`, `Audio`, `Video`, `Canvas`
 
-**Media Elements:** `Img`, `Audio`, `Video`, `Canvas`, `Svg`
+**Interactive:** `Link`, `Details`, `Summary`, `Dialog`
 
-**Interactive Elements:** `Link`, `Details`, `Summary`, `Dialog`, `Menu`
+**SVG:** `Svg`, `SvgSvg`, `SvgCircle`, `SvgRect`, `SvgEllipse`, `SvgLine`, `SvgPolyline`, `SvgPolygon`, `SvgPath`, `SvgText`, `SvgTSpan`, `SvgG`, `SvgDefs`, `SvgUse`, `SvgSymbol`, `SvgClipPath`, `SvgMask`, `SvgMarker`, `SvgPattern`, `SvgImage`, `SvgLinearGradient`, `SvgRadialGradient`, `SvgStop`, `SvgFilter`, and more.
 
-And many more following the same naming pattern!
+> For detailed SVG usage and examples, see [SVG Elements](./svg-elements.md).
 
 ## Best Practices
 
-1. **Use semantic HTML elements** for better accessibility
-2. **Leverage reactive attributes** with observables for dynamic UIs
-3. **Group related elements** in logical containers
-4. **Use the `.nd` API** for event handling and lifecycle management
-5. **Validate form data** reactively for better user experience
-6. **Store element references** when you need to manipulate them later
-7. **Use conditional rendering** with `ShowIf` for dynamic content
+1. Use semantic HTML elements for better accessibility
+2. Leverage reactive attributes with observables for dynamic UIs
+3. Use `.nd.with()` for instance-level customization, `NDElement.prototype` for app-wide methods
+4. Store element references with `.nd.ref()` when you need direct DOM access
+5. Use `ShowIf` with `.isTruthy()` / `.isFalsy()` for clean conditional rendering
+6. Group related elements in logical containers
 
 ## Next Steps
 
-Now that you understand NativeDocument's elements, explore these advanced topics:
-
-- **[Conditional Rendering](conditional-rendering.md)** - Dynamic content
-- **[List Rendering](list-rendering.md)** - (ForEach | ForEachArray) and dynamic lists
-- **[Routing](routing.md)** - Navigation and URL management
-- **[State Management](state-management.md)** - Global state patterns
-- **[Lifecycle Events](lifecycle-events.md)** - Lifecycle events
-- **[NDElement](native-document-element.md)** - Native Document Element
-- **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
-- **[Advanced Components](advanced-components.md)** - Template caching and singleton views
-- **[Args Validation](validation.md)** - Function Argument Validation
-- **[Memory Management](memory-management.md)** - Memory management
-- **[Anchor](anchor.md)** - Anchor
-
-## Utilities
-
-- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
-- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
-- **[Filters](docs/utils/filters.md)** - Data filtering helpers
+- **[Conditional Rendering](./conditional-rendering.md)** - Dynamic content
+- **[List Rendering](./list-rendering.md)** - ForEach and dynamic lists
+- **[NDElement](./native-document-element.md)** - Full `.nd` API reference
+- **[Extending NDElement](./extending-native-document-element.md)** - Custom methods guide
+- **[SVG Elements](./svg-elements.md)** - SVG wrapper functions
+- **[Advanced Components](./advanced-components.md)** - Template caching and singleton views
+- **[Lifecycle Events](./lifecycle-events.md)** - Mounted, unmounted, beforeUnmount

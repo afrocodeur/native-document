@@ -1,129 +1,122 @@
-# Validation
+---
+title: Args Validation
+description: Runtime argument validation with ArgTypes and withValidation - catch type errors early in development
+---
 
-NativeDocument provides a comprehensive runtime validation system that helps catch errors early and ensures function arguments meet expected types and constraints.
+# Args Validation
+
+NativeDocument provides a runtime argument validation system that helps catch type errors early. It is only active in development mode - in production, `ArgTypes` is an empty object and `withValidation` is a no-op.
 
 ## Function Argument Validation
 
-### Using .args() Method
+### `.args()` method
+
+`.args()` is available on any function. It returns a new function that validates arguments before calling the original:
 
 ```javascript
-// Original function
+import { ArgTypes } from 'native-document';
+
 function createUser(name, age, email) {
     console.log(`Creating user: ${name}, ${age}, ${email}`);
 }
 
-// .args() returns a function that validates arguments before calling original
 const createUserWithValidation = createUser.args(
-    ArgTypes.string('name'),
-    ArgTypes.number('age'), 
-    ArgTypes.string('email')
-);
-
-// Usage
-createUserWithValidation("John", 25, "john@example.com"); // Valid - calls original function
-createUserWithValidation("John", "25", "john@example.com"); // Throws validation error
-```
-
-### WithValidation Wrapper (Equivalent)
-
-```javascript
-// These two approaches are equivalent:
-
-// Method 1: Using .args()
-const createUserWithValidation1 = createUser.args(
     ArgTypes.string('name'),
     ArgTypes.number('age'),
     ArgTypes.string('email')
 );
 
-// Method 2: Using withValidation()
-const createUserWithValidation2 = withValidation(createUser, [
+createUserWithValidation('John', 25, 'john@example.com'); // valid
+createUserWithValidation('John', '25', 'john@example.com'); // throws
+```
+
+### `withValidation(fn, argSchema, fnName?)` - equivalent
+
+```javascript
+import { ArgTypes, withValidation } from 'native-document';
+
+const createUserWithValidation = withValidation(createUser, [
     ArgTypes.string('name'),
     ArgTypes.number('age'),
     ArgTypes.string('email')
 ], 'createUser');
-
-// Both return a function that validates arguments before calling the original
 ```
+
+---
 
 ## ArgTypes Reference
 
-### Basic Types
+### Basic types
 
 ```javascript
-ArgTypes.string('name')          // Must be string
-ArgTypes.number('age')           // Must be number  
-ArgTypes.boolean('isActive')     // Must be boolean
-ArgTypes.function('callback')    // Must be function
-ArgTypes.object('config')        // Must be object
-ArgTypes.objectNotNull('data')   // Must be object and not null
+ArgTypes.string('name')        // Must be string
+ArgTypes.number('age')         // Must be number
+ArgTypes.boolean('isActive')   // Must be boolean
+ArgTypes.function('callback')  // Must be function
+ArgTypes.object('config')      // Must be object
+ArgTypes.objectNotNull('data') // Must be object and not null
 ```
 
-### NativeDocument Types
+### NativeDocument types
 
 ```javascript
-ArgTypes.observable('state')     // Must be Observable instance
-ArgTypes.element('domNode')      // Must be HTML element
-ArgTypes.children('content')     // Valid children (elements, strings, numbers, observables)
-ArgTypes.attributes('attrs')     // Valid attributes object
+ArgTypes.observable('state')   // Must be an Observable instance
+ArgTypes.element('domNode')    // Must be an HTML element
+ArgTypes.children('content')   // Valid children (elements, strings, numbers, observables)
+ArgTypes.attributes('attrs')   // Valid attributes object
 ```
 
-### Optional Arguments
+### Optional arguments
 
 ```javascript
 function greet(name, greeting) {
     return `${greeting || 'Hello'} ${name}`;
 }
 
-// Create function with argument validation
-const greetWithValidation = greet.args(
+const greetSafe = greet.args(
     ArgTypes.string('name'),
     ArgTypes.optional(ArgTypes.string('greeting'))
 );
 
-greetWithValidation("John");           // Valid - greeting is optional
-greetWithValidation("John", "Hi");     // Valid
-greetWithValidation("John", 123);      // Error - greeting must be string if provided
+greetSafe('John');        // valid - greeting is optional
+greetSafe('John', 'Hi'); // valid
+greetSafe('John', 123);  // throws - greeting must be string if provided
 ```
 
-### OneOf Validation
+### `oneOf` - union types
 
 ```javascript
-function setTheme(theme, config) {
-    // Implementation
-}
+function setTheme(theme, config) { /* ... */ }
 
-// Create function with argument validation
-const setThemeWithValidation = setTheme.args(
-    ArgTypes.oneOf('theme', 
+const setThemeSafe = setTheme.args(
+    ArgTypes.oneOf('theme',
         ArgTypes.string('theme'),
         ArgTypes.object('theme')
     ),
     ArgTypes.object('config')
 );
 
-setThemeWithValidation("dark", {});      // Valid - string theme
-setThemeWithValidation({name: "custom"}, {}); // Valid - object theme  
-setThemeWithValidation(123, {});         // Error - must be string or object
+setThemeSafe('dark', {});          // valid - string
+setThemeSafe({ name: 'custom' }, {}); // valid - object
+setThemeSafe(123, {});             // throws - must be string or object
 ```
+
+---
 
 ## Error Handling
 
-### Validation Errors
+### Validation errors
 
 ```javascript
-function processData(items, callback) {
-    // Implementation  
-}
+function processData(items, callback) { /* ... */ }
 
-// Create function with argument validation
-const processDataWithValidation = processData.args(
+const processDataSafe = processData.args(
     ArgTypes.children('items'),
     ArgTypes.function('callback')
 );
 
 try {
-    processDataWithValidation("invalid", "not a function");
+    processDataSafe('invalid', 'not a function');
 } catch (error) {
     console.log(error.message);
     // "Argument validation failed
@@ -132,69 +125,74 @@ try {
 }
 ```
 
-### Error Boundary Pattern
+### Error boundary
+
+Combine with `.errorBoundary()` to handle validation errors gracefully instead of throwing:
 
 ```javascript
-// Original function with argument validation
-const createUserWithValidation = createUser.args(
-    ArgTypes.string('name'),
-    ArgTypes.number('age'),
-    ArgTypes.string('email')
-);
+const safeCreateUser = createUser
+    .args(
+        ArgTypes.string('name'),
+        ArgTypes.number('age'),
+        ArgTypes.string('email')
+    )
+    .errorBoundary((error) => {
+        console.error('User creation failed:', error.message);
+        return null;
+    });
 
-// Add error boundary to validation function
-const safeCreateUser = createUserWithValidation.errorBoundary((error) => {
-    console.error("User creation failed:", error.message);
-    return null; // Return fallback value
-});
-
-// Won't throw, returns null on validation error
-const result = safeCreateUser("John", "invalid age", "email");
+const result = safeCreateUser('John', 'invalid age', 'email'); // returns null, no throw
 ```
 
-## Custom Validation
+---
 
-### Creating Custom ArgTypes
+## Custom ArgTypes
+
+Create reusable validators for domain-specific types:
 
 ```javascript
-// Custom validator for email format
 const emailType = (name) => ({
     name,
     type: 'email',
-    validate: (value) => {
-        return typeof value === 'string' && /\S+@\S+\.\S+/.test(value);
-    }
+    validate: (value) => typeof value === 'string' && /\S+@\S+\.\S+/.test(value)
 });
 
-function registerUser(email, password) {
-    // Implementation
-}
+const positiveInt = (name) => ({
+    name,
+    type: 'positiveInt',
+    validate: (value) => Number.isInteger(value) && value > 0
+});
+
+function registerUser(email, age) { /* ... */ }
 
 registerUser.args(
     emailType('email'),
-    ArgTypes.string('password')
+    positiveInt('age')
 );
 ```
 
+---
+
 ## Best Practices
 
-1. **Validate early** - Add validation to public functions and components
-2. **Use descriptive names** - Make error messages clear with good argument names
-3. **Combine with error boundaries** - Handle validation errors gracefully
-4. **Validate complex objects** - Use ArgTypes.objectNotNull for required objects
-5. **Make optional explicit** - Use ArgTypes.optional() for clarity
-6. **Custom validators** - Create reusable validators for domain-specific types
+1. Add validation to all public functions and component factories
+2. Use descriptive argument names - they appear in error messages
+3. Use `ArgTypes.objectNotNull()` for required objects - `ArgTypes.object()` accepts `null`
+4. Use `ArgTypes.optional()` explicitly - makes the API contract clear
+5. Create custom validators for domain types (email, URL, positive number, etc.)
+6. Combine with `.errorBoundary()` to avoid uncaught errors in production
+
+---
 
 ## Next Steps
 
-- **[Lifecycle Events](lifecycle-events.md)** - Validate lifecycle callback arguments
-- **[NDElement](native-document-element.md)** - Native Document Element
-- **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
-- **[Advanced Components](advanced-components.md)** - Template caching and singleton views
-- **[Memory Management](memory-management.md)** - Debugging memory issues with validation
+- **[NDElement](./native-document-element.md)** - Native Document Element
+- **[Extending NDElement](./extending-native-document-element.md)** - Custom methods guide
+- **[Memory Management](./memory-management.md)** - Debugging memory issues
+- **[Advanced Components](./advanced-components.md)** - Template caching and singleton views
 
 ## Utilities
 
-- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
-- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
-- **[Filters](docs/utils/filters.md)** - Data filtering helpers
+- **[Cache](./cache.md)** - Lazy initialization and singleton patterns
+- **[NativeFetch](./native-fetch.md)** - HTTP client with interceptors
+- **[Filters](./filters.md)** - Data filtering helpers

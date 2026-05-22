@@ -126,6 +126,11 @@ ObservableResource.prototype.$runWithoutAbortController = function(isRefetch = f
         });
 };
 
+ObservableResource.prototype.into = function($observable) {
+    this.data = $observable;
+    return this;
+};
+
 ObservableResource.prototype.$run = function(isRefetch = false) {
     const needsSignal = this.$fn.length > this.$dependencies.length;
     if(needsSignal) {

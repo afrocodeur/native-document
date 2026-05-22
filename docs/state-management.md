@@ -1,15 +1,15 @@
+---
+title: State Management
+description: Manage application-wide state with NativeDocument's Store system - groups, persistence, computed stores, and reactive updates
+---
+
 # State Management
 
-NativeDocument's state management system provides tools for managing application-wide state that persists across components and route changes. The Store system enables shared state with reactive updates, while Observables handle local component state.
-
-## Understanding State Management
-
-State management in NativeDocument operates on two levels: local component state using Observables, and global application state using the Store system. The Store allows multiple components to share and react to the same state changes.
+NativeDocument's state management operates on two levels: local component state using Observables, and global application state using the Store system. The Store allows multiple components to share and react to the same state changes.
 
 ```javascript
 import { Store, Observable } from 'native-document';
 
-// Create global state
 const userStore = Store.create('user', {
     id: null,
     name: '',
@@ -17,45 +17,34 @@ const userStore = Store.create('user', {
     isLoggedIn: false
 });
 
-// Components automatically update when store changes
 const UserGreeting = () => {
     const user = Store.use('user');
-    
-    return ShowIf(user.check(u => u.isLoggedIn),
+    return ShowIf(user.is(u => u.isLoggedIn),
         () => Div(['Welcome back, ', user.$value.name, '!'])
     );
 };
 ```
 
+---
+
 ## Store Creation
 
-Create named stores that can be accessed from anywhere in your application:
-
-### Basic Store Creation
+### `Store.create(name, initialValue)`
 
 ```javascript
-// Create a simple store
-const themeStore = Store.create('theme', 'light');
+Store.create('theme', 'light');
 
-// Create an object store
-const appStore = Store.create('app', {
+Store.create('app', {
     currentPage: 'home',
     sidebarOpen: false,
     notifications: []
 });
-
-// Create with initial complex data
-const cartStore = Store.create('cart', {
-    items: [],
-    total: 0,
-    currency: 'USD',
-    discountCode: null
-});
 ```
 
-### Resettable Store
+### `Store.createResettable(name, initialValue)`
 
-Use `createResettable()` when the store needs to return to its initial value — for example on logout or route change.
+Use when the store needs to return to its initial value - for example on logout or route change:
+
 ```javascript
 const userStore = Store.createResettable('user', {
     id: null,
@@ -64,30 +53,21 @@ const userStore = Store.createResettable('user', {
     isLoggedIn: false
 });
 
-// Reset to initial value at any time
 Store.reset('user');
 // -> { id: null, name: '', email: '', isLoggedIn: false }
 // -> all subscribers are notified automatically
 
 // Standard create() does not support reset
-Store.reset('theme'); // ❌ throws : this store is not resettable
+Store.reset('theme'); // throws - this store is not resettable
 ```
 
-### Store with Computed Values
+### `Store.createComposed(name, fn, deps)`
 
-For a computed value that stays local, use `Observable.computed()` :
-```javascript
-const cartTotal = Observable.computed(() => {
-    const cart = cartStore.val();
-    const subtotal = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    return subtotal + (subtotal * cart.taxRate);
-}, [cartStore]);
-```
+For a computed value accessible globally via the Store registry:
 
-For a computed value that must be accessible globally via the Store registry, use `createComposed()` :
 ```javascript
 Store.create('products', [{ id: 1, price: 10 }]);
-Store.create('cart', [{ productId: 1, quantity: 2 }]);
+Store.create('cart',     [{ productId: 1, quantity: 2 }]);
 
 Store.createComposed('total', () => {
     const products = Store.get('products').val();
@@ -98,26 +78,34 @@ Store.createComposed('total', () => {
     }, 0);
 }, ['products', 'cart']);
 
-// Access like any other store — read-only
 const total = Store.follow('total');
-total.val(); // -> 20
+total.val(); // 20
 
-// Store.use('total') -> ❌ throws : composed stores are read-only
-// Store.reset('total') -> ❌ throws : composed stores cannot be reset
+// Store.use('total')  -> throws - composed stores are read-only
+// Store.reset('total') -> throws - composed stores cannot be reset
 ```
 
-### Persistent Store
+For a computed value that stays local to a component, use `Observable.computed()` instead - see [Observables](./observables.md).
 
-Use `createPersistent()` when the store needs to survive page reloads. The value is automatically restored from localStorage on load and saved on every change.
+### `Store.createPersistent(name, initialValue, storageKey?)`
+
+Automatically saved to localStorage on every change and restored on page load:
+
 ```javascript
-const theme = Store.createPersistent('theme', 'light');
-theme.set('dark'); // saved to localStorage automatically
+Store.createPersistent('theme', 'light');
+Store.get('theme').set('dark'); // saved automatically
 
-// On next page load — restored automatically
-Store.get('theme').val(); // "dark"
+// On next page load
+Store.get('theme').val(); // "dark" - restored
+
+// Optional custom localStorage key
+Store.createPersistent('theme', 'light', 'app:theme');
 ```
 
-Use `createPersistentResettable()` when you need both persistence and reset capability. Reset clears the localStorage entry and restores the default value.
+### `Store.createPersistentResettable(name, initialValue, storageKey?)`
+
+Both persistent and resettable. Reset clears localStorage and restores the default:
+
 ```javascript
 const session = Store.createPersistentResettable('session', { id: null, name: '' });
 session.set({ id: 1, name: 'John' }); // saved
@@ -127,22 +115,18 @@ Store.reset('session');
 // -> localStorage entry removed
 ```
 
-Both methods accept an optional custom localStorage key — useful when the store name conflicts with existing keys:
-```javascript
-Store.createPersistent('theme', 'light', 'app:theme');
-Store.createPersistentResettable('session', null, 'app:session');
-```
+---
 
-### Store Groups
+## Store Groups
 
-Use `Store.group()` to create an isolated store namespace. Each group is a fully independent `StoreFactory` instance — no key conflicts, no shared state with the parent store.
+`Store.group()` creates an isolated namespace. Each group is a fully independent `StoreFactory` instance - no key conflicts, no shared state with the parent store:
+
 ```javascript
 const EventStore = Store.group('events', (group) => {
     group.create('catalog', []);
     group.create('filters', { category: null, date: null, city: null });
-    
     group.createResettable('selected', null);
-    
+
     group.createComposed('filtered', () => {
         const catalog = EventStore.get('catalog').val();
         const filters = EventStore.get('filters').val();
@@ -154,21 +138,21 @@ const EventStore = Store.group('events', (group) => {
     }, ['catalog', 'filters']);
 });
 
-// Usage — same API as Store
+// Same API as Store
 EventStore.use('catalog');      // two-way follower
 EventStore.follow('filtered');  // read-only follower
 EventStore.get('filters');      // raw observable
 
-// Direct property access — raw observable, always read-only
+// Direct property access - raw observable, always read-only
 EventStore.catalog;
 EventStore.filters;
 ```
 
-Groups can reference each other in `createComposed()` for cross-group derived state:
+Groups can reference each other in `createComposed()`:
+
 ```javascript
 const CartStore = Store.group('cart', (group) => {
     group.create('items', []);
-    
     group.createComposed('total', () => {
         return CartStore.get('items').val()
             .reduce((sum, item) => sum + item.price * item.qty, 0);
@@ -176,89 +160,74 @@ const CartStore = Store.group('cart', (group) => {
 });
 
 const OrderStore = Store.group('orders', (group) => {
-    group.createComposed('summary', () => {
-        const items  = CartStore.get('items').val();
-        const events = EventStore.get('catalog').val();
-        return { items, events };
-    }, [CartStore.get('items'), EventStore.get('catalog')]);
+    group.createComposed('summary', () => ({
+        items:  CartStore.get('items').val(),
+        events: EventStore.get('catalog').val()
+    }), [CartStore.get('items'), EventStore.get('catalog')]);
 });
 ```
 
-Groups can also be created without a name:
+Groups can be created without a name:
+
 ```javascript
 const CartStore = Store.group((group) => {
     group.create('items', []);
 });
 ```
 
-### Use Groups to Organize Domain State
-```javascript
-// Good: domain-driven grouping
-const UserStore  = Store.group('user',   (g) => { g.create('session', null); });
-const EventStore = Store.group('events', (g) => { g.create('catalog', []); });
-const CartStore  = Store.group('cart',   (g) => { g.create('items', []); });
+Use groups to organize state by domain:
 
-// Avoid: flat global stores for everything
-Store.create('userSession',   null);
-Store.create('eventCatalog',  []);
-Store.create('cartItems',     []);
+```javascript
+// Good - domain-driven grouping
+const UserStore  = Store.group('user',   g => g.create('session', null));
+const EventStore = Store.group('events', g => g.create('catalog', []));
+const CartStore  = Store.group('cart',   g => g.create('items', []));
+
+// Avoid - flat global stores for everything
+Store.create('userSession',  null);
+Store.create('eventCatalog', []);
+Store.create('cartItems',    []);
 ```
 
+---
 
-## Using Stores
+## Accessing Stores
 
-Access and react to store changes using Store.use() or Store.follow():
+### `Store.use(name)` - Two-way reactive
 
-### Store.use() - Primary Access Method
+Returns a reactive reference. The observable's `.set()` method is inherited from `Observable` - any change notifies all subscribers:
 
 ```javascript
 const UserProfile = () => {
-    // Get reactive reference to store
     const user = Store.use('user');
-    
-    return Div([
-        H1(['User Profile: ', user.name]),
-        P(['Email: ', user.email]),
-        P(['Status: ', user.check(u => u.isLoggedIn ? 'Online' : 'Offline')])
-    ]);
-};
 
-// Multiple components can use the same store
-const UserMenu = () => {
-    const user = Store.use('user');
-    
-    return Nav([
-        ShowIf(user.check(u => u.isLoggedIn), [
-            Link({ to: '/profile' }, 'My Profile'),
-            Button('Logout').nd.onClick(() => {
-                user.set({ ...user.$value, isLoggedIn: false });
-            })
-        ])
+    return Div([
+        H1(['User Profile: ', user.select(u => u.name)]),
+        P(['Email: ', user.select(u => u.email)]),
+        P(['Status: ', user.format(u => u.isLoggedIn ? 'Online' : 'Offline')])
     ]);
 };
 ```
 
-### Store.follow() - Read-only Access
+### `Store.follow(name)` - Read-only reactive
+
+Any attempt to call `.set()`, `.toggle()`, or `.reset()` throws a `NativeDocumentError`:
 
 ```javascript
 const NotificationBadge = () => {
-    // Follow returns a read-only reference — any attempt to call
-    // .set(), .toggle() or .reset() will throw a NativeDocumentError.
-    // Use this when a component should only read from the store.
     const notifications = Store.follow('notifications');
-    // notifications.set(...) -> ❌ throws NativeDocumentError
-    
-    return ShowIf(notifications.check(list => list.length > 0),
-        () => Span({ class: 'badge' }, notifications.$value.length)
+    // notifications.set(...) -> throws NativeDocumentError
+
+    return ShowIf(notifications.isNotEmpty(),
+        () => Span({ class: 'badge' }, notifications.toLength())
     );
 };
 ```
 
-### Store.get() - Raw Access
+### `Store.get(name)` - Raw observable
 
-Returns the raw store observable directly — no follower, no cleanup contract. Use this for direct read access when you don't need to unsubscribe.
+Returns the raw store observable directly - no follower, no cleanup contract:
 
-> **Warning:** mutations on this observer impact all subscribers immediately.
 ```javascript
 const userStore = Store.get('user');
 
@@ -271,167 +240,91 @@ userStore.subscribe(newUser => {
 });
 ```
 
-### Direct Property Access
+> Mutations on a raw observable from `Store.get()` impact all subscribers immediately.
 
-Stores and groups expose their observables as direct properties via a Proxy. Property access returns the raw observable — equivalent to calling `Store.get()`. Any attempt to assign or delete a property will throw.
+### Direct property access
+
+Stores and groups expose their observables as direct properties via a Proxy - equivalent to `Store.get()`:
+
 ```javascript
-// Equivalent to Store.get('catalog')
-EventStore.catalog;
+EventStore.catalog;  // same as EventStore.get('catalog')
 
-// For a read-only follower, use follow() explicitly
-EventStore.follow('catalog');
-
-// Direct assignment is forbidden
-EventStore.catalog = []; // ❌ throws : Store structure is immutable
-delete EventStore.catalog; // ❌ throws : Store keys cannot be deleted
+// Assignment and deletion are forbidden
+EventStore.catalog = [];    // throws - Store structure is immutable
+delete EventStore.catalog;  // throws - Store keys cannot be deleted
 ```
+
+---
 
 ## Updating Store State
 
-Modify store state using the returned observable's methods:
-
-### Direct Updates
+`.set()` is inherited from `Observable` and works the same way:
 
 ```javascript
-const ThemeToggle = () => {
-    const theme = Store.use('theme');
-    
-    return Button('Toggle Theme').nd.onClick(() => {
-        const current = theme.$value;
-        theme.set(current === 'light' ? 'dark' : 'light');
-    });
-};
+// Direct value
+const theme = Store.use('theme');
+theme.set('dark');
+theme.toggle(); // for boolean stores
+
+// Function update
+const counter = Store.use('counter');
+counter.set(current => current + 1);
+
+// Object spread
+const user = Store.use('user');
+user.set({ ...user.$value, name: 'Alice', isLoggedIn: true });
 ```
 
-### Object Store Updates
+---
+
+## Other Store Methods
+
+### `Store.has(name)`
+
+Check if a store exists before accessing it:
 
 ```javascript
-const LoginForm = () => {
-    const user = Store.use('user');
-    const email = Observable('');
-    const password = Observable('');
-    
-    const handleLogin = () => {
-        // Update multiple properties
-        user.set({
-            ...user.$value,
-            email: email.$value,
-            isLoggedIn: true,
-            name: 'User Name' // ...
-        });
-    };
-    
-    return Form([
-        Input({ type: 'email', value: email, placeholder: 'Email' }),
-        Input({ type: 'password', value: password, placeholder: 'Password' }),
-        Button('Login').nd.onClick(handleLogin)
-    ]);
-};
-```
-
-### Partial Updates
-
-```javascript
-const UserSettings = () => {
-    const user = Store.use('user');
-    
-    const updateName = (newName) => {
-        // Only update specific fields
-        user.set({
-            ...user.$value,
-            name: newName
-        });
-    };
-    
-    const updatePreferences = (prefs) => {
-        user.set({
-            ...user.$value,
-            preferences: {
-                ...user.$value.preferences,
-                ...prefs
-            }
-        });
-    };
-    
-    return Div([
-        Input({ 
-            value: user.check(u => u.name),
-            placeholder: 'Name'
-        }).nd.onInput(e => updateName(e.target.value)),
-        
-        Button('Dark Mode').nd.onClick(() => 
-            updatePreferences({ theme: 'dark' })
-        )
-    ]);
-};
-```
-
-## Store Access Patterns
-
-### Direct Store Access
-
-```javascript
-// Get store reference without reactivity
-const userStore = Store.get('user');
-
-// Check current value
-if (userStore.$value.isLoggedIn) {
-    console.log('User is logged in');
-}
-
-// Subscribe to changes manually
-userStore.subscribe(newUser => {
-    console.log('User changed:', newUser);
-});
-```
-
-### Checking Store Existence
-```javascript
-// Check if a store exists before accessing it
 if (Store.has('cart')) {
     const cart = Store.use('cart');
-    // ...
 }
 
-// Typical use case : dynamic module initialization
+// Typical use: dynamic module initialization
 if (!Store.has('cart')) {
     Store.create('cart', { items: [], total: 0 });
 }
 ```
 
-### Store Composition
+### `Store.delete(name)`
+
+Destroys a store - cleans up all followers and the observable, then removes it from the registry:
 
 ```javascript
-// Combine multiple stores for complex state
-const createAppState = () => {
-    const auth = Store.create('auth', defaultAuth);
-    const cart = Store.create('cart', defaultCart);
-    const settings = Store.create('settings', defaultSettings);
-    
-    // Computed store that combines others
-    Store.createComposed('appStatus', () => ({
-        isLoggedIn: Store.get('auth').val().user !== null,
-        cartItems:  Store.get('cart').val().items.length,
-        theme:      Store.get('settings').val().theme
-    }), ['auth', 'cart', 'settings']);
-    
-    return { auth, cart, settings, appStatus };
-};
+Store.delete('session'); // cleans up all subscribers and removes the store
 ```
+
+> After deletion, any existing follower references become stale. Always check with `Store.has()` before accessing a store that may have been deleted.
+
+### `Store.reset(name)`
+
+Resets a resettable store to its initial value:
+
+```javascript
+Store.reset('user');    // works - created with createResettable()
+Store.reset('theme');   // throws - created with create()
+```
+
+---
 
 ## Next Steps
 
-Now that you understand state management, explore these related topics:
-
-- **[Lifecycle Events](lifecycle-events.md)** - Lifecycle events
-- **[NDElement](native-document-element.md)** - Native Document Element
-- **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
-- **[Args Validation](validation.md)** - Function Argument Validation
-- **[Memory Management](memory-management.md)** - Memory management
-- **[Anchor](anchor.md)** - Anchor
+- **[Observables](./observables.md)** - Local state and reactive primitives
+- **[Lifecycle Events](./lifecycle-events.md)** - Lifecycle events
+- **[NDElement](./native-document-element.md)** - Native Document Element
+- **[Args Validation](./validation.md)** - Function argument validation
+- **[Memory Management](./memory-management.md)** - Memory management
 
 ## Utilities
 
-- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
-- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
-- **[Filters](docs/utils/filters.md)** - Data filtering helpers
+- **[Cache](./cache.md)** - Lazy initialization and singleton patterns
+- **[NativeFetch](./native-fetch.md)** - HTTP client with interceptors
+- **[Filters](./filters.md)** - Data filtering helpers

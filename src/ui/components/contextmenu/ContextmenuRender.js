@@ -18,7 +18,7 @@ export default function ContextMenuRender($desc, instance) {
 
     createPortal(container, {name: 'context-menu'});
 
-    if($desc.trigger) {
+    if($desc.trigger && instance) {
         contextMenuHandler($desc.trigger, instance);
     }
 

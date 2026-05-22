@@ -1,524 +1,355 @@
+---
+title: Core Concepts
+description: The fundamental concepts and philosophy behind NativeDocument - observables, elements, reactivity, and component patterns
+---
+
 # Core Concepts
 
-This guide covers the fundamental concepts and philosophy behind NativeDocument. Understanding these principles will help you build better applications and make the most of the framework's capabilities.
+This guide covers the fundamental concepts and philosophy behind NativeDocument.
+
+---
 
 ## Philosophy
 
-NativeDocument was designed with several core principles in mind:
+### Native-First
 
-### Native-First Approach
-Unlike frameworks that abstract away the DOM, NativeDocument embraces it. Every element you create is a real DOM node, and every interaction happens through native browser APIs. This means:
+NativeDocument embraces the DOM rather than abstracting it away. Every element you create is a real DOM node, and every interaction uses native browser APIs:
 
 - No virtual DOM overhead
-- Direct access to all browser features
-- Familiar debugging experience
+- Direct access to all browser APIs
+- Familiar debugging in DevTools
 - Better performance for DOM-heavy applications
 
 ### Reactive by Design
-Reactivity is built into the core of NativeDocument through observables. When data changes, the UI updates automatically without manual DOM manipulation:
+
+Reactivity is built into the core through observables. When data changes, the UI updates automatically:
 
 ```javascript
-const { Div } = NativeDocument.elements;
-const { Observable } = NativeDocument;
-
 const message = Observable('Hello World');
 const display = Div(message);
 
-// UI updates automatically
-message.set('Hello NativeDocument!');
+message.set('Hello NativeDocument!'); // UI updates automatically
 ```
 
 ### Zero Build Requirement
-While you can use build tools, NativeDocument works perfectly without them. Load it from a CDN and start building immediately:
+
+NativeDocument works without a build step - load from CDN and start immediately:
 
 ```html
 <script src="https://cdn.jsdelivr.net/gh/afrocodeur/native-document@latest/dist/native-document.min.js"></script>
 <script>
-    // Start building immediately
-    const { Div } = NativeDocument.elements;
-    // Your app here
+    const { Div, Button } = NativeDocument.elements;
+    const { Observable } = NativeDocument;
 </script>
 ```
 
-## Core Architecture
+For production, use the CLI for optimal bundle size via tree-shaking:
 
-### Observables - The Reactive Foundation
-
-Observables are the heart of NativeDocument's reactivity system. They wrap values and notify subscribers when changes occur.
-
-#### Basic Observable
-```javascript
-const count = Observable(0);
-
-// Subscribe to changes
-count.subscribe(newValue => {
-    console.log('Count changed to:', newValue);
-});
-
-// Update the value
-count.set(5); // Logs: "Count changed to: 5"
+```bash
+nd create MyApp
 ```
 
-#### Observable Objects
+---
+
+## Observables
+
+Observables wrap values and notify the UI when they change. They are the reactive foundation of NativeDocument.
+
+```javascript
+import { Observable } from 'native-document';
+
+const count = Observable(0);
+
+count.set(5);              // triggers update
+count.$value = 5;          // same thing
+count.set(v => v + 1);    // function form
+
+count.val();   // read current value
+count.$value;  // same
+```
+
+### Object observables
+
 ```javascript
 const user = Observable({ name: 'John', age: 25 });
 
-// Access values
-console.log(user.val().name); // "John"
-console.log(user.$value.name); // "John" (proxy syntax)
-
-// Update object - replaces entire value
 user.set({ ...user.val(), name: 'Jane' });
+user.set(data => ({ ...data, name: 'Jane' }));
 
-// This won't trigger reactivity (common mistake)
-// user.name = 'Jane'; // Wrong!
+// user.name = 'Jane' -- wrong, won't trigger update
 ```
 
-#### Observable Arrays
+For per-property reactivity:
+
+```javascript
+const user = Observable.object({ name: 'John', age: 25 });
+user.name.set('Jane'); // only name updates
+user.$value;           // { name: 'Jane', age: 25 }
+```
+
+### Array observables
+
 ```javascript
 const todos = Observable.array([]);
 
-// Array methods trigger reactivity
-todos.push({ text: 'Learn NativeDocument', done: false });
-todos.pop();
+todos.push({ id: 1, text: 'Buy milk', done: false });
+todos.splice(0, 1);
 todos.sort((a, b) => a.text.localeCompare(b.text));
-
-// Access like normal array
-console.log(todos.val().length);
 ```
 
-#### Computed Observables
+### Computed observables
+
+The callback receives dependency values as arguments in order:
+
 ```javascript
 const firstName = Observable('John');
-const lastName = Observable('Doe');
+const lastName  = Observable('Doe');
 
-const fullName = Observable.computed(() => {
-    return `${firstName.val()} ${lastName.val()}`;
+const fullName = Observable.computed((first, last) => {
+    return `${first} ${last}`;
 }, [firstName, lastName]);
 
-// Updates automatically when dependencies change
-firstName.set('Jane'); // fullName becomes "Jane Doe"
+firstName.set('Jane'); // fullName -> "Jane Doe"
 ```
 
-### Elements - Building the UI
+See [Observables](./observables.md) for the full reference.
 
-Elements in NativeDocument are functions that create and return DOM nodes. They follow a consistent pattern:
+---
 
-#### Basic Element Creation
+## Elements
+
+Elements are functions that create and return real DOM nodes:
+
 ```javascript
-const { Div, Button, Input } = NativeDocument.elements;
+import { Div, Button, Input, H1, P } from 'native-document/elements';
 
-// Element with no attributes or children
-const simpleDiv = Div();
+// No attributes
+const simple = Div('Hello World');
 
-// Element with attributes only
-const styledDiv = Div({ class: 'container', id: 'main' });
+// With attributes
+const styled = Div({ class: 'card', id: 'main' }, 'Content');
 
-// Element with children only
-const textDiv = Div('Hello World');
-const arrayDiv = Div(['Hello ', 'World']);
+// With reactive attributes
+const isVisible = Observable(true);
+const box = Div({
+    class: { 'hidden': isVisible.isFalsy() },
+    style: { opacity: isVisible.format(v => v ? 1 : 0.5) }
+}, 'Content');
 
-// Element with both attributes and children
-const fullDiv = Div({ class: 'card' }, [
-    'Content here'
+// Children - text, numbers, observables, elements, closures, or arrays
+const mixed = Div([
+    H1('Title'),
+    'Some text',
+    P(count),
+    () => Button('Dynamic')
 ]);
 ```
 
-#### Reactive Attributes
+### Event handling
+
 ```javascript
-const isVisible = Observable(true);
-const theme = Observable('dark');
+Button('Click me').nd.onClick(() => console.log('Clicked'));
 
-const element = Div({
-    class: {
-        'visible': isVisible,
-        'dark-theme': theme.check(t => t === 'dark')
-    },
-    style: {
-        opacity: isVisible.check(v => v ? 1 : 0.5)
-    }
-});
-```
-
-#### Event Handling
-```javascript
-const counter = Observable(0);
-
-const button = Button('Click me')
-    .nd.onClick(() => {
-        counter.set(counter.val() + 1);
+// Multi-line callback
+Button('Submit')
+    .nd
+    .onClick(e => {
+        e.preventDefault();
+        submitForm();
     });
 
-// Multiple events
-const input = Input()
-    .nd.onFocus(e => console.log('Focused'))
-    .nd.onBlur(e => console.log('Blurred'))
-    .nd.onInput(e => console.log('Value:', e.target.value));
-
-//Or
-const input = Input()
-    .nd.on({
-        focus: e => console.log('Focused'),
-        blur: e => console.log('Blurred'),
-        input: e => console.log('Value:', e.target.value)
-    })
+// Multiple events - chain after first .nd
+Input({ type: 'text' })
+    .nd
+    .onFocus(() => console.log('Focused'))
+    .onBlur(() => console.log('Blurred'))
+    .onInput(e => console.log('Value:', e.target.value));
 ```
 
-### Lifecycle and Memory Management
+See [Elements](./elements.md) for the full reference.
 
-NativeDocument includes automatic memory management to prevent memory leaks.
-
-#### Element Lifecycle
-```javascript
-const element = Div('Content')
-    .nd.mounted(el => {
-        console.log('Element added to DOM');
-    })
-    .nd.unmounted(el => {
-        console.log('Element removed from DOM');
-    });
-```
-
-#### Manual Cleanup
-For complex scenarios, you can manage cleanup manually:
-
-```javascript
-const observable = Observable(0);
-
-// Manual subscription
-const unsubscribe = observable.subscribe(value => {
-    console.log('Value:', value);
-});
-
-// Clean up when needed
-unsubscribe();
-```
+---
 
 ## Reactivity Model
 
-### Data Flow
-NativeDocument follows a unidirectional data flow:
+Data flows in one direction:
 
-1. **State Change**: An observable value is updated
-2. **Notification**: All subscribers are notified
-3. **DOM Update**: UI elements update automatically
-4. **Event Handling**: User interactions trigger new state changes
+1. **State change** - an observable is updated
+2. **Notification** - all subscribers are notified
+3. **DOM update** - UI elements update automatically
+4. **Event handling** - user interactions trigger new state changes
 
 ```javascript
 const items = Observable.array(['Apple', 'Banana']);
 
-const list = ForEach(items, (item) => 
-    Div([
-        item,
-        Button('Remove').nd.onClick(() => {
-            // User action → State change -> UI update
-            const index = items.val().indexOf(item);
-            items.splice(index, 1);
-        })
-    ])
-);
+Ul(
+    ForEach(items, item =>
+        Li([
+            item,
+            Button('Remove')
+                .nd.onClick(() => items.removeItem(item))
+        ])
+    )
+)
 ```
 
-### Reactive Chains
-Observables can depend on other observables, creating reactive chains:
+### Reactive chains
 
 ```javascript
-const price = Observable(100);
+const price    = Observable(100);
 const quantity = Observable(2);
-const discount = Observable(0.1);
+const tax      = Observable(0.2);
 
-const subtotal = Observable.computed(() => {
-    return price.val() * quantity.val();
-}, [price, quantity]);
+const subtotal = Observable.computed((p, q) => p * q, [price, quantity]);
+const total    = Observable.computed((sub, t) => sub * (1 + t), [subtotal, tax]);
 
-const total = Observable.computed(() => {
-    return subtotal.val() * (1 - discount.val());
-}, [subtotal, discount]);
-
-// Changing any value updates the chain
-price.set(150); // subtotal and total update automatically
+price.set(150); // subtotal and total both update
 ```
+
+---
 
 ## Component Patterns
 
-### Functional Components
-Create reusable components as functions:
+### Functional components
 
 ```javascript
-function UserCard(user) {
+function UserCard({ name, email }) {
     return Div({ class: 'user-card' }, [
-        Div({ class: 'name' }, user.name),
-        Div({ class: 'email' }, user.email),
-        Button('Edit').nd.onClick(() => {
-            // Handle edit
-        })
+        Div({ class: 'name' },  name),
+        Div({ class: 'email' }, email),
+        Button('Edit').nd.onClick(() => editUser(name))
     ]);
 }
 
-// Usage
-const user = { name: 'John Doe', email: 'john@example.com' };
-const card = UserCard(user);
+document.body.appendChild(UserCard({ name: 'John', email: 'john@example.com' }));
 ```
 
-### Stateful Components
-Components with internal state:
+### Stateful components
 
 ```javascript
 function Counter(initialValue = 0) {
     const count = Observable(initialValue);
-    
+
     return Div({ class: 'counter' }, [
         Div(['Count: ', count]),
-        Button('-').nd.onClick(() => count.set(count.val() - 1)),
-        Button('+').nd.onClick(() => count.set(count.val() + 1)),
+        Button('-').nd.onClick(() => count.$value--),
+        Button('+').nd.onClick(() => count.$value++),
         Button('Reset').nd.onClick(() => count.set(initialValue))
     ]);
 }
-
-// Usage
-const myCounter = Counter(10);
 ```
 
-### Higher-Order Components
-Components that enhance other components:
+### Exposing methods to parent via `.nd.with()`
 
 ```javascript
-function withLoading(component, isLoading) {
-    return When(isLoading.check(loading => !loading))
-        .show(component)
-        .otherwise(Div({ class: 'loading' }, 'Loading...'));
-    // Or
+function Timer() {
+    const count    = Observable(0);
+    let   interval = null;
 
-    // return Switch(isLoading.check(loading => !loading),
-    //     component,
-    //     Div({ class: 'loading' }, 'Loading...')
-    // );
+    return Div(['Time: ', count])
+        .nd.with({
+            start() {
+                if (interval) return this;
+                interval = setInterval(() => count.$value++, 1000);
+                return this;
+            },
+            stop() {
+                clearInterval(interval);
+                interval = null;
+                return this;
+            },
+            reset() {
+                this.stop();
+                count.set(0);
+                return this;
+            }
+        });
 }
 
-// Usage
-const isLoading = Observable(true);
-const content = Div('Main content');
-const wrappedContent = withLoading(content, isLoading);
+const refs = {};
+Div([
+    Timer().nd.refSelf(refs, 'timer'),
+    Button('Start').nd.onClick(() => refs.timer.start()),
+    Button('Stop').nd.onClick(() => refs.timer.stop()),
+    Button('Reset').nd.onClick(() => refs.timer.reset())
+]);
 ```
+
+---
 
 ## State Management Patterns
 
-### Local State
-For component-specific state, use observables directly:
+### Local state
+
+Use observables directly for component-specific state:
 
 ```javascript
-function TodoForm() {
-    const text = Observable('');
-    const isValid = Observable.computed(() => text.val().trim().length > 0, [text]);
-    
+function SearchBox(onSearch) {
+    const query   = Observable('');
+    const isValid = query.isNotEmpty();
+
     return Div([
-        Input({ placeholder: 'Enter todo...', value: text }),
-        Button('Add')
+        Input({ placeholder: 'Search...', value: query }),
+        Button('Search')
             .nd.onClick(() => {
                 if (isValid.val()) {
-                    // Add todo logic
-                    text.set('');
+                    onSearch(query.val());
                 }
             })
     ]);
 }
 ```
 
-### Shared State
-For state shared between components, create a store:
+### Global state with Store
 
 ```javascript
-// Create a shared store
-const TodoStore = {
-    todos: Observable.array([]),
-    
-    addTodo(text) {
-        this.todos.push({
-            id: Date.now(),
-            text: text,
-            done: false
-        });
-    },
-    
-    removeTodo(id) {
-        const index = this.todos.val().findIndex(todo => todo.id === id);
-        if (index !== -1) {
-            this.todos.splice(index, 1);
-        }
-    }
-};
+import { Store } from 'native-document';
 
-// Use in components
-function TodoList() {
-    return ForEach(TodoStore.todos, (todo) => 
-        Div([
-            todo.text,
-            Button('Delete').nd.onClick(() => {
-                TodoStore.removeTodo(todo.id);
-            })
-        ])
-    );
-}
-```
+Store.create('theme', 'light');
 
-### Global State with Store
-For complex applications, use the built-in Store:
+const UserStore = Store.group('user', g => {
+    g.createResettable('session', { id: null, name: '', isLoggedIn: false });
+});
 
-```javascript
-const { Store } = NativeDocument;
-
-// Create global observables
-const userStore = Store.create('user', { name: '', isLoggedIn: false });
-const themeStore = Store.create('theme', 'light');
-
-// Use in components
 function Header() {
-    const user = Store.use('user');
-    const theme = Store.use('theme');
-    
-    return Div({ class: theme.check(t => `theme-${t}`) }, [
-        ShowIf(user.check(u => u.isLoggedIn),
-            Div(['Welcome, ', user.$value.name])
+    const theme   = Store.use('theme');
+    const session = UserStore.use('session');
+
+    return Div({ class: theme.format(t => `theme-${t}`) }, [
+        ShowIf(session.is(s => s.isLoggedIn),
+            () => Div(['Welcome, ', session.select(s => s.name)])
         )
     ]);
 }
 ```
 
+---
+
 ## Error Handling
 
-### Graceful Error Handling
-Wrap potentially failing operations:
-
 ```javascript
-function SafeComponent() {
-    try {
-        return riskyOperation();
-    } catch (error) {
-        console.error('Component error:', error);
-        return Div({ class: 'error' }, 'Something went wrong');
-    }
-}
+// Error boundary on a component function
+const SafeWidget = Widget.errorBoundary((error, { caller, args }) => {
+    console.error('Widget error:', error);
+    return Div({ class: 'error' }, 'Something went wrong');
+});
 ```
 
-### Error Boundaries
-Use error boundaries for robust applications:
-
-```javascript
-function withErrorBoundary(component) {
-    return component.errorBoundary((error) => {
-        console.error('Error caught:', error);
-        return Div({ class: 'error-boundary' }, [
-            'An error occurred. Please try again.'
-        ]);
-    });
-}
-```
-
-## Performance Considerations
-
-### Efficient Updates
-NativeDocument optimizes updates automatically, but you can help:
-
-```javascript
-// Good: Batch related updates
-function updateUser(newData) {
-    user.set({ ...user.val(), ...newData });
-}
-
-// Less efficient: Multiple separate updates
-function updateUserSeparately(name, email) {
-    user.set({ ...user.val(), name });
-    user.set({ ...user.val(), email });
-}
-```
-
-### List Rendering
-Use key functions for efficient list updates:
-
-```javascript
-ForEach(items, (item) => 
-    Div(['Item: ', item.name]),
-    // Key function for efficient updates
-    (item) => item.id
-);
-// or 
-ForEach(items, (item) => 
-    Div(['Item: ', item.name]),
-    // Key property for efficient updates
-    'id'
-);
-```
-
-## Best Practices
-
-### 1. Keep Components Small and Focused
-```javascript
-// Good: Focused component
-function UserName(user) {
-    return Div({ class: 'user-name' }, user.name);
-}
-
-// Less ideal: Component doing too much
-function UserEverything(user) {
-    // Handles name, email, avatar, settings, etc.
-}
-```
-
-### 2. Use Computed Values for Derived State
-```javascript
-// Good: Computed value
-const filteredItems = Observable.computed(() => {
-    return items.val().filter(item => item.visible);
-}, [items]);
-
-// Less efficient: Manual filtering on each render
-```
-
-### 3. Separate Concerns
-```javascript
-// Good: Separate data logic from UI
-const UserService = {
-    async loadUser(id) {
-        // Data loading logic
-    }
-};
-
-function UserProfile(userId) {
-    // UI rendering logic
-}
-```
-
-### 4. Use Meaningful Names
-```javascript
-// Good: Clear naming
-const isUserLoggedIn = Observable(false);
-const currentUserName = Observable('');
-
-// Less clear
-const flag = Observable(false);
-const data = Observable('');
-```
+---
 
 ## Next Steps
 
-Now that you understand NativeDocument's core concepts, explore these advanced topics:
-
-- **[Observables](observables.md)** - Reactive state management
-- **[Elements](elements.md)** - Creating and composing UI
-- **[Conditional Rendering](conditional-rendering.md)** - Dynamic content
-- **[List Rendering](list-rendering.md)** - (ForEach | ForEachArray) and dynamic lists
-- **[Routing](routing.md)** - Navigation and URL management
-- **[State Management](state-management.md)** - Global state patterns
-- **[Lifecycle Events](lifecycle-events.md)** - Lifecycle events
-- **[NDElement](native-document-element.md)** - Native Document Element
-- **[Extending NDElement](extending-native-document-element.md)** - Custom Methods Guide
-- **[Advanced Components](advanced-components.md)** - Template caching and singleton views
-- **[Args Validation](validation.md)** - Function Argument Validation
-- **[Memory Management](memory-management.md)** - Memory management
-- **[Anchor](anchor.md)** - Anchor
+- **[Observables](./observables.md)** - Full reactive state reference
+- **[Elements](./elements.md)** - Creating and composing UI
+- **[Conditional Rendering](./conditional-rendering.md)** - ShowIf, Match, Switch
+- **[List Rendering](./list-rendering.md)** - ForEach and dynamic lists
+- **[Routing](./routing.md)** - Navigation and URL management
+- **[State Management](./state-management.md)** - Global state with Store
+- **[NDElement](./native-document-element.md)** - Full `.nd` API reference
+- **[CLI](./cli.md)** - Project scaffolding
 
 ## Utilities
 
-- **[Cache](docs/utils/cache.md)** - Lazy initialization and singleton patterns
-- **[NativeFetch](docs/utils/native-fetch.md)** - HTTP client with interceptors
-- **[Filters](docs/utils/filters.md)** - Data filtering helpers
+- **[Cache](./cache.md)** - Lazy initialization and singleton patterns
+- **[NativeFetch](./native-fetch.md)** - HTTP client with interceptors
+- **[Filters](./filters.md)** - Data filtering helpers

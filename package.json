@@ -1,7 +1,82 @@
 {
   "name": "native-document",
   "version": "1.0.166",
-  "sideEffects":  [
+  "description": "A reactive JavaScript framework that preserves native DOM simplicity without sacrificing modern features",
+  "author": "AfroCodeur <https://github.com/afrocodeur>",
+  "license": "MIT",
+  "homepage": "https://github.com/afrocodeur/native-document#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/afrocodeur/native-document.git"
+  },
+  "bugs": {
+    "url": "https://github.com/afrocodeur/native-document/issues"
+  },
+  "keywords": [
+    "reactive",
+    "framework",
+    "dom",
+    "vanilla",
+    "javascript",
+    "observable",
+    "no-virtual-dom",
+    "ui"
+  ],
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "types": "./index.d.ts"
+    },
+    "./elements": {
+      "import": "./elements.js",
+      "types": "./elements.d.ts"
+    },
+    "./components": {
+      "import": "./components.js",
+      "types": "./components.d.ts"
+    },
+    "./router": {
+      "import": "./router.js",
+      "types": "./router.d.ts"
+    },
+    "./ui": {
+      "import": "./ui.js"
+    },
+    "./utils": {
+      "import": "./utils.js",
+      "types": "./utils.d.ts"
+    },
+    "./i18n": {
+      "import": "./i18n.js"
+    },
+    "./filters": {
+      "import": "./src/core/utils/filters/index.js"
+    }
+  },
+  "files": [
+    "src/",
+    "types/",
+    "dist/",
+    "index.js",
+    "index.d.ts",
+    "elements.js",
+    "elements.d.ts",
+    "components.js",
+    "components.d.ts",
+    "router.js",
+    "router.d.ts",
+    "utils.js",
+    "utils.d.ts",
+    "ui.js",
+    "i18n.js",
+    "filters.js",
+    "cdn.js",
+    "CHANGELOG.md",
+    "README.md"
+  ],
+  "sideEffects": [
     "index.js",
     "elements.js",
     "**/*.css",
@@ -14,17 +89,16 @@
     "**/observable.prototypes.js",
     "**/observable.is-to.js"
   ],
-  "main": "index.js",
-  "type": "module",
   "scripts": {
-    "build": "rollup --config rollup.config.js --watch",
+    "build": "rollup --config rollup.config.js",
+    "build:watch": "rollup --config rollup.config.js --watch",
     "lint": "eslint ./src",
     "lint:fix": "eslint ./src --fix"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "dependencies": {
+    "@floating-ui/dom": "^1.7.6",
+    "i18next": "^25.8.0"
+  },
   "devDependencies": {
     "@babel/parser": "^7.28.5",
     "@babel/traverse": "^7.28.5",
@@ -38,8 +112,7 @@
     "rollup": "^4.53.3",
     "rollup-plugin-postcss": "^4.0.2"
   },
-  "dependencies": {
-    "@floating-ui/dom": "^1.7.6",
-    "i18next": "^25.8.0"
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
