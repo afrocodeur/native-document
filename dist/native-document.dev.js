@@ -1,14 +1,14 @@
 var NativeDocument = (function (exports) {
     'use strict';
 
-    let DebugManager$1 = {};
+    let DebugManager$2 = {};
 
     {
-        DebugManager$1 = {
+        DebugManager$2 = {
             enabled: true,
 
             enable() {
-                DebugManager$1.log('🔍 NativeDocument Debug Mode enabled');
+                DebugManager$2.log('🔍 NativeDocument Debug Mode enabled');
             },
 
             disable() {
@@ -32,7 +32,7 @@ var NativeDocument = (function (exports) {
         };
 
     }
-    var DebugManager$2 = DebugManager$1;
+    var DebugManager$1 = DebugManager$2;
 
     class NativeDocumentError extends Error {
         constructor(message, context = {}) {
@@ -188,7 +188,7 @@ var NativeDocument = (function (exports) {
             const foundReserved = Object.keys(attributes).filter(key => reserved.includes(key));
 
             if (foundReserved.length > 0) {
-                DebugManager$2.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
+                DebugManager$1.warn('Validator', `Reserved attributes found: ${foundReserved.join(', ')}`);
             }
 
             return attributes;
@@ -275,16 +275,16 @@ var NativeDocument = (function (exports) {
                     }
                 }
                 if (cleanedCount > 0) {
-                    DebugManager$2.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
+                    DebugManager$1.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
                 }
             }
         };
     }());
 
-    let PluginsManager = null;
+    let PluginsManager$1 = null;
 
     {
-        PluginsManager = (function() {
+        PluginsManager$1 = (function() {
 
             const $plugins = new Map();
             const $pluginByEvents = new Map();
@@ -350,7 +350,7 @@ var NativeDocument = (function (exports) {
                             try{
                                 callback.call(plugin, ...data);
                             } catch (error) {
-                                DebugManager$2.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
+                                DebugManager$1.error('Plugin Manager', `Error in plugin ${plugin.$name} for event ${eventName}`, error);
                             }
                         }
                     }
@@ -359,7 +359,7 @@ var NativeDocument = (function (exports) {
         }());
     }
 
-    var PluginsManager$1 = PluginsManager;
+    var PluginsManager = PluginsManager$1;
 
     const invoke = function(fn, args, context) {
         if(context) {
@@ -552,7 +552,7 @@ var NativeDocument = (function (exports) {
             }
         }
         {
-            PluginsManager$1.emit('CreateObservable', this);
+            PluginsManager.emit('CreateObservable', this);
         }
     }
 
@@ -667,12 +667,12 @@ var NativeDocument = (function (exports) {
         this.$previousValue = this.$currentValue;
         this.$currentValue = newValue;
         {
-            PluginsManager$1.emit('ObservableBeforeChange', this);
+            PluginsManager.emit('ObservableBeforeChange', this);
         }
         this.trigger($setOperation);
         this.$previousValue = null;
         {
-            PluginsManager$1.emit('ObservableAfterChange', this);
+            PluginsManager.emit('ObservableAfterChange', this);
         }
     };
 
@@ -751,7 +751,7 @@ var NativeDocument = (function (exports) {
     ObservableItem.prototype.subscribe = function(callback) {
         {
             if (this.$isCleanedUp) {
-                DebugManager$2.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
+                DebugManager$1.warn('Observable subscription', '⚠️ Attempted to subscribe to a cleaned up observable.');
                 return;
             }
             if (typeof callback !== 'function') {
@@ -763,7 +763,7 @@ var NativeDocument = (function (exports) {
         this.$listeners.push(callback);
         this.assocTrigger();
         {
-            PluginsManager$1.emit('ObservableSubscribe', this);
+            PluginsManager.emit('ObservableSubscribe', this);
         }
     };
 
@@ -874,7 +874,7 @@ var NativeDocument = (function (exports) {
         }
         this.assocTrigger();
         {
-            PluginsManager$1.emit('ObservableUnsubscribe', this);
+            PluginsManager.emit('ObservableUnsubscribe', this);
         }
     };
 
@@ -1120,7 +1120,7 @@ var NativeDocument = (function (exports) {
                         const regex = new RegExp(pattern, flags);
                         return regex.test(String(value));
                     } catch (error){
-                        DebugManager$2.warn('Invalid regex pattern:', pattern, error);
+                        DebugManager$1.warn('Invalid regex pattern:', pattern, error);
                         return false;
                     }
                 }
@@ -1379,7 +1379,7 @@ var NativeDocument = (function (exports) {
 
         ObservableItem.call(this, target, configs);
         {
-            PluginsManager$1.emit('CreateObservableArray', this);
+            PluginsManager.emit('CreateObservableArray', this);
         }
     };
 
@@ -2239,7 +2239,7 @@ var NativeDocument = (function (exports) {
 
         ObservableItem.call(this);
         {
-            PluginsManager$1.emit('CreateObservableChecker', this);
+            PluginsManager.emit('CreateObservableChecker', this);
         }
 
         this.$mutation = $checker;
@@ -2790,7 +2790,7 @@ var NativeDocument = (function (exports) {
         const observable = new ObservableItem(initialValue);
         const updatedValue = nextTick(() => observable.set(callback(...getValues())));
         {
-            PluginsManager$1.emit('CreateObservableComputed', observable, dependencies);
+            PluginsManager.emit('CreateObservableComputed', observable, dependencies);
         }
 
         if(Validator.isFunction(dependencies)) {
@@ -3105,14 +3105,14 @@ var NativeDocument = (function (exports) {
         processChildren: (children, parent) => {
             if(children === null) return;
             {
-                PluginsManager$1.emit('BeforeProcessChildren', parent);
+                PluginsManager.emit('BeforeProcessChildren', parent);
             }
             let child = ElementCreator.getChild(children);
             if(child) {
                 parent.appendChild(child);
             }
             {
-                PluginsManager$1.emit('AfterProcessChildren', parent);
+                PluginsManager.emit('AfterProcessChildren', parent);
             }
         },
         async safeRemove(element) {
@@ -3762,7 +3762,7 @@ var NativeDocument = (function (exports) {
         this.$element = element;
         this.$attachements = null;
         {
-            PluginsManager$1.emit('NDElementCreated', element, this);
+            PluginsManager.emit('NDElementCreated', element, this);
         }
     }
 
@@ -3934,12 +3934,12 @@ var NativeDocument = (function (exports) {
             const method = methods[name];
 
             if (typeof method !== 'function') {
-                DebugManager$2.warn(`⚠️ extends(): "${name}" is not a function, skipping`);
+                DebugManager$1.warn(`⚠️ extends(): "${name}" is not a function, skipping`);
                 continue;
             }
             {
                 if (this[name] && !this.$localExtensions.has(name)) {
-                    DebugManager$2.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
+                    DebugManager$1.warn('NDElement.extend', `Method "${name}" already exists and will be overwritten`);
                 }
                 this.$localExtensions.set(name, method);
             }
@@ -4016,23 +4016,23 @@ var NativeDocument = (function (exports) {
             const method = methods[name];
 
             if (typeof method !== 'function') {
-                DebugManager$2.warn('NDElement.extend', `"${name}" is not a function, skipping`);
+                DebugManager$1.warn('NDElement.extend', `"${name}" is not a function, skipping`);
                 continue;
             }
 
             if (protectedMethods.has(name)) {
-                DebugManager$2.error('NDElement.extend', `Cannot override protected method "${name}"`);
+                DebugManager$1.error('NDElement.extend', `Cannot override protected method "${name}"`);
                 throw new NativeDocumentError(`Cannot override protected method "${name}"`);
             }
 
             if (NDElement.prototype[name]) {
-                DebugManager$2.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
+                DebugManager$1.warn('NDElement.extend', `Overwriting existing prototype method "${name}"`);
             }
 
             NDElement.prototype[name] = method;
         }
         {
-            PluginsManager$1.emit('NDElementExtended', methods);
+            PluginsManager.emit('NDElementExtended', methods);
         }
 
         return NDElement;
@@ -4457,7 +4457,7 @@ var NativeDocument = (function (exports) {
     Function.prototype.toNdElement = function () {
         const child = this;
         {
-            PluginsManager$1.emit('BeforeProcessComponent', child);
+            PluginsManager.emit('BeforeProcessComponent', child);
         }
         return ElementCreator.getChild(child());
     };
@@ -5107,7 +5107,7 @@ var NativeDocument = (function (exports) {
         const $getStoreOrThrow = (method, name) => {
             const item = $stores.get(name);
             if (!item) {
-                DebugManager$2.error('Store', `Store.${method}('${name}') : store not found. Did you call Store.create('${name}') first?`);
+                DebugManager$1.error('Store', `Store.${method}('${name}') : store not found. Did you call Store.create('${name}') first?`);
                 throw new NativeDocumentError(
                     `Store.${method}('${name}') : store not found.`
                 );
@@ -5120,7 +5120,7 @@ var NativeDocument = (function (exports) {
          */
         const $applyReadOnly = (observer, name, context) => {
             const readOnlyError = (method) => () => {
-                DebugManager$2.error('Store', `Store.${context}('${name}') is read-only. '${method}()' is not allowed.`);
+                DebugManager$1.error('Store', `Store.${context}('${name}') is read-only. '${method}()' is not allowed.`);
                 throw new NativeDocumentError(
                     `Store.${context}('${name}') is read-only.`
                 );
@@ -5151,7 +5151,7 @@ var NativeDocument = (function (exports) {
              */
             create(name, value) {
                 if ($stores.has(name)) {
-                    DebugManager$2.warn('Store', `Store.create('${name}') : a store with this name already exists. Use Store.get('${name}') to retrieve it.`);
+                    DebugManager$1.warn('Store', `Store.create('${name}') : a store with this name already exists. Use Store.get('${name}') to retrieve it.`);
                     throw new NativeDocumentError(
                         `Store.create('${name}') : a store with this name already exists.`
                     );
@@ -5172,7 +5172,7 @@ var NativeDocument = (function (exports) {
              */
             createResettable(name, value) {
                 if ($stores.has(name)) {
-                    DebugManager$2.warn('Store', `Store.createResettable('${name}') : a store with this name already exists.`);
+                    DebugManager$1.warn('Store', `Store.createResettable('${name}') : a store with this name already exists.`);
                     throw new NativeDocumentError(
                         `Store.createResettable('${name}') : a store with this name already exists.`
                     );
@@ -5208,7 +5208,7 @@ var NativeDocument = (function (exports) {
              */
             createComposed(name, computation, dependencies) {
                 if ($stores.has(name)) {
-                    DebugManager$2.warn('Store', `Store.createComposed('${name}') : a store with this name already exists.`);
+                    DebugManager$1.warn('Store', `Store.createComposed('${name}') : a store with this name already exists.`);
                     throw new NativeDocumentError(
                         `Store.createComposed('${name}') : a store with this name already exists.`
                     );
@@ -5231,7 +5231,7 @@ var NativeDocument = (function (exports) {
                     }
                     const depItem = $stores.get(depName);
                     if (!depItem) {
-                        DebugManager$2.error('Store', `Store.createComposed('${name}') : dependency '${depName}' not found. Create it first.`);
+                        DebugManager$1.error('Store', `Store.createComposed('${name}') : dependency '${depName}' not found. Create it first.`);
                         throw new NativeDocumentError(
                             `Store.createComposed('${name}') : dependency store '${depName}' not found.`
                         );
@@ -5265,13 +5265,13 @@ var NativeDocument = (function (exports) {
             reset(name) {
                 const item = $getStoreOrThrow('reset', name);
                 if (item.composed) {
-                    DebugManager$2.error('Store', `Store.reset('${name}') : composed stores cannot be reset. Their value is derived from dependencies.`);
+                    DebugManager$1.error('Store', `Store.reset('${name}') : composed stores cannot be reset. Their value is derived from dependencies.`);
                     throw new NativeDocumentError(
                         `Store.reset('${name}') : composed stores cannot be reset.`
                     );
                 }
                 if (!item.resettable) {
-                    DebugManager$2.error('Store', `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`);
+                    DebugManager$1.error('Store', `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`);
                     throw new NativeDocumentError(
                         `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`
                     );
@@ -5292,7 +5292,7 @@ var NativeDocument = (function (exports) {
                 const item = $getStoreOrThrow('use', name);
 
                 if (item.composed) {
-                    DebugManager$2.error('Store', `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`);
+                    DebugManager$1.error('Store', `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`);
                     throw new NativeDocumentError(
                         `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`
                     );
@@ -5359,7 +5359,7 @@ var NativeDocument = (function (exports) {
             get(name) {
                 const item = $stores.get(name);
                 if (!item) {
-                    DebugManager$2.warn('Store', `Store.get('${name}') : store not found.`);
+                    DebugManager$1.warn('Store', `Store.get('${name}') : store not found.`);
                     return null;
                 }
                 return item.observer;
@@ -5381,7 +5381,7 @@ var NativeDocument = (function (exports) {
             delete(name) {
                 const item = $stores.get(name);
                 if (!item) {
-                    DebugManager$2.warn('Store', `Store.delete('${name}') : store not found, nothing to delete.`);
+                    DebugManager$1.warn('Store', `Store.delete('${name}') : store not found, nothing to delete.`);
                     return;
                 }
                 item.subscribers.forEach(follower => follower.destroy());
@@ -5483,7 +5483,7 @@ var NativeDocument = (function (exports) {
                 return undefined;
             },
             set(target, prop, value) {
-                DebugManager$2.error('Store', `Forbidden: You cannot overwrite the store key '${String(prop)}'. Use .use('${String(prop)}').set(value) instead.`);
+                DebugManager$1.error('Store', `Forbidden: You cannot overwrite the store key '${String(prop)}'. Use .use('${String(prop)}').set(value) instead.`);
                 throw new NativeDocumentError(`Store structure is immutable. Use .set() on the observable.`);
             },
             deleteProperty(target, prop) {
@@ -5574,7 +5574,7 @@ var NativeDocument = (function (exports) {
                 }
                 cache.set(keyId, { keyId, isNew: true, child: new WeakRef(child), indexObserver});
             } catch (e) {
-                DebugManager$2.error('ForEach', `Error creating element for key ${keyId}` , e);
+                DebugManager$1.error('ForEach', `Error creating element for key ${keyId}` , e);
                 throw e;
             }
             return keyId;
@@ -5964,7 +5964,7 @@ var NativeDocument = (function (exports) {
                 return condition ? ElementCreator.getChild(child) : null;
             }
 
-            return DebugManager$2.warn('ShowIf', "ShowIf : condition must be an Observable or boolean / "+comment, condition);
+            return DebugManager$1.warn('ShowIf', "ShowIf : condition must be an Observable or boolean / "+comment, condition);
         }
         const element = Anchor('Show if : '+(comment || ''));
 
@@ -7248,7 +7248,25 @@ var NativeDocument = (function (exports) {
     });
 
     const RouteParamPatterns = {
+        id:       '[0-9]+',
+        uuid:     '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
+        slug:     '[a-z0-9]+(?:-[a-z0-9]+)*',
+        hash:     '[a-f0-9]{32,64}',
 
+        alpha:    '[a-zA-Z]+',
+        alphanum: '[a-zA-Z0-9]+',
+        string:   '[^/]+',
+        any:      '.*',
+
+        int:      '[0-9]+',
+        float:    '[0-9]+\\.[0-9]+',
+        number:   '[0-9]+(\\.[0-9]+)?',
+        positive: '[1-9][0-9]*',
+
+        locale:   '[a-z]{2}(-[A-Z]{2})?',
+        lang:     '[a-z]{2}',
+
+        token:    '[A-Za-z0-9_\\-]+',
     };
 
     /**
@@ -7518,7 +7536,7 @@ var NativeDocument = (function (exports) {
                 window.history.pushState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, query, path);
             } catch (e) {
-                DebugManager$2.error('HistoryRouter', 'Error in pushState', e);
+                DebugManager$1.error('HistoryRouter', 'Error in pushState', e);
             }
         };
         /**
@@ -7531,7 +7549,7 @@ var NativeDocument = (function (exports) {
                 window.history.replaceState({ name: route.name(), params, path}, route.name() || path , path);
                 this.handleRouteChange(route, params, {}, path);
             } catch(e) {
-                DebugManager$2.error('HistoryRouter', 'Error in replaceState', e);
+                DebugManager$1.error('HistoryRouter', 'Error in replaceState', e);
             }
         };
         this.forward = function() {
@@ -7558,7 +7576,7 @@ var NativeDocument = (function (exports) {
                     }
                     this.handleRouteChange(route, params, query, path);
                 } catch(e) {
-                    DebugManager$2.error('HistoryRouter', 'Error in popstate event', e);
+                    DebugManager$1.error('HistoryRouter', 'Error in popstate event', e);
                 }
             });
             const { route, params, query, path } = this.resolve(defaultPath || (window.location.pathname+window.location.search));
@@ -7785,7 +7803,7 @@ var NativeDocument = (function (exports) {
                     listener(request);
                     next && next(request);
                 } catch (e) {
-                    DebugManager$2.warn('Route Listener', 'Error in listener:', e);
+                    DebugManager$1.warn('Route Listener', 'Error in listener:', e);
                 }
             }
         };
@@ -7974,7 +7992,7 @@ var NativeDocument = (function (exports) {
      */
     Router.create = function(options, callback) {
         if(!Validator.isFunction(callback)) {
-            DebugManager$2.error('Router', 'Callback must be a function');
+            DebugManager$1.error('Router', 'Callback must be a function');
             throw new RouterError('Callback must be a function');
         }
         const router = new Router(options);
@@ -8179,7 +8197,7 @@ var NativeDocument = (function (exports) {
     exports.HtmlElementWrapper = HtmlElementWrapper;
     exports.NDElement = NDElement;
     exports.Observable = Observable;
-    exports.PluginsManager = PluginsManager$1;
+    exports.PluginsManager = PluginsManager;
     exports.SingletonView = SingletonView;
     exports.Store = Store;
     exports.StoreFactory = StoreFactory;

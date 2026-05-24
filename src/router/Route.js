@@ -1,7 +1,25 @@
 import {trim} from "../core/utils/helpers.js";
 
 export const RouteParamPatterns = {
+    id:       '[0-9]+',
+    uuid:     '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
+    slug:     '[a-z0-9]+(?:-[a-z0-9]+)*',
+    hash:     '[a-f0-9]{32,64}',
 
+    alpha:    '[a-zA-Z]+',
+    alphanum: '[a-zA-Z0-9]+',
+    string:   '[^/]+',
+    any:      '.*',
+
+    int:      '[0-9]+',
+    float:    '[0-9]+\\.[0-9]+',
+    number:   '[0-9]+(\\.[0-9]+)?',
+    positive: '[1-9][0-9]*',
+
+    locale:   '[a-z]{2}(-[A-Z]{2})?',
+    lang:     '[a-z]{2}',
+
+    token:    '[A-Za-z0-9_\\-]+',
 };
 
 /**
