@@ -9,27 +9,30 @@ export function SingletonView($viewCreator) {
         if(!$cacheNode) {
             $cacheNode = $viewCreator(this);
         }
-        if(!$components) {
-            return $cacheNode;
-        }
-        for(const index in $components) {
-            const updater = $components[index];
-            updater(...data);
+        if(!$components) return $cacheNode;
+
+        const updates = data[0];
+        if(updates && typeof updates === 'object') {
+            for(const key in updates) {
+                if($components[key]) {
+                    $components[key](updates[key]);
+                }
+            }
         }
         return $cacheNode;
     };
 
     this.createSection = (name, fn) => {
         $components = $components || {};
-        const anchor = Anchor('Component '+name);
+        const anchor = Anchor('Component ' + name);
 
-        $components[name] = function(...args) {
+        $components[name] = function(content) {
             anchor.removeChildren();
             if(!fn) {
-                anchor.append(args);
+                anchor.append(content);
                 return;
             }
-            anchor.appendChild(fn(...args));
+            anchor.appendChild(fn(content));
         };
         return anchor;
     };
