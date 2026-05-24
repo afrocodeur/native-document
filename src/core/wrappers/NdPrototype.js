@@ -26,62 +26,111 @@ Object.defineProperty(NDElement.prototype, 'nd', {
 // ----------------------------------------------------------------
 EVENTS.forEach(eventSourceName => {
     const eventName = eventSourceName.toLowerCase();
-    NDElement.prototype['on'+eventSourceName] = function(callback = null) {
-        this.$element.addEventListener(eventName, callback);
+    NDElement.prototype['on'+eventSourceName] = function(callback = null, options = {}) {
+        this.$element.addEventListener(eventName, callback, {
+            signal: this.$getSignal(),
+            ...options
+        });
         return this;
     };
 })
 
 EVENTS_WITH_STOP.forEach(eventSourceName => {
     const eventName = eventSourceName.toLowerCase();
-    NDElement.prototype['onStop'+eventSourceName] = function(callback = null) {
-        _stop(this.$element, eventName, callback);
+    NDElement.prototype['onStop'+eventSourceName] = function(callback = null, options = {}) {
+        _stop(this.$element, eventName, callback, {
+            signal: this.$getSignal(),
+            ...options
+        });
         return this;
     };
-    NDElement.prototype['onPreventStop'+eventSourceName] = function(callback = null) {
-        _preventStop(this.$element, eventName, callback);
+    NDElement.prototype['onPreventStop'+eventSourceName] = function(callback = null, options = {}) {
+        _preventStop(this.$element, eventName, callback, {
+            signal: this.$getSignal(),
+            ...options
+        });
         return this;
     };
 });
 
 EVENTS_WITH_PREVENT.forEach(eventSourceName => {
     const eventName = eventSourceName.toLowerCase();
-    NDElement.prototype['onPrevent'+eventSourceName] = function(callback = null) {
-        _prevent(this.$element, eventName, callback);
+    NDElement.prototype['onPrevent'+eventSourceName] = function(callback = null, options = {}) {
+        _prevent(this.$element, eventName, callback, {
+            signal: this.$getSignal(),
+            ...options
+        });
         return this;
     };
 });
 
+NDElement.prototype.$getSignal = function() {
+    if(!this.$controller) {
+        this.$controller = new AbortController();
+        this.beforeUnmount('abort-controller', () => {
+            this.$controller.abort();
+            this.$controller = null;
+        });
+    }
+    return this.$controller.signal;
+};
+
 NDElement.prototype.on = function(name, callback, options) {
-    this.$element.addEventListener(name.toLowerCase(), callback, options);
+    this.$element.addEventListener(name.toLowerCase(), callback, {
+        signal: this.$getSignal(),
+        ...options
+    });
     return this;
 };
 
-const _prevent = function(element, eventName, callback) {
+NDElement.prototype.off = function(name, callback) {
+    this.$element.removeEventListener(name.toLowerCase(), callback);
+    return this;
+};
+
+NDElement.prototype.once = function(name, callback) {
+    this.$element.addEventListener(name.toLowerCase(), callback, {
+        signal: this.$getSignal(),
+        once: true
+    });
+    return this;
+};
+
+NDElement.prototype.emit = function(name, detail = null) {
+    const event = new CustomEvent(name, {
+        detail,
+        bubbles:    true,
+        cancelable: true,
+    });
+    this.$element.dispatchEvent(event);
+    return this;
+};
+
+const _prevent = function(element, eventName, callback, options) {
     const handler = (event) => {
         event.preventDefault();
         callback && callback.call(element, event);
     };
-    element.addEventListener(eventName, handler);
+    element.addEventListener(eventName, handler, options);
     return this;
 }
 
-const _stop = function(element, eventName, callback) {
+const _stop = function(element, eventName, callback, options) {
     const handler = (event) => {
         event.stopPropagation();
         callback && callback.call(element, event);
     };
-    element.addEventListener(eventName, handler);
+    element.addEventListener(eventName, handler, options);
     return this;
 };
 
-const _preventStop = function(element, eventName, callback) {
+const _preventStop = function(element, eventName, callback, options) {
     const handler = (event) => {
         event.stopPropagation();
         event.preventDefault();
         callback && callback.call(element, event);
     };
-    element.addEventListener(eventName, handler);
+    element.addEventListener(eventName, handler, options);
     return this;
 };
 

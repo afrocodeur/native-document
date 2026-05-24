@@ -1797,6 +1797,10 @@ var NativeDocument = (function (exports) {
         return new ObservableArray(this.resolve());
     };
 
+    ObservableArray.prototype.isNotEmpty = function () {
+        return this.is((x) => x.length > 0);
+    };
+
     const ObservableObject = function(target, configs) {
         ObservableItem.call(this, target);
         this.$observables = {};
@@ -2076,7 +2080,7 @@ var NativeDocument = (function (exports) {
     };
 
     ObservableItem.prototype.isNotEmpty = function () {
-        return $checker(this, x => x == null || x === '' || (Array.isArray(x) && x.length !== 0));
+        return $checker(this, x => x != null && x !== '' && !(Array.isArray(x) && x.length === 0));
     };
 
     ObservableItem.prototype.isIncludes = function (value) {
@@ -2676,6 +2680,10 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    Observable.setLocale = function(locale) {
+        Formatters.locale = locale.__$Observable ? locale : Observable(locale);
+    };
+
 
     /**
      *
@@ -2844,10 +2852,6 @@ var NativeDocument = (function (exports) {
         return data;
     };
 
-    ObservableItem.prototype.resolve = function () {
-        return Observable.value(this);
-    };
-
     Observable.object = Observable.init;
     Observable.json = Observable.init;
 
@@ -2858,6 +2862,10 @@ var NativeDocument = (function (exports) {
             : { auto: false, debounce: 0, lazy: false, ...options };
 
         return new ObservableResource(fn, deps, config);
+    };
+
+    ObservableItem.prototype.resolve = function () {
+        return Observable.value(this);
     };
 
     /**
@@ -3949,6 +3957,7 @@ var NativeDocument = (function (exports) {
             return this;
         }
         this.$element.setAttribute(name, value);
+        return this;
     };
 
     NDElement.prototype.attrs = function(attrs) {
@@ -4203,62 +4212,111 @@ var NativeDocument = (function (exports) {
     // ----------------------------------------------------------------
     EVENTS.forEach(eventSourceName => {
         const eventName = eventSourceName.toLowerCase();
-        NDElement.prototype['on'+eventSourceName] = function(callback = null) {
-            this.$element.addEventListener(eventName, callback);
+        NDElement.prototype['on'+eventSourceName] = function(callback = null, options = {}) {
+            this.$element.addEventListener(eventName, callback, {
+                signal: this.$getSignal(),
+                ...options
+            });
             return this;
         };
     });
 
     EVENTS_WITH_STOP.forEach(eventSourceName => {
         const eventName = eventSourceName.toLowerCase();
-        NDElement.prototype['onStop'+eventSourceName] = function(callback = null) {
-            _stop(this.$element, eventName, callback);
+        NDElement.prototype['onStop'+eventSourceName] = function(callback = null, options = {}) {
+            _stop(this.$element, eventName, callback, {
+                signal: this.$getSignal(),
+                ...options
+            });
             return this;
         };
-        NDElement.prototype['onPreventStop'+eventSourceName] = function(callback = null) {
-            _preventStop(this.$element, eventName, callback);
+        NDElement.prototype['onPreventStop'+eventSourceName] = function(callback = null, options = {}) {
+            _preventStop(this.$element, eventName, callback, {
+                signal: this.$getSignal(),
+                ...options
+            });
             return this;
         };
     });
 
     EVENTS_WITH_PREVENT.forEach(eventSourceName => {
         const eventName = eventSourceName.toLowerCase();
-        NDElement.prototype['onPrevent'+eventSourceName] = function(callback = null) {
-            _prevent(this.$element, eventName, callback);
+        NDElement.prototype['onPrevent'+eventSourceName] = function(callback = null, options = {}) {
+            _prevent(this.$element, eventName, callback, {
+                signal: this.$getSignal(),
+                ...options
+            });
             return this;
         };
     });
 
+    NDElement.prototype.$getSignal = function() {
+        if(!this.$controller) {
+            this.$controller = new AbortController();
+            this.beforeUnmount('abort-controller', () => {
+                this.$controller.abort();
+                this.$controller = null;
+            });
+        }
+        return this.$controller.signal;
+    };
+
     NDElement.prototype.on = function(name, callback, options) {
-        this.$element.addEventListener(name.toLowerCase(), callback, options);
+        this.$element.addEventListener(name.toLowerCase(), callback, {
+            signal: this.$getSignal(),
+            ...options
+        });
         return this;
     };
 
-    const _prevent = function(element, eventName, callback) {
+    NDElement.prototype.off = function(name, callback) {
+        this.$element.removeEventListener(name.toLowerCase(), callback);
+        return this;
+    };
+
+    NDElement.prototype.once = function(name, callback) {
+        this.$element.addEventListener(name.toLowerCase(), callback, {
+            signal: this.$getSignal(),
+            once: true
+        });
+        return this;
+    };
+
+    NDElement.prototype.emit = function(name, detail = null) {
+        const event = new CustomEvent(name, {
+            detail,
+            bubbles:    true,
+            cancelable: true,
+        });
+        this.$element.dispatchEvent(event);
+        return this;
+    };
+
+    const _prevent = function(element, eventName, callback, options) {
         const handler = (event) => {
             event.preventDefault();
             callback && callback.call(element, event);
         };
-        element.addEventListener(eventName, handler);
+        element.addEventListener(eventName, handler, options);
         return this;
     };
 
-    const _stop = function(element, eventName, callback) {
+    const _stop = function(element, eventName, callback, options) {
         const handler = (event) => {
             event.stopPropagation();
             callback && callback.call(element, event);
         };
-        element.addEventListener(eventName, handler);
+        element.addEventListener(eventName, handler, options);
         return this;
     };
 
-    const _preventStop = function(element, eventName, callback) {
+    const _preventStop = function(element, eventName, callback, options) {
         const handler = (event) => {
             event.stopPropagation();
             event.preventDefault();
             callback && callback.call(element, event);
         };
-        element.addEventListener(eventName, handler);
+        element.addEventListener(eventName, handler, options);
         return this;
     };
 
@@ -5783,7 +5841,7 @@ var NativeDocument = (function (exports) {
                     }
                 }
                 child = null;
-                element.appendElementRaw(fragment);
+                element.appendChildRaw(fragment);
             },
             removeOne: (element, index) => {
                 removeCacheItem(element, true);
@@ -7610,9 +7668,7 @@ var NativeDocument = (function (exports) {
         };
 
         const removeLastNodeInserted = () => {
-            if(Validator.isAnchor($lastNodeInserted)) {
-                $lastNodeInserted.remove();
-            }
+            $lastNodeInserted?.remove();
         };
 
         const cleanContainer = () => {

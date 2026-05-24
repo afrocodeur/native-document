@@ -213,10 +213,6 @@ Observable.value = function(data) {
     return data;
 };
 
-ObservableItem.prototype.resolve = function () {
-    return Observable.value(this);
-};
-
 Observable.object = Observable.init;
 Observable.json = Observable.init;
 
@@ -227,4 +223,8 @@ Observable.resource = function(fn, deps = [], options = false) {
         : { auto: false, debounce: 0, lazy: false, ...options };
 
     return new ObservableResource(fn, deps, config);
+};
+
+ObservableItem.prototype.resolve = function () {
+    return Observable.value(this);
 };

@@ -1,7 +1,6 @@
 import Column from "./Column";
 import ColumnGroup from "./ColumnGroup";
 import BaseComponent from "../BaseComponent";
-import {call} from "@babel/traverse/lib/path/context";
 
 export default function SimpleTable(props = {}) {
     if(!(this instanceof SimpleTable)) {

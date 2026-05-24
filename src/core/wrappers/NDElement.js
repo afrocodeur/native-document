@@ -207,6 +207,7 @@ NDElement.prototype.attr = function(name, value) {
         return this;
     }
     this.$element.setAttribute(name, value);
+    return this;
 };
 
 NDElement.prototype.attrs = function(attrs) {
