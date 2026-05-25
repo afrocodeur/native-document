@@ -65,14 +65,10 @@ EVENTS_WITH_PREVENT.forEach(eventSourceName => {
 });
 
 NDElement.prototype.$getSignal = function() {
-    if(!this.$controller) {
-        this.$controller = new AbortController();
-        this.beforeUnmount('abort-controller', () => {
-            this.$controller.abort();
-            this.$controller = null;
-        });
+    if(!this.$element.__$controller) {
+        this.$element.__$controller = new AbortController();
     }
-    return this.$controller.signal;
+    return this.$element.__$controller.signal;
 };
 
 NDElement.prototype.on = function(name, callback, options) {

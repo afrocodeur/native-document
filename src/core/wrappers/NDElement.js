@@ -87,6 +87,23 @@ NDElement.prototype.lifecycle = function(states) {
     return this;
 };
 
+NDElement.prototype.destroyOnUnmount = function() {
+    this.unmounted(() => {
+        this.$element?.querySelectorAll('[data--nd-before-unmount]').forEach(child => {
+            child.remove();
+            child.__$controller?.abort();
+            child.__$controller = null;
+            $lifeCycleObservers.delete(child);
+        });
+
+        this.$element.__$controller?.abort();
+        this.$element.__$controller = null;
+        $lifeCycleObservers.delete(this.$element);
+        this.$element = null;
+    });
+    return this;
+};
+
 NDElement.prototype.mounted = function(callback) {
     return this.lifecycle({ mounted: callback });
 };
@@ -102,7 +119,8 @@ NDElement.prototype.beforeUnmount = function(id, callback) {
         DocumentObserver.beforeUnmount.set(el, new Map());
         const originalRemove = el.remove.bind(el);
 
-        let  $isUnmounting = false
+        let  $isUnmounting = false;
+        this.$element.setAttribute('data--nd-before-unmount', '1');
 
         el.remove = async () => {
             if($isUnmounting) {
