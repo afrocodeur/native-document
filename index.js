@@ -6,6 +6,8 @@ export { SingletonView, useSingleton } from './src/core/wrappers/SingletonView';
 export { default as PluginsManager } from './src/core/utils/plugins-manager';
 export { default as Validator } from './src/core/utils/validator';
 
+export { Formatters } from "./src/core/utils/formatters";
+
 export * from './src/core/utils/property-accumulator';
 export * from './src/core/utils/args-types';
 export * from './src/core/utils/memoize';

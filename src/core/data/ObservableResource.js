@@ -16,7 +16,7 @@ export default function ObservableResource(fn, deps, config) {
     this.$controller  = null;
     this.$subscriptions        = [];
 
-    this.data  = config.initial ?? new ObservableItem(null);
+    this.data  = config.into ?? new ObservableItem(null);
     this.error = new ObservableItem(null);
     this.state = new ObservableItem(STATE.UNRESOLVED);
 
@@ -33,6 +33,14 @@ export default function ObservableResource(fn, deps, config) {
         this.fetch();
     }
 }
+
+ObservableResource.prototype.$applyResult = function(result) {
+    if(this.$config.apply) {
+        this.$config.apply(result, this.data);
+        return;
+    }
+    this.data.set(result);
+};
 
 ObservableResource.prototype.$abort = function() {
     if (this.$controller) {
@@ -61,7 +69,7 @@ ObservableResource.prototype.$runWithAbortController = function(isRefetch = fals
             if (signal.aborted) {
                 return;
             }
-            this.data.set(result);
+            this.$applyResult(result);
             this.error.set(null);
             this.state.set(STATE.READY);
             this.$controller = null;
@@ -86,7 +94,7 @@ ObservableResource.prototype.$runWithoutAbortController = function(isRefetch = f
 
     Promise.resolve(this.$fn(...args))
         .then(result => {
-            this.data.set(result);
+            this.$applyResult(result);
             this.error.set(null);
             this.state.set(STATE.READY);
         })
@@ -119,6 +127,16 @@ ObservableResource.prototype.$watchDependencies = function() {
     if (!this.$config.lazy) {
         this.$run(false);
     }
+};
+
+ObservableResource.prototype.apply = function(fn) {
+    this.$config.apply = fn;
+    return this;
+};
+ObservableResource.prototype.into = function($observable) {
+    this.$config.into = $observable;
+    this.data = $observable;
+    return this;
 };
 
 ObservableResource.prototype.fetch = function() {
