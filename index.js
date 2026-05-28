@@ -1,3 +1,5 @@
+
+
 export { default as HtmlElementWrapper, createTextNode } from './src/core/wrappers/HtmlElementWrapper'
 export { ElementCreator } from './src/core/wrappers/ElementCreator';
 export { NDElement } from './src/core/wrappers/NDElement';
@@ -7,6 +9,7 @@ export { default as PluginsManager } from './src/core/utils/plugins-manager';
 export { default as Validator } from './src/core/utils/validator';
 
 export { Formatters } from "./src/core/utils/formatters";
+export {default as ShortcutManager} from "./src/core/utils/shortcut-manager";
 
 export * from './src/core/utils/property-accumulator';
 export * from './src/core/utils/args-types';

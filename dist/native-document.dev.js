@@ -2485,7 +2485,7 @@ var NativeDocument = (function (exports) {
         this.$controller  = null;
         this.$subscriptions        = [];
 
-        this.data  = config.initial ?? new ObservableItem(null);
+        this.data  = config.into ?? new ObservableItem(null);
         this.error = new ObservableItem(null);
         this.state = new ObservableItem(STATE.UNRESOLVED);
 
@@ -2502,6 +2502,14 @@ var NativeDocument = (function (exports) {
             this.fetch();
         }
     }
+
+    ObservableResource.prototype.$applyResult = function(result) {
+        if(this.$config.apply) {
+            this.$config.apply(result, this.data);
+            return;
+        }
+        this.data.set(result);
+    };
 
     ObservableResource.prototype.$abort = function() {
         if (this.$controller) {
@@ -2530,7 +2538,7 @@ var NativeDocument = (function (exports) {
                 if (signal.aborted) {
                     return;
                 }
-                this.data.set(result);
+                this.$applyResult(result);
                 this.error.set(null);
                 this.state.set(STATE.READY);
                 this.$controller = null;
@@ -2555,7 +2563,7 @@ var NativeDocument = (function (exports) {
 
         Promise.resolve(this.$fn(...args))
             .then(result => {
-                this.data.set(result);
+                this.$applyResult(result);
                 this.error.set(null);
                 this.state.set(STATE.READY);
             })
@@ -2588,6 +2596,16 @@ var NativeDocument = (function (exports) {
         if (!this.$config.lazy) {
             this.$run(false);
         }
+    };
+
+    ObservableResource.prototype.apply = function(fn) {
+        this.$config.apply = fn;
+        return this;
+    };
+    ObservableResource.prototype.into = function($observable) {
+        this.$config.into = $observable;
+        this.data = $observable;
+        return this;
     };
 
     ObservableResource.prototype.fetch = function() {

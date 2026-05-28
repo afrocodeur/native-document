@@ -31,3 +31,36 @@ export const BOOLEAN_ATTRIBUTES = new Set([
     'allowpaymentrequest',
     'playsinline'
 ]);
+
+export const BOOL_ATTRIBUTES_NAME = {
+    "allowfullscreen": "allowFullscreen",
+    "allowpaymentrequest": "allowPaymentRequest",
+    "async": "async",
+    "autocomplete": "autocomplete",
+    "autofocus": "autofocus",
+    "autoplay": "autoplay",
+    "checked": "checked",
+    "controls": "controls",
+    "default": "default",
+    "defer": "defer",
+    "disabled": "disabled",
+    "download": "download",
+    "draggable": "draggable",
+    "formnovalidate": "formNoValidate",
+    "contenteditable": "contentEditable",
+    "hidden": "hidden",
+    "itemscope": "itemScope",
+    "loop": "loop",
+    "multiple": "multiple",
+    "muted": "muted",
+    "novalidate": "noValidate",
+    "open": "open",
+    "playsinline": "playsInline",
+    "readonly": "readOnly",
+    "required": "required",
+    "reversed": "reversed",
+    "scoped": "scoped",
+    "selected": "selected",
+    "spellcheck": "spellcheck",
+    "translate": "translate"
+}

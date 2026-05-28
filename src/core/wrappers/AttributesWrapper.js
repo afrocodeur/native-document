@@ -1,6 +1,6 @@
 import Validator from "../utils/validator";
 import NativeDocumentError from "../errors/NativeDocumentError";
-import {BOOLEAN_ATTRIBUTES} from "./constants.js";
+import {BOOL_ATTRIBUTES_NAME, BOOLEAN_ATTRIBUTES} from "./constants.js";
 import {Observable} from "../data/Observable";
 
 /**
@@ -87,24 +87,27 @@ export const bindStyleAttribute = (element, data) => {
 export const bindBooleanAttribute = (element, attributeName, value) => {
     const isObservable = value.__$isObservable;
     const defaultValue = isObservable? value.val() : value;
+
+    const attributeRealName = BOOL_ATTRIBUTES_NAME[attributeName];
+
     if(Validator.isBoolean(defaultValue)) {
-        element[attributeName] = defaultValue;
+        element[attributeRealName] = defaultValue;
     }
     else {
-        element[attributeName] = defaultValue === element.value;
+        element[attributeRealName] = defaultValue === element.value;
     }
     if(isObservable) {
         if(attributeName === 'checked') {
             if(typeof defaultValue === 'boolean') {
-                element.addEventListener('input', () => value.set(element[attributeName]));
+                element.addEventListener('input', () => value.set(element[attributeRealName]));
             }
             else {
                 element.addEventListener('input', () => value.set(element.value));
             }
-            value.subscribe((newValue) => element[attributeName] = newValue);
+            value.subscribe((newValue) => element[attributeRealName] = newValue);
             return;
         }
-        value.subscribe((newValue) => element[attributeName] = (newValue === element.value));
+        value.subscribe((newValue) => element[attributeRealName] = (newValue === element.value));
     }
 };
 

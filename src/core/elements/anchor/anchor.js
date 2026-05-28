@@ -85,7 +85,7 @@ export default function Anchor(name, isUniqueChild = false) {
             parentNode.nativeInsertBefore(child, anchorStart);
             return;
         }
-        parentNode.insertBefore(child, anchorStart);
+        parentNode.insertBefore(child, anchorStart.nextSibling);
     };
 
     anchorFragment.removeChildren = function() {

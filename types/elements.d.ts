@@ -3,9 +3,9 @@ import { ObservableItem } from './observable';
 import { BindingHydrator } from "./template-cloner";
 import { NDElement } from "./nd-element";
 
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 // Base types
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 
 export type ValidChild =
     | string
@@ -604,9 +604,9 @@ interface NdStyleMap {
     'z-index'?: Observable<string | number> | string | number;
 }
 
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 // Shared attribute sets
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 
 interface GlobalAttributes {
     id?:               Observable<string>;
@@ -639,9 +639,9 @@ interface SharedFormAttributes {
     form?:      string;
 }
 
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 // Element-specific attribute interfaces
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 
 interface AnchorAttributes extends GlobalAttributes {
     href?:            Observable<string>;
@@ -868,9 +868,9 @@ interface SvgAttributes extends GlobalAttributes {
     height?:   Observable<string> | string | number;
 }
 
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 // Element function return type
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 
 type NdElement<T extends Element = HTMLElement> = T & { nd: NDElement };
 
@@ -880,9 +880,9 @@ type ElementFunction<A = GlobalAttributes, T extends Element = HTMLElement> =
 type ElementFunctionNoChildren<A = GlobalAttributes, T extends Element = HTMLElement> =
     (attributes?: A) => NdElement<T>;
 
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 // Text elements
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 
 export declare const Div:        ElementFunction<GlobalAttributes, HTMLDivElement>;
 export declare const Span:       ElementFunction<GlobalAttributes, HTMLSpanElement>;
@@ -911,9 +911,9 @@ export declare const Quote:      ElementFunction<GlobalAttributes & { cite?: str
 export declare const Br:         ElementFunctionNoChildren<GlobalAttributes, HTMLBRElement>;
 export declare const Hr:         ElementFunctionNoChildren<GlobalAttributes, HTMLHRElement>;
 
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 // Semantic elements
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 
 export declare const Main:       ElementFunction<GlobalAttributes, HTMLElement>;
 export declare const Section:    ElementFunction<GlobalAttributes, HTMLElement>;
@@ -925,97 +925,25 @@ export declare const FigCaption: ElementFunction<GlobalAttributes, HTMLElement>;
 export declare const Header:     ElementFunction<GlobalAttributes, HTMLElement>;
 export declare const Footer:     ElementFunction<GlobalAttributes, HTMLElement>;
 
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 // Interactive elements
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 
 export declare const Details: ElementFunction<DetailsAttributes, HTMLDetailsElement>;
 export declare const Summary: ElementFunction<GlobalAttributes, HTMLElement>;
 export declare const Dialog:  ElementFunction<DialogAttributes, HTMLDialogElement>;
 export declare const Menu:    ElementFunction<GlobalAttributes, HTMLMenuElement>;
 
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 // Link
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 
 export declare const Link: ElementFunction<AnchorAttributes, HTMLAnchorElement>;
 
-// ─────────────────────────────────────────────
-// Form elements
-// ─────────────────────────────────────────────
 
-export declare const Form: (
-    attributes?: FormAttributes,
-    children?: ValidChild
-) => NdElement<HTMLFormElement> & {
-    submit:            (actionOrFn: string | ((e: SubmitEvent) => void)) => NdElement<HTMLFormElement>;
-    post:              (action: string) => NdElement<HTMLFormElement>;
-    get:               (action: string) => NdElement<HTMLFormElement>;
-    multipartFormData: () => NdElement<HTMLFormElement>;
-};
-
-export declare const Input:         ElementFunctionNoChildren<InputAttributes, HTMLInputElement>;
-export declare const TextArea:      ElementFunction<TextAreaAttributes, HTMLTextAreaElement>;
-export declare const TextInput:     typeof TextArea;
-export declare const Select:        ElementFunction<SelectAttributes, HTMLSelectElement>;
-export declare const FieldSet:      ElementFunction<GlobalAttributes & { disabled?: Observable<boolean> }, HTMLFieldSetElement>;
-export declare const Option:        ElementFunction<OptionAttributes, HTMLOptionElement>;
-export declare const Legend:        ElementFunction<GlobalAttributes, HTMLLegendElement>;
-export declare const Label:         ElementFunction<LabelAttributes, HTMLLabelElement>;
-export declare const Datalist:      ElementFunction<GlobalAttributes, HTMLDataListElement>;
-export declare const Output:        ElementFunction<OutputAttributes, HTMLOutputElement>;
-export declare const Progress:      ElementFunction<ProgressAttributes, HTMLProgressElement>;
-export declare const Meter:         ElementFunction<MeterAttributes, HTMLMeterElement>;
-
-export declare const ReadonlyInput: (attributes?: Omit<InputAttributes, 'type' | 'readonly' | 'readOnly'>) => NdElement<HTMLInputElement>;
-export declare const HiddenInput:   (attributes?: Omit<InputAttributes, 'type'>) => NdElement<HTMLInputElement>;
-export declare const FileInput:     (attributes?: Omit<InputAttributes, 'type'>) => NdElement<HTMLInputElement>;
-export declare const PasswordInput: (attributes?: Omit<InputAttributes, 'type'>) => NdElement<HTMLInputElement>;
-export declare const Checkbox:      (attributes?: Omit<InputAttributes, 'type'>) => NdElement<HTMLInputElement>;
-export declare const Radio:         (attributes?: Omit<InputAttributes, 'type'>) => NdElement<HTMLInputElement>;
-export declare const RangeInput:    (attributes?: Omit<InputAttributes, 'type'>) => NdElement<HTMLInputElement>;
-export declare const ColorInput:    (attributes?: Omit<InputAttributes, 'type'>) => NdElement<HTMLInputElement>;
-export declare const DateInput:     (attributes?: Omit<InputAttributes, 'type'>) => NdElement<HTMLInputElement>;
-export declare const TimeInput:     (attributes?: Omit<InputAttributes, 'type'>) => NdElement<HTMLInputElement>;
-export declare const DateTimeInput: (attributes?: Omit<InputAttributes, 'type'>) => NdElement<HTMLInputElement>;
-export declare const WeekInput:     (attributes?: Omit<InputAttributes, 'type'>) => NdElement<HTMLInputElement>;
-export declare const MonthInput:    (attributes?: Omit<InputAttributes, 'type'>) => NdElement<HTMLInputElement>;
-export declare const SearchInput:   (attributes?: Omit<InputAttributes, 'type'>) => NdElement<HTMLInputElement>;
-export declare const TelInput:      (attributes?: Omit<InputAttributes, 'type'>) => NdElement<HTMLInputElement>;
-export declare const UrlInput:      (attributes?: Omit<InputAttributes, 'type'>) => NdElement<HTMLInputElement>;
-export declare const EmailInput:    (attributes?: Omit<InputAttributes, 'type'>) => NdElement<HTMLInputElement>;
-export declare const NumberInput:   (attributes?: Omit<InputAttributes, 'type'>) => NdElement<HTMLInputElement>;
-
-export declare const Button:       ElementFunction<ButtonAttributes, HTMLButtonElement>;
-export declare const SimpleButton: (children?: ValidChild, attributes?: Omit<ButtonAttributes, 'type'>) => NdElement<HTMLButtonElement>;
-export declare const SubmitButton: (children?: ValidChild, attributes?: Omit<ButtonAttributes, 'type'>) => NdElement<HTMLButtonElement>;
-
-// ─────────────────────────────────────────────
-// Image elements
-// ─────────────────────────────────────────────
-
-export declare const BaseImage: ElementFunctionNoChildren<ImgAttributes, HTMLImageElement>;
-
-export declare function Img(
-    src: Observable<string>,
-    attributes?: Omit<ImgAttributes, 'src'>
-): NdElement<HTMLImageElement>;
-
-export declare function AsyncImg(
-    src: Observable<string>,
-    defaultImage: string | null,
-    attributes?: Omit<ImgAttributes, 'src'>,
-    callback?: (error: Error | null, img: HTMLImageElement) => void
-): NdElement<HTMLImageElement>;
-
-export declare function LazyImg(
-    src: Observable<string>,
-    attributes?: Omit<ImgAttributes, 'src' | 'loading'>
-): NdElement<HTMLImageElement>;
-
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 // Media elements
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 
 export declare const Audio:   ElementFunction<AudioAttributes, HTMLAudioElement>;
 export declare const Video:   ElementFunction<VideoAttributes, HTMLVideoElement>;
@@ -1024,9 +952,9 @@ export declare const Track:   ElementFunctionNoChildren<TrackAttributes, HTMLTra
 export declare const Canvas:  ElementFunction<CanvasAttributes, HTMLCanvasElement>;
 export declare const Svg:     ElementFunction<SvgAttributes, HTMLElement>;
 
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 // List elements
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 
 export declare const OrderedList:   ElementFunction<OlAttributes, HTMLOListElement>;
 export declare const UnorderedList: ElementFunction<GlobalAttributes, HTMLUListElement>;
@@ -1035,17 +963,17 @@ export declare const Li:            typeof ListItem;
 export declare const Ol:            typeof OrderedList;
 export declare const Ul:            typeof UnorderedList;
 
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 // Definition list elements
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 
 export declare const Dl: ElementFunction<GlobalAttributes, HTMLDListElement>;
 export declare const Dt: ElementFunction<GlobalAttributes, HTMLElement>;
 export declare const Dd: ElementFunction<GlobalAttributes, HTMLElement>;
 
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 // Table elements
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 
 export declare const Caption:    ElementFunction<GlobalAttributes, HTMLTableCaptionElement>;
 export declare const Table:      ElementFunction<GlobalAttributes, HTMLTableElement>;
@@ -1060,9 +988,9 @@ export declare const TFootCell:  typeof Th;
 export declare const Td:         ElementFunction<TdAttributes, HTMLTableCellElement>;
 export declare const TBodyCell:  typeof Td;
 
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 // Misc elements
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 
 export declare const Time:    ElementFunction<TimeAttributes, HTMLTimeElement>;
 export declare const Data:    ElementFunction<GlobalAttributes & { value?: Observable<string> }, HTMLDataElement>;
@@ -1072,16 +1000,16 @@ export declare const Samp:    ElementFunction<GlobalAttributes, HTMLElement>;
 export declare const Var:     ElementFunction<GlobalAttributes, HTMLElement>;
 export declare const Wbr:     ElementFunctionNoChildren<GlobalAttributes, HTMLElement>;
 
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 // Fragment
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 
 export declare const Fragment: ElementFunction<GlobalAttributes, HTMLElement>;
 export declare const NativeDocumentFragment: typeof Anchor;
 
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 // Anchor
-// ─────────────────────────────────────────────
+// --------------------------------------------------------------------------------------------------------------------
 
 export declare type AnchorDocumentFragment = DocumentFragment & {
     detach:           () => void;

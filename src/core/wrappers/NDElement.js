@@ -88,20 +88,22 @@ NDElement.prototype.lifecycle = function(states) {
 };
 
 NDElement.prototype.destroyOnUnmount = function() {
-    this.unmounted(() => {
-        this.$element?.querySelectorAll('[data--nd-before-unmount]').forEach(child => {
-            child.remove();
-            child.__$controller?.abort();
-            child.__$controller = null;
-            $lifeCycleObservers.delete(child);
-        });
-
-        this.$element.__$controller?.abort();
-        this.$element.__$controller = null;
-        $lifeCycleObservers.delete(this.$element);
-        this.$element = null;
-    });
+    this.unmounted(() => this.destroy());
     return this;
+};
+
+NDElement.prototype.destroy = function() {
+    this.$element?.querySelectorAll('[data--nd-before-unmount]').forEach(child => {
+        child.remove();
+        child.__$controller?.abort();
+        child.__$controller = null;
+        $lifeCycleObservers.delete(child);
+    });
+
+    this.$element.__$controller?.abort();
+    this.$element.__$controller = null;
+    $lifeCycleObservers.delete(this.$element);
+    this.$element = null;
 };
 
 NDElement.prototype.mounted = function(callback) {
@@ -304,4 +306,146 @@ NDElement.extend = function(methods) {
     }
 
     return NDElement;
+};
+
+
+/**
+ * The global sanitizer function used by nd.html() when sanitize option is enabled.
+ * Must be set via NDElement.setSanitizer() before using {sanitize: true}.
+ *
+ * @type {Function|null}
+ */
+NDElement.$sanitizer = null;
+
+/**
+ * Configures the global sanitizer for nd.html().
+ * The sanitizer function receives the HTML string and an optional config object.
+ * Designed to be decoupled from any specific sanitizer library.
+ *
+ * @param {Function} sanitizerFn - Sanitizer function (html, config) => string
+ * @returns {typeof NDElement}
+ * @throws {NativeDocumentError} If sanitizerFn is not a function
+ * @example
+ * import DOMPurify from 'dompurify';
+ * NDElement.setSanitizer((html, config) => DOMPurify.sanitize(html, config));
+ */
+NDElement.setSanitizer = function(sanitizerFn) {
+    if(typeof sanitizerFn !== 'function') {
+        throw new NativeDocumentError('NDElement.setSanitizer() expects a function');
+    }
+    NDElement.$sanitizer = sanitizerFn;
+    return NDElement;
+};
+
+/**
+ * Sets the inner HTML of the element.
+ * Requires either {unsafe: true} to bypass security checks,
+ * or {sanitize: true|Object|Function} to sanitize the content.
+ * Supports Observable values for reactive HTML updates.
+ *
+ * @param {string|ObservableItem} content - HTML string or Observable<string>
+ * @param {Object} [options={}]
+ * @param {boolean} [options.unsafe=false] - Bypass security check. Use only with trusted content.
+ * @param {boolean|Object|Function} [options.sanitize=false] - Sanitize strategy:
+ *   - true: use global sanitizer with default config
+ *   - Object: use global sanitizer with custom config
+ *   - Function: use this function directly as sanitizer (html) => string
+ * @returns {this}
+ * @throws {NativeDocumentError} If sanitize is true/Object but no global sanitizer is configured
+ * @example
+ * // Unsafe — trusted content only
+ * el.nd.html('<strong>Hello</strong>', {unsafe: true})
+ *
+ * // Global sanitizer with default config
+ * el.nd.html($userContent, {sanitize: true})
+ *
+ * // Global sanitizer with custom config
+ * el.nd.html($userContent, {sanitize: {
+ *     ALLOWED_TAGS: ['b', 'i', 'strong', 'a'],
+ *     ALLOWED_ATTR: ['href'],
+ * }})
+ *
+ * // Custom sanitizer function for this specific case
+ * el.nd.html($userContent, {sanitize: (html) => myCustomSanitizer(html)})
+ *
+ * // Reactive with sanitize
+ * el.nd.html($content, {sanitize: true})
+ */
+NDElement.prototype.html = function(content, {unsafe = false, sanitize = false} = {}) {
+    const $element = this.$element;
+    const apply = (value) => {
+        if(sanitize) {
+            if(typeof sanitize === 'function') {
+                $element.innerHTML = sanitize(value);
+                return;
+            }
+
+            if(!NDElement.$sanitizer) {
+                throw new NativeDocumentError('nd.html() — no sanitizer configured. Call NDElement.setSanitizer() first.');
+            }
+            const config = sanitize === true ? {} : sanitize;
+            $element.innerHTML = NDElement.$sanitizer(value, config);
+            return;
+        }
+
+        if(!unsafe) {
+            console.warn('nd.html() — use {unsafe: true} or {sanitize: true|Object|Function}');
+            return;
+        }
+
+        $element.innerHTML = value;
+    };
+
+    if(content?.__$Observable) {
+        content.subscribe(apply);
+        apply(content.val());
+        return this;
+    }
+
+    apply(content);
+    return this;
+};
+
+/**
+ * Makes the element content editable and binds it to an Observable.
+ * Changes in the DOM update the Observable, and changes to the Observable
+ * update the DOM (only when the element is not focused to avoid cursor issues).
+ *
+ * @param {ObservableItem} $obs - Observable to bind to the element content
+ * @param {Object} [options={}]
+ * @param {string} [options.format='html'] - 'html' uses innerHTML, 'text' uses innerText
+ * @returns {this}
+ * @example
+ * // Basic usage
+ * const $content = $('<b>Hello</b>');
+ * Div({}).nd.contentEditable($content)
+ *
+ * // Text only
+ * Div({}).nd.contentEditable($content, {format: 'text'})
+ */
+NDElement.prototype.contentEditable = function($obs, {format = 'html'} = {}) {
+    this.$element.contentEditable = true;
+
+    const getValue = format === 'text'
+        ? () => this.$element.innerText
+        : () => this.$element.innerHTML;
+
+    const setValue = format === 'text'
+        ? (value) => { this.$element.innerText  = value; }
+        : (value) => { this.$element.innerHTML = value; };
+
+    if($obs?.__$Observable) {
+        $obs.subscribe((value) => {
+            if(document.activeElement !== this.$element) {
+                setValue(value);
+            }
+        });
+        setValue($obs.val() || '');
+    }
+
+    this.$element.addEventListener('input', () => {
+        $obs?.set(getValue());
+    }, { signal: this.$getSignal() });
+
+    return this;
 };
