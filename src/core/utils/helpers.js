@@ -1,5 +1,13 @@
 import Validator from "./validator";
 
+/**
+ * Calls a function with the given arguments and optional context.
+ *
+ * @internal
+ * @param {Function} fn - Function to invoke
+ * @param {Array} args - Arguments to pass
+ * @param {Object|null} [context] - `this` context, or null to call without binding
+ */
 const invoke = function(fn, args, context) {
     if(context) {
         fn.apply(context, args);
@@ -48,12 +56,18 @@ export const nextTick = function(fn) {
     };
 };
 
+
 /**
+ * Returns the unique key for a given item, used by ForEach and ForEachArray for DOM diffing.
+ * Resolution order:
+ * 1. If key is a function: calls key(item, defaultKey)
+ * 2. If key is a string: reads item[key] (unwrapping observables)
+ * 3. Otherwise: returns item value or defaultKey
  *
- * @param {*} item
- * @param {string|null} defaultKey
- * @param {?Function} key
- * @returns {*}
+ * @param {*} item - The item to extract a key from
+ * @param {string|number} defaultKey - Fallback key (usually the array index)
+ * @param {string|Function|null} key - Key property name or custom key function
+ * @returns {string|number} The resolved unique key
  */
 export const getKey = (item, defaultKey, key) => {
     if (Validator.isString(key)) {
@@ -70,10 +84,28 @@ export const getKey = (item, defaultKey, key) => {
     return val ?? defaultKey;
 };
 
+/**
+ * Trims all leading and trailing occurrences of char from str.
+ *
+ * @param {string} str - String to trim
+ * @param {string} char - Character to remove from both ends
+ * @returns {string} Trimmed string
+ * @example
+ * trim('/foo/bar/', '/'); // 'foo/bar'
+ */
 export const trim = function(str, char) {
     return str.replace(new RegExp(`^[${char}]+|[${char}]+$`, 'g'), '');
 }
 
+/**
+ * Deep clones a value. Uses structuredClone when available.
+ * Handles: primitives, Dates, Arrays, plain Objects.
+ * Observables are kept by reference (not cloned); onObservableFound is called for each.
+ *
+ * @param {*} value - Value to clone
+ * @param {((observable: ObservableItem) => void)?} [onObservableFound] - Called for each observable encountered
+ * @returns {*} Deep clone of the value
+ */
 export const deepClone = (value, onObservableFound) => {
     try {
         if(window.structuredClone !== undefined) {

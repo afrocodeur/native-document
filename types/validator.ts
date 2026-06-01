@@ -1,4 +1,4 @@
-import {ObservableArray, ObservableChecker, ObservableItem, ObservableProxy} from "./observable";
+import {ObservableArray, ObservableChecker, ObservableItem, ObservableObject} from "./observable";
 import { ValidChild } from "./elements";
 import { NDElement } from "./nd-element";
 
@@ -10,7 +10,7 @@ export type ValidChildren = ValidChild | ValidChild[];
 declare const Validator: {
     isObservable(value: any): value is ObservableItem;
 
-    isProxy(value: any): value is ObservableProxy<any>;
+    isProxy(value: any): value is ObservableObject<any>;
 
     isObservableChecker(value: any): value is ObservableChecker;
 
@@ -20,7 +20,7 @@ declare const Validator: {
 
     isArrayObservable(value: any): value is ObservableArray<any>;
 
-    isObservableOrProxy(value: any): value is ObservableItem | ObservableProxy<any>;
+    isObservableOrProxy(value: any): value is ObservableItem | ObservableObject<any>;
 
     isAnchor(value: any): boolean;
 

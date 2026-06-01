@@ -1,4 +1,4 @@
-import Spacer from './spacer';
+import Spacer from './Spacer';
 
 export {
     Spacer,

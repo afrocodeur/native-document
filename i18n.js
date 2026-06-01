@@ -1,1 +1,1 @@
-export * from './src/i18n/service/I18nService'
+export * from './src/i18n/service/I18nService';

@@ -13,6 +13,15 @@ export function Spacer(props = {}) {
 BaseComponent.extends(Spacer);
 
 Spacer.defaultTemplate = null;
+/**
+ *
+ *
+ * Registers the render template for Spacer.
+ * @param {(description: {
+ *     type: 'spacer',
+ *     props: GlobalAttributes,
+ * }, instance: Spacer) => NdChild} template
+ */
 Spacer.use = function(template) {
     Spacer.defaultTemplate = template;
 };

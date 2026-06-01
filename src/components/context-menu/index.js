@@ -1,6 +1,6 @@
-import ContextMenu from "./ContextMenu";
-import ContextMenuItem from "./ContextMenuItem";
-import ContextMenuGroup from "./ContextMenuGroup";
+import ContextMenu from "./types/ContextMenu";
+import ContextMenuItem from "./types/ContextMenuItem";
+import ContextMenuGroup from "./types/ContextMenuGroup";
 
 
 export {

@@ -31,6 +31,10 @@ Object.defineProperty( BaseComponent.prototype, 'nd', {
     }
 });
 
+/**
+ * @param {Function} Component
+ * @param {...Function} parents
+ */
 BaseComponent.extends = function(Component, ...parents) {
     const MainParent = parents[0] || BaseComponent;
     Component.prototype = Object.create(MainParent.prototype);
@@ -55,6 +59,10 @@ BaseComponent.obs = (value) => {
     return value.__$Observable ? value : Observable(value);
 };
 
+/**
+ * @param {Record<string, *>} description
+ * @returns {this}
+ */
 BaseComponent.prototype.setDescription = function(description) {
     for(const key in description) {
         if(this.$description[key]?.__$Observable) {
@@ -64,21 +72,30 @@ BaseComponent.prototype.setDescription = function(description) {
         this.$description[key] = description[key];
     }
     return this;
-}
+};
 
 BaseComponent.prototype.$storeElement = function(element) {
     this.$element = element;
     return this;
 };
 
+/**
+ * @param {(element: HTMLElement) => void} callback
+ * @returns {this}
+ */
 BaseComponent.prototype.postBuild = function(callback) {
     this.$postBuild = this.$postBuild || [];
     this.$postBuild.push(callback);
     return this;
-}
+};
 
 BaseComponent.prototype.ghostDom = NDElement.prototype.ghostDom;
 
+/**
+ * @param {Record<string, *>} target
+ * @param {string} name
+ * @returns {this}
+ */
 BaseComponent.prototype.refSelf = function(target, name) {
     target[name] = this;
     return this;
@@ -98,6 +115,9 @@ BaseComponent.prototype.$build = function() {
     return renderer(this.$description, this);
 };
 
+/**
+ * @returns {HTMLElement|DocumentFragment}
+ */
 BaseComponent.prototype.toNdElement = function() {
     if (this.$element) {
         return this.$element;
@@ -124,6 +144,9 @@ BaseComponent.prototype.toNdElement = function() {
 
 BaseComponent.prototype.node = BaseComponent.prototype.toNdElement;
 
+/**
+ * @returns {Record<string, *>}
+ */
 BaseComponent.prototype.toJSON = function() {
     if(!this.$description) {
         return {};
@@ -131,6 +154,10 @@ BaseComponent.prototype.toJSON = function() {
     return { ...this.$description };
 };
 
+/**
+ * @param {(description: *, component: *) => NdChild} renderFn
+ * @returns {this}
+ */
 BaseComponent.prototype.render = function(renderFn) {
     if (typeof renderFn !== 'function') {
         throw new Error('Custom renderer must be a function');
@@ -139,19 +166,31 @@ BaseComponent.prototype.render = function(renderFn) {
     return this;
 };
 
+/**
+ * Returns the internal editable props object for this component.
+ * The `class` and `style` properties are wrapped in reactive accumulators
+ * ({@link ClassPropertyAccumulatorType} and {@link CssPropertyAccumulatorType})
+ * instead of plain strings, to allow incremental reactive updates.
+ * @returns {Omit<GlobalAttributes, "class"|"style"> & { class: ClassPropertyAccumulatorType, style: CssPropertyAccumulatorType }}
+ */
 BaseComponent.prototype.getEditableProps = function() {
     if(!this.$editableProps) {
         const rawProps = this.$description.props || {};
         this.$editableProps = {
             ...rawProps,
             class: classPropertyAccumulator(rawProps.class || {}),
-            style: cssPropertyAccumulator(rawProps.style || {})
+            style: cssPropertyAccumulator(rawProps.style || {}),
         };
     }
 
     return this.$editableProps;
 };
 
+/**
+ * Returns a plain snapshot of the resolved props, with class and style
+ * unwrapped from their reactive accumulators to their current values.
+ * @returns {GlobalAttributes}
+ */
 BaseComponent.prototype.resolveProps = function() {
     if(!this.$editableProps) {
         return this.$description.props ? { ...this.$description.props } : {};
@@ -167,25 +206,42 @@ BaseComponent.prototype.resolveProps = function() {
     return props;
 };
 
+/**
+ * @param {GlobalAttributes} props
+ * @returns {this}
+ */
 BaseComponent.prototype.props = function(props) {
     this.$description.props = props;
     return this;
 };
 
+
+/**
+ * @param {NdStyleMap} style
+ * @returns {this}
+ */
 BaseComponent.prototype.style = function(style) {
     const props = this.getEditableProps();
     props.style.add(style);
     return this;
 };
 
+/**
+ * @param {boolean|Observable<boolean>} condition
+ * @returns {this}
+ */
 BaseComponent.prototype.showIf = function(condition) {
     this.$description.showIf = BaseComponent.obs(condition);
     return this;
 };
 
+/**
+ * @param {*} context
+ * @returns {this}
+ */
 BaseComponent.prototype.context = function(context) {
     this.$description.$context = context;
     return this;
-}
+};
 
 BaseComponent.prototype.visibility = BaseComponent.prototype.showIf;

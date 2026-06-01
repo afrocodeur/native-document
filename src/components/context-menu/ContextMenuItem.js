@@ -1,5 +1,11 @@
-import MenuItem from "../menu/MenuItem";
+import MenuItem from "../menu/types/MenuItem";
 
+/**
+ *
+ *
+ * @constructor
+ * @param {GlobalAttributes} [config]
+ */
 export default function ContextMenuItem(config) {
     if(!(this instanceof ContextMenuItem)) {
         return new ContextMenuItem(config);
@@ -11,6 +17,12 @@ export default function ContextMenuItem(config) {
 
 ContextMenuItem.defaultTemplate = null;
 
+/**
+ * Registers the render template for ContextMenuItem.
+ * @param {(description: {
+ *     [key: string]: *
+ * }, instance: ContextMenuItem) => NdChild} template
+ */
 ContextMenuItem.use = function(template) {
-    ContextMenuItem.defaultTemplate = template.contextMenuItem;
+    ContextMenuItem.defaultTemplate = template;
 };

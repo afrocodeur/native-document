@@ -3,12 +3,12 @@ import {ObservableItem} from "./observable";
 type CssPropertyValueType = string | ObservableItem | number;
 type ClassPropertyValueType = boolean | ObservableItem;
 
-interface cssPropertyAccumulator {
+export interface CssPropertyAccumulator {
     add(key: string, value: CssPropertyValueType): void;
     value(): string | Record<string, CssPropertyValueType>;
 }
 
-interface classPropertyAccumulator {
+export interface ClassPropertyAccumulator {
     add(key: string, value?: ClassPropertyValueType): void;
     value(): string | Record<string, ClassPropertyValueType>;
 }
@@ -17,10 +17,10 @@ interface classPropertyAccumulator {
 type CssInitialValue = string | Record<string, CssPropertyValueType> | string[];
 type ClassInitialValue = string | Record<string, ClassPropertyValueType> | string[];
 
-export declare const cssPropertyAccumulator: (initialValue?: CssInitialValue) => cssPropertyAccumulator;
+export declare const cssPropertyAccumulator: (initialValue?: CssInitialValue) => CssPropertyAccumulator;
 
 
-export declare const classPropertyAccumulator: (initialValue?: ClassInitialValue) => classPropertyAccumulator;
+export declare const classPropertyAccumulator: (initialValue?: ClassInitialValue) => ClassPropertyValueType;
 
 // Export des types pour usage externe
 export type {

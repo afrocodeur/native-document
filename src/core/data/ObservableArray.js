@@ -9,10 +9,18 @@ const mutationMethods = ['push', 'pop', 'shift', 'unshift', 'reverse', 'sort', '
 const noMutationMethods = ['map', 'forEach', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex', 'concat', 'includes', 'indexOf'];
 
 /**
+ * Reactive array container extending ObservableItem.
+ * Wraps a native array and triggers reactivity on mutations (push, pop, splice, etc.).
+ * Use Observable.array() rather than instantiating directly.
  *
- * @param target
- * @param {{propagation: boolean, deep: boolean, reset: boolean}|null} configs
  * @constructor
+ * @param {Array} target - Initial array value
+ * @param {{ propagation?: boolean, deep?: boolean, reset?: boolean }|null} [configs=null] - Configuration
+ * @param {boolean} [configs.deep] - If false, nested arrays are not wrapped in ObservableArray
+ * @param {boolean} [configs.reset] - If true, stores initial value for .reset()
+ * @example
+ * const items = Observable.array([1, 2, 3]);
+ * items.push(4); // triggers reactivity
  */
 const ObservableArray = function (target, configs = null) {
     if(!Array.isArray(target)) {
@@ -166,6 +174,17 @@ ObservableArray.prototype.swap = function(indexA, indexB) {
     return true;
 };
 
+/**
+ * Swaps two items by reference (not by index).
+ * Finds indices of both items and delegates to .swap().
+ *
+ * @param {*} itemA - First item (by reference)
+ * @param {*} itemB - Second item (by reference)
+ * @returns {boolean} True if swap was successful
+ * @example
+ * const items = Observable.array(['a', 'b', 'c']);
+ * items.swapItems('a', 'c'); // ['c', 'b', 'a']
+ */
 ObservableArray.prototype.swapItems = function(itemA, itemB) {
     const indexA = this.$currentValue.indexOf(itemA);
     const indexB = this.$currentValue.indexOf(itemB);
@@ -173,6 +192,16 @@ ObservableArray.prototype.swapItems = function(itemA, itemB) {
     return this.swap(indexA, indexB);
 };
 
+/**
+ * Inserts an item immediately after the target item in the array.
+ *
+ * @param {*} data - Item to insert
+ * @param {*} target - Existing item after which data is inserted
+ * @returns {Array} Result of the underlying splice call
+ * @example
+ * const items = Observable.array(['a', 'c']);
+ * items.insertAfter('b', 'a'); // ['a', 'b', 'c']
+ */
 ObservableArray.prototype.insertAfter = function(data, target) {
     const targetIndex = this.$currentValue.indexOf(target);
     return this.splice(targetIndex + 1, 0, data);
@@ -216,24 +245,28 @@ ObservableArray.prototype.removeItem = function(item) {
     return this.remove(indexOfItem);
 };
 
+
 /**
- * Checks if the array is empty.
+ * Checks if the array has no elements.
+ * Semantic alias for length === 0. Different from .clear() which empties the array.
  *
- * @returns {boolean} True if array has no elements
+ * @returns {boolean} True if the array contains no elements
  * @example
  * const items = Observable.array([]);
- * items.isEmpty(); // true
+ * items.empty(); // true
  */
 ObservableArray.prototype.empty = function() {
     return this.$currentValue.length === 0;
 };
 
+
 /**
- * Triggers a populate operation with the current array, iteration count, and callback.
- * Used internally for rendering optimizations.
+ * Triggers a 'populate' operation used internally by ForEachArray for batch rendering.
+ * Not intended for direct use in application code.
  *
- * @param {number} iteration - Iteration count for rendering
- * @param {Function} callback - Callback function for rendering items
+ * @internal
+ * @param {number} iteration - Number of items to render
+ * @param {Function} callback - Render callback for each item
  */
 ObservableArray.prototype.populateAndRender = function(iteration, callback) {
     this.trigger({ action: 'populate', args: [this.$currentValue, iteration, callback] });
@@ -351,6 +384,18 @@ ObservableArray.prototype.whereEvery = function(fields, filter) {
     });
 };
 
+/**
+ * Subscribes deeply to all observable items within the array.
+ * Automatically binds and unbinds listeners as items are added or removed.
+ * Returns an unsubscribe function.
+ *
+ * @param {(value: Array) => void} callback - Called whenever any nested observable changes
+ * @returns {() => void} Unsubscribe function
+ * @example
+ * const users = Observable.array([Observable({ name: 'John' })]);
+ * const unsub = users.deepSubscribe((items) => console.log('changed', items));
+ * unsub(); // stop listening
+ */
 ObservableArray.prototype.deepSubscribe = function(callback) {
     const updatedValue = nextTick(() => callback(this.val()));
     const $listeners = new WeakMap();
@@ -417,7 +462,19 @@ ObservableArray.prototype.deepSubscribe = function(callback) {
     };
 };
 
-
+/**
+ * Keeps this array in sync with another ObservableArray.
+ * All mutations are mirrored to the target array in real time.
+ *
+ * @param {ObservableArray} targetObservable - The array to sync into
+ * @returns {() => void} Unsubscribe function to stop syncing
+ * @example
+ * const source = Observable.array([1, 2, 3]);
+ * const target = Observable.array([]);
+ * const unsync = source.sync(target);
+ * source.push(4); // target is now [1, 2, 3, 4]
+ * unsync();
+ */
 ObservableArray.prototype.sync = function(targetObservable) {
     if (!targetObservable || !targetObservable.__$isObservableArray) {
         throw new NativeDocumentError('ObservableArray.sync : target must be an ObservableArray');
@@ -439,10 +496,25 @@ ObservableArray.prototype.sync = function(targetObservable) {
     return () => this.unsubscribe(sync);
 };
 
+/**
+ * Creates a new ObservableArray with a shallow clone of the current array.
+ *
+ * @returns {ObservableArray} New independent ObservableArray with same items
+ */
 ObservableArray.prototype.clone = function() {
     return new ObservableArray(this.resolve());
 };
 
+/**
+ * Returns a derived ObservableChecker that emits true when the array has at least one item.
+ *
+ * @returns {ObservableChecker<boolean>}
+ * @example
+ * const items = Observable.array([]);
+ * items.isNotEmpty().val(); // false
+ * items.push(1);
+ * items.isNotEmpty().val(); // true
+ */
 ObservableArray.prototype.isNotEmpty = function () {
     return this.is((x) => x.length > 0);
 };

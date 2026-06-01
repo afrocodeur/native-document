@@ -1,6 +1,8 @@
 import {Div, Span} from '../../../core/elements';
 
 import './skeleton.css';
+import Skeleton from '../../../components/skeleton/types/Skeleton';
+import {HStack, VStack} from '../../../components/stacks';
 
 export default function SkeletonRender($desc, instance) {
     const props  = instance.getEditableProps();
@@ -77,4 +79,58 @@ const toUnit = (value) => {
         return value.transform(v => typeof v === 'number' ? v + 'px' : v);
     }
     return value;
+};
+
+
+/**
+ * @param {string} [type]
+ * @returns {*}
+ */
+Skeleton.card = function(type) {
+    return VStack([
+        Skeleton().type('image').height(200),
+        VStack([
+            Skeleton().text(1),
+            Skeleton().text(2),
+        ]).spacing('cozy')
+    ], { class: 'skeleton-card '+type }).spacing('cozy');
+};
+
+/**
+ * @param {number} [items=3]
+ * @returns {*}
+ */
+Skeleton.list = function(items = 3) {
+    return VStack(
+        Array.from({length: items}, () =>
+            HStack([
+                Div({ class: 'skeleton-list-item-avatar' }, Skeleton().circle().size(40, 40)),
+                Div({ class: 'skeleton-list-item-text' }, Skeleton().text(2)),
+            ], { class: 'skeleton-list-item' }).spacing('comfortable').alignCenter()
+        )
+    ).spacing('comfortable');
+};
+
+/**
+ * @param {number} [rows=5]
+ * @param {number} [cols=4]
+ * @returns {*}
+ */
+Skeleton.table = function(rows = 5, cols = 4) {
+    const buildRow = () =>
+        HStack(
+            Array.from({length: cols}, () =>
+                Div({ class: 'skeleton-table-col' }, Skeleton().rect().height(16))
+            ),
+            { class: 'skeleton-table-row' }
+        ).spacing('comfortable').alignCenter();
+
+    return VStack([
+        buildRow(),
+        ...Array.from({length: rows}, () => buildRow())
+    ]).spacing('cozy');
+};
+
+Skeleton.paragraph = function(lines = 3) {
+    return Skeleton().text(lines);
 };

@@ -1,5 +1,5 @@
 import Avatar from './Avatar';
-import AvatarGroup from "./AvatarGroup";
+import AvatarGroup from "./types/AvatarGroup";
 
 export {
     Avatar,

@@ -17,7 +17,7 @@ const Devtools = (function () {
             const app = Widget();
             document.body.parentNode.appendChild(app);
         },
-    }
+    };
 }());
 
 export default Devtools;

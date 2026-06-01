@@ -4,9 +4,12 @@ import {BOOL_ATTRIBUTES_NAME, BOOLEAN_ATTRIBUTES} from "./constants.js";
 import {Observable} from "../data/Observable";
 
 /**
+ * Applies a reactive class map to an HTMLElement.
+ * Each key is a CSS class name; each value is a boolean or ObservableItem<boolean>.
+ * If the value is an ObservableChecker emitting a string, toggles the class name dynamically.
  *
- * @param {HTMLElement} element
- * @param {Object} data
+ * @param {HTMLElement} element - Target element
+ * @param {Record<string, boolean|ObservableItem<boolean>|ObservableChecker<boolean|string>>} data - Class map
  */
 export const bindClassAttribute = (element, data) => {
     for(const className in data) {
@@ -37,9 +40,13 @@ export const bindClassAttribute = (element, data) => {
 }
 
 /**
+ * Applies a reactive style map to an HTMLElement.
+ * Each key is a CSS property name (camelCase or CSS custom property `--var`);
+ * each value is a string or ObservableItem<string>.
+ * CSS custom properties are set via element.style.setProperty().
  *
- * @param {HTMLElement} element
- * @param {Object} data
+ * @param {HTMLElement} element - Target element
+ * @param {Record<string, string|ObservableItem<string>>} data - Style map
  */
 export const bindStyleAttribute = (element, data) => {
     for(const styleName in data) {

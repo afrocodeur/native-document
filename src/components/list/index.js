@@ -1,6 +1,6 @@
-import List from "./List";
-import ListItem from "./ListItem";
-import ListGroup from "./ListGroup";
+import List from "./types/List";
+import ListItem from "./types/ListItem";
+import ListGroup from "./types/ListGroup";
 
 
 export default {

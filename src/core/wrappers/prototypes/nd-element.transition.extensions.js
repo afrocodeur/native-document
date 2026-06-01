@@ -34,6 +34,16 @@ const waitForVisualEnd = (el, timeout = 1000) => {
     });
 };
 
+/**
+ * Registers a beforeUnmount hook that plays an exit CSS transition before the element is removed.
+ * Adds the class `{transitionName}-exit`, waits for the transition/animation to end, then removes it.
+ *
+ * @param {string} transitionName - CSS class prefix for the exit transition
+ * @returns {this}
+ * @example
+ * Div({ class: 'modal' }).nd.transitionOut('fade');
+ * // Adds 'fade-exit' before removal, waits for transitionend/animationend
+ */
 NDElement.prototype.transitionOut = function(transitionName) {
     const exitClass = transitionName + '-exit';
     const el = this.$element;
@@ -45,6 +55,17 @@ NDElement.prototype.transitionOut = function(transitionName) {
     return this;
 };
 
+/**
+ * Plays an enter CSS transition when the element is mounted into the DOM.
+ * Adds `{transitionName}-enter-from` immediately, then swaps to `{transitionName}-enter-to`
+ * on the next animation frame, and cleans up after the transition ends.
+ *
+ * @param {string} transitionName - CSS class prefix for the enter transition
+ * @returns {this}
+ * @example
+ * Div({ class: 'modal' }).nd.transitionIn('fade');
+ * // On mount: adds 'fade-enter-from', then swaps to 'fade-enter-to'
+ */
 NDElement.prototype.transitionIn = function(transitionName) {
     const startClass = transitionName + '-enter-from';
     const endClass = transitionName + '-enter-to';
@@ -68,13 +89,32 @@ NDElement.prototype.transitionIn = function(transitionName) {
     return this;
 };
 
-
+/**
+ * Applies both enter and exit transitions to the element.
+ * Shorthand for calling .transitionIn(name) and .transitionOut(name).
+ *
+ * @param {string} transitionName - CSS class prefix for both enter and exit transitions
+ * @returns {this}
+ * @example
+ * Div({}).nd.transition('slide');
+ * // On mount: enter transition; on unmount: exit transition
+ */
 NDElement.prototype.transition = function (transitionName) {
     this.transitionIn(transitionName);
     this.transitionOut(transitionName);
     return this;
 };
 
+/**
+ * Immediately applies a CSS animation class to the element.
+ * Removes the class automatically once the animation ends.
+ *
+ * @param {string} animationName - CSS animation class name to add
+ * @returns {this}
+ * @example
+ * Button('Click me').nd.animate('shake');
+ * // Adds 'shake' class, removes it when animationend fires
+ */
 NDElement.prototype.animate = function(animationName) {
     const el = this.$element;
     el.classes.add(animationName);

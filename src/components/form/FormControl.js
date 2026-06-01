@@ -5,6 +5,26 @@ import Validator from "../../core/utils/validator";
 import NativeDocumentError from "../../../src/core/errors/NativeDocumentError";
 import BaseComponent from "../BaseComponent";
 
+/**
+ * Top-level form controller. Manages field registration, layout, validation, submission, error display, and reactive value tracking.
+ *
+ *
+ * @example
+ * const form = new FormControl()
+ *     .fields((form) => {
+ *         new StringField('email').label('Email').required().email();
+ *         new PasswordField('password').label('Password').required().strong();
+ *     })
+ *     .layout((fields) => VStack(fields.email, fields.password))
+ *     .onSubmit(async (values, form) => {
+ *         await api.login(values);
+ *     })
+ *     .onError((errors) => console.log(errors))
+ *     .errorsMode('inline');
+ *
+ * @constructor
+ * @param {GlobalAttributes} [props]
+ */
 export default function FormControl(props) {
     if(!(this instanceof FormControl)) {
         return new FormControl(props);
@@ -31,10 +51,31 @@ export default function FormControl(props) {
 
 FormControl.defaultTemplate = null;
 
+/**
+ * Registers the render template for FormControl.
+ * @param {(description: {
+ *     data: *|null,
+ *     fieldBuilder: ((form: FormControl) => void)|null,
+ *     layout: ((fields: Record<string, Field>) => NdChild)|null,
+ *     errorsMode: 'dispatch'|'inline'|'summary'|'none',
+ *     errorsPosition: 'top'|'bottom',
+ *     errorsMapper: Record<string, string>|null,
+ *     renderErrors: ((errors: Record<string, string[]>) => NdChild)|null,
+ *     submitting: Observable<boolean>,
+ *     errors: Observable<Record<string, string[]>|null>,
+ *     isDirty: Observable<boolean>,
+ *     isValid: Observable<boolean>,
+ *     props: GlobalAttributes,
+ * }, instance: FormControl) => NdChild} template
+ */
 FormControl.use = function(template) {
     FormControl.defaultTemplate = template;
 };
 
+/**
+ * @param {GlobalAttributes} [props]
+ * @returns {FormControl}
+ */
 FormControl.create = function(props) {
     return new FormControl(props);
 };
@@ -54,6 +95,10 @@ Object.defineProperty(FormControl.prototype, 'submitting', {
     get() { return this.$description.submitting; }
 });
 
+/**
+ * @param {(form: FormControl) => void} fieldBuilder
+ * @returns {this}
+ */
 FormControl.prototype.fields = function(fieldBuilder) {
     if(typeof fieldBuilder !== 'function') {
         throw new NativeDocumentError('FormControl.fields() expects a function');
@@ -92,6 +137,10 @@ FormControl.prototype.$registerField = function(name, field) {
     field.value(dataSource);
 };
 
+/**
+ * @param {string} fieldName
+ * @returns {Field|null}
+ */
 FormControl.prototype.get = function(fieldName) {
     const field = this.$fields[fieldName];
     if(!field) {
@@ -100,6 +149,10 @@ FormControl.prototype.get = function(fieldName) {
     return field;
 };
 
+/**
+ * @param {(fields: Record<string, Field>) => NdChild} layoutCallback
+ * @returns {this}
+ */
 FormControl.prototype.layout = function(layoutCallback) {
     if(typeof layoutCallback !== 'function') {
         throw new NativeDocumentError('FormControl.layout() expects a function');
@@ -108,43 +161,72 @@ FormControl.prototype.layout = function(layoutCallback) {
     return this;
 };
 
+/**
+ * @param {'inline'|'summary'|'none'} mode
+ * @returns {this}
+ */
 FormControl.prototype.errorsMode = function(mode) {
     this.$description.errorsMode = mode;
     return this;
 };
 
+/**
+ * @param {Record<string, string>|null} [mapper=null]
+ * @returns {this}
+ */
 FormControl.prototype.dispatchErrors = function(mapper = null) {
     this.$description.errorsMode   = this.$description.errorsMode === 'summary' ? 'both' : 'dispatch';
     this.$description.errorsMapper = mapper;
     return this;
 };
 
+/**
+ * @returns {Record<string, string[]>}
+ */
 FormControl.prototype.summarizeErrors = function() {
     this.$description.errorsMode = this.$description.errorsMode === 'dispatch' ? 'both' : 'summary';
     return this;
 };
 
+/**
+ * @param {Record<string, string>|null} [mapper=null]
+ * @returns {this}
+ */
 FormControl.prototype.dispatchAndSummarize = function(mapper = null) {
     this.$description.errorsMode   = 'both';
     this.$description.errorsMapper = mapper;
     return this;
 };
 
+/**
+ * @param {'top'|'bottom'} position
+ * @returns {this}
+ */
 FormControl.prototype.errorsPosition = function(position) {
     this.$description.errorsPosition = position;
     return this;
 };
 
+/**
+ * @returns {this}
+ */
 FormControl.prototype.errorsAtTop = function() {
     this.$description.errorsPosition = 'top';
     return this;
 };
 
+/**
+ * @returns {this}
+ */
 FormControl.prototype.errorsAtBottom = function() {
     this.$description.errorsPosition = 'bottom';
     return this;
 };
 
+/**
+ * @param {(errors: Record<string, string[]>) => NdChild} renderFn
+ * @returns {this}
+ */
 FormControl.prototype.renderErrors = function(renderFn) {
     this.$description.renderErrors = renderFn;
     return this;
@@ -169,6 +251,9 @@ FormControl.prototype.$dispatchServerErrors = function(error) {
     }
 };
 
+/**
+ * @returns {this}
+ */
 FormControl.prototype.reset = function() {
     this.$description.isDirty.set(false);
     this.$description.isValid.set(false);
@@ -184,19 +269,31 @@ FormControl.prototype.reset = function() {
     return this;
 };
 
+/**
+ * @param {string} name
+ * @returns {this}
+ */
 FormControl.prototype.resetField = function(name) {
     const field = this.$fields[name];
     if(!field) {
         return this;
     }
-    field.reset()
+    field.reset();
     return this;
 };
 
+/**
+ * @param {string} event
+ * @returns {this}
+ */
 FormControl.prototype.submit = function(event) {
     return this.$handleSubmit(event);
 };
 
+/**
+ * @param {...string} fieldNames
+ * @returns {this}
+ */
 FormControl.prototype.trigger = function(...fieldNames) {
     const values = this.values();
     fieldNames.forEach(name => {
@@ -205,6 +302,10 @@ FormControl.prototype.trigger = function(...fieldNames) {
     return this;
 };
 
+/**
+ * @param {string|null} [fieldName=null]
+ * @returns {this}
+ */
 FormControl.prototype.disable = function(fieldName = null) {
     if(fieldName) {
         this.$fields[fieldName]?.disabled?.(true);
@@ -217,6 +318,10 @@ FormControl.prototype.disable = function(fieldName = null) {
     return this;
 };
 
+/**
+ * @param {string|null} [fieldName=null]
+ * @returns {this}
+ */
 FormControl.prototype.enable = function(fieldName = null) {
     if(fieldName) {
         this.$fields[fieldName]?.disabled?.(false);
@@ -229,6 +334,9 @@ FormControl.prototype.enable = function(fieldName = null) {
     return this;
 };
 
+/**
+ * @returns {Record<string, *>}
+ */
 FormControl.prototype.values = function() {
     const values = {};
     for(const [name, field] of Object.entries(this.$fields)) {
@@ -237,6 +345,11 @@ FormControl.prototype.values = function() {
     return values;
 };
 
+/**
+ * @param {string} fieldName
+ * @param {(value: *, field: Field) => void} handler
+ * @returns {this}
+ */
 FormControl.prototype.watch = function(fieldName, handler) {
     const field = this.$fields[fieldName];
     if(!field) {
@@ -300,11 +413,19 @@ FormControl.prototype.$handleSubmit = async function(event) {
     }
 };
 
+/**
+ * @param {(values: Record<string, *>, form: FormControl) => void|Promise<void>} callback
+ * @returns {this}
+ */
 FormControl.prototype.onSubmit = function(callback) {
     this.on('submit', callback);
     return this;
 };
 
+/**
+ * @param {Function} callback
+ * @returns {this}
+ */
 FormControl.prototype.onPreventSubmit = function(callback) {
     this.on('submit', function(event) {
         event.preventDefault();
@@ -313,25 +434,47 @@ FormControl.prototype.onPreventSubmit = function(callback) {
     return this;
 };
 
-FormControl.prototype.onDebouncedSubmit = function(callback, delay = 300) {
+/**
+ * @param {(values: Record<string, *>) => void} callback
+ * @param {number} [delay=300]
+ * @returns {this}
+ */
+FormControl.prototype.onDebouncedSubmit = function(callback, delay = 300){
     return this.onSubmit(debounce(callback.bind(this), delay));
 };
 
+/**
+ * @param {(values: Record<string, *>) => void} callback
+ * @returns {this}
+ */
 FormControl.prototype.onSuccess = function(callback) {
     this.on('success', callback);
     return this;
 };
 
+/**
+ * @param {(errors: Record<string, string[]>) => void} callback
+ * @returns {this}
+ */
 FormControl.prototype.onError = function(callback) {
     this.on('error', callback);
     return this;
 };
 
+
+/**
+ * @param {Function} callback
+ * @returns {this}
+ */
 FormControl.prototype.onChange = function(callback) {
     this.on('change', callback);
     return this;
 };
 
+/**
+ * @param {Function} callback
+ * @returns {this}
+ */
 FormControl.prototype.onReset = function(callback) {
     this.on('reset', callback);
     return this;

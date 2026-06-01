@@ -15,7 +15,7 @@ export { default as ModalRender } from "./components/modal/ModalRender";
 export { default as DropdownItemRender } from "./components/dropdown/item/DropdownItemRender";
 export { default as DropdownGroupRender } from "./components/dropdown/group/DropdownGroupRender";
 export { default as DropdownDividerRender } from "./components/dropdown/divider/DropdownDividerRender";
-export { default as BreadcrumbRender } from "./components/breadcrumb/BreadcrumbRender";
+export { default as BreadcrumbRender } from './components/breadcrumb/BreadcrumbRender';
 export { default as TabsRender } from "./components/tabs/TabsRender";
 export { default as PaginationRender } from "./components/pagination/PaginationRender";
 export { default as StepperRender } from "./components/stepper/StepperRender";

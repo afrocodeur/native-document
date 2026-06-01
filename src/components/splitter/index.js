@@ -1,6 +1,6 @@
-import Splitter from "./Splitter";
-import SplitterPanel from "./SplitterPanel";
-import SplitterGutter from "./SplitterGutter";
+import Splitter from "./types/Splitter";
+import SplitterPanel from "./types/SplitterPanel";
+import SplitterGutter from "./types/SplitterGutter";
 
 
 export {

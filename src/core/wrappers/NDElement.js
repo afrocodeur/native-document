@@ -8,6 +8,13 @@ import attributesWrapper, {
     bindStyleAttribute
 } from "./AttributesWrapper";
 
+/**
+ * Wraps an HTMLElement with NativeDocument's reactivity and lifecycle API.
+ * Created automatically by HtmlElementWrapper — not intended to be instantiated directly.
+ *
+ * @constructor
+ * @param {HTMLElement} element - The underlying HTML element to wrap
+ */
 export function NDElement(element) {
     this.$element = element;
     this.$attachements = null;
@@ -16,10 +23,18 @@ export function NDElement(element) {
     }
 }
 
+
 NDElement.prototype.__$isNDElement = true;
 
 NDElement.$getChild = (el) => el;
 
+/**
+ * Appends a child element to an internal DocumentFragment (ghost DOM),
+ * keeping it detached from the main document until explicitly mounted.
+ *
+ * @param {HTMLElement|DocumentFragment|NDElement} element - Element to append
+ * @returns {this}
+ */
 NDElement.prototype.ghostDom = function(element) {
     if(!this.$attachements) {
         this.$attachements = document.createDocumentFragment();
@@ -28,15 +43,47 @@ NDElement.prototype.ghostDom = function(element) {
     return this;
 };
 
+/**
+ * Returns the underlying HTMLElement. Used internally for type coercion.
+ *
+ * @returns {HTMLElement}
+ */
 NDElement.prototype.valueOf = function() {
     return this.$element;
 };
 
+/**
+ * Stores the underlying HTMLElement in target[name].
+ * Use this to keep a reference to the raw DOM node.
+ *
+ * @param {Record<string, any>} target - Object to store the reference in
+ * @param {string} name - Property name to assign on the target object
+ * @returns {this}
+ * @example
+ * const refs = {};
+ * Input({ type: 'text' }).nd.ref(refs, 'emailInput');
+ * refs.emailInput.focus();
+ */
 NDElement.prototype.ref = function(target, name) {
     target[name] = this.$element;
     return this;
 };
 
+/**
+ * Stores the NDElement instance itself in target[name].
+ * Use this to expose a component's public API to a parent (via .with()).
+ *
+ * @param {Record<string, any>} target - Object to store the reference in
+ * @param {string} name - Property name to assign on the target object
+ * @returns {this}
+ * @example
+ * const refs = {};
+ * Counter()
+ *   .nd.with({ increment() { count.$value++; return this; } })
+ *   .refSelf(refs, 'counter');
+ *
+ * refs.counter.increment();
+ */
 NDElement.prototype.refSelf = function(target, name) {
     target[name] = this;
     // TODO: @DIM to check
@@ -44,6 +91,12 @@ NDElement.prototype.refSelf = function(target, name) {
     return this;
 };
 
+/**
+ * Calls .nd.remove() on all child NDElements before removing this element.
+ * Used to propagate lifecycle cleanup through the component tree.
+ *
+ * @returns {this}
+ */
 NDElement.prototype.unmountChildren = function() {
     let element = this.$element;
     for(let i = 0, length = element.children.length; i < length; i++) {
@@ -57,6 +110,12 @@ NDElement.prototype.unmountChildren = function() {
     return this;
 };
 
+/**
+ * Removes the element from the DOM and cleans up its lifecycle observers.
+ * Also calls unmountChildren() recursively.
+ *
+ * @returns {this}
+ */
 NDElement.prototype.remove = function() {
     let element = this.$element;
     element.nd.unmountChildren();
@@ -69,6 +128,19 @@ NDElement.prototype.remove = function() {
 };
 
 const $lifeCycleObservers = new WeakMap();
+
+/**
+ * Registers mounted and/or unmounted lifecycle callbacks for this element.
+ * Uses MutationObserver internally to detect DOM insertion and removal.
+ *
+ * @param {{ mounted?: (el: HTMLElement) => void, unmounted?: (el: HTMLElement) => boolean|void }} states - Lifecycle hooks
+ * @returns {this}
+ * @example
+ * Div({}).nd.lifecycle({
+ *   mounted: (el) => console.log('mounted', el),
+ *   unmounted: (el) => console.log('unmounted', el),
+ * });
+ */
 NDElement.prototype.lifecycle = function(states) {
     const el = this.$element;
     if (!$lifeCycleObservers.has(el)) {
@@ -87,11 +159,22 @@ NDElement.prototype.lifecycle = function(states) {
     return this;
 };
 
+/**
+ * Registers an unmounted callback that cleans up all beforeUnmount handlers
+ * and aborts any pending async operations on this element and its children.
+ *
+ * @returns {this}
+ */
 NDElement.prototype.destroyOnUnmount = function() {
     this.unmounted(() => this.destroy());
     return this;
 };
 
+/**
+ * aborts any pending async operations on this element and its children.
+ *
+ * @returns {this}
+ */
 NDElement.prototype.destroy = function() {
     this.$element?.querySelectorAll('[data--nd-before-unmount]').forEach(child => {
         child.remove();
@@ -106,14 +189,38 @@ NDElement.prototype.destroy = function() {
     this.$element = null;
 };
 
+/**
+ * Shorthand for lifecycle({ mounted: callback }).
+ *
+ * @param {(el: HTMLElement) => void} callback - Called when element is inserted into the DOM
+ * @returns {this}
+ */
 NDElement.prototype.mounted = function(callback) {
     return this.lifecycle({ mounted: callback });
 };
 
+/**
+ * Shorthand for lifecycle({ unmounted: callback }).
+ *
+ * @param {(el: HTMLElement) => boolean|void} callback - Called when element is removed from the DOM
+ * @returns {this}
+ */
 NDElement.prototype.unmounted = function(callback) {
     return this.lifecycle({ unmounted: callback });
 };
 
+/**
+ * Registers an async callback to run before this element is removed from the DOM.
+ * The element's .remove() is delayed until all beforeUnmount callbacks resolve.
+ *
+ * @param {string} id - Unique identifier for this callback (allows overwriting)
+ * @param {(this: NDElement, el: HTMLElement) => void|Promise<void>} callback - Async-compatible callback
+ * @returns {this}
+ * @example
+ * Div({}).nd.beforeUnmount('fade-out', async (el) => {
+ *   await el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300 }).finished;
+ * });
+ */
 NDElement.prototype.beforeUnmount = function(id, callback) {
     const el = this.$element;
 
@@ -146,12 +253,25 @@ NDElement.prototype.beforeUnmount = function(id, callback) {
     return this;
 };
 
+/**
+ * Returns the underlying HTMLElement.
+ * Alias: .node()
+ *
+ * @returns {HTMLElement}
+ */
 NDElement.prototype.htmlElement = function() {
     return this.$element;
 };
 
 NDElement.prototype.node = NDElement.prototype.htmlElement;
 
+/**
+ * Attaches a Shadow DOM to this element, redirecting all child appends to the shadow root.
+ *
+ * @param {'open'|'closed'} mode - Shadow DOM encapsulation mode
+ * @param {string|null} [style=null] - Optional CSS string to inject into the shadow root
+ * @returns {this}
+ */
 NDElement.prototype.shadow = function(mode, style = null) {
     const $element = this.$element;
     const children = Array.from($element.childNodes)
@@ -168,10 +288,22 @@ NDElement.prototype.shadow = function(mode, style = null) {
     return this;
 };
 
+/**
+ * Shorthand for .shadow('open', style).
+ *
+ * @param {string|null} [style=null] - Optional CSS string to inject into the shadow root
+ * @returns {this}
+ */
 NDElement.prototype.openShadow = function(style = null) {
     return this.shadow('open', style);
 };
 
+/**
+ * Shorthand for .shadow('closed', style).
+ *
+ * @param {string|null} [style=null] - Optional CSS string to inject into the shadow root
+ * @returns {this}
+ */
 NDElement.prototype.closedShadow = function(style = null) {
     return this.shadow('closed', style);
 };
@@ -220,7 +352,16 @@ NDElement.prototype.with = function(methods) {
     return this;
 };
 
-
+/**
+ * Sets a single attribute on the element.
+ * If value is an ObservableItem, the attribute is updated reactively.
+ *
+ * @param {string} name - Attribute name
+ * @param {string|ObservableItem<string>} value - Attribute value, static or reactive
+ * @returns {this}
+ * @example
+ * Input({}).nd.attr('placeholder', label); // reactive placeholder
+ */
 NDElement.prototype.attr = function(name, value) {
     if(value?.__$Observable) {
         bindAttributeWithObservable(this.$element, name, value);
@@ -230,16 +371,37 @@ NDElement.prototype.attr = function(name, value) {
     return this;
 };
 
+/**
+ * Applies a batch of attributes to the element via AttributesWrapper.
+ * Supports reactive values, class maps, and style maps.
+ *
+ * @param {Object} attrs - Attributes object (same format as HtmlElementWrapper props)
+ * @returns {this}
+ */
 NDElement.prototype.attrs = function(attrs) {
     attributesWrapper(this.$element, attrs);
     return this;
 };
 
+/**
+ * Applies a reactive class map to the element.
+ * Each key is a class name; each value is a boolean or ObservableItem<boolean>.
+ *
+ * @param {Record<string, boolean|ObservableItem<boolean>>} classes - Class map
+ * @returns {this}
+ */
 NDElement.prototype.class = function(classes) {
     bindClassAttribute(this.$element, classes);
     return this;
 };
 
+/**
+ * Applies a reactive style map to the element.
+ * Each key is a CSS property; each value is a string or ObservableItem<string>.
+ *
+ * @param {Record<string, string|ObservableItem<string>>} style - Style map
+ * @returns {this}
+ */
 NDElement.prototype.style = function(style) {
     bindStyleAttribute(this.$element, style);
     return this;

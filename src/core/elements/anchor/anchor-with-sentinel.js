@@ -1,6 +1,14 @@
 
-
-
+/**
+ * Creates an augmented DocumentFragment with comment sentinel nodes and a MutationObserver
+ * that fires when the fragment is inserted into the live DOM.
+ * Used as the base for Anchor — not intended for direct use in application code.
+ *
+ * @internal
+ * @constructor
+ * @param {string} name - Debug label used in comment node text content
+ * @returns {AnchorWithSentinel} Augmented DocumentFragment instance
+ */
 export default function AnchorWithSentinel(name) {
     const instance = Reflect.construct(DocumentFragment, [], AnchorWithSentinel);
     const sentinel = document.createComment((name || '') + ' Anchor Sentinel');
@@ -31,11 +39,24 @@ export default function AnchorWithSentinel(name) {
 AnchorWithSentinel.prototype = Object.create(DocumentFragment.prototype);
 AnchorWithSentinel.prototype.constructor = AnchorWithSentinel;
 
+/**
+ * Registers a callback to call every time the sentinel is connected to the live DOM.
+ * The callback receives the parent node as its argument.
+ *
+ * @param {(parent: Node) => void} callback - Called each time the fragment is inserted
+ * @returns {this}
+ */
 AnchorWithSentinel.prototype.onConnected = function(callback) {
     this.$events.connected = callback;
     return this;
 };
 
+/**
+ * Registers a callback to call the first time the sentinel is connected to the live DOM.
+ * After the first connection, the MutationObserver is disconnected automatically.
+ *
+ * @param {(parent: Node) => void} callback - Called once on first insertion
+ */
 AnchorWithSentinel.prototype.onConnectedOnce = function(callback) {
     this.$events.connected = (parent) => {
         callback(parent);

@@ -1,5 +1,5 @@
 import {Dialog, Div, Span} from '../../../core/elements';
-import Button from '../../../components/button/Button';
+import Button from '../../../components/button/types/Button';
 import {ElementCreator} from "../../../core/wrappers/ElementCreator";
 import {createPortal} from "../../../core/elements/anchor/anchor";
 

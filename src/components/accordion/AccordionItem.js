@@ -3,13 +3,26 @@ import BaseComponent from "../BaseComponent";
 import HasEventEmitter from "../../core/utils/HasEventEmitter";
 
 /**
- * Represents an individual item within an Accordion component
- * @param {{ id?: string|number, title?: string, icon?: string, collapsible?: boolean, content?: ValidChildren, renderHeader?: Function, renderContent?: Function, render?: Function, expanded?: Observable<boolean>, disabled?: boolean }} config - Configuration object
- * @class
+ * A single collapsible item inside an Accordion. Manages its own expanded/collapsed state.
+ *
+ *
+ * @example
+ * const item = new AccordionItem()
+ *     .title(Span('My title'))
+ *     .icon(SomeIcon())
+ *     .content(Div('Body content'))
+ *     .collapsible(true)
+ *     .disabled(false);
+ *
+ * item.onExpand(() => console.log('expanded'))
+ *     .onCollapse(() => console.log('collapsed'));
+ *
+ * @constructor
+ * @param {GlobalAttributes} [props]
  */
 export default function AccordionItem(props = {}) {
     if(!(this instanceof AccordionItem)){
-        return new AccordionItem()
+        return new AccordionItem();
     }
 
     BaseComponent.call(this, props);
@@ -34,6 +47,24 @@ BaseComponent.extends(AccordionItem);
 BaseComponent.use(AccordionItem, HasEventEmitter);
 
 AccordionItem.defaultTemplate = null;
+
+/**
+ * Registers the render template for AccordionItem.
+ * @param {(description: {
+ *     id: string|number|null,
+ *     title: NdChild|null,
+ *     icon: NdChild|null,
+ *     collapsible: boolean,
+ *     content: NdChild|null,
+ *     renderHeader: ((desc: *, instance: AccordionItem) => NdChild)|null,
+ *     renderIndicator: ((desc: *, instance: AccordionItem) => NdChild)|null,
+ *     renderContent: ((desc: *, instance: AccordionItem) => NdChild)|null,
+ *     render: ((desc: *, instance: AccordionItem) => NdChild)|null,
+ *     expanded: Observable<boolean>,
+ *     disabled: Observable<boolean>,
+ *     props: GlobalAttributes,
+ * }, instance: AccordionItem) => NdChild} template
+ */
 AccordionItem.use = function(template) {
     AccordionItem.defaultTemplate = template;
 };
@@ -60,7 +91,7 @@ AccordionItem.prototype.identifyBy = function(id) {
 
 /**
  * Sets the content of the accordion item
- * @param {ValidChildren} content - The content to display
+ * @param {NdChild} content - The content to display
  * @returns {AccordionItem}
  */
 AccordionItem.prototype.content = function(content) {
@@ -70,7 +101,7 @@ AccordionItem.prototype.content = function(content) {
 
 /**
  * Sets the title of the accordion item
- * @param {ValidChildren} title
+ * @param {NdChild} title
  * @returns {AccordionItem}
  */
 AccordionItem.prototype.title = function(title) {
@@ -80,7 +111,7 @@ AccordionItem.prototype.title = function(title) {
 
 /**
  * Sets the icon for the accordion item
- * @param {ValidChildren} icon - The icon identifier or element
+ * @param {NdChild} icon - The icon identifier or element
  * @returns {AccordionItem}
  */
 AccordionItem.prototype.icon = function(icon) {

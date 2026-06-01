@@ -1,6 +1,6 @@
 // Image components type definitions
-import { ElementFunctionNoChildren, NdHTMLElement } from './elements';
-import { ImgAttributes } from './elements';
+import type { ElementFunctionNoChildren, NdHTMLElement } from './elements';
+import type { ImgAttributes } from './globals';
 import { ObservableItem } from "./observable";
 
 export declare const BaseImage: ElementFunctionNoChildren<ImgAttributes, HTMLImageElement>;

@@ -1,8 +1,16 @@
 
 import './has-draggable.css';
 
+/**
+ *  @class
+ *  */
 export default function HasDraggable() {}
 
+
+/**
+ * @param {number} x
+ * @param {number} y
+ */
 HasDraggable.prototype.move = function(x, y) {
     if(!this.$movableElement) {
         return;
@@ -13,6 +21,11 @@ HasDraggable.prototype.move = function(x, y) {
     this.$movableElement.style.margin = '0';
 };
 
+/**
+ * @param {HTMLElement} parent
+ * @param {HTMLElement|null} [grip=null]
+ * @returns {() => void}
+ */
 HasDraggable.prototype.makeDraggable = function(parent, grip = null) {
     if(!this.emit) {
         throw new Error('HasDraggable requires HasEventEmitter - add it via BaseComponent.use(Component, HasEventEmitter, HasDraggable).');

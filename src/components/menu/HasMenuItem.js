@@ -1,9 +1,18 @@
-import MenuDivider from "./MenuDivider";
+import MenuDivider from "./types/MenuDivider";
 
 const EMPTY_OPTIONS = {};
 
+/**
+ *
+ *
+ * @constructor
+ */
 export default function HasMenuItem() {}
 
+/**
+ * @param {*} parent
+ * @returns {this}
+ */
 HasMenuItem.prototype.setParent = function(parent) {
     this.$parent = parent;
     return this;
@@ -25,9 +34,14 @@ const getParams = (options, configBuilder, props) => {
         options = EMPTY_OPTIONS;
     }
 
-    return { options, configBuilder, props }
-}
+    return { options, configBuilder, props };
+};
 
+/**
+ * @param {NdChild} label
+ * @param {Record<GlobalAttributes|((item: MenuLink) => void)>} args
+ * @returns {this}
+ */
 HasMenuItem.prototype.link = function(label, ...args) {
     const { options, configBuilder, props } = getParams(...args);
     const MenuLink = HasMenuItem.components.MenuLink;
@@ -48,6 +62,11 @@ HasMenuItem.prototype.link = function(label, ...args) {
     return this;
 };
 
+/**
+ * @param {NdChild} label
+ * @param {Record<GlobalAttributes|((item: MenuLink) => void)>} args
+ * @returns {this}
+ */
 HasMenuItem.prototype.linkTo = function(label, ...args) {
     const { options, configBuilder, props } = getParams(...args);
     return this.link(label, { ...options, href: {isRoute: true, to: options.href} }, configBuilder, props);
@@ -55,6 +74,11 @@ HasMenuItem.prototype.linkTo = function(label, ...args) {
 
 
 
+/**
+ * @param {NdChild} label
+ * @param {GlobalAttributes|((item: MenuItem) => void)} args
+ * @returns {this}
+ */
 HasMenuItem.prototype.item = function(label, ...args) {
     const { options, configBuilder, props } = getParams(...args);
     const MenuItem = HasMenuItem.components.MenuItem;
@@ -74,6 +98,11 @@ HasMenuItem.prototype.item = function(label, ...args) {
     return this;
 };
 
+/**
+ * @param {NdChild} label
+ * @param {(group: MenuGroup) => void} builder
+ * @returns {this}
+ */
 HasMenuItem.prototype.group = function(label, builder) {
     const MenuGroup = HasMenuItem.components.MenuGroup;
     const group = new MenuGroup(label);
@@ -81,14 +110,22 @@ HasMenuItem.prototype.group = function(label, builder) {
     return this.add(group);
 };
 
+/**
+ * @returns {this}
+ */
 HasMenuItem.prototype.separator = function() {
     return this.add(new MenuDivider());
 };
 
+/**
+ * Alias for {@link HasMenuItem.prototype.separator}
+ */
 HasMenuItem.prototype.divider = HasMenuItem.prototype.separator;
 
-
-
+/**
+ * @param {MenuItem|MenuGroup|MenuLink|MenuDivider} item
+ * @returns {this}
+ */
 HasMenuItem.prototype.add = function(item) {
     if(item === this) {
         return this;
@@ -102,6 +139,9 @@ HasMenuItem.prototype.add = function(item) {
     return this;
 };
 
+/**
+ * @returns {number}
+ */
 HasMenuItem.prototype.getDepth = function() {
     let depth = 0;
     let current = this.$parent;
@@ -114,16 +154,25 @@ HasMenuItem.prototype.getDepth = function() {
     return depth;
 };
 
+/**
+ * @returns {this}
+ */
 HasMenuItem.prototype.onClicked = function() {
     this.$description.interaction = 'click';
     return this;
 };
 
+/**
+ * @returns {this}
+ */
 HasMenuItem.prototype.onHovered = function() {
     this.$description.interaction = 'hover';
     return this;
 };
 
+/**
+ * @returns {*}
+ */
 HasMenuItem.prototype.getRoot = function() {
     let current = this;
     while(current.$parent) {

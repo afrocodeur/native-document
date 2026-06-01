@@ -1,6 +1,6 @@
-import Popover from "./Popover";
-import PopoverHeader from "./PopoverHeader";
-import PopoverFooter from "./PopoverFooter";
+import Popover from "./types/Popover";
+import PopoverHeader from "./types/PopoverHeader";
+import PopoverFooter from "./types/PopoverFooter";
 
 
 export {

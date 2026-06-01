@@ -64,6 +64,14 @@ EVENTS_WITH_PREVENT.forEach(eventSourceName => {
     };
 });
 
+/**
+ * Retrieves or creates an AbortController signal tied to this element's lifecycle.
+ * The signal is automatically aborted when the element is removed via .nd.remove().
+ * Used internally by all event listeners (onClick, onInput, etc.) to auto-cleanup on unmount.
+ *
+ * @internal
+ * @returns {AbortSignal} The signal for this element's AbortController
+ */
 NDElement.prototype.$getSignal = function() {
     if(!this.$element.__$controller) {
         this.$element.__$controller = new AbortController();
@@ -71,6 +79,16 @@ NDElement.prototype.$getSignal = function() {
     return this.$element.__$controller.signal;
 };
 
+
+/**
+ * Adds a native event listener to the underlying HTMLElement.
+ * The listener is automatically removed when the element is unmounted (via AbortSignal).
+ *
+ * @param {string} name - Event name (case-insensitive, e.g. 'click', 'input')
+ * @param {EventListener} callback - Handler to call when the event fires
+ * @param {boolean|AddEventListenerOptions} [options] - Listener options merged with the element's AbortSignal
+ * @returns {this}
+ */
 NDElement.prototype.on = function(name, callback, options) {
     this.$element.addEventListener(name.toLowerCase(), callback, {
         signal: this.$getSignal(),
@@ -79,11 +97,26 @@ NDElement.prototype.on = function(name, callback, options) {
     return this;
 };
 
+/**
+ * Removes a previously registered event listener from the underlying HTMLElement.
+ *
+ * @param {string} name - Event name (case-insensitive)
+ * @param {EventListener} callback - The exact handler reference to remove
+ * @returns {this}
+ */
 NDElement.prototype.off = function(name, callback) {
     this.$element.removeEventListener(name.toLowerCase(), callback);
     return this;
 };
 
+/**
+ * Adds a one-time event listener that removes itself after the first call.
+ * Uses the element's AbortSignal for lifecycle-safe cleanup.
+ *
+ * @param {string} name - Event name (case-insensitive)
+ * @param {EventListener} callback - Handler called once when the event fires
+ * @returns {this}
+ */
 NDElement.prototype.once = function(name, callback) {
     this.$element.addEventListener(name.toLowerCase(), callback, {
         signal: this.$getSignal(),
@@ -92,6 +125,17 @@ NDElement.prototype.once = function(name, callback) {
     return this;
 };
 
+/**
+ * Dispatches a custom event on the underlying HTMLElement.
+ * The event bubbles and is cancelable by default.
+ *
+ * @param {string} name - Custom event name
+ * @param {*} [detail=null] - Data passed in event.detail
+ * @returns {this}
+ * @example
+ * Button('Save').nd.emit('saved', { id: 42 });
+ * // Triggers: element.addEventListener('saved', e => console.log(e.detail.id))
+ */
 NDElement.prototype.emit = function(name, detail = null) {
     const event = new CustomEvent(name, {
         detail,

@@ -1,8 +1,17 @@
 
 import './has-resizable.css';
 
+/**
+ *
+ * @constructor
+ */
 export default function HasResizable() {}
 
+/**
+ * @param {HTMLElement} parent
+ * @param {{ directions?: string[], size?: { minWidth?: number, maxWidth?: number, minHeight?: number, maxHeight?: number } }} [options={}]
+ * @returns {() => void}
+ */
 HasResizable.prototype.makeResizable = function(parent, options = {}) {
     if(!this.emit) {
         throw new Error('HasResizable requires HasEventEmitter — add it via BaseComponent.use(Component, HasEventEmitter).');

@@ -2,6 +2,15 @@ import {ElementCreator} from "../ElementCreator";
 import {createTextNode} from "../HtmlElementWrapper";
 import {NDElement} from "../NDElement";
 
+/**
+ * Stores deferred attribute, class, style, and event bindings for a cloneable element.
+ * Used internally by TemplateCloner to apply per-instance data to cloned DOM nodes.
+ * Not intended for direct use in application code.
+ *
+ * @internal
+ * @constructor
+ * @param {HTMLElement} $element - The template element to clone
+ */
 export default function NodeCloner($element) {
     this.$element = $element;
     this.$classes = null;
@@ -41,6 +50,12 @@ const buildProperties = (cache, properties, data) => {
     return cache;
 };
 
+/**
+ * Pre-compiles all registered bindings into a sequence of optimised steps.
+ * Called once before the first clone operation. Subsequent calls are no-ops.
+ *
+ * @internal
+ */
 NodeCloner.prototype.resolve = function() {
     if(this.$content) {
         return;
@@ -127,26 +142,56 @@ NodeCloner.prototype.resolve = function() {
     };
 };
 
+/**
+ * Clones the template element and applies all compiled binding steps with the given data.
+ *
+ * @internal
+ * @param {Array} data - Data array passed to each binding callback
+ * @returns {HTMLElement} The cloned and hydrated element
+ */
 NodeCloner.prototype.cloneNode = function(data) {
     return this.$element.cloneNode(false);
 };
 
+/**
+ * Registers an NDElement method binding (e.g. onClick, onInput) to be applied on each clone.
+ *
+ * @internal
+ * @param {string} methodName - Name of the NDElement method to call (e.g. 'onClick')
+ * @param {Function} callback - Callback function to pass to the method
+ * @returns {NodeCloner} this
+ */
 NodeCloner.prototype.attach = function(methodName, callback) {
     this.$ndMethods = this.$ndMethods || {};
     this.$ndMethods[methodName] = callback;
     return this;
 };
 
-NodeCloner.prototype.text = function(value) {
-    this.$content = value;
-    if(typeof value === 'function') {
-        this.cloneNode = (data) => createTextNode(value.apply(null, data));
+/**
+ * Registers a reactive text content binding for the element.
+ *
+ * @internal
+ * @param {Function} valueorProperty - Function receiving data and returning the text content
+ * @returns {NodeCloner} this
+ */
+NodeCloner.prototype.text = function(valueorProperty) {
+    this.$content = valueorProperty;
+    if(typeof valueorProperty === 'function') {
+        this.cloneNode = (data) => createTextNode(valueorProperty.apply(null, data));
         return this;
     }
-    this.cloneNode = (data) => createTextNode(data[0][value]);
+    this.cloneNode = (data) => createTextNode(data[0][valueorProperty]);
     return this;
 };
 
+/**
+ * Registers an attribute binding to be applied on each clone.
+ *
+ * @internal
+ * @param {string} attrName - Attribute name
+ * @param {{property: string, value: *}} value - Function receiving data and returning the attribute value
+ * @returns {NodeCloner} this
+ */
 NodeCloner.prototype.attr = function(attrName, value) {
     if(attrName === 'class') {
         this.$classes = this.$classes || {};

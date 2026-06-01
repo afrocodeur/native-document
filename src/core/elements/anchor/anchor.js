@@ -3,6 +3,15 @@ import {ElementCreator} from "../../wrappers/ElementCreator";
 import AnchorWithSentinel from "./anchor-with-sentinel";
 import oneChildAnchorOverwriting from "./one-child-anchor-overwriting";
 
+/**
+ * Creates an anchor fragment — a managed DocumentFragment delimited by comment sentinels.
+ * Used internally by ForEach, ShowIf, Switch, Match and other control-flow directives
+ * to manage dynamic DOM regions without a real container element.
+ *
+ * @param {string} name - Debug name for the anchor (visible as HTML comments in the DOM)
+ * @param {boolean} [isUniqueChild=false] - If true, optimises rendering when this anchor is the only child of its parent
+ * @returns {AnchorDocumentFragment} An augmented DocumentFragment with anchor management methods
+ */
 export default function Anchor(name, isUniqueChild = false) {
     const anchorFragment = new AnchorWithSentinel(name);
 

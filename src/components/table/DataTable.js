@@ -1,10 +1,33 @@
-import Column from "./Column";
-import ColumnGroup from "./ColumnGroup";
+import Column from "./types/Column";
+import ColumnGroup from "./types/ColumnGroup";
 import BaseComponent from "../BaseComponent";
 import {Observable as $} from "../../core/data/Observable";
 import HasEventEmitter from "../../core/utils/HasEventEmitter";
 import DebugManager from "../../core/utils/debug-manager";
 
+/**
+ * Full-featured data table with sorting, searching, filtering, pagination, selection, editing, expandable rows, bulk actions, and server-side support.
+ *
+ *
+ * @example
+ * const table = new DataTable()
+ *     .column('id', 'ID').column('name', 'Name').column('email', 'Email')
+ *     .data(users)
+ *     .pagination(20)
+ *     .searchable(true)
+ *     .selectable(true)
+ *     .onSort((col, dir) => loadData({ sort: col, dir }))
+ *     .onPage((page, size) => loadData({ page, size }))
+ *     .onSelect((rows) => console.log('selected', rows));
+ *
+ * DataTable.use((description, instance) => {
+ *     // description.columns, description.data, description.loading...
+ *     return Div({ class: 'data-table-wrapper' });
+ * });
+ *
+ * @constructor
+ * @param {GlobalAttributes} [props]
+ */
 export default function DataTable(props = {}) {
     if(!(this instanceof DataTable)) {
         return new DataTable(props);
@@ -99,10 +122,39 @@ BaseComponent.use(DataTable, HasEventEmitter);
 
 DataTable.defaultTemplate = null;
 
+/**
+ * Registers the render template for DataTable.
+ * @param {(description: {
+ *     header: Array<Column|ColumnGroup>,
+ *     columns: Column[],
+ *     data: *[]|Observable<*[]>|null,
+ *     total: number|Observable<number>|null,
+ *     mode: 'client'|'server',
+ *     loading: Observable<boolean>|boolean|null,
+ *     error: NdChild|null,
+ *     searchable: boolean,
+ *     filterable: boolean,
+ *     pageSize: number|null,
+ *     selectable: boolean,
+ *     multiSelect: boolean,
+ *     editable: boolean,
+ *     expandable: ((row: *) => NdChild)|null,
+ *     bulkActions: Array<{ label: NdChild, action: (rows: *[]) => void }>|null,
+ *     rowProps: ((row: *) => GlobalAttributes)|null,
+ *     empty: NdChild|null,
+ *     layout: ((desc: *, instance: DataTable) => NdChild)|null,
+ *     labels: Record<string, string>,
+ *     props: GlobalAttributes,
+ * }, instance: DataTable) => NdChild} template
+ */
 DataTable.use = function(template) {
     DataTable.defaultTemplate = template;
 };
 
+/**
+ * @param {GlobalAttributes} [props]
+ * @returns {DataTable}
+ */
 DataTable.create = function(props) {
     return new DataTable(props);
 };
@@ -177,10 +229,17 @@ DataTable.prototype.$beforeRender = function() {
 };
 
 // ---------------------------------------------
-// COLONNES
+// Columns
 // ---------------------------------------------
 
 
+/**
+ * @param {string} key
+ * @param {NdChild} title
+ * @param {GlobalAttributes} [props]
+ * @param {((col: Column) => void)} [callback]
+ * @returns {this}
+ */
 DataTable.prototype.column = function(key, title, props, callback) {
     if(typeof props === 'function') {
         callback = props;
@@ -195,6 +254,11 @@ DataTable.prototype.column = function(key, title, props, callback) {
     return this;
 };
 
+/**
+ * @param {NdChild} title
+ * @param {(group: ColumnGroup) => void} callback
+ * @returns {this}
+ */
 DataTable.prototype.group = function(title, callback) {
     const group = new ColumnGroup(title);
     callback && callback(group);
@@ -205,129 +269,212 @@ DataTable.prototype.group = function(title, callback) {
 };
 
 // ---------------------------------------------
-// DONNÉES
+// Data
 // ---------------------------------------------
 
+/**
+ * @param {*[]|Observable<*[]>} data
+ * @returns {this}
+ */
 DataTable.prototype.data = function(data) {
     this.$description.data = data;
     return this;
 };
 
+/**
+ * @param {number|Observable<number>} total
+ * @returns {this}
+ */
 DataTable.prototype.total = function(total) {
     this.$description.$total = BaseComponent.obs(total);
     return this;
 };
 
+/**
+ * @returns {this}
+ */
 DataTable.prototype.clientSide = function() {
     this.$description.mode = 'client';
     return this;
 };
 
+/**
+ * @returns {this}
+ */
 DataTable.prototype.serverSide = function() {
     this.$description.mode = 'server';
     return this;
 };
 
+/**
+ * @param {boolean|Observable<boolean>} loading
+ * @returns {this}
+ */
 DataTable.prototype.loading = function(loading) {
     this.$description.loading = loading;
     return this;
 };
 
+/**
+ * @param {*} error
+ * @returns {this}
+ */
 DataTable.prototype.error = function(error) {
     this.$description.error = error;
     return this;
 };
 
 // ---------------------------------------------
-// TRI
+// Order
 // ---------------------------------------------
 
+/**
+ * @param {*} col
+ * @param {*} [dir]
+ * @returns {this}
+ */
 DataTable.prototype.defaultSort = function(col, dir = 'asc') {
     this.$description.defaultSort = {col, dir};
     this.$description.$sort.push({col, dir});
     return this;
 };
 
+/**
+ * @param {*} [enabled]
+ * @returns {this}
+ */
 DataTable.prototype.multiSort = function(enabled = true) {
     this.$description.multiSort = enabled;
     return this;
 };
 
+/**
+ * @param {(col: string, dir: 'asc'|'desc') => void} handler
+ * @returns {this}
+ */
 DataTable.prototype.onSort = function(handler) {
     this.on('sort', handler);
     return this;
 };
 
 // ---------------------------------------------
-// RECHERCHE & FILTRES
+// Filters & Search
 // ---------------------------------------------
 
+/**
+ * @param {*} [enabled]
+ * @returns {this}
+ */
 DataTable.prototype.searchable = function(enabled = true) {
     this.$description.searchable = enabled;
     return this;
 };
 
+/**
+ * @param {*} [enabled]
+ * @returns {this}
+ */
 DataTable.prototype.filterable = function(enabled = true) {
     this.$description.filterable = enabled;
     return this;
 };
 
+/**
+ * @param {Record<string, *>} filters
+ * @returns {this}
+ */
 DataTable.prototype.defaultFilters = function(filters) {
     this.$description.defaultFilters = filters;
     this.$description.$filters.set(filters);
     return this;
 };
 
+/**
+ * @param {Function} handler
+ * @returns {this}
+ */
 DataTable.prototype.onSearch = function(handler) {
     this.on('search', handler);
     return this;
 };
 
+/**
+ * @param {Function} handler
+ * @returns {this}
+ */
 DataTable.prototype.onFilter = function(handler) {
     this.on('filter', handler);
     return this;
 };
 
 // ---------------------------------------------
-// PAGINATION
+// Pagination
 // ---------------------------------------------
 
+/**
+ * @param {number} pageSize
+ * @returns {this}
+ */
 DataTable.prototype.pagination = function(pageSize) {
     this.$description.pagination = true;
     this.$description.$pageSize.set(pageSize);
     return this;
 };
 
+/**
+ * @param {number[]} sizes
+ * @returns {this}
+ */
 DataTable.prototype.pageSizes = function(sizes) {
     this.$description.pageSizes = sizes;
     return this;
 };
 
+/**
+ * @param {number} page
+ * @returns {this}
+ */
 DataTable.prototype.defaultPage = function(page) {
     this.$description.defaultPage = page;
     this.$description.$currentPage.set(page);
     return this;
 };
 
+/**
+ * @param {(page: number, pageSize: number) => void} handler
+ * @returns {this}
+ */
 DataTable.prototype.onPage = function(handler) {
     this.on('page', handler);
     return this;
 };
 
 // ---------------------------------------------
-// SÉLECTION
+// Selection
 // ---------------------------------------------
 
+/**
+ * @param {*} [enabled]
+ * @returns {this}
+ */
 DataTable.prototype.selectable = function(enabled = true) {
     this.$description.selectable = enabled;
     return this;
 };
 
+/**
+ * @param {*} [enabled]
+ * @returns {this}
+ */
 DataTable.prototype.multiSelect = function(enabled = true) {
     this.$description.multiSelect = enabled;
     return this;
 };
 
+/**
+ * @param {ObservableArray} $obs
+ * @returns {this}
+ */
 DataTable.prototype.selectedRows = function($obs) {
     if(!$obs.__$isObservableArray) {
         DebugManager.warn('Database', 'selectedRow should take an Observable array');
@@ -336,25 +483,41 @@ DataTable.prototype.selectedRows = function($obs) {
     return this;
 };
 
+/**
+ * @param {Function} handler
+ * @returns {this}
+ */
 DataTable.prototype.onSelect = function(handler) {
     this.on('select', handler);
     return this;
 };
 
 // ---------------------------------------------
-// ÉDITION
+// Edition
 // ---------------------------------------------
 
+/**
+ * @param {*} [enabled]
+ * @returns {this}
+ */
 DataTable.prototype.editable = function(enabled = true) {
     this.$description.editable = enabled;
     return this;
 };
 
+/**
+ * @param {Function} handler
+ * @returns {this}
+ */
 DataTable.prototype.onEdit = function(handler) {
     this.on('edit', handler);
     return this;
 };
 
+/**
+ * @param {Function} handler
+ * @returns {this}
+ */
 DataTable.prototype.onEditCancel = function(handler) {
     this.on('editCancel', handler);
     return this;
@@ -364,25 +527,45 @@ DataTable.prototype.onEditCancel = function(handler) {
 // EXPORT
 // ---------------------------------------------
 
+/**
+ * @param {NdChild} label
+ * @param {'csv'|'xlsx'|string} format
+ * @param {string} [filename]
+ * @returns {this}
+ */
 DataTable.prototype.export = function(label, format, filename) {
     this.$description.exports.push({ label, format, filename });
     return this;
 };
 
+/**
+ * @param {string} name
+ * @returns {this}
+ */
 DataTable.prototype.exportFileName = function(name) {
     this.$description.exportFileName = name;
     return this;
 };
 
+/**
+ * @param {Function} handler
+ * @returns {this}
+ */
 DataTable.prototype.onExport = function(handler) {
     this.on('export', handler);
     return this;
 };
 
 // ---------------------------------------------
-// LIGNES
+// Rows
 // ---------------------------------------------
 
+/**
+ * @param {(row: *) => NdChild} renderFn
+ * @param {NdChild} [isExpandedIcon='▼']
+ * @param {NdChild} [isNotExpandedIcon='▶']
+ * @returns {this}
+ */
 DataTable.prototype.expandable = function(renderFn, isExpandedIcon = '▼', isNotExpandedIcon = '▶') {
     this.$description.expandable = renderFn;
     this.$description.isExpandedIcon = isExpandedIcon;
@@ -390,31 +573,55 @@ DataTable.prototype.expandable = function(renderFn, isExpandedIcon = '▼', isNo
     return this;
 };
 
+/**
+ * @param {(desc: *, instance: *) => NdChild} renderFn
+ * @returns {this}
+ */
 DataTable.prototype.masterDetail = function(renderFn) {
     this.$description.masterDetail = renderFn;
     return this;
 };
 
+/**
+ * @param {{ label: NdChild, action: (rows: *[]) => void }[]} actions
+ * @returns {this}
+ */
 DataTable.prototype.bulkActions = function(actions) {
     this.$description.bulkActions = actions;
     return this;
 };
 
+/**
+ * @param {(row: *) => GlobalAttributes} fn
+ * @returns {this}
+ */
 DataTable.prototype.rowProps = function(fn) {
     this.$description.rowProps = fn;
     return this;
 };
 
+/**
+ * @param {(row: *, event: MouseEvent) => void} handler
+ * @returns {this}
+ */
 DataTable.prototype.onRowClick = function(handler) {
     this.$description.onRowClick = handler;
     return this;
 };
 
+/**
+ * @param {(row: *, event: MouseEvent) => void} handler
+ * @returns {this}
+ */
 DataTable.prototype.onRowDoubleClick = function(handler) {
     this.$description.onRowDoubleClick = handler;
     return this;
 };
 
+/**
+ * @param {(row: *, event: MouseEvent) => void} handler
+ * @returns {this}
+ */
 DataTable.prototype.onRowHover = function(handler) {
     this.$description.onRowHover = handler;
     return this;
@@ -424,11 +631,19 @@ DataTable.prototype.onRowHover = function(handler) {
 // EMPTY & ERROR
 // ---------------------------------------------
 
+/**
+ * @param {(desc: *, instance: *) => NdChild} layoutFn
+ * @returns {this}
+ */
 DataTable.prototype.layout = function(layoutFn) {
     this.$description.layout = layoutFn;
     return this;
 };
 
+/**
+ * @param {Record<string, string>} labels
+ * @returns {this}
+ */
 DataTable.prototype.labels = function(labels) {
     this.$description.labels = {
         ...this.$description.labels,
@@ -441,6 +656,11 @@ DataTable.prototype.labels = function(labels) {
 // PERSISTANCE
 // ---------------------------------------------
 
+/**
+ * @param {string} key
+ * @param {Record<string, *>} [options]
+ * @returns {this}
+ */
 DataTable.prototype.persist = function(key, options = {}) {
     this.$description.persistKey     = key;
     this.$description.persistOptions = {
@@ -451,19 +671,28 @@ DataTable.prototype.persist = function(key, options = {}) {
 };
 
 // ---------------------------------------------
-// ACTIONS PUBLIQUES
+// Public Actions
 // ---------------------------------------------
 
+/**
+ * @returns {this}
+ */
 DataTable.prototype.refresh = function() {
     this.emit('refresh');
     return this;
 };
 
+/**
+ * @returns {this}
+ */
 DataTable.prototype.clearSelection = function() {
     this.$description.$selectedRows.clear();
     return this;
 };
 
+/**
+ * @returns {this}
+ */
 DataTable.prototype.clearFilters = function() {
     this.$description.$filters.set({});
     this.$description.$search.set('');
@@ -471,12 +700,20 @@ DataTable.prototype.clearFilters = function() {
     return this;
 };
 
+/**
+ * @param {number} page
+ * @returns {this}
+ */
 DataTable.prototype.goToPage = function(page) {
     this.$description.$currentPage.set(page);
     this.emit('page', page, this.$description.$pageSize.val());
     return this;
 };
 
+/**
+ * @param {NdChild} content
+ * @returns {this}
+ */
 DataTable.prototype.empty = function(content) {
     this.$description.empty = content;
     return this;

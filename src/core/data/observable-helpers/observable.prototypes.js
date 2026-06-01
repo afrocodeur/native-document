@@ -32,9 +32,34 @@ ObservableItem.prototype.check = function(callback) {
 };
 
 ObservableItem.prototype.transform = ObservableItem.prototype.check;
+
+/**
+ * Returns a derived observable that emits the value of a nested property.
+ * Alias for .check(value => value[property]).
+ *
+ * @param {string} property - Property name to extract
+ * @returns {ObservableChecker<*>}
+ * @example
+ * const user = Observable({ name: 'John', age: 25 });
+ * user.pluck('name').val(); // 'John'
+ */
 ObservableItem.prototype.pluck = function(property) {
     return new ObservableChecker(this, (value) => value[property]);
 };
+
+/**
+ * Creates a derived observable using a callback or checks equality with a static value.
+ * - If callback is a function: equivalent to .check(callback)
+ * - If callback is a value: equivalent to .check(v => v === value)
+ * Alias: .select()
+ *
+ * @param {Function|*} callbackOrValue - Transform function or value to compare
+ * @returns {ObservableChecker<*>}
+ * @example
+ * const count = Observable(5);
+ * count.is(v => v > 3).val(); // true
+ * count.is(5).val(); // true
+ */
 ObservableItem.prototype.is = function(callbackOrValue) {
     if(typeof callbackOrValue === 'function') {
         return new ObservableChecker(this, callbackOrValue);

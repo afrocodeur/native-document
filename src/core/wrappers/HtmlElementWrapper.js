@@ -10,10 +10,14 @@ import '../wrappers/prototypes/bind-class-extensions';
 import '../wrappers/prototypes/nd-element.transition.extensions';
 import '../wrappers/prototypes/attributes-extensions';
 
+
 /**
+ * Creates a reactive or static text node from the given value.
+ * If the value has a .toNdElement() method, delegates to it.
+ * Otherwise creates an empty text node.
  *
- * @param {*} value
- * @returns {Text}
+ * @param {string|number|ObservableItem|*} value - Value to convert to a text node
+ * @returns {Text} Text node, reactive if value is an ObservableItem
  */
 export const createTextNode = (value) => {
     if(value) {
@@ -23,6 +27,16 @@ export const createTextNode = (value) => {
 };
 
 
+/**
+ * Applies attributes and children to an existing HTMLElement.
+ * Used internally by HtmlElementWrapper on each cloned node.
+ *
+ * @internal
+ * @param {HTMLElement} element - Element to configure
+ * @param {Object|null} _attributes - Attributes object or children if no attrs provided
+ * @param {ValidChild|null} [_children=null] - Children to append
+ * @returns {HTMLElement} The configured element
+ */
 export const createHtmlElement = (element, _attributes, _children = null) => {
     let { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
 
@@ -32,10 +46,22 @@ export const createHtmlElement = (element, _attributes, _children = null) => {
 }
 
 /**
+ * Creates a reusable element factory function for the given HTML tag.
+ * The factory clones a cached template node on each call for performance.
+ * Optionally wraps the created element with a custom wrapper function.
  *
- * @param {string} name
- * @param {?Function=} customWrapper
- * @returns {Function}
+ * @param {string} name - HTML tag name (e.g. 'div', 'button', 'input'). Pass empty string to create a Fragment.
+ * @param {((element: HTMLElement) => HTMLElement)|null} [customWrapper=null] - Optional function to augment the element before returning
+ * @returns {(attr?: Object, children?: ValidChild) => HTMLElement} Element factory function
+ * @example
+ * const Div = HtmlElementWrapper('div');
+ * Div({ class: 'container' }, 'Hello');
+ *
+ * // With custom wrapper
+ * const Form = HtmlElementWrapper('form', (el) => {
+ *   el.submit = (action) => { ... };
+ *   return el;
+ * });
  */
 export default function  HtmlElementWrapper(name, customWrapper = null) {
     if(name) {

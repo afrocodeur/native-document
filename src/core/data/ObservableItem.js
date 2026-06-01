@@ -7,10 +7,18 @@ import {deepClone} from "../utils/helpers";
 import {$getFromStorage, $saveToStorage} from "../utils/localstorage";
 
 /**
+ * Reactive primitive value container.
+ * Notifies subscribers whenever its value changes.
+ * The core building block of NativeDocument's reactivity system.
  *
- * @param {*} value
- * @param {{ propagation: boolean, reset: boolean} | null} configs
- * @class ObservableItem
+ * @constructor
+ * @param {*} value - Initial value of the observable
+ * @param {{ propagation?: boolean, reset?: boolean, deep?: boolean } | null} [configs=null] - Optional configuration
+ * @param {boolean} [configs.reset] - If true, stores the initial value for later reset via .reset()
+ * @param {boolean} [configs.propagation] - Controls whether changes propagate to parent observables
+ * @example
+ * const count = new ObservableItem(0);
+ * const name  = new ObservableItem('John', { reset: true });
  */
 export default function ObservableItem(value, configs = null) {
     value = Validator.isObservable(value) ? value.val() : value;
@@ -71,15 +79,34 @@ ObservableItem.prototype.intercept = function(callback) {
     return this;
 };
 
+/**
+ * Intercepts mutations of the array observable before they are applied.
+ * Allows transforming or cancelling array operations.
+ *
+ * @param {(operation: { action: string, args: any[] }) => void} callback - Called before each mutation with the operation details
+ * @returns {ObservableItem} this
+ */
 ObservableItem.prototype.interceptMutations = function(callback) {
     this.$mutationInterceptor = callback;
     return this;
 };
 
+/**
+ * Calls the first registered subscriber directly (internal optimisation).
+ *
+ * @internal
+ * @param {{ action?: string, args?: any[], result?: any }} [operations] - Mutation metadata
+ */
 ObservableItem.prototype.triggerFirstListener = function(operations) {
     this.$firstListener(this.$currentValue, this.$previousValue, operations);
 };
 
+/**
+ * Calls all registered subscribers (internal).
+ *
+ * @internal
+ * @param {{ action?: string, args?: any[], result?: any }} [operations] - Mutation metadata
+ */
 ObservableItem.prototype.triggerListeners = function(operations) {
     const $listeners = this.$listeners;
     const $previousValue = this.$previousValue;
@@ -90,6 +117,12 @@ ObservableItem.prototype.triggerListeners = function(operations) {
     }
 };
 
+/**
+ * Triggers callbacks registered via .on() for the current and previous values (internal).
+ *
+ * @internal
+ * @param {{ action?: string, args?: any[], result?: any }} [operations] - Mutation metadata
+ */
 ObservableItem.prototype.triggerWatchers = function(operations) {
     const $watchers = this.$watchers;
     const $previousValue = this.$previousValue;
@@ -105,16 +138,35 @@ ObservableItem.prototype.triggerWatchers = function(operations) {
     }
 };
 
+/**
+ * Triggers both watchers and all subscribers (internal).
+ *
+ * @internal
+ * @param {{ action?: string, args?: any[], result?: any }} [operations] - Mutation metadata
+ */
 ObservableItem.prototype.triggerAll = function(operations) {
     this.triggerWatchers(operations);
     this.triggerListeners(operations);
 };
 
+/**
+ * Triggers both watchers and the first subscriber only (internal optimization).
+ *
+ * @internal
+ * @param {{ action?: string, args?: any[], result?: any }} [operations] - Mutation metadata
+ */
 ObservableItem.prototype.triggerWatchersAndFirstListener = function(operations) {
     this.triggerWatchers(operations);
     this.triggerFirstListener(operations);
 };
 
+/**
+ * Selects and assigns the optimal trigger strategy based on the current
+ * combination of listeners and watchers (internal).
+ * Called automatically after every subscribe / unsubscribe / on / off.
+ *
+ * @internal
+ */
 ObservableItem.prototype.assocTrigger = function() {
     this.$firstListener = null;
     if(this.$watchers?.size && this.$listeners?.length) {
@@ -185,10 +237,24 @@ ObservableItem.prototype.$basicSet = function(data) {
 
 ObservableItem.prototype.set = ObservableItem.prototype.$basicSet;
 
+/**
+ * Returns the current value of the observable.
+ *
+ * @returns {*} The current value
+ * @example
+ * const count = Observable(42);
+ * count.val(); // 42
+ */
 ObservableItem.prototype.val = function() {
     return this.$currentValue;
 };
 
+/**
+ * Disconnects all listeners and watchers and nullifies internal state.
+ * Does not trigger cleanup callbacks. Prefer .cleanup() for full disposal.
+ *
+ * @returns {void}
+ */
 ObservableItem.prototype.disconnectAll = function() {
     this.$previousValue = null;
     this.$currentValue = null;
@@ -212,6 +278,16 @@ ObservableItem.prototype.onCleanup = function(callback) {
     this.$cleanupListeners.push(callback);
 };
 
+/**
+ * Disposes the observable: runs cleanup callbacks, unregisters from MemoryManager,
+ * disconnects all listeners and removes the $value property.
+ *
+ * @returns {void}
+ * @example
+ * const obs = Observable(0);
+ * obs.onCleanup(() => console.log('disposed'));
+ * obs.cleanup(); // logs 'disposed', frees memory
+ */
 ObservableItem.prototype.cleanup = function() {
     if (this.$cleanupListeners) {
         for (let i = 0; i < this.$cleanupListeners.length; i++) {
@@ -227,10 +303,16 @@ ObservableItem.prototype.cleanup = function() {
     delete this.$value;
 };
 
+
 /**
+ * Subscribes to value changes. The callback is called every time the value changes.
+ * Returns nothing — use .unsubscribe(callback) to remove the listener.
  *
- * @param {Function} callback
- * @returns {(function(): void)}
+ * @param {(current: *, previous: *, operations?: { action?: string }) => void} callback - Called on each value change
+ * @example
+ * const count = Observable(0);
+ * count.subscribe((val) => console.log('New value:', val));
+ * count.$value++; // logs 'New value: 1'
  */
 ObservableItem.prototype.subscribe = function(callback) {
     if(process.env.NODE_ENV === 'development') {
@@ -346,9 +428,16 @@ ObservableItem.prototype.once = function(predicate, callback) {
     this.subscribe(handler);
 };
 
+
 /**
- * Unsubscribe from an observable.
- * @param {Function} callback
+ * Removes a previously registered subscriber.
+ *
+ * @param {Function} callback - The exact function reference passed to .subscribe()
+ * @returns {void}
+ * @example
+ * const handler = (val) => console.log(val);
+ * count.subscribe(handler);
+ * count.unsubscribe(handler);
  */
 ObservableItem.prototype.unsubscribe = function(callback) {
     if(!this.$listeners) return;
@@ -467,8 +556,22 @@ ObservableItem.prototype.valueOf = function() {
     return this.$currentValue;
 };
 
-
-
+/**
+ * Syncs this observable's value to localStorage and restores it on load.
+ * Optionally transforms values on get and set.
+ *
+ * @param {string} key - localStorage key
+ * @param {{ get?: (stored: any) => T, set?: (value: T) => any }} [options={}] - Transform options
+ * @param {Function} [options.get] - Transform the stored value before applying it
+ * @param {Function} [options.set] - Transform the value before saving it
+ * @returns {ObservableItem} this — chainable
+ * @example
+ * const theme = Observable('light').persist('app-theme');
+ * const count = Observable(0).persist('count', {
+ *   get: (v) => parseInt(v),
+ *   set: (v) => String(v),
+ * });
+ */
 ObservableItem.prototype.persist = function(key, options = {}) {
     let value = $getFromStorage(key, this.$currentValue);
     if(options.get) {
@@ -482,6 +585,17 @@ ObservableItem.prototype.persist = function(key, options = {}) {
     return this;
 };
 
+/**
+ * Creates a new ObservableItem with a deep clone of the current value.
+ * For objects implementing a .clone() method, delegates to that method.
+ *
+ * @returns {ObservableItem} A new independent observable with the cloned value
+ * @example
+ * const original = Observable({ x: 1 });
+ * const copy = original.clone();
+ * copy.set({ x: 99 });
+ * original.val(); // { x: 1 } — untouched
+ */
 ObservableItem.prototype.clone = function() {
     let clonedValue = this.$currentValue;
 

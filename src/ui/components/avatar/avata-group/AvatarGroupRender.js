@@ -1,5 +1,5 @@
 import {Div, Span} from '../../../../core/elements';
-import Avatar from '../../../../components/avatar/Avatar';
+import Avatar from '../../../../components/avatar/types/Avatar';
 
 import './avatar-group.css';
 

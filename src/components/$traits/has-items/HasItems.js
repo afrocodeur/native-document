@@ -7,12 +7,12 @@ import {$} from "../../../core/data/Observable";
 export default function HasItems() {}
 
 
-HasItems.prototype.trailing = () => {}
+HasItems.prototype.trailing = () => {};
 
 /**
  * Sets a dynamic observable array to store items
  * @param {ObservableArray?} [observableArray=null] - Observable array to use, or creates a new one if null
- * @returns {HasItems}
+ * @returns {this}
  */
 HasItems.prototype.dynamic = function(observableArray = null) {
     this.$description.items = observableArray || $.array([]);
@@ -23,7 +23,7 @@ HasItems.prototype.bind = HasItems.prototype.dynamic;
 /**
  * Replaces all existing items with a new array of items
  * @param {Array} items - Array of new items
- * @returns {HasItems}
+ * @returns {this}
  */
 HasItems.prototype.items = function(items) {
     this.$description.items.splice(0, this.$description.items.length, ...items);
@@ -33,7 +33,7 @@ HasItems.prototype.items = function(items) {
 
 /**
  * Clears all items from the collection
- * @returns {HasItems}
+ * @returns {this}
  */
 HasItems.prototype.clear = function() {
     const items = this.$description.items;
@@ -48,7 +48,7 @@ HasItems.prototype.clear = function() {
 /**
  * Removes a specific item from the collection
  * @param {*} item - The item to remove
- * @returns {HasItems}
+ * @returns {this}
  */
 HasItems.prototype.removeItem = function(item) {
     const items = this.$description.items;

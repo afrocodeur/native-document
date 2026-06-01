@@ -1,5 +1,16 @@
 import {ElementCreator} from "../ElementCreator";
 
+/**
+ * Hydrates a cloned node with all attribute, class, style, and attachment bindings
+ * from a compiled BindingData object. Full update path — applies both static attributes
+ * and dynamic class/style maps.
+ *
+ * @internal
+ * @param {HTMLElement} node - Cloned DOM node to hydrate
+ * @param {BindingData} bindDingData - Pre-compiled binding metadata
+ * @param {Array} data - Data array passed to each binding callback
+ * @returns {true}
+ */
 export const hydrateFull = (node, bindDingData, data) => {
     const cacheAttributes = bindDingData._cache;
 
@@ -17,6 +28,16 @@ export const hydrateFull = (node, bindDingData, data) => {
     return true;
 };
 
+/**
+ * Hydrates only the dynamic class and style bindings on a cloned node.
+ * Used when there are no static attribute bindings.
+ *
+ * @internal
+ * @param {HTMLElement} node - Cloned DOM node to hydrate
+ * @param {BindingData} bindDingData - Pre-compiled binding metadata
+ * @param {Array} data - Data array passed to each binding callback
+ * @returns {true}
+ */
 export const hydrateDynamic = (node, bindDingData, data) => {
     const cacheAttributes = bindDingData._cache;
 
@@ -30,6 +51,15 @@ export const hydrateDynamic = (node, bindDingData, data) => {
     return true;
 };
 
+/**
+ * Hydrates only the dynamic class bindings on a cloned node.
+ *
+ * @internal
+ * @param {HTMLElement} node - Cloned DOM node to hydrate
+ * @param {BindingData} bindDingData - Pre-compiled binding metadata
+ * @param {Array} data - Data array passed to each binding callback
+ * @returns {true}
+ */
 export const hydrateClassAttribute = (node, bindDingData, data) => {
     const classAttributes = bindDingData._cache.class;
 
@@ -42,6 +72,15 @@ export const hydrateClassAttribute = (node, bindDingData, data) => {
     return true;
 };
 
+/**
+ * Hydrates only the dynamic style bindings on a cloned node.
+ *
+ * @internal
+ * @param {HTMLElement} node - Cloned DOM node to hydrate
+ * @param {BindingData} bindDingData - Pre-compiled binding metadata
+ * @param {Array} data - Data array passed to each binding callback
+ * @returns {true}
+ */
 export const hydrateStyleAttribute = (node, bindDingData, data) => {
     const styleAttributes = bindDingData._cache;
 
@@ -54,6 +93,15 @@ export const hydrateStyleAttribute = (node, bindDingData, data) => {
     return true;
 };
 
+/**
+ * Hydrates only the static attribute bindings on a cloned node.
+ *
+ * @internal
+ * @param {HTMLElement} node - Cloned DOM node to hydrate
+ * @param {BindingData} bindDingData - Pre-compiled binding metadata
+ * @param {Array} data - Data array passed to each binding callback
+ * @returns {true}
+ */
 export const hydrateAttributes = (node, bindDingData, data) => {
     const cacheAttributes = bindDingData._cache;
 
@@ -66,6 +114,14 @@ export const hydrateAttributes = (node, bindDingData, data) => {
     return true;
 };
 
+/**
+ * Selects and returns the most efficient hydration function for the given BindingData.
+ * Called once during template compilation to assign the optimal update path.
+ *
+ * @internal
+ * @param {BindingData} bindDingData - Pre-compiled binding metadata
+ * @returns {Function} One of: hydrateFull, hydrateDynamic, hydrateClassAttribute, hydrateStyleAttribute, hydrateAttributes, or noUpdate
+ */
 export const getHydrator = (bindDingData) => {
     if(!bindDingData._cache) {
         return noUpdate;

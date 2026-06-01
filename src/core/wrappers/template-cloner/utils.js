@@ -71,7 +71,16 @@ const prepareBindingMetadata = (bindDingData) => {
     bindDingData._attachLength = bindDingData.attach.length;
 };
 
-
+/**
+ * Applies a binding to a DOM node via its NodeCloner, routing to the correct binding type.
+ * Called internally by TemplateCloner's binder methods (text, style, class, attr, event).
+ *
+ * @internal
+ * @param {Function|string} value - Binding callback or property name
+ * @param {'value'|'style'|'class'|'attach'|string} targetType - Binding type determining which NodeCloner method to call
+ * @param {HTMLElement} element - Target DOM element
+ * @param {string} property - Attribute name or method name (used for 'attach' and 'attr' types)
+ */
 export const $hydrateFn = function(value, targetType, element, property) {
     element.nodeCloner = element.nodeCloner || new NodeCloner(element);
     if(targetType === 'value') {
@@ -85,6 +94,14 @@ export const $hydrateFn = function(value, targetType, element, property) {
     element.nodeCloner.attr(targetType, { property, value });
 };
 
+/**
+ * Attaches all event handler bindings from a BindingData object to a cloned DOM node.
+ *
+ * @internal
+ * @param {HTMLElement} node - Cloned DOM node
+ * @param {BindingData} bindDingData - Pre-compiled binding metadata containing attachment definitions
+ * @param {Array} data - Data array passed to each attachment callback
+ */
 export const bindAttachMethods = (node, bindDingData, data) => {
     for(let i = 0, length = bindDingData._attachLength; i < length; i++) {
         const method = bindDingData.attach[i];
@@ -94,6 +111,14 @@ export const bindAttachMethods = (node, bindDingData, data) => {
     }
 };
 
+/**
+ * Prepares a BindingData object for efficient hydration by building attribute caches
+ * and flattening binding lists into indexed arrays.
+ * Called once per template during compilation.
+ *
+ * @internal
+ * @param {BindingData} bindDingData - Binding metadata object to optimise in-place
+ */
 export const optimizeBindingData = (bindDingData) => {
     buildAttributesCache(bindDingData);
     prepareBindingMetadata(bindDingData);
@@ -101,6 +126,17 @@ export const optimizeBindingData = (bindDingData) => {
 
 
 const $applyBindingParents = [];
+
+/**
+ * Traverses a cloned DOM tree and applies all compiled binding steps to each matching node.
+ * Uses a pre-built path index for O(n) traversal without querySelector.
+ *
+ * @internal
+ * @param {HTMLElement} root - Root cloned node
+ * @param {Array} data - Data array passed to each binding callback
+ * @param {Array} paths - Pre-compiled binding paths from template analysis
+ * @param {number} pathSize - Number of paths to process (paths.length - 1)
+ */
 export const hydrateClonedNode = (root, data, paths, pathSize) => {
     const rootPath = paths[pathSize];
     $applyBindingParents[rootPath.id] = root;

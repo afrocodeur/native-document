@@ -1,13 +1,9 @@
 // Form elements type definitions
-import {
-    ValidChild,
-    ElementFunction,
-    ElementFunctionNoChildren,
-    NdHTMLElement,
+import type { ValidChild, ElementFunction, ElementFunctionNoChildren, NdHTMLElement } from './elements';
+import type { ObservableItem } from './observable';
+import type {
+    Observable,
     GlobalAttributes,
-    Observable
-} from './elements';
-import {
     FormAttributes,
     InputAttributes,
     TextAreaAttributes,
@@ -18,11 +14,11 @@ import {
     ProgressAttributes,
     MeterAttributes,
     LabelAttributes,
-} from './elements';
+} from './globals';
 
-// ─────────────────────────────────────────────
+// ---------------------------------------------
 // Form
-// ─────────────────────────────────────────────
+// ---------------------------------------------
 
 export declare const Form: (
     attributes?: FormAttributes,
@@ -34,9 +30,9 @@ export declare const Form: (
     multipartFormData: () => NdHTMLElement<HTMLFormElement>;
 };
 
-// ─────────────────────────────────────────────
+// ---------------------------------------------
 // Input
-// ─────────────────────────────────────────────
+// ---------------------------------------------
 
 export declare const Input:         ElementFunctionNoChildren<InputAttributes, HTMLInputElement>;
 export declare const ReadonlyInput: (attributes?: Omit<InputAttributes, 'type' | 'readonly' | 'readOnly'>) => NdHTMLElement<HTMLInputElement>;
@@ -58,26 +54,26 @@ export declare const UrlInput:      (attributes?: Omit<InputAttributes, 'type'>)
 export declare const EmailInput:    (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
 export declare const NumberInput:   (attributes?: Omit<InputAttributes, 'type'>) => NdHTMLElement<HTMLInputElement>;
 
-// ─────────────────────────────────────────────
+// ---------------------------------------------
 // Textarea & Select
-// ─────────────────────────────────────────────
+// ---------------------------------------------
 
 export declare const TextArea:  ElementFunction<TextAreaAttributes, HTMLTextAreaElement>;
 export declare const TextInput: typeof TextArea;
 export declare const Select:    ElementFunction<SelectAttributes, HTMLSelectElement>;
 export declare const Option:    ElementFunction<OptionAttributes, HTMLOptionElement>;
 
-// ─────────────────────────────────────────────
+// ---------------------------------------------
 // Button
-// ─────────────────────────────────────────────
+// ---------------------------------------------
 
 export declare const Button:       ElementFunction<ButtonAttributes, HTMLButtonElement>;
 export declare const SimpleButton: (children?: ValidChild, attributes?: Omit<ButtonAttributes, 'type'>) => NdHTMLElement<HTMLButtonElement>;
 export declare const SubmitButton: (children?: ValidChild, attributes?: Omit<ButtonAttributes, 'type'>) => NdHTMLElement<HTMLButtonElement>;
 
-// ─────────────────────────────────────────────
+// ---------------------------------------------
 // Other form elements
-// ─────────────────────────────────────────────
+// ---------------------------------------------
 
 export declare const FieldSet: ElementFunction<GlobalAttributes & { disabled?: Observable<boolean> }, HTMLFieldSetElement>;
 export declare const Legend:   ElementFunction<GlobalAttributes, HTMLLegendElement>;

@@ -1,4 +1,4 @@
-import Slider from "./Slider";
+import Slider from "./types/Slider";
 
 export {
     Slider

@@ -2,10 +2,25 @@ import BaseComponent from "../BaseComponent";
 import DebugManager from "../../core/utils/debug-manager";
 
 /**
- * Component for displaying user avatars with images, initials, or icons
- * @param {Observable<string>|string} source - The avatar source (image URL or observable)
- * @param {*} props - Props object
- * @class
+ * Displays a user avatar with image, initials, or icon fallback. Supports status indicators, badges, shape, and size variants.
+ *
+ *
+ * @example
+ * const avatar = new Avatar('https://example.com/photo.jpg')
+ *     .alt('Jane Doe')
+ *     .name('Jane Doe')
+ *     .size('large')
+ *     .shape('circle')
+ *     .status('online')
+ *     .statusAtTopTrailing();
+ *
+ * Avatar.use((description, instance) => {
+ *     return Img({ src: description.src, alt: description.alt });
+ * });
+ *
+ * @constructor
+ * @param {string|Observable<string>} [source]
+ * @param {GlobalAttributes} [props={}]
  */
 export default function Avatar(source, props = {}) {
     if (!(this instanceof Avatar)) {
@@ -33,14 +48,33 @@ BaseComponent.extends(Avatar);
 
 Avatar.defaultTemplate = null;
 
+
 /**
- * Sets the default template for all Avatar instances
- * @param {ValidChildren} template - Template object containing avatar factory function
+ * Registers the render template for Avatar.
+ * @param {(description: {
+ *     src: Observable<string>|null,
+ *     alt: string|null,
+ *     name: string|null,
+ *     initials: string|null,
+ *     icon: NdChild|null,
+ *     size: 'extra-small'|'small'|'medium'|'large'|'extra-large'|string|number,
+ *     shape: 'circle'|'square'|'rounded',
+ *     variant: string|null,
+ *     color: string|null,
+ *     textColor: string|null,
+ *     status: Observable<string>|string|null,
+ *     render: ((desc: *, instance: Avatar) => NdChild)|null,
+ *     props: GlobalAttributes,
+ * }, instance: Avatar) => NdChild} template
  */
 Avatar.use = function(template) {
     Avatar.defaultTemplate = template;
 };
 
+/**
+ * @param {string} name
+ * @param {(a: Avatar) => Avatar} callback
+ */
 Avatar.preset = function(name, callback) {
     if (Avatar.prototype[name] || Avatar[name]) {
         DebugManager.warn(`Warning: the ${name} method already exists in Avatar.`);
@@ -49,6 +83,9 @@ Avatar.preset = function(name, callback) {
     Avatar[name] = (label, props) => callback(new Avatar(label, props));
 };
 
+/**
+ * @param {Record<string, (a: Avatar) => Avatar>} presets
+ */
 Avatar.presets = function(presets) {
     for (const name in presets) {
         Avatar.preset(name, presets[name]);

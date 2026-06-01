@@ -1,7 +1,24 @@
-import TemplateBinding from "../TemplateBinding";
+import TemplateBinding from '../TemplateBinding';
 import { $hydrateFn} from './utils';
-import NodeCloner from "./NodeCloner";
+import NodeCloner from './NodeCloner';
 
+/**
+ * Creates a high-performance template cloner for repeated rendering of the same structure.
+ * On the first call, builds the template by calling $fn with a binder object.
+ * On subsequent calls, clones the compiled template and hydrates it with new data.
+ * Used internally by ForEachArray and other list renderers.
+ *
+ * @constructor
+ * @param {(binder: TemplateCloner) => HTMLElement} $fn - Function that builds the template using binder methods
+ * @example
+ * const cloner = new TemplateCloner((t) =>
+ *   Div({},
+ *     Span(t.text((item) => item.name)),
+ *     Button({}, 'Delete').nd.onClick(t.event((item) => () => list.removeItem(item)))
+ *   )
+ * );
+ * cloner.clone([item]); // returns a hydrated clone
+ */
 export function TemplateCloner($fn) {
     let $node = null;
 
@@ -46,6 +63,14 @@ export function TemplateCloner($fn) {
         return containDynamicNode;
     };
 
+
+    /**
+     * Clones the compiled template and hydrates it with the given data.
+     * On the first call, also compiles the template (builds and optimizes binding steps).
+     *
+     * @param {Array} data - Data array passed to all binding callbacks
+     * @returns {HTMLElement} Cloned and hydrated DOM node
+     */
     this.clone = (data) => {
         const binder = createTemplateCloner(this);
         $node = $fn(binder);
@@ -60,29 +85,73 @@ export function TemplateCloner($fn) {
 
     const createBinding = (hydrateFunction, targetType) => {
         return new TemplateBinding((element, property) => {
-            $hydrateFn(hydrateFunction, targetType, element, property)
+            $hydrateFn(hydrateFunction, targetType, element, property);
         });
     };
 
+    /**
+     * Creates a style binding — the result of fn(data) is applied as inline styles.
+     *
+     * @param {((...data: any[]) => Record<string, string>)} fn - Function returning a style object
+     * @returns {TemplateBinding}
+     */
     this.style = (fn) => {
         return createBinding(fn, 'style');
     };
+
+    /**
+     * Creates a class binding — the result of fn(data) is applied as a class map.
+     *
+     * @param {((...data: any[]) => Record<string, boolean>)} fn - Function returning a class map
+     * @returns {TemplateBinding}
+     */
     this.class = (fn) => {
         return createBinding(fn, 'class');
     };
+
     this.property = (propertyName) => {
         return this.value(propertyName);
-    }
+    };
+
+    /**
+     * Creates a text/value binding — the result is set as text content or input value.
+     * Alias: .text()
+     *
+     * @param {string|(((...data: any[]) => string))} callbackOrProperty - Property name (string) or callback returning the value
+     * @returns {TemplateBinding}
+     */
     this.value = (callbackOrProperty) => {
         return createBinding(callbackOrProperty, 'value');
     };
+
+    /**
+     * Alias for .value() — creates a text content binding.
+     *
+     * @param {string|(((...data: any[]) => string))} callbackOrProperty
+     * @returns {TemplateBinding}
+     */
     this.text = this.value;
+
+    /**
+     * Creates an attribute binding — the result of fn(data) is set as an attribute value.
+     *
+     * @param {((...data: any[]) => string)} fn - Function returning the attribute value
+     * @returns {TemplateBinding}
+     */
     this.attr = (fn) => {
         return createBinding(fn, 'attributes');
     };
+
+    /**
+     * Creates an event binding — fn(data) returns the event handler to attach.
+     *
+     * @param {((...data: any[]) => EventListener)} fn - Function returning the event callback
+     * @returns {TemplateBinding}
+     */
     this.attach = (fn) => {
         return createBinding(fn, 'attach');
     };
+
     this.callback = this.attach;
 }
 
@@ -97,7 +166,7 @@ const createTemplateCloner = ($binder) => {
             return target.value(prop);
         }
     });
-}
+};
 
 export function useCache(fn) {
     let $cache = null;

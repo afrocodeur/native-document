@@ -1,18 +1,25 @@
 import BaseComponent from "../BaseComponent";
 import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import AccordionItem from "./AccordionItem";
-
-
-/**
- * Valid children types that can be rendered in the DOM
- * @typedef {HTMLElement|Text|DocumentFragment|string|Array<ValidChildren>} ValidChildren
- */
+import AccordionItem from "./types/AccordionItem";
 
 /**
- * Component for creating accordion interfaces with expandable/collapsible items
- * @param {{ items?: Array<AccordionItem>, multiple?: boolean, variant?: string, renderContent?: (field: Accordion) => HTMLElement }} config
- * @returns {Accordion}
- * @class
+ * Collapsible accordion component. Manages a list of AccordionItem instances with expand/collapse behaviour.
+ *
+ *
+ * @example
+ * const accordion = new Accordion()
+ *     .item('Section 1', Div('Content of section 1'))
+ *     .item('Section 2', Div('Content of section 2'))
+ *     .multiple(true)
+ *     .variant('bordered');
+ *
+ * Accordion.use((description, instance) => {
+ *     // description.$items, description.multiple, description.variant...
+ *     return Div({ class: 'my-accordion' }, description.items);
+ * });
+ *
+ * @constructor
+ * @param {GlobalAttributes} [props]
  */
 export default function Accordion(props = {}) {
     if (!(this instanceof Accordion)) {
@@ -35,11 +42,29 @@ BaseComponent.extends(Accordion);
 BaseComponent.use(Accordion, HasEventEmitter);
 
 Accordion.defaultTemplate = null;
+
+/**
+ * Registers the render template for Accordion.
+ * @param {(description: {
+ *     items: AccordionItem[],
+ *     multiple: boolean|null,
+ *     variant: string|null,
+ *     renderContent: ((desc: *, instance: Accordion) => NdChild)|null,
+ *     renderIndicator: ((desc: *, instance: Accordion) => NdChild)|null,
+ *     props: GlobalAttributes,
+ * }, instance: Accordion) => NdChild} template
+ */
 Accordion.use = function(template) {
     Accordion.defaultTemplate = template;
 };
 
 
+/**
+ * @param {NdChild|AccordionItem} title
+ * @param {NdChild} [content]
+ * @param {GlobalAttributes|((item: AccordionItem) => void)} [options]
+ * @returns {this}
+ */
 Accordion.prototype.item = function(title, content, options) {
     let item = null;
 
