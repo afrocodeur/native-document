@@ -1,8 +1,8 @@
-import Menu from './types/Menu';
-import MenuItem from './types/MenuItem';
-import MenuGroup from './types/MenuGroup';
-import MenuDivider from './types/MenuDivider';
-import MenuLink from './types/MenuLink';
+import Menu from './Menu';
+import MenuItem from './MenuItem';
+import MenuGroup from './MenuGroup';
+import MenuDivider from './MenuDivider';
+import MenuLink from './MenuLink';
 
 
 export {

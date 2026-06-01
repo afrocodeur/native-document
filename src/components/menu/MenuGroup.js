@@ -1,6 +1,6 @@
 import BaseComponent from '../BaseComponent';
 import HasItems from '../$traits/has-items/HasItems';
-import MenuDivider from './types/MenuDivider';
+import MenuDivider from './MenuDivider';
 import HasMenuItem from './HasMenuItem';
 import { $ } from '../../core/data/Observable';
 

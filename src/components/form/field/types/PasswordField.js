@@ -1,5 +1,5 @@
 import {Validation} from '../../validation/Validation';
-import StringField from '../../types/fields/StringField';
+import StringField from '../../field/types/StringField';
 
 /**
  * Password input field. Extends StringField with strength rules, strength meter,

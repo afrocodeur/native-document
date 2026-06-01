@@ -1,7 +1,7 @@
 import BaseComponent from '../BaseComponent';
 import HasEventEmitter from '../../core/utils/HasEventEmitter';
 import Validator from '../../core/utils/validator';
-import SplitterPanel from './types/SplitterPanel';
+import SplitterPanel from './SplitterPanel';
 import { $ } from '../../core/data/Observable';
 
 /**

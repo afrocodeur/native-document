@@ -1,5 +1,5 @@
-import Column from './types/Column';
-import ColumnGroup from './types/ColumnGroup';
+import Column from './Column';
+import ColumnGroup from './ColumnGroup';
 import BaseComponent from '../BaseComponent';
 
 /**

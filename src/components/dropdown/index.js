@@ -1,8 +1,8 @@
-import DropdownDivider from './types/DropdownDivider';
-import Dropdown from './types/Dropdown';
-import DropdownGroup from './types/DropdownGroup';
-import DropdownItem from './types/DropdownItem';
-import DropdownTrigger from './types/DropdownTrigger';
+import DropdownDivider from './DropdownDivider';
+import Dropdown from './Dropdown';
+import DropdownGroup from './DropdownGroup';
+import DropdownItem from './DropdownItem';
+import DropdownTrigger from './DropdownTrigger';
 
 export {
     Dropdown,

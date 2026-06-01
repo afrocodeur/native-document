@@ -1,6 +1,6 @@
-import DropdownItem from './types/DropdownItem';
+import DropdownItem from './DropdownItem';
 import BaseComponent from '../BaseComponent';
-import DropdownDivider from './types/DropdownDivider';
+import DropdownDivider from './DropdownDivider';
 import { $ } from '../../core/data/Observable';
 import {normalizeDropdownItem} from './helpers';
 

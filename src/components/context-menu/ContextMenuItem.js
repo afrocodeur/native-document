@@ -1,4 +1,4 @@
-import MenuItem from '../menu/types/MenuItem';
+import MenuItem from '../menu/MenuItem';
 
 /**
  *

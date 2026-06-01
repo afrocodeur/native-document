@@ -201,3 +201,12 @@ Column.prototype.onClick = function(handler) {
     this.$description.onClick = handler;
     return this;
 };
+
+/**
+ * @param {((value: *, row: *, index: number) => NdChild)|null} handler
+ * @returns {this}
+ */
+Column.prototype.render = function(handler) {
+    this.$description.render = handler;
+    return this;
+};

@@ -1,7 +1,7 @@
 import BaseComponent from '../BaseComponent';
 import HasEventEmitter from '../../core/utils/HasEventEmitter';
-import DropdownGroup from './types/DropdownGroup';
-import DropdownDivider from './types/DropdownDivider';
+import DropdownGroup from './DropdownGroup';
+import DropdownDivider from './DropdownDivider';
 import DebugManager from '../../core/utils/debug-manager';
 import HasFullPosition from '../$traits/has-position/HasFullPosition';
 import { $ } from '../../core/data/Observable';

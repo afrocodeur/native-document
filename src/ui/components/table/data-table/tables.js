@@ -233,7 +233,7 @@ export const buildEmpty = ($desc, visibleColumns) => {
         ? $desc.empty()
         : Span({class: 'data-table-empty-text'}, $desc.empty);
 
-    return ShowIf($desc.data?.is(items => items.length === 0), () => {
+    return ShowIf($desc.data?.isEmpty(), () => {
         return TRow(Td({ colspan }, [
             Div({ class: 'data-table-empty' }, content),
         ]));

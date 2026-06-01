@@ -1,4 +1,4 @@
-import MenuDivider from './types/MenuDivider';
+import MenuDivider from './MenuDivider';
 
 const EMPTY_OPTIONS = {};
 

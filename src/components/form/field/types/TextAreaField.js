@@ -1,4 +1,4 @@
-import StringField from '../../types/fields/StringField';
+import StringField from '../../field/types/StringField';
 
 /**
  * Multi-line text input field. Supports rows/cols, resize mode, auto-grow,

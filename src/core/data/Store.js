@@ -349,6 +349,26 @@ export const StoreFactory = function() {
             callback && callback(store);
             return store;
         },
+
+        /**
+         * Creates a store that is automatically persisted to localStorage.
+         * On creation, the store is initialized with the value from localStorage
+         * if it exists, otherwise falls back to the provided default value.
+         * Every mutation is automatically saved to localStorage.
+         *
+         * @param {string} name - Store name
+         * @param {*} value - Default value if nothing is found in localStorage
+         * @param {string} [localstorage_key] - Custom localStorage key. Defaults to the store name.
+         * @returns {ObservableItem}
+         *
+         * @example
+         * const $theme = Store.createPersistent('theme', 'light');
+         *
+         * $theme.set('dark'); // saved to localStorage automatically
+         *
+         * // With a custom key
+         * const $lang = Store.createPersistent('language', 'en', 'nd:lang');
+         */
         createPersistent(name, value, localstorage_key) {
             localstorage_key = localstorage_key || name;
             const observer = this.create(name, $getFromStorage(localstorage_key, value));
@@ -357,6 +377,28 @@ export const StoreFactory = function() {
             observer.subscribe((val) => saver(localstorage_key, val));
             return observer;
         },
+
+        /**
+         * Creates a resettable store that is automatically persisted to localStorage.
+         * On creation, the store is initialized with the value from localStorage
+         * if it exists, otherwise falls back to the provided default value.
+         * Every mutation is automatically saved to localStorage.
+         * Calling reset() restores the initial value AND removes the localStorage entry.
+         *
+         * @param {string} name - Store name
+         * @param {*} value - Default value if nothing is found in localStorage
+         * @param {string} [localstorage_key] - Custom localStorage key. Defaults to the store name.
+         * @returns {ObservableItem}
+         *
+         * @example
+         * const $filters = Store.createPersistentResettable('filters', { category: null, date: null });
+         *
+         * $filters.set({ category: 'news', date: '2024-01-01' }); // saved to localStorage
+         * $filters.reset(); // restored to { category: null, date: null } + localStorage entry removed
+         *
+         * // With a custom key
+         * const $prefs = Store.createPersistentResettable('preferences', { lang: 'en' }, 'nd:prefs');
+         */
         createPersistentResettable(name, value, localstorage_key) {
             localstorage_key = localstorage_key || name;
             const observer = this.createResettable(name, $getFromStorage(localstorage_key, value));

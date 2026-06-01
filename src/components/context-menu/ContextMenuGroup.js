@@ -1,4 +1,4 @@
-import MenuGroup from '../menu/types/MenuGroup';
+import MenuGroup from '../menu/MenuGroup';
 
 /**
  *

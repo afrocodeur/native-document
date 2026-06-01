@@ -1,7 +1,7 @@
 import BaseComponent from '../BaseComponent';
 import HasItems from '../$traits/has-items/HasItems';
-import MenuDivider from './types/MenuDivider';
-import MenuGroup from './types/MenuGroup';
+import MenuDivider from './MenuDivider';
+import MenuGroup from './MenuGroup';
 import HasMenuItem from './HasMenuItem';
 import { $ } from '../../core/data/Observable';
 import HasEventEmitter from '../../core/utils/HasEventEmitter';

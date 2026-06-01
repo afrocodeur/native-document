@@ -1,4 +1,4 @@
-import Field from '../form/types/Field';
+import Field from '../form/field/Field';
 
 /**
  * Range input slider. Supports single value, range mode (two handles), marks, tooltip, vertical orientation, and reactive binding.

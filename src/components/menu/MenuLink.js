@@ -1,4 +1,4 @@
-import MenuItem from './types/MenuItem';
+import MenuItem from './MenuItem';
 import HasMenuItem from './HasMenuItem';
 
 

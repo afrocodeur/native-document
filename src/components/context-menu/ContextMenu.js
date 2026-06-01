@@ -1,4 +1,4 @@
-import Menu from '../menu/types/Menu';
+import Menu from '../menu/Menu';
 import BaseComponent from '../BaseComponent';
 import {NDElement} from '../../core/wrappers/NDElement';
 import { $ } from '../../core/data/Observable';

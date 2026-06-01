@@ -1,7 +1,7 @@
 import {Div, Span} from '../../../core/elements';
 
 import './skeleton.css';
-import Skeleton from '../../../components/skeleton/types/Skeleton';
+import Skeleton from '../../../components/skeleton/Skeleton';
 import {HStack, VStack} from '../../../components/stacks';
 
 export default function SkeletonRender($desc, instance) {

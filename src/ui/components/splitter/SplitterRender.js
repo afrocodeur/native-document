@@ -1,6 +1,6 @@
 import {Div} from '../../../core/elements';
 import {ElementCreator} from '../../../core/wrappers/ElementCreator';
-import SplitterGutter from '../../../components/splitter/types/SplitterGutter';
+import SplitterGutter from '../../../components/splitter/SplitterGutter';
 
 import './splitter.css';
 

@@ -1,6 +1,6 @@
 import {Div, Label, Span} from '../../../../../elements';
 import {buildErrors} from '../helpers';
-import FileNativeMode from '../../../../components/form/types/fields/FileNativeMode';
+import FileNativeMode from '../../../../components/form/field/types/file-field-mode/FileNativeMode';
 
 import './file-field.css';
 

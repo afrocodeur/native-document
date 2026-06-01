@@ -1,4 +1,4 @@
-import FileField from '../../types/fields/FileField';
+import FileField from '../../field/types/FileField';
 import {Validation} from '../../validation/Validation';
 
 /**

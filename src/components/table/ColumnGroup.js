@@ -1,4 +1,4 @@
-import Column from './types/Column';
+import Column from './Column';
 import { THeadCell } from '../../../elements';
 
 /**

@@ -8,7 +8,7 @@ var NativeDocument = (function (exports) {
             enabled: true,
 
             enable() {
-                DebugManager$1.log('🔍 NativeDocument Debug Mode enabled');
+                DebugManager$1.log('NativeDocument Debug Mode enabled');
             },
 
             disable() {
@@ -16,19 +16,19 @@ var NativeDocument = (function (exports) {
             },
 
             log(category, message, data) {
-                console.group(`🔍 [${category}] ${message}`);
+                console.group(`[${category}] ${message}`);
                 if (data) console.log(data);
                 console.trace();
                 console.groupEnd();
             },
 
             warn(category, message, data) {
-                console.warn(`⚠️ [${category}] ${message}`, data);
+                console.warn(`[${category}] ${message}`, data);
             },
 
             error(category, message, error) {
-                console.error(`❌ [${category}] ${message}`, error);
-            }
+                console.error(`[${category}] ${message}`, error);
+            },
         };
 
     }
@@ -47,7 +47,7 @@ var NativeDocument = (function (exports) {
         ELEMENT: 1,
         TEXT: 3,
         COMMENT: 8,
-        DOCUMENT_FRAGMENT: 11
+        DOCUMENT_FRAGMENT: 11,
     };
 
     const VALID_TYPES = [];
@@ -70,13 +70,13 @@ var NativeDocument = (function (exports) {
             return  value?.__$isObservableArray;
         },
         isProxy(value) {
-            return value?.__isProxy__
+            return value?.__isProxy__;
         },
         isObservableOrProxy(value) {
             return Validator.isObservable(value) || Validator.isProxy(value);
         },
         isAnchor(value) {
-            return value?.__Anchor__
+            return value?.__Anchor__;
         },
         isObservableChecker(value) {
             return value?.__$isObservableChecker;
@@ -103,7 +103,7 @@ var NativeDocument = (function (exports) {
             return typeof value === 'object' && value !== null;
         },
         isJson(value) {
-            return !(typeof value !== 'object' || value === null || Array.isArray(value) || value.constructor.name !== 'Object')
+            return !(typeof value !== 'object' || value === null || Array.isArray(value) || value.constructor.name !== 'Object');
         },
         isElement(value) {
             return value && VALID_TYPES[value.nodeType];
@@ -176,7 +176,7 @@ var NativeDocument = (function (exports) {
             if (typeof callback !== 'function') {
                 throw new NativeDocumentError('Event callback must be a function');
             }
-        }
+        },
     };
     {
         Validator.validateAttributes = function(attributes) {
@@ -225,8 +225,41 @@ var NativeDocument = (function (exports) {
         'itemscope',
         'allowfullscreen',
         'allowpaymentrequest',
-        'playsinline'
+        'playsinline',
     ]);
+
+    const BOOL_ATTRIBUTES_NAME = {
+        'allowfullscreen': 'allowFullscreen',
+        'allowpaymentrequest': 'allowPaymentRequest',
+        'async': 'async',
+        'autocomplete': 'autocomplete',
+        'autofocus': 'autofocus',
+        'autoplay': 'autoplay',
+        'checked': 'checked',
+        'controls': 'controls',
+        'default': 'default',
+        'defer': 'defer',
+        'disabled': 'disabled',
+        'download': 'download',
+        'draggable': 'draggable',
+        'formnovalidate': 'formNoValidate',
+        'contenteditable': 'contentEditable',
+        'hidden': 'hidden',
+        'itemscope': 'itemScope',
+        'loop': 'loop',
+        'multiple': 'multiple',
+        'muted': 'muted',
+        'novalidate': 'noValidate',
+        'open': 'open',
+        'playsinline': 'playsInline',
+        'readonly': 'readOnly',
+        'required': 'required',
+        'reversed': 'reversed',
+        'scoped': 'scoped',
+        'selected': 'selected',
+        'spellcheck': 'spellcheck',
+        'translate': 'translate',
+    };
 
     const MemoryManager = (function() {
 
@@ -277,7 +310,7 @@ var NativeDocument = (function (exports) {
                 if (cleanedCount > 0) {
                     DebugManager$2.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
                 }
-            }
+            },
         };
     }());
 
@@ -299,7 +332,7 @@ var NativeDocument = (function (exports) {
                     }
                     name = name || plugin.name;
                     if (!name || typeof name !== 'string') {
-                        throw new Error(`Please, provide a valid plugin name`);
+                        throw new Error('Please, provide a valid plugin name');
                     }
                     if($plugins.has(name)) {
                         return;
@@ -354,13 +387,21 @@ var NativeDocument = (function (exports) {
                             }
                         }
                     }
-                }
+                },
             };
         }());
     }
 
     var PluginsManager$1 = PluginsManager;
 
+    /**
+     * Calls a function with the given arguments and optional context.
+     *
+     * @internal
+     * @param {Function} fn - Function to invoke
+     * @param {Array} args - Arguments to pass
+     * @param {Object|null} [context] - `this` context, or null to call without binding
+     */
     const invoke = function(fn, args, context) {
         if(context) {
             fn.apply(context, args);
@@ -389,7 +430,7 @@ var NativeDocument = (function (exports) {
             // debounce mode: reset the timer for each call
             clearTimeout(timer);
             timer = setTimeout(() => invoke(fn, lastArgs, context), delay);
-        }
+        };
     };
 
     const nextTick = function(fn) {
@@ -405,12 +446,18 @@ var NativeDocument = (function (exports) {
         };
     };
 
+
     /**
+     * Returns the unique key for a given item, used by ForEach and ForEachArray for DOM diffing.
+     * Resolution order:
+     * 1. If key is a function: calls key(item, defaultKey)
+     * 2. If key is a string: reads item[key] (unwrapping observables)
+     * 3. Otherwise: returns item value or defaultKey
      *
-     * @param {*} item
-     * @param {string|null} defaultKey
-     * @param {?Function} key
-     * @returns {*}
+     * @param {*} item - The item to extract a key from
+     * @param {string|number} defaultKey - Fallback key (usually the array index)
+     * @param {string|Function|null} key - Key property name or custom key function
+     * @returns {string|number} The resolved unique key
      */
     const getKey = (item, defaultKey, key) => {
         if (Validator.isString(key)) {
@@ -427,10 +474,28 @@ var NativeDocument = (function (exports) {
         return val ?? defaultKey;
     };
 
+    /**
+     * Trims all leading and trailing occurrences of char from str.
+     *
+     * @param {string} str - String to trim
+     * @param {string} char - Character to remove from both ends
+     * @returns {string} Trimmed string
+     * @example
+     * trim('/foo/bar/', '/'); // 'foo/bar'
+     */
     const trim = function(str, char) {
         return str.replace(new RegExp(`^[${char}]+|[${char}]+$`, 'g'), '');
     };
 
+    /**
+     * Deep clones a value. Uses structuredClone when available.
+     * Handles: primitives, Dates, Arrays, plain Objects.
+     * Observables are kept by reference (not cloned); onObservableFound is called for each.
+     *
+     * @param {*} value - Value to clone
+     * @param {((observable: ObservableItem) => void)?} [onObservableFound] - Called for each observable encountered
+     * @returns {*} Deep clone of the value
+     */
     const deepClone = (value, onObservableFound) => {
         try {
             if(window.structuredClone !== undefined) {
@@ -470,7 +535,7 @@ var NativeDocument = (function (exports) {
 
     const LocalStorage = {
         getJson(key) {
-            let value = localStorage.getItem(key);
+            const value = localStorage.getItem(key);
             try {
                 return JSON.parse(value);
             } catch (e) {
@@ -501,7 +566,7 @@ var NativeDocument = (function (exports) {
         },
         has(key) {
             return localStorage.getItem(key) != null;
-        }
+        },
     };
 
     const $getFromStorage = (key, value) => {
@@ -509,26 +574,34 @@ var NativeDocument = (function (exports) {
             return value;
         }
         switch (typeof value) {
-            case 'object': return LocalStorage.getJson(key) ?? value;
-            case 'boolean': return LocalStorage.getBool(key) ?? value;
-            case 'number': return LocalStorage.getNumber(key) ?? value;
-            default: return LocalStorage.get(key, value) ?? value;
+        case 'object': return LocalStorage.getJson(key) ?? value;
+        case 'boolean': return LocalStorage.getBool(key) ?? value;
+        case 'number': return LocalStorage.getNumber(key) ?? value;
+        default: return LocalStorage.get(key, value) ?? value;
         }
     };
 
     const $saveToStorage = (value) => {
         switch (typeof value) {
-            case 'object': return LocalStorage.setJson;
-            case 'boolean': return LocalStorage.setBool;
-            default: return LocalStorage.set;
+        case 'object': return LocalStorage.setJson;
+        case 'boolean': return LocalStorage.setBool;
+        default: return LocalStorage.set;
         }
     };
 
     /**
+     * Reactive primitive value container.
+     * Notifies subscribers whenever its value changes.
+     * The core building block of NativeDocument's reactivity system.
      *
-     * @param {*} value
-     * @param {{ propagation: boolean, reset: boolean} | null} configs
-     * @class ObservableItem
+     * @constructor
+     * @param {*} value - Initial value of the observable
+     * @param {{ propagation?: boolean, reset?: boolean, deep?: boolean } | null} [configs=null] - Optional configuration
+     * @param {boolean} [configs.reset] - If true, stores the initial value for later reset via .reset()
+     * @param {boolean} [configs.propagation] - Controls whether changes propagate to parent observables
+     * @example
+     * const count = new ObservableItem(0);
+     * const name  = new ObservableItem('John', { reset: true });
      */
     function ObservableItem(value, configs = null) {
         value = Validator.isObservable(value) ? value.val() : value;
@@ -587,15 +660,34 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
+    /**
+     * Intercepts mutations of the array observable before they are applied.
+     * Allows transforming or cancelling array operations.
+     *
+     * @param {(operation: { action: string, args: any[] }) => void} callback - Called before each mutation with the operation details
+     * @returns {ObservableItem} this
+     */
     ObservableItem.prototype.interceptMutations = function(callback) {
         this.$mutationInterceptor = callback;
         return this;
     };
 
+    /**
+     * Calls the first registered subscriber directly (internal optimisation).
+     *
+     * @internal
+     * @param {{ action?: string, args?: any[], result?: any }} [operations] - Mutation metadata
+     */
     ObservableItem.prototype.triggerFirstListener = function(operations) {
         this.$firstListener(this.$currentValue, this.$previousValue, operations);
     };
 
+    /**
+     * Calls all registered subscribers (internal).
+     *
+     * @internal
+     * @param {{ action?: string, args?: any[], result?: any }} [operations] - Mutation metadata
+     */
     ObservableItem.prototype.triggerListeners = function(operations) {
         const $listeners = this.$listeners;
         const $previousValue = this.$previousValue;
@@ -606,6 +698,12 @@ var NativeDocument = (function (exports) {
         }
     };
 
+    /**
+     * Triggers callbacks registered via .on() for the current and previous values (internal).
+     *
+     * @internal
+     * @param {{ action?: string, args?: any[], result?: any }} [operations] - Mutation metadata
+     */
     ObservableItem.prototype.triggerWatchers = function(operations) {
         const $watchers = this.$watchers;
         const $previousValue = this.$previousValue;
@@ -621,16 +719,35 @@ var NativeDocument = (function (exports) {
         }
     };
 
+    /**
+     * Triggers both watchers and all subscribers (internal).
+     *
+     * @internal
+     * @param {{ action?: string, args?: any[], result?: any }} [operations] - Mutation metadata
+     */
     ObservableItem.prototype.triggerAll = function(operations) {
         this.triggerWatchers(operations);
         this.triggerListeners(operations);
     };
 
+    /**
+     * Triggers both watchers and the first subscriber only (internal optimization).
+     *
+     * @internal
+     * @param {{ action?: string, args?: any[], result?: any }} [operations] - Mutation metadata
+     */
     ObservableItem.prototype.triggerWatchersAndFirstListener = function(operations) {
         this.triggerWatchers(operations);
         this.triggerFirstListener(operations);
     };
 
+    /**
+     * Selects and assigns the optimal trigger strategy based on the current
+     * combination of listeners and watchers (internal).
+     * Called automatically after every subscribe / unsubscribe / on / off.
+     *
+     * @internal
+     */
     ObservableItem.prototype.assocTrigger = function() {
         this.$firstListener = null;
         if(this.$watchers?.size && this.$listeners?.length) {
@@ -695,16 +812,30 @@ var NativeDocument = (function (exports) {
      * @param {*} data
      */
     ObservableItem.prototype.$basicSet = function(data) {
-        let newValue = (typeof data === 'function') ? data(this.$currentValue) : data;
+        const newValue = (typeof data === 'function') ? data(this.$currentValue) : data;
         this.$updateWithNewValue(newValue);
     };
 
     ObservableItem.prototype.set = ObservableItem.prototype.$basicSet;
 
+    /**
+     * Returns the current value of the observable.
+     *
+     * @returns {*} The current value
+     * @example
+     * const count = Observable(42);
+     * count.val(); // 42
+     */
     ObservableItem.prototype.val = function() {
         return this.$currentValue;
     };
 
+    /**
+     * Disconnects all listeners and watchers and nullifies internal state.
+     * Does not trigger cleanup callbacks. Prefer .cleanup() for full disposal.
+     *
+     * @returns {void}
+     */
     ObservableItem.prototype.disconnectAll = function() {
         this.$previousValue = null;
         this.$currentValue = null;
@@ -728,6 +859,16 @@ var NativeDocument = (function (exports) {
         this.$cleanupListeners.push(callback);
     };
 
+    /**
+     * Disposes the observable: runs cleanup callbacks, unregisters from MemoryManager,
+     * disconnects all listeners and removes the $value property.
+     *
+     * @returns {void}
+     * @example
+     * const obs = Observable(0);
+     * obs.onCleanup(() => console.log('disposed'));
+     * obs.cleanup(); // logs 'disposed', frees memory
+     */
     ObservableItem.prototype.cleanup = function() {
         if (this.$cleanupListeners) {
             for (let i = 0; i < this.$cleanupListeners.length; i++) {
@@ -743,10 +884,16 @@ var NativeDocument = (function (exports) {
         delete this.$value;
     };
 
+
     /**
+     * Subscribes to value changes. The callback is called every time the value changes.
+     * Returns nothing — use .unsubscribe(callback) to remove the listener.
      *
-     * @param {Function} callback
-     * @returns {(function(): void)}
+     * @param {(current: *, previous: *, operations?: { action?: string }) => void} callback - Called on each value change
+     * @example
+     * const count = Observable(0);
+     * count.subscribe((val) => console.log('New value:', val));
+     * count.$value++; // logs 'New value: 1'
      */
     ObservableItem.prototype.subscribe = function(callback) {
         {
@@ -862,9 +1009,16 @@ var NativeDocument = (function (exports) {
         this.subscribe(handler);
     };
 
+
     /**
-     * Unsubscribe from an observable.
-     * @param {Function} callback
+     * Removes a previously registered subscriber.
+     *
+     * @param {Function} callback - The exact function reference passed to .subscribe()
+     * @returns {void}
+     * @example
+     * const handler = (val) => console.log(val);
+     * count.subscribe(handler);
+     * count.unsubscribe(handler);
      */
     ObservableItem.prototype.unsubscribe = function(callback) {
         if(!this.$listeners) return;
@@ -983,8 +1137,22 @@ var NativeDocument = (function (exports) {
         return this.$currentValue;
     };
 
-
-
+    /**
+     * Syncs this observable's value to localStorage and restores it on load.
+     * Optionally transforms values on get and set.
+     *
+     * @param {string} key - localStorage key
+     * @param {{ get?: (stored: any) => T, set?: (value: T) => any }} [options={}] - Transform options
+     * @param {Function} [options.get] - Transform the stored value before applying it
+     * @param {Function} [options.set] - Transform the value before saving it
+     * @returns {ObservableItem} this — chainable
+     * @example
+     * const theme = Observable('light').persist('app-theme');
+     * const count = Observable(0).persist('count', {
+     *   get: (v) => parseInt(v),
+     *   set: (v) => String(v),
+     * });
+     */
     ObservableItem.prototype.persist = function(key, options = {}) {
         let value = $getFromStorage(key, this.$currentValue);
         if(options.get) {
@@ -998,6 +1166,17 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
+    /**
+     * Creates a new ObservableItem with a deep clone of the current value.
+     * For objects implementing a .clone() method, delegates to that method.
+     *
+     * @returns {ObservableItem} A new independent observable with the cloned value
+     * @example
+     * const original = Observable({ x: 1 });
+     * const copy = original.clone();
+     * copy.set({ x: 99 });
+     * original.val(); // { x: 1 } — untouched
+     */
     ObservableItem.prototype.clone = function() {
         let clonedValue = this.$currentValue;
 
@@ -1012,11 +1191,24 @@ var NativeDocument = (function (exports) {
         return new ObservableItem(clonedValue);
     };
 
+    /**
+     * Converts a value to a Date object. Returns the value as-is if it's already a Date.
+     *
+     * @param {Date|number|string} value - Value to convert
+     * @returns {Date}
+     */
     function toDate(value) {
         if (value instanceof Date) return value;
         return new Date(value);
     }
 
+    /**
+     * Returns true if two date values fall on the same calendar day (year, month, day).
+     *
+     * @param {Date|number|string} date1 - First date
+     * @param {Date|number|string} date2 - Second date
+     * @returns {boolean}
+     */
     function isSameDay(date1, date2) {
         const d1 = toDate(date1);
         const d2 = toDate(date2);
@@ -1025,72 +1217,165 @@ var NativeDocument = (function (exports) {
             d1.getDate() === d2.getDate();
     }
 
+    /**
+     * Returns the total number of seconds elapsed since midnight for the given date's time component.
+     * Used internally for time range comparisons.
+     *
+     * @param {Date|number|string} date - Date value to extract time from
+     * @returns {number} Seconds since midnight (0–86399)
+     */
     function getSecondsOfDay(date) {
         const d = toDate(date);
         return (d.getHours() * 3600) + (d.getMinutes() * 60) + d.getSeconds();
     }
 
+    /**
+     * Creates a FilterResult from a single observable or static value and a comparison callback.
+     * If the value is an observable, it is registered as a dependency so the filter reacts to changes.
+     *
+     * @param {*|ObservableItem} observableOrValue - Observable or static value used as the comparison target
+     * @param {(value: *, target: *) => boolean} callbackFn - Filter function receiving (item value, target value)
+     * @returns {{ dependencies: ObservableItem|null, callback: (value: *) => boolean }} FilterResult
+     */
     function createFilter(observableOrValue, callbackFn){
         const isObservable = Validator.isObservable(observableOrValue);
 
         return {
             dependencies: isObservable ? observableOrValue : null,
-            callback: (value) => callbackFn(value, isObservable ? observableOrValue.val() : observableOrValue)
+            callback: (value) => callbackFn(value, isObservable ? observableOrValue.val() : observableOrValue),
         };
     }
 
+    /**
+     * Creates a FilterResult from multiple observable or static sources and a multi-value comparison callback.
+     * All observable sources are registered as dependencies.
+     *
+     * @param {Array<*|ObservableItem>} sources - Array of observables or static values
+     * @param {(value: *, targets: any[]) => boolean} callbackFn - Filter function receiving (item value, array of resolved source values)
+     * @returns {{ dependencies: ObservableItem[]|null, callback: (value: *) => boolean }} FilterResult
+     */
     function createMultiSourceFilter(sources, callbackFn){
         const observables = sources.filter(Validator.isObservable);
 
         const getValues = () => sources.map(src =>
-            Validator.isObservable(src) ? src.val() : src
+            Validator.isObservable(src) ? src.val() : src,
         );
 
         return {
             dependencies: observables.length > 0 ? observables : null,
-            callback: (value) => callbackFn(value, getValues())
+            callback: (value) => callbackFn(value, getValues()),
         };
     }
 
+    /**
+     * Creates a filter that passes values strictly equal to the target.
+     *
+     * @param {*|ObservableItem} observableOrValue - Static value or observable to compare against
+     * @returns {FilterResult}
+     * @example
+     * const statusFilter = equals('active');
+     * users.where({ status: statusFilter });
+     */
     function equals(observableOrValue){
         return createFilter(observableOrValue, (value, target) => value === target);
     }
 
+    /**
+     * Creates a filter that passes values not strictly equal to the target.
+     *
+     * @param {*|ObservableItem} observableOrValue - Static value or observable
+     * @returns {FilterResult}
+     */
     function notEquals(observableOrValue){
         return createFilter(observableOrValue, (value, target) => value !== target);
     }
 
+    /**
+     * Creates a filter that passes values greater than the target.
+     *
+     * @param {number|ObservableItem<number>} observableOrValue - Threshold value or observable
+     * @returns {FilterResult}
+     */
     function greaterThan(observableOrValue){
         return createFilter(observableOrValue, (value, target) => value > target);
     }
 
+    /**
+     * Creates a filter that passes values greater than or equal to the target.
+     *
+     * @param {number|ObservableItem<number>} observableOrValue - Threshold value or observable
+     * @returns {FilterResult}
+     */
     function greaterThanOrEqual(observableOrValue){
         return createFilter(observableOrValue, (value, target) => value >= target);
     }
 
+    /**
+     * Creates a filter that passes values less than the target.
+     *
+     * @param {number|ObservableItem<number>} observableOrValue - Threshold value or observable
+     * @returns {FilterResult}
+     */
     function lessThan(observableOrValue){
         return createFilter(observableOrValue, (value, target) => value < target);
     }
 
+    /**
+     * Creates a filter that passes values less than or equal to the target.
+     *
+     * @param {number|ObservableItem<number>} observableOrValue - Threshold value or observable
+     * @returns {FilterResult}
+     */
     function lessThanOrEqual(observableOrValue){
         return createFilter(observableOrValue, (value, target) => value <= target);
     }
 
+    /**
+     * Creates a filter that passes values between min and max (inclusive).
+     * Both min and max can be static values or observables.
+     *
+     * @param {number|ObservableItem<number>} minObservableOrValue - Lower bound
+     * @param {number|ObservableItem<number>} maxObservableOrValue - Upper bound
+     * @returns {FilterResult}
+     * @example
+     * items.where({ age: between(18, 65) });
+     */
     function between(minObservableOrValue, maxObservableOrValue){
         return createMultiSourceFilter(
             [minObservableOrValue, maxObservableOrValue],
-            (value, [min, max]) => value >= min && value <= max
+            (value, [min, max]) => value >= min && value <= max,
         );
     }
 
+    /**
+     * Creates a filter that passes values included in the given array.
+     *
+     * @param {Array|ObservableItem<Array>} observableOrArray - Array to check membership in
+     * @returns {FilterResult}
+     * @example
+     * items.where({ role: inArray(['admin', 'editor']) });
+     */
     function inArray(observableOrArray){
         return createFilter(observableOrArray, (value, arr) => arr.includes(value));
     }
 
+    /**
+     * Creates a filter that passes values not included in the given array.
+     *
+     * @param {Array|ObservableItem<Array>} observableOrArray - Array to check exclusion from
+     * @returns {FilterResult}
+     */
     function notIn(observableOrArray){
         return createFilter(observableOrArray, (value, arr) => !arr.includes(value));
     }
 
+    /**
+     * Creates a filter that passes when the value is empty (null, undefined, empty string, or empty array).
+     * Pass false as the argument to filter for non-empty values instead.
+     *
+     * @param {boolean|ObservableItem<boolean>} [observableOrValue=true] - If true, filters empty values; if false, filters non-empty
+     * @returns {FilterResult}
+     */
     function isEmpty(observableOrValue = true){
         return createFilter(observableOrValue, (value, shouldBeEmpty) => {
             const isActuallyEmpty = !value || value === '' ||
@@ -1100,6 +1385,13 @@ var NativeDocument = (function (exports) {
         });
     }
 
+    /**
+     * Creates a filter that passes when the value is not empty.
+     * Pass false as the argument to filter for empty values instead.
+     *
+     * @param {boolean|ObservableItem<boolean>} [observableOrValue=true] - If true, filters non-empty values
+     * @returns {FilterResult}
+     */
     function isNotEmpty(observableOrValue = true){
         return createFilter(observableOrValue, (value, shouldBeNotEmpty) => {
             const isActuallyNotEmpty = !!value && value !== '' &&
@@ -1109,6 +1401,18 @@ var NativeDocument = (function (exports) {
         });
     }
 
+    /**
+     * Creates a filter that tests the value against a pattern (string or regex).
+     *
+     * @param {string|RegExp|ObservableItem} patternObservableOrValue - Pattern to match against
+     * @param {boolean|ObservableItem<boolean>} [asRegexObservableOrValue=true] - If true, treat pattern as a regex; if false, use case-insensitive substring match
+     * @param {string|ObservableItem<string>} [flagsObservableOrValue=''] - Regex flags (e.g. 'i', 'g')
+     * @returns {FilterResult}
+     * @example
+     * const search = Observable('john');
+     * users.where({ name: match(search) }); // regex match, reactive
+     * users.where({ name: match('john', false) }); // case-insensitive substring
+     */
     function match(patternObservableOrValue, asRegexObservableOrValue = true, flagsObservableOrValue = ''){
         return createMultiSourceFilter(
             [patternObservableOrValue, asRegexObservableOrValue, flagsObservableOrValue],
@@ -1129,10 +1433,19 @@ var NativeDocument = (function (exports) {
                     return String(value).toLowerCase().includes(String(pattern).toLowerCase());
                 }
                 return String(value).includes(String(pattern));
-            }
+            },
         );
     }
 
+    /**
+     * Combines multiple filters with AND logic — all filters must pass.
+     * Merges dependencies from all child filters automatically.
+     *
+     * @param {...FilterResult} filters - Filters to combine
+     * @returns {FilterResult}
+     * @example
+     * items.where({ _: and(greaterThan(18), lessThan(65)) });
+     */
     function and(...filters){
         const dependencies = filters
             .flatMap(f => f.dependencies ? (Array.isArray(f.dependencies) ? f.dependencies : [f.dependencies]) : [])
@@ -1140,10 +1453,19 @@ var NativeDocument = (function (exports) {
 
         return {
             dependencies: dependencies.length > 0 ? dependencies : null,
-            callback: (value) => filters.every(f => f.callback(value))
+            callback: (value) => filters.every(f => f.callback(value)),
         };
     }
 
+    /**
+     * Combines multiple filters with OR logic — at least one filter must pass.
+     * Merges dependencies from all child filters automatically.
+     *
+     * @param {...FilterResult} filters - Filters to combine
+     * @returns {FilterResult}
+     * @example
+     * items.where({ _: or(equals('admin'), equals('editor')) });
+     */
     function or(...filters){
         const dependencies = filters
             .flatMap(f => f.dependencies ? (Array.isArray(f.dependencies) ? f.dependencies : [f.dependencies]) : [])
@@ -1151,17 +1473,36 @@ var NativeDocument = (function (exports) {
 
         return {
             dependencies: dependencies.length > 0 ? dependencies : null,
-            callback: (value) => filters.some(f => f.callback(value))
+            callback: (value) => filters.some(f => f.callback(value)),
         };
     }
 
+    /**
+     * Negates a filter — passes when the given filter does not pass.
+     *
+     * @param {FilterResult} filter - Filter to negate
+     * @returns {FilterResult}
+     * @example
+     * items.where({ status: not(equals('deleted')) });
+     */
     function not(filter){
         return {
             dependencies: filter.dependencies,
-            callback: (value) => !filter.callback(value)
+            callback: (value) => !filter.callback(value),
         };
     }
 
+    /**
+     * Creates a custom filter from a callback and a list of observable dependencies.
+     * The callback receives the item value followed by the current values of all observables.
+     *
+     * @param {(value: *, ...depValues: any[]) => boolean} callbackFn - Filter function
+     * @param {...ObservableItem} observables - Observable dependencies passed as extra arguments to callback
+     * @returns {FilterResult}
+     * @example
+     * const minAge = Observable(18);
+     * items.where({ age: custom((age, min) => age >= min, minAge) });
+     */
     function custom(callbackFn, ...observables){
         const dependencies = observables.filter(Validator.isObservable);
 
@@ -1169,10 +1510,10 @@ var NativeDocument = (function (exports) {
             dependencies: dependencies.length > 0 ? dependencies : null,
             callback: (value) => {
                 const values = observables.map(o =>
-                    Validator.isObservable(o) ? o.val() : o
+                    Validator.isObservable(o) ? o.val() : o,
                 );
                 return callbackFn(value, ...values);
-            }
+            },
         };
     }
 
@@ -1185,6 +1526,16 @@ var NativeDocument = (function (exports) {
     const all = and;
     const any = or;
 
+    /**
+     * Creates a filter that passes when the date value is on the same day as the target date.
+     * Accepts Date objects, timestamps, or ISO strings.
+     *
+     * @param {Date|number|string|ObservableItem} observableOrValue - Target date to compare against
+     * @returns {FilterResult}
+     * @example
+     * const today = new Date();
+     * events.where({ date: dateEquals(today) });
+     */
     const dateEquals = (observableOrValue) => {
         return createFilter(observableOrValue, (value, target) => {
             if (!value || !target) return false;
@@ -1192,6 +1543,12 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    /**
+     * Creates a filter that passes when the date value is strictly before the target date (day comparison).
+     *
+     * @param {Date|number|string|ObservableItem} observableOrValue - Target date
+     * @returns {FilterResult}
+     */
     const dateBefore = (observableOrValue) => {
         return createFilter(observableOrValue, (value, target) => {
             if (!value || !target) return false;
@@ -1199,6 +1556,12 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    /**
+     * Creates a filter that passes when the date value is strictly after the target date (day comparison).
+     *
+     * @param {Date|number|string|ObservableItem} observableOrValue - Target date
+     * @returns {FilterResult}
+     */
     const dateAfter = (observableOrValue) => {
         return createFilter(observableOrValue, (value, target) => {
             if (!value || !target) return false;
@@ -1206,6 +1569,15 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    /**
+     * Creates a filter that passes when the date value falls within the given date range (inclusive, day comparison).
+     *
+     * @param {Date|number|string|ObservableItem} startObservableOrValue - Start of the range
+     * @param {Date|number|string|ObservableItem} endObservableOrValue - End of the range
+     * @returns {FilterResult}
+     * @example
+     * events.where({ date: dateBetween(startDate, endDate) });
+     */
     const dateBetween = (startObservableOrValue, endObservableOrValue) => {
         return createMultiSourceFilter(
             [startObservableOrValue, endObservableOrValue],
@@ -1213,10 +1585,16 @@ var NativeDocument = (function (exports) {
                 if (!value || !start || !end) return false;
                 const date = toDate(value);
                 return date >= toDate(start) && date <= toDate(end);
-            }
+            },
         );
     };
 
+    /**
+     * Creates a filter that passes when the time component (HH:MM:SS) equals the target time.
+     *
+     * @param {Date|number|string|ObservableItem} observableOrValue - Target time
+     * @returns {FilterResult}
+     */
     const timeEquals = (observableOrValue) => {
         return createFilter(observableOrValue, (value, target) => {
             if (!value || !target) return false;
@@ -1228,6 +1606,12 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    /**
+     * Creates a filter that passes when the time component is strictly after the target time.
+     *
+     * @param {Date|number|string|ObservableItem} observableOrValue - Target time
+     * @returns {FilterResult}
+     */
     const timeAfter = (observableOrValue) => {
         return createFilter(observableOrValue, (value, target) => {
             if (!value || !target) return false;
@@ -1235,6 +1619,12 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    /**
+     * Creates a filter that passes when the time component is strictly before the target time.
+     *
+     * @param {Date|number|string|ObservableItem} observableOrValue - Target time
+     * @returns {FilterResult}
+     */
     const timeBefore = (observableOrValue) => {
         return createFilter(observableOrValue, (value, target) => {
             if (!value || !target) return false;
@@ -1242,16 +1632,29 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    /**
+     * Creates a filter that passes when the time component falls within the given time range (inclusive).
+     *
+     * @param {Date|number|string|ObservableItem} startObservableOrValue - Start time
+     * @param {Date|number|string|ObservableItem} endObservableOrValue - End time
+     * @returns {FilterResult}
+     */
     const timeBetween = (startObservableOrValue, endObservableOrValue) => {
         return createMultiSourceFilter([startObservableOrValue, endObservableOrValue],
             (value, [start, end]) => {
                 if (!value || !start || !end) return false;
                 const date = getSecondsOfDay(value);
                 return date >= getSecondsOfDay(start) && date <= getSecondsOfDay(end);
-            }
+            },
         );
     };
 
+    /**
+     * Creates a filter that passes when the full datetime (date + time) equals the target exactly.
+     *
+     * @param {Date|number|string|ObservableItem} observableOrValue - Target datetime
+     * @returns {FilterResult}
+     */
     const dateTimeEquals = (observableOrValue) => {
         return createFilter(observableOrValue, (value, target) => {
             if (!value || !target) return false;
@@ -1259,6 +1662,12 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    /**
+     * Creates a filter that passes when the full datetime is strictly after the target.
+     *
+     * @param {Date|number|string|ObservableItem} observableOrValue - Target datetime
+     * @returns {FilterResult}
+     */
     const dateTimeAfter = (observableOrValue) => {
         return createFilter(observableOrValue, (value, target) => {
             if (!value || !target) return false;
@@ -1266,6 +1675,12 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    /**
+     * Creates a filter that passes when the full datetime is strictly before the target.
+     *
+     * @param {Date|number|string|ObservableItem} observableOrValue - Target datetime
+     * @returns {FilterResult}
+     */
     const dateTimeBefore = (observableOrValue) => {
         return createFilter(observableOrValue, (value, target) => {
             if (!value || !target) return false;
@@ -1273,6 +1688,13 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    /**
+     * Creates a filter that passes when the full datetime falls within the given range (inclusive).
+     *
+     * @param {Date|number|string|ObservableItem} startObservableOrValue - Start of the range
+     * @param {Date|number|string|ObservableItem} endObservableOrValue - End of the range
+     * @returns {FilterResult}
+     */
     const dateTimeBetween = (startObservableOrValue, endObservableOrValue) => {
         return createMultiSourceFilter([startObservableOrValue, endObservableOrValue], (value, [start, end]) => {
             if (!value || !start || !end) return false;
@@ -1281,6 +1703,19 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    /**
+     * Creates a filter that passes when the value includes the given query string.
+     * Case-insensitive by default.
+     * Alias: contains
+     *
+     * @param {string|ObservableItem<string>} observableOrValue - Substring to search for
+     * @param {boolean} [caseSensitive=false] - If true, comparison is case-sensitive
+     * @returns {FilterResult}
+     * @example
+     * const search = Observable('john');
+     * users.where({ name: includes(search) }); // reactive, case-insensitive
+     * users.where({ name: includes('John', true) }); // case-sensitive
+     */
     function includes(observableOrValue, caseSensitive = false){
         return createFilter(observableOrValue, (value, query) => {
             if (!value) return false;
@@ -1294,6 +1729,16 @@ var NativeDocument = (function (exports) {
 
     const contains = includes;
 
+    /**
+     * Creates a filter that passes when the value starts with the given query string.
+     * Case-insensitive by default.
+     *
+     * @param {string|ObservableItem<string>} observableOrValue - Prefix to search for
+     * @param {boolean} [caseSensitive=false] - If true, comparison is case-sensitive
+     * @returns {FilterResult}
+     * @example
+     * users.where({ name: startsWith('Jo') });
+     */
     function startsWith(observableOrValue, caseSensitive = false){
         return createFilter(observableOrValue, (value, query) => {
             if (!query) return true;
@@ -1304,6 +1749,16 @@ var NativeDocument = (function (exports) {
         });
     }
 
+    /**
+     * Creates a filter that passes when the value ends with the given query string.
+     * Case-insensitive by default.
+     *
+     * @param {string|ObservableItem<string>} observableOrValue - Suffix to search for
+     * @param {boolean} [caseSensitive=false] - If true, comparison is case-sensitive
+     * @returns {FilterResult}
+     * @example
+     * files.where({ name: endsWith('.js') });
+     */
     function endsWith(observableOrValue, caseSensitive = false){
         return createFilter(observableOrValue, (value, query) => {
             if (!query) return true;
@@ -1367,10 +1822,18 @@ var NativeDocument = (function (exports) {
     const noMutationMethods = ['map', 'forEach', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex', 'concat', 'includes', 'indexOf'];
 
     /**
+     * Reactive array container extending ObservableItem.
+     * Wraps a native array and triggers reactivity on mutations (push, pop, splice, etc.).
+     * Use Observable.array() rather than instantiating directly.
      *
-     * @param target
-     * @param {{propagation: boolean, deep: boolean, reset: boolean}|null} configs
      * @constructor
+     * @param {Array} target - Initial array value
+     * @param {{ propagation?: boolean, deep?: boolean, reset?: boolean }|null} [configs=null] - Configuration
+     * @param {boolean} [configs.deep] - If false, nested arrays are not wrapped in ObservableArray
+     * @param {boolean} [configs.reset] - If true, stores initial value for .reset()
+     * @example
+     * const items = Observable.array([1, 2, 3]);
+     * items.push(4); // triggers reactivity
      */
     const ObservableArray = function (target, configs = null) {
         if(!Array.isArray(target)) {
@@ -1391,7 +1854,7 @@ var NativeDocument = (function (exports) {
     Object.defineProperty(ObservableArray.prototype, 'length', {
         get() {
             return this.$currentValue.length;
-        }
+        },
     });
 
 
@@ -1411,7 +1874,7 @@ var NativeDocument = (function (exports) {
                 const result = this.$currentValue[method].apply(this.$currentValue, argsToUse);
                 this.trigger({ action: method, args: argsToUse, result });
                 return result;
-            })
+            });
         };
     });
 
@@ -1524,6 +1987,17 @@ var NativeDocument = (function (exports) {
         return true;
     };
 
+    /**
+     * Swaps two items by reference (not by index).
+     * Finds indices of both items and delegates to .swap().
+     *
+     * @param {*} itemA - First item (by reference)
+     * @param {*} itemB - Second item (by reference)
+     * @returns {boolean} True if swap was successful
+     * @example
+     * const items = Observable.array(['a', 'b', 'c']);
+     * items.swapItems('a', 'c'); // ['c', 'b', 'a']
+     */
     ObservableArray.prototype.swapItems = function(itemA, itemB) {
         const indexA = this.$currentValue.indexOf(itemA);
         const indexB = this.$currentValue.indexOf(itemB);
@@ -1531,6 +2005,16 @@ var NativeDocument = (function (exports) {
         return this.swap(indexA, indexB);
     };
 
+    /**
+     * Inserts an item immediately after the target item in the array.
+     *
+     * @param {*} data - Item to insert
+     * @param {*} target - Existing item after which data is inserted
+     * @returns {Array} Result of the underlying splice call
+     * @example
+     * const items = Observable.array(['a', 'c']);
+     * items.insertAfter('b', 'a'); // ['a', 'b', 'c']
+     */
     ObservableArray.prototype.insertAfter = function(data, target) {
         const targetIndex = this.$currentValue.indexOf(target);
         return this.splice(targetIndex + 1, 0, data);
@@ -1574,24 +2058,28 @@ var NativeDocument = (function (exports) {
         return this.remove(indexOfItem);
     };
 
+
     /**
-     * Checks if the array is empty.
+     * Checks if the array has no elements.
+     * Semantic alias for length === 0. Different from .clear() which empties the array.
      *
-     * @returns {boolean} True if array has no elements
+     * @returns {boolean} True if the array contains no elements
      * @example
      * const items = Observable.array([]);
-     * items.isEmpty(); // true
+     * items.empty(); // true
      */
     ObservableArray.prototype.empty = function() {
         return this.$currentValue.length === 0;
     };
 
+
     /**
-     * Triggers a populate operation with the current array, iteration count, and callback.
-     * Used internally for rendering optimizations.
+     * Triggers a 'populate' operation used internally by ForEachArray for batch rendering.
+     * Not intended for direct use in application code.
      *
-     * @param {number} iteration - Iteration count for rendering
-     * @param {Function} callback - Callback function for rendering items
+     * @internal
+     * @param {number} iteration - Number of items to render
+     * @param {Function} callback - Render callback for each item
      */
     ObservableArray.prototype.populateAndRender = function(iteration, callback) {
         this.trigger({ action: 'populate', args: [this.$currentValue, iteration, callback] });
@@ -1681,8 +2169,8 @@ var NativeDocument = (function (exports) {
         return this.where({
             _: {
                 dependencies: filter.dependencies,
-                callback: (item) => fields.some(field => filter.callback(item[field]))
-            }
+                callback: (item) => fields.some(field => filter.callback(item[field])),
+            },
         });
     };
 
@@ -1704,11 +2192,23 @@ var NativeDocument = (function (exports) {
         return this.where({
             _: {
                 dependencies: filter.dependencies,
-                callback: (item) => fields.every(field => filter.callback(item[field]))
-            }
+                callback: (item) => fields.every(field => filter.callback(item[field])),
+            },
         });
     };
 
+    /**
+     * Subscribes deeply to all observable items within the array.
+     * Automatically binds and unbinds listeners as items are added or removed.
+     * Returns an unsubscribe function.
+     *
+     * @param {(value: Array) => void} callback - Called whenever any nested observable changes
+     * @returns {() => void} Unsubscribe function
+     * @example
+     * const users = Observable.array([Observable({ name: 'John' })]);
+     * const unsub = users.deepSubscribe((items) => console.log('changed', items));
+     * unsub(); // stop listening
+     */
     ObservableArray.prototype.deepSubscribe = function(callback) {
         const updatedValue = nextTick(() => callback(this.val()));
         const $listeners = new WeakMap();
@@ -1740,29 +2240,29 @@ var NativeDocument = (function (exports) {
 
         this.subscribe((items, _, operations) => {
             switch (operations?.action) {
-                case 'push':
-                case 'unshift':
-                    operations.args.forEach(bindItem);
-                    break;
+            case 'push':
+            case 'unshift':
+                operations.args.forEach(bindItem);
+                break;
 
-                case 'splice': {
-                    const [start, deleteCount, ...newItems] = operations.args;
-                    operations.result?.forEach(unbindItem);
-                    newItems.forEach(bindItem);
-                    break;
-                }
+            case 'splice': {
+                const [start, deleteCount, ...newItems] = operations.args;
+                operations.result?.forEach(unbindItem);
+                newItems.forEach(bindItem);
+                break;
+            }
 
-                case 'remove':
-                    unbindItem(operations.result);
-                    break;
+            case 'remove':
+                unbindItem(operations.result);
+                break;
 
-                case 'merge':
-                    operations.args.forEach(bindItem);
-                    break;
+            case 'merge':
+                operations.args.forEach(bindItem);
+                break;
 
-                case 'clear':
-                    this.$currentValue.forEach(unbindItem);
-                    break;
+            case 'clear':
+                this.$currentValue.forEach(unbindItem);
+                break;
             }
         });
 
@@ -1771,7 +2271,19 @@ var NativeDocument = (function (exports) {
         };
     };
 
-
+    /**
+     * Keeps this array in sync with another ObservableArray.
+     * All mutations are mirrored to the target array in real time.
+     *
+     * @param {ObservableArray} targetObservable - The array to sync into
+     * @returns {() => void} Unsubscribe function to stop syncing
+     * @example
+     * const source = Observable.array([1, 2, 3]);
+     * const target = Observable.array([]);
+     * const unsync = source.sync(target);
+     * source.push(4); // target is now [1, 2, 3, 4]
+     * unsync();
+     */
     ObservableArray.prototype.sync = function(targetObservable) {
         if (!targetObservable || !targetObservable.__$isObservableArray) {
             throw new NativeDocumentError('ObservableArray.sync : target must be an ObservableArray');
@@ -1793,14 +2305,42 @@ var NativeDocument = (function (exports) {
         return () => this.unsubscribe(sync);
     };
 
+    /**
+     * Creates a new ObservableArray with a shallow clone of the current array.
+     *
+     * @returns {ObservableArray} New independent ObservableArray with same items
+     */
     ObservableArray.prototype.clone = function() {
         return new ObservableArray(this.resolve());
     };
 
+    /**
+     * Returns a derived ObservableChecker that emits true when the array has at least one item.
+     *
+     * @returns {ObservableChecker<boolean>}
+     * @example
+     * const items = Observable.array([]);
+     * items.isNotEmpty().val(); // false
+     * items.push(1);
+     * items.isNotEmpty().val(); // true
+     */
     ObservableArray.prototype.isNotEmpty = function () {
         return this.is((x) => x.length > 0);
     };
 
+    /**
+     * Reactive object container extending ObservableItem.
+     * Each property of the target object becomes an individual ObservableItem (or ObservableArray/ObservableObject for nested structures).
+     * Use Observable.object() or Observable.init() rather than instantiating directly.
+     *
+     * @constructor
+     * @param {Record<string, *>} target - Plain object to make reactive
+     * @param {{ deep?: boolean, reset?: boolean, propagation?: boolean }|null} [configs] - Configuration
+     * @param {boolean} [configs.deep] - If false, nested objects and arrays are not wrapped recursively (default: true)
+     * @example
+     * const user = Observable.object({ name: 'John', age: 25 });
+     * user.name.$value = 'Jane'; // triggers reactivity on name only
+     */
     const ObservableObject = function(target, configs) {
         ObservableItem.call(this, target);
         this.$observables = {};
@@ -1812,7 +2352,7 @@ var NativeDocument = (function (exports) {
             if(!Object.hasOwn(this, name)) {
                 Object.defineProperty(this, name, {
                     get: () => this.$observables[name],
-                    set: (value) => this.$observables[name].set(value)
+                    set: (value) => this.$observables[name].set(value),
                 });
             }
         }
@@ -1827,12 +2367,19 @@ var NativeDocument = (function (exports) {
         },
         set(value) {
             this.set(value);
-        }
+        },
     });
 
     ObservableObject.prototype.__$isObservableObject = true;
     ObservableObject.prototype.__isProxy__ = true;
 
+    /**
+     * Initialises (or reinitialize) the internal observables map from a plain object.
+     * Called automatically in the constructor.
+     *
+     * @internal
+     * @param {Record<string, *>} initialValue - Object whose properties are turned into observables
+     */
     ObservableObject.prototype.$load = function(initialValue) {
         const configs = this.configs;
         for(const key in initialValue) {
@@ -1862,6 +2409,16 @@ var NativeDocument = (function (exports) {
         }
     };
 
+    /**
+     * Returns a plain snapshot of all observable values.
+     * Unwraps nested ObservableItem, ObservableArray, and ObservableObject recursively.
+     * Alias: $val()
+     *
+     * @returns {Record<string, *>} Plain object with current values
+     * @example
+     * const user = Observable.object({ name: 'John', age: 25 });
+     * user.val(); // { name: 'John', age: 25 }
+     */
     ObservableObject.prototype.val = function() {
         const result = {};
         for(const key in this.$observables) {
@@ -1890,6 +2447,16 @@ var NativeDocument = (function (exports) {
     };
     ObservableObject.prototype.$val = ObservableObject.prototype.val;
 
+    /**
+     * Returns the current value of a single property, unwrapped from its observable.
+     * Alias: $get(property)
+     *
+     * @param {string} property - Property name
+     * @returns {*} The current value of that property
+     * @example
+     * const user = Observable.object({ name: 'John' });
+     * user.get('name'); // 'John'
+     */
     ObservableObject.prototype.get = function(property) {
         const item = this.$observables[property];
         if(Validator.isObservable(item)) {
@@ -1902,6 +2469,16 @@ var NativeDocument = (function (exports) {
     };
     ObservableObject.prototype.$get = ObservableObject.prototype.get;
 
+    /**
+     * Updates one or more properties with new values.
+     * Supports partial updates — only provided keys are changed.
+     * Aliases: $set(newData), $updateWith(newData), update(newData)
+     *
+     * @param {Partial<Record<string, *>>} newData - Object with properties to update
+     * @example
+     * const user = Observable.object({ name: 'John', age: 25 });
+     * user.set({ name: 'Jane' }); // Only name changes, age stays 25
+     */
     ObservableObject.prototype.set = function(newData) {
         const data = Validator.isProxy(newData) ? newData.$value : newData;
         const configs = this.configs;
@@ -1940,25 +2517,62 @@ var NativeDocument = (function (exports) {
     ObservableObject.prototype.$set = ObservableObject.prototype.set;
     ObservableObject.prototype.$updateWith = ObservableObject.prototype.set;
 
+    /**
+     * Returns an array of all internal observable instances (one per property).
+     * Alias: $observables()
+     *
+     * @returns {ObservableItem[]} Array of observable instances
+     */
     ObservableObject.prototype.observables = function() {
         return Object.values(this.$observables);
     };
     ObservableObject.prototype.$observables = ObservableObject.prototype.observables;
 
+    /**
+     * Returns all property names of the observable object.
+     * Alias: $keys()
+     *
+     * @returns {string[]} Array of property names
+     */
     ObservableObject.prototype.keys = function() {
         return Object.keys(this.$observables);
     };
     ObservableObject.prototype.$keys = ObservableObject.prototype.keys;
+
+    /**
+     * Creates a new ObservableObject with a snapshot of the current values.
+     * Changes to the clone do not affect the original.
+     * Alias: $clone()
+     *
+     * @returns {ObservableObject} New independent ObservableObject with the same structure and values
+     */
     ObservableObject.prototype.clone = function() {
         return new ObservableObject(this.val(), this.configs);
     };
     ObservableObject.prototype.$clone = ObservableObject.prototype.clone;
+
+    /**
+     * Resets all properties to their initial values by calling .reset() on each child observable.
+     * Only works if observables were created with { reset: true }.
+     */
     ObservableObject.prototype.reset = function() {
         for(const key in this.$observables) {
             this.$observables[key].reset();
         }
     };
     ObservableObject.prototype.originalSubscribe = ObservableObject.prototype.subscribe;
+
+    /**
+     * Subscribes to changes across all nested observables.
+     * The callback is called whenever any property (or nested value) changes.
+     * Internally uses debouncing (nextTick) to batch multiple simultaneous changes.
+     *
+     * @param {(value: Record<string, *>) => void} callback - Called on any nested change
+     * @example
+     * const user = Observable.object({ name: 'John', age: 25 });
+     * user.subscribe(() => console.log('user changed:', user.val()));
+     * user.name.$value = 'Jane'; // logs 'user changed: { name: "Jane", age: 25 }'
+     */
     ObservableObject.prototype.subscribe = function(callback) {
         const observables = this.observables();
         const updatedValue = nextTick(() => this.trigger());
@@ -1969,7 +2583,7 @@ var NativeDocument = (function (exports) {
             const observable = observables[i];
             if (observable.__$isObservableArray) {
                 observable.deepSubscribe(updatedValue);
-                continue
+                continue;
             }
             observable.subscribe(updatedValue);
         }
@@ -1987,6 +2601,17 @@ var NativeDocument = (function (exports) {
     // is... -> ObservableChecker<boolean>
     //
 
+    /**
+     * Returns a derived observable that emits true when the value strictly equals the given value.
+     * Supports reactive comparison when an ObservableItem is passed.
+     *
+     * @param {*|ObservableItem} value - Static value or observable to compare against
+     * @returns {ObservableChecker<boolean>}
+     * @example
+     * const age = Observable(25);
+     * age.isEqualTo(25).val(); // true
+     * age.isEqualTo(Observable(25)).val(); // true
+     */
     ObservableItem.prototype.isEqualTo = function (value) {
         if (value?.__$Observable) {
             return $computed((a, b) => a === b, [this, value]);
@@ -1994,6 +2619,12 @@ var NativeDocument = (function (exports) {
         return $checker(this, x => x === value);
     };
 
+    /**
+     * Returns a derived observable that emits true when the value does not strictly equal the given value.
+     *
+     * @param {*|ObservableItem} value - Static value or observable to compare against
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableItem.prototype.isNotEqualTo = function (value) {
         if (value?.__$Observable) {
             return $computed((a, b) => a !== b, [this, value]);
@@ -2001,6 +2632,12 @@ var NativeDocument = (function (exports) {
         return $checker(this, x => x !== value);
     };
 
+    /**
+     * Returns a derived observable that emits true when the value is greater than the given value.
+     *
+     * @param {number|ObservableItem<number>} value - Threshold value or observable
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableItem.prototype.isGreaterThan = function (value) {
         if (value?.__$Observable) {
             return $computed((a, b) => a > b, [this, value]);
@@ -2008,6 +2645,12 @@ var NativeDocument = (function (exports) {
         return $checker(this, x => x > value);
     };
 
+    /**
+     * Returns a derived observable that emits true when the value is greater than or equal to the given value.
+     *
+     * @param {number|ObservableItem<number>} value - Threshold value or observable
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableItem.prototype.isGreaterThanOrEqualTo = function (value) {
         if (value?.__$Observable) {
             return $computed((a, b) => a >= b, [this, value]);
@@ -2015,6 +2658,12 @@ var NativeDocument = (function (exports) {
         return $checker(this, x => x >= value);
     };
 
+    /**
+     * Returns a derived observable that emits true when the value is less than the given value.
+     *
+     * @param {number|ObservableItem<number>} value - Threshold value or observable
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableItem.prototype.isLessThan = function (value) {
         if (value?.__$Observable) {
             return $computed((a, b) => a < b, [this, value]);
@@ -2022,6 +2671,12 @@ var NativeDocument = (function (exports) {
         return $checker(this, x => x < value);
     };
 
+    /**
+     * Returns a derived observable that emits true when the value is less than or equal to the given value.
+     *
+     * @param {number|ObservableItem<number>} value - Threshold value or observable
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableItem.prototype.isLessThanOrEqualTo = function (value) {
         if (value?.__$Observable) {
             return $computed((a, b) => a <= b, [this, value]);
@@ -2029,6 +2684,18 @@ var NativeDocument = (function (exports) {
         return $checker(this, x => x <= value);
     };
 
+    /**
+     * Returns a derived observable that emits true when the value is between min and max (inclusive).
+     * All combinations of static and observable min/max are supported.
+     *
+     * @param {number|ObservableItem<number>} min - Lower bound (inclusive)
+     * @param {number|ObservableItem<number>} max - Upper bound (inclusive)
+     * @returns {ObservableChecker<boolean>}
+     * @example
+     * const age = Observable(25);
+     * age.isBetween(18, 65).val(); // true
+     * age.isBetween(Observable(18), Observable(65)).val(); // true
+     */
     ObservableItem.prototype.isBetween = function (min, max) {
         if (min.__$Observable && max.__$Observable) {
             return $computed((x, a, b) => x >= a && x <= b, [this, min, max]);
@@ -2042,18 +2709,39 @@ var NativeDocument = (function (exports) {
         return $checker(this, x => x >= min && x <= max);
     };
 
+    /**
+     * Returns a derived observable that emits true when the value is null or undefined.
+     *
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableItem.prototype.isNull = function () {
         return $checker(this, x => x == null);
     };
 
+    /**
+     * Returns a derived observable that emits true when the value is truthy.
+     *
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableItem.prototype.isTruthy = function () {
         return $checker(this, x => !!x);
     };
 
+    /**
+     * Returns a derived observable that emits true when the value is falsy.
+     *
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableItem.prototype.isFalsy = function () {
         return $checker(this, x => !x);
     };
 
+    /**
+     * Returns a derived observable that emits true when the string value starts with the given string.
+     *
+     * @param {string|ObservableItem<string>} str - Prefix to check for
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableItem.prototype.isStartingWith = function (str) {
         if (str?.__$Observable) {
             return $computed((a, b) => String(a).startsWith(b), [this, str]);
@@ -2061,6 +2749,12 @@ var NativeDocument = (function (exports) {
         return $checker(this, x => String(x).startsWith(str));
     };
 
+    /**
+     * Returns a derived observable that emits true when the string value ends with the given string.
+     *
+     * @param {string|ObservableItem<string>} str - Suffix to check for
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableItem.prototype.isEndingWith = function (str) {
         if (str?.__$Observable) {
             return $computed((a, b) => String(a).endsWith(b), [this, str]);
@@ -2068,6 +2762,12 @@ var NativeDocument = (function (exports) {
         return $checker(this, x => String(x).endsWith(str));
     };
 
+    /**
+     * Returns a derived observable that emits true when the string value matches the given regex.
+     *
+     * @param {RegExp|ObservableItem<RegExp>} regex - Pattern to test against
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableItem.prototype.isMatchingPattern = function (regex) {
         if (regex?.__$Observable) {
             return $computed((a, b) => new RegExp(b).test(String(a)), [this, regex]);
@@ -2075,14 +2775,36 @@ var NativeDocument = (function (exports) {
         return $checker(this, x => regex.test(String(x)));
     };
 
+    /**
+     * Returns a derived observable that emits true when the value is empty.
+     * Empty means: null, undefined, empty string, or empty array.
+     *
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableItem.prototype.isEmpty = function () {
         return $checker(this, x => x == null || x === '' || (Array.isArray(x) && x.length === 0));
     };
 
+    /**
+     * Returns a derived observable that emits true when the value is not empty.
+     * Not empty means: not null, not undefined, not empty string, not empty array.
+     *
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableItem.prototype.isNotEmpty = function () {
         return $checker(this, x => x != null && x !== '' && !(Array.isArray(x) && x.length === 0));
     };
 
+    /**
+     * Returns a derived observable that emits true when the value includes the given value.
+     * Works for both arrays (includes check) and strings (substring check).
+     *
+     * @param {*|ObservableItem} value - Value to search for
+     * @returns {ObservableChecker<boolean>}
+     * @example
+     * Observable([1, 2, 3]).isIncludes(2).val(); // true
+     * Observable('hello world').isIncludes('world').val(); // true
+     */
     ObservableItem.prototype.isIncludes = function (value) {
         if (value?.__$Observable) {
             return $computed((a, b) => {
@@ -2096,6 +2818,16 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    /**
+     * Returns a derived observable that emits true when the value is included in the given array.
+     * Alias: isOneOf
+     *
+     * @param {Array|ObservableItem<Array>} array - Array to check membership in
+     * @returns {ObservableChecker<boolean>}
+     * @example
+     * const role = Observable('admin');
+     * role.isIncludedIn(['admin', 'editor']).val(); // true
+     */
     ObservableItem.prototype.isIncludedIn = function (array) {
         if (array?.__$Observable) {
             return $computed((a, b) => b.includes(a), [this, array]);
@@ -2105,6 +2837,15 @@ var NativeDocument = (function (exports) {
 
     ObservableItem.prototype.isOneOf = ObservableItem.prototype.isIncludedIn;
 
+    /**
+     * Returns a derived observable that emits true when the given key exists in the value object.
+     *
+     * @param {string|ObservableItem<string>} key - Property key to check for
+     * @returns {ObservableChecker<boolean>}
+     * @example
+     * const user = Observable({ name: 'John' });
+     * user.isHaving('name').val(); // true
+     */
     ObservableItem.prototype.isHaving = function (key) {
         if (key?.__$Observable) {
             return $computed((a, b) => b in Object(a), [this, key]);
@@ -2116,28 +2857,68 @@ var NativeDocument = (function (exports) {
     // to... -> ObservableChecker<any>
     //
 
+    /**
+     * Returns a derived observable that emits the string value converted to uppercase.
+     *
+     * @returns {ObservableChecker<string>}
+     */
     ObservableItem.prototype.toUpperCase = function () {
         return $checker(this, x => String(x).toUpperCase());
     };
 
+    /**
+     * Returns a derived observable that emits the string value converted to lowercase.
+     *
+     * @returns {ObservableChecker<string>}
+     */
     ObservableItem.prototype.toLowerCase = function () {
         return $checker(this, x => String(x).toLowerCase());
     };
 
+    /**
+     * Returns a derived observable that emits the string value trimmed of whitespace.
+     *
+     * @returns {ObservableChecker<string>}
+     */
     ObservableItem.prototype.toTrimmed = function () {
         return $checker(this, x => String(x).trim());
     };
 
+    /**
+     * Returns a derived observable that emits the value coerced to boolean.
+     *
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableItem.prototype.toBoolean = function () {
         return $checker(this, x => !!x);
     };
 
+    /**
+     * Returns a derived observable that emits a string with the placeholder replaced by the current value.
+     * Alias: toFormatted
+     *
+     * @param {string} template - Template string containing the placeholder
+     * @param {string} [placeholder='${v}'] - Placeholder string to replace with the value
+     * @returns {ObservableChecker<string>}
+     * @example
+     * const count = Observable(5);
+     * count.toLiteral('You have ${v} items').val(); // 'You have 5 items'
+     */
     ObservableItem.prototype.toLiteral = function (template, placeholder = '${v}') {
         return $checker(this, x => template.replace(placeholder, x));
     };
 
     ObservableItem.prototype.toFormatted = ObservableItem.prototype.toLiteral;
 
+    /**
+     * Returns a derived observable that emits a nested property value resolved via dot notation.
+     *
+     * @param {string} key - Dot-notation path to the property (e.g. 'user.address.city')
+     * @returns {ObservableChecker<*>}
+     * @example
+     * const state = Observable({ user: { name: 'John' } });
+     * state.toProperty('user.name').val(); // 'John'
+     */
     ObservableItem.prototype.toProperty = function (key) {
         const keys = key.split('.');
         return $checker(this, x => {
@@ -2150,10 +2931,27 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    /**
+     * Returns a derived observable that emits the length of the current value.
+     * Returns 0 if the value is null or undefined.
+     *
+     * @returns {ObservableChecker<number>}
+     */
     ObservableItem.prototype.toLength = function () {
         return $checker(this, x => (x == null ? 0 : x.length));
     };
 
+    /**
+     * Returns a derived observable that emits the value clamped between min and max.
+     * All combinations of static and observable min/max are supported.
+     *
+     * @param {number|ObservableItem<number>} min - Minimum bound
+     * @param {number|ObservableItem<number>} max - Maximum bound
+     * @returns {ObservableChecker<number>}
+     * @example
+     * const volume = Observable(150);
+     * volume.toClamped(0, 100).val(); // 100
+     */
     ObservableItem.prototype.toClamped = function (min, max) {
         if (min.__$Observable && max.__$Observable) {
             return $computed((x, a, b) => Math.min(Math.max(x, a), b), [this, min, max]);
@@ -2167,6 +2965,17 @@ var NativeDocument = (function (exports) {
         return $checker(this, x => Math.min(Math.max(x, min), max));
     };
 
+    /**
+     * Returns a derived observable that emits the value expressed as a percentage of total.
+     * Returns 0 if total is 0.
+     *
+     * @param {number|ObservableItem<number>} total - The total value representing 100%
+     * @returns {ObservableChecker<number>}
+     * @example
+     * const score = Observable(75);
+     * score.toPercent(100).val(); // 75
+     * score.toPercent(200).val(); // 37.5
+     */
     ObservableItem.prototype.toPercent = function (total) {
         if (total?.__$Observable) {
             return $computed((a, b) => (b === 0 ? 0 : (a / b) * 100), [this, total]);
@@ -2279,7 +3088,7 @@ var NativeDocument = (function (exports) {
             }).formatToParts(d).reduce((acc, { type, value }) => {
                 acc[type] = value;
                 return acc;
-            }, {})
+            }, {}),
         };
     };
 
@@ -2305,20 +3114,20 @@ var NativeDocument = (function (exports) {
                 currency,
                 notation,
                 minimumFractionDigits,
-                maximumFractionDigits
+                maximumFractionDigits,
             }).format(value),
 
         number: (value, locale, { notation, minimumFractionDigits, maximumFractionDigits } = {}) =>
             new Intl.NumberFormat(locale, {
                 notation,
                 minimumFractionDigits,
-                maximumFractionDigits
+                maximumFractionDigits,
             }).format(value),
 
         percent: (value, locale, { decimals = 1 } = {}) =>
             new Intl.NumberFormat(locale, {
                 style:                'percent',
-                maximumFractionDigits: decimals
+                maximumFractionDigits: decimals,
             }).format(value),
 
         date: (value, locale, { format, dateStyle = 'long' } = {}) => {
@@ -2381,13 +3190,38 @@ var NativeDocument = (function (exports) {
      * @returns {ObservableChecker}
      */
     ObservableItem.prototype.check = function(callback) {
-        return new ObservableChecker(this, callback)
+        return new ObservableChecker(this, callback);
     };
 
     ObservableItem.prototype.transform = ObservableItem.prototype.check;
+
+    /**
+     * Returns a derived observable that emits the value of a nested property.
+     * Alias for .check(value => value[property]).
+     *
+     * @param {string} property - Property name to extract
+     * @returns {ObservableChecker<*>}
+     * @example
+     * const user = Observable({ name: 'John', age: 25 });
+     * user.pluck('name').val(); // 'John'
+     */
     ObservableItem.prototype.pluck = function(property) {
         return new ObservableChecker(this, (value) => value[property]);
     };
+
+    /**
+     * Creates a derived observable using a callback or checks equality with a static value.
+     * - If callback is a function: equivalent to .check(callback)
+     * - If callback is a value: equivalent to .check(v => v === value)
+     * Alias: .select()
+     *
+     * @param {Function|*} callbackOrValue - Transform function or value to compare
+     * @returns {ObservableChecker<*>}
+     * @example
+     * const count = Observable(5);
+     * count.is(v => v > 3).val(); // true
+     * count.is(5).val(); // true
+     */
     ObservableItem.prototype.is = function(callbackOrValue) {
         if(typeof callbackOrValue === 'function') {
             return new ObservableChecker(this, callbackOrValue);
@@ -2457,7 +3291,7 @@ var NativeDocument = (function (exports) {
         {
             if (!Formatters[type]) {
                 throw new NativeDocumentError(
-                    `Observable.format : unknown type '${type}'. Available : ${Object.keys(Formatters).join(', ')}.`
+                    `Observable.format : unknown type '${type}'. Available : ${Object.keys(Formatters).join(', ')}.`,
                 );
             }
         }
@@ -2466,7 +3300,7 @@ var NativeDocument = (function (exports) {
         const localeObservable = Formatters.locale;
 
         return ObservableItem.computed(() => formatter(self.val(), localeObservable.val(), options),
-            [self, localeObservable]
+            [self, localeObservable],
         );
     };
 
@@ -2478,6 +3312,28 @@ var NativeDocument = (function (exports) {
         ERRORED:    'errored',
     };
 
+    /**
+     * Reactive async data fetcher with built-in state management.
+     * Tracks loading, ready, refreshing, and error states automatically.
+     * Use Observable.resource() rather than instantiating directly.
+     *
+     * @constructor
+     * @param {(...depValues: any[], signal?: AbortSignal) => Promise<*>} fn - Async function to fetch data. Receives dependency values as arguments. If its arity exceeds the number of dependencies, an AbortSignal is passed as the last argument.
+     * @param {ObservableItem[]} deps - Observable dependencies — resource re-fetches when any changes
+     * @param {{ auto?: boolean, lazy?: boolean, debounce?: number, into?: ObservableItem, apply?: Function }} config - Configuration
+     * @param {boolean} [config.auto=false] - If true, fetch runs automatically on creation (or when deps change)
+     * @param {boolean} [config.lazy=false] - If true with deps, does not fetch immediately — waits for first dep change
+     * @param {number} [config.debounce=0] - Debounce delay in ms for dependency-triggered re-fetches
+     * @param {ObservableItem} [config.into] - Observable to write results into instead of creating a new one
+     * @param {Function} [config.apply] - Custom function to apply the result to this.data
+     * @example
+     * const userId = Observable(1);
+     * const user = Observable.resource(
+     *   async (id, signal) => fetch(`/api/users/${id}`, { signal }).then(r => r.json()),
+     *   [userId],
+     *   { auto: true }
+     * );
+     */
     function ObservableResource(fn, deps, config) {
         this.$fn = (config.debounce > 0) ? debounce(fn, config.debounce) : fn;
         this.$dependencies = deps;
@@ -2491,7 +3347,7 @@ var NativeDocument = (function (exports) {
 
         this.loading = ObservableItem.computed(
             (state) => state === STATE.PENDING || state === STATE.REFRESHING,
-            [this.state]
+            [this.state],
         );
 
         if (config.auto) {
@@ -2598,58 +3454,138 @@ var NativeDocument = (function (exports) {
         }
     };
 
+    /**
+     * Sets a custom function to apply fetched results to this.data.
+     * Useful when the raw response needs transformation before storing.
+     *
+     * @param {(result: *, data: ObservableItem) => void} fn - Function receiving the result and the data observable
+     * @returns {this}
+     * @example
+     * resource.apply((result, data) => data.set(result.items));
+     */
     ObservableResource.prototype.apply = function(fn) {
         this.$config.apply = fn;
         return this;
     };
+
+    /**
+     * Redirects fetched results into an existing ObservableItem instead of the default internal one.
+     * Updates both this.data reference and config.into.
+     *
+     * @param {ObservableItem} $observable - Target observable to write results into
+     * @returns {this}
+     * @example
+     * const items = Observable([]);
+     * resource.into(items);
+     */
     ObservableResource.prototype.into = function($observable) {
         this.$config.into = $observable;
         this.data = $observable;
         return this;
     };
 
+    /**
+     * Triggers a fresh fetch (state transitions to 'pending').
+     * Use when no prior data exists or when a full reload is needed.
+     *
+     * @returns {this}
+     */
     ObservableResource.prototype.fetch = function() {
         this.$run(false);
         return this;
     };
 
+    /**
+     * Triggers a re-fetch (state transitions to 'refreshing' if data already exists).
+     * Use when you want to reload while keeping the previous data visible.
+     *
+     * @returns {this}
+     */
     ObservableResource.prototype.refetch = function() {
         this.$run(true);
         return this;
     };
 
+    /**
+     * Manually sets the data value and marks the state as 'ready'.
+     * Useful for optimistic updates or seeding initial data without a network call.
+     *
+     * @param {*} value - New value to set on this.data
+     * @returns {this}
+     * @example
+     * resource.mutate([...resource.data.val(), newItem]);
+     */
     ObservableResource.prototype.mutate = function(value) {
         this.data.set(value);
         this.state.set(STATE.READY);
         return this;
     };
 
+    /**
+     * Cancels any pending request, unsubscribes from all dependencies, and clears subscriptions.
+     * Call this when the component using this resource is unmounted.
+     *
+     * @returns {void}
+     */
     ObservableResource.prototype.destroy = function() {
         this.$abort();
         this.$subscriptions.forEach(unsub => unsub());
         this.$subscriptions = [];
     };
 
+    /**
+     * Returns a derived observable that emits true when the state is 'ready'.
+     *
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableResource.prototype.isReady = function() {
         return this.state.isEqualTo(STATE.READY);
     };
 
+    /**
+     * Returns a derived observable that emits true when the state is 'pending' (initial load).
+     *
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableResource.prototype.isPending = function() {
         return this.state.isEqualTo(STATE.PENDING);
     };
 
+    /**
+     * Returns a derived observable that emits true when the state is 'refreshing' (reload with existing data).
+     *
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableResource.prototype.isRefreshing = function() {
         return this.state.isEqualTo(STATE.REFRESHING);
     };
 
+    /**
+     * Returns a derived observable that emits true when the state is 'errored'.
+     *
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableResource.prototype.isErrored = function() {
         return this.state.isEqualTo(STATE.ERRORED);
     };
 
+    /**
+     * Returns a derived observable that emits true when no fetch has been triggered yet.
+     *
+     * @returns {ObservableChecker<boolean>}
+     */
     ObservableResource.prototype.isUnresolved = function() {
         return this.state.isEqualTo(STATE.UNRESOLVED);
     };
 
+    /**
+     * Registers a callback that is called every time a fetch completes successfully.
+     *
+     * @param {(value: *) => void} callback - Called with the fetched data value
+     * @returns {this}
+     * @example
+     * resource.onSuccess((data) => console.log('Loaded:', data));
+     */
     ObservableResource.prototype.onSuccess = function(callback) {
         this.data.subscribe((value) => {
             if (this.state.val() === STATE.READY) {
@@ -2659,6 +3595,14 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
+    /**
+     * Registers a callback called every time a fetch fails.
+     *
+     * @param {(error: Error) => void} callback - Called with the error object
+     * @returns {this}
+     * @example
+     * resource.onError((err) => console.error('Failed:', err.message));
+     */
     ObservableResource.prototype.onError = function(callback) {
         this.error.subscribe((err) => {
             if (err !== null) {
@@ -2835,7 +3779,7 @@ var NativeDocument = (function (exports) {
 
 
     Observable.init = function(initialValue, configs = null) {
-        return new ObservableObject(initialValue, configs)
+        return new ObservableObject(initialValue, configs);
     };
 
     /**
@@ -2887,9 +3831,12 @@ var NativeDocument = (function (exports) {
     };
 
     /**
+     * Applies a reactive class map to an HTMLElement.
+     * Each key is a CSS class name; each value is a boolean or ObservableItem<boolean>.
+     * If the value is an ObservableChecker emitting a string, toggles the class name dynamically.
      *
-     * @param {HTMLElement} element
-     * @param {Object} data
+     * @param {HTMLElement} element - Target element
+     * @param {Record<string, boolean|ObservableItem<boolean>|ObservableChecker<boolean|string>>} data - Class map
      */
     const bindClassAttribute = (element, data) => {
         for(const className in data) {
@@ -2897,7 +3844,7 @@ var NativeDocument = (function (exports) {
             if(value.__$Observable) {
                 if(value.__$isObservableChecker) {
                     let lastClass = value.val();
-                    if(typeof lastClass === "string") {
+                    if(typeof lastClass === 'string') {
                         element.classes.toggle(lastClass, true);
                         value.subscribe((currentValue) => {
                             element.classes.remove(lastClass);
@@ -2920,9 +3867,13 @@ var NativeDocument = (function (exports) {
     };
 
     /**
+     * Applies a reactive style map to an HTMLElement.
+     * Each key is a CSS property name (camelCase or CSS custom property `--var`);
+     * each value is a string or ObservableItem<string>.
+     * CSS custom properties are set via element.style.setProperty().
      *
-     * @param {HTMLElement} element
-     * @param {Object} data
+     * @param {HTMLElement} element - Target element
+     * @param {Record<string, string|ObservableItem<string>>} data - Style map
      */
     const bindStyleAttribute = (element, data) => {
         for(const styleName in data) {
@@ -2970,24 +3921,27 @@ var NativeDocument = (function (exports) {
     const bindBooleanAttribute = (element, attributeName, value) => {
         const isObservable = value.__$isObservable;
         const defaultValue = isObservable? value.val() : value;
+
+        const attributeRealName = BOOL_ATTRIBUTES_NAME[attributeName];
+
         if(Validator.isBoolean(defaultValue)) {
-            element[attributeName] = defaultValue;
+            element[attributeRealName] = defaultValue;
         }
         else {
-            element[attributeName] = defaultValue === element.value;
+            element[attributeRealName] = defaultValue === element.value;
         }
         if(isObservable) {
             if(attributeName === 'checked') {
                 if(typeof defaultValue === 'boolean') {
-                    element.addEventListener('input', () => value.set(element[attributeName]));
+                    element.addEventListener('input', () => value.set(element[attributeRealName]));
                 }
                 else {
                     element.addEventListener('input', () => value.set(element.value));
                 }
-                value.subscribe((newValue) => element[attributeName] = newValue);
+                value.subscribe((newValue) => element[attributeRealName] = newValue);
                 return;
             }
-            value.subscribe((newValue) => element[attributeName] = (newValue === element.value));
+            value.subscribe((newValue) => element[attributeRealName] = (newValue === element.value));
         }
     };
 
@@ -3023,7 +3977,7 @@ var NativeDocument = (function (exports) {
 
         for(const originalAttributeName in attributes) {
             const attributeName = originalAttributeName.toLowerCase();
-            let value = attributes[originalAttributeName];
+            const value = attributes[originalAttributeName];
             if(value == null) {
                 continue;
             }
@@ -3093,7 +4047,7 @@ var NativeDocument = (function (exports) {
          * @returns {Text}
          */
         createStaticTextNode: (parent, value) => {
-            let text = ElementCreator.createTextNode();
+            const text = ElementCreator.createTextNode();
             text.nodeValue = value;
             parent && parent.appendChild(text);
             return text;
@@ -3125,7 +4079,7 @@ var NativeDocument = (function (exports) {
             {
                 PluginsManager$1.emit('BeforeProcessChildren', parent);
             }
-            let child = ElementCreator.getChild(children);
+            const child = ElementCreator.getChild(children);
             if(child) {
                 parent.appendChild(child);
             }
@@ -3172,6 +4126,16 @@ var NativeDocument = (function (exports) {
         processStyleAttribute: bindStyleAttribute,
     };
 
+    /**
+     * Creates an augmented DocumentFragment with comment sentinel nodes and a MutationObserver
+     * that fires when the fragment is inserted into the live DOM.
+     * Used as the base for Anchor — not intended for direct use in application code.
+     *
+     * @internal
+     * @constructor
+     * @param {string} name - Debug label used in comment node text content
+     * @returns {AnchorWithSentinel} Augmented DocumentFragment instance
+     */
     function AnchorWithSentinel(name) {
         const instance = Reflect.construct(DocumentFragment, [], AnchorWithSentinel);
         const sentinel = document.createComment((name || '') + ' Anchor Sentinel');
@@ -3202,11 +4166,24 @@ var NativeDocument = (function (exports) {
     AnchorWithSentinel.prototype = Object.create(DocumentFragment.prototype);
     AnchorWithSentinel.prototype.constructor = AnchorWithSentinel;
 
+    /**
+     * Registers a callback to call every time the sentinel is connected to the live DOM.
+     * The callback receives the parent node as its argument.
+     *
+     * @param {(parent: Node) => void} callback - Called each time the fragment is inserted
+     * @returns {this}
+     */
     AnchorWithSentinel.prototype.onConnected = function(callback) {
         this.$events.connected = callback;
         return this;
     };
 
+    /**
+     * Registers a callback to call the first time the sentinel is connected to the live DOM.
+     * After the first connection, the MutationObserver is disconnected automatically.
+     *
+     * @param {(parent: Node) => void} callback - Called once on first insertion
+     */
     AnchorWithSentinel.prototype.onConnectedOnce = function(callback) {
         this.$events.connected = (parent) => {
             callback(parent);
@@ -3278,6 +4255,15 @@ var NativeDocument = (function (exports) {
         };
     }
 
+    /**
+     * Creates an anchor fragment — a managed DocumentFragment delimited by comment sentinels.
+     * Used internally by ForEach, ShowIf, Switch, Match and other control-flow directives
+     * to manage dynamic DOM regions without a real container element.
+     *
+     * @param {string} name - Debug name for the anchor (visible as HTML comments in the DOM)
+     * @param {boolean} [isUniqueChild=false] - If true, optimises rendering when this anchor is the only child of its parent
+     * @returns {AnchorDocumentFragment} An augmented DocumentFragment with anchor management methods
+     */
     function Anchor(name, isUniqueChild = false) {
         const anchorFragment = new AnchorWithSentinel(name);
 
@@ -3360,7 +4346,7 @@ var NativeDocument = (function (exports) {
                 parentNode.nativeInsertBefore(child, anchorStart);
                 return;
             }
-            parentNode.insertBefore(child, anchorStart);
+            parentNode.insertBefore(child, anchorStart.nextSibling);
         };
 
         anchorFragment.removeChildren = function() {
@@ -3476,7 +4462,7 @@ var NativeDocument = (function (exports) {
 
     class ArgTypesError extends Error {
         constructor(message, errors) {
-            super(`${message}\n\n${errors.join("\n")}\n\n`);
+            super(`${message}\n\n${errors.join('\n')}\n\n`);
         }
     }
 
@@ -3521,8 +4507,8 @@ var NativeDocument = (function (exports) {
                 name,
                 type: 'oneOf',
                 types: argTypes,
-                validate: (v) => argTypes.some(type => type.validate(v))
-            })
+                validate: (v) => argTypes.some(type => type.validate(v)),
+            }),
         };
 
 
@@ -3562,7 +4548,7 @@ var NativeDocument = (function (exports) {
             });
 
             if (errors.length > 0) {
-                throw new ArgTypesError(`Argument validation failed`, errors);
+                throw new ArgTypesError('Argument validation failed', errors);
             }
         };
 
@@ -3590,7 +4576,7 @@ var NativeDocument = (function (exports) {
             return { props, children };
         }
         if(typeof props !== 'object' || Array.isArray(props) || props === null || props.constructor.name !== 'Object' ||  props.$hydrate) { // IF it's not a JSON
-            return { props: children, children: props }
+            return { props: children, children: props };
         }
         return { props, children };
     };
@@ -3713,7 +4699,7 @@ var NativeDocument = (function (exports) {
                         DocumentObserver.unmountedSupposedSize--;
                     }
                     data = null;
-                }
+                },
             };
 
             const addListener = (type, callback) => {
@@ -3771,11 +4757,18 @@ var NativeDocument = (function (exports) {
 
                 off: (type, callback) => {
                     removeListener(type, callback);
-                }
+                },
             };
-        }
+        },
     };
 
+    /**
+     * Wraps an HTMLElement with NativeDocument's reactivity and lifecycle API.
+     * Created automatically by HtmlElementWrapper — not intended to be instantiated directly.
+     *
+     * @constructor
+     * @param {HTMLElement} element - The underlying HTML element to wrap
+     */
     function NDElement(element) {
         this.$element = element;
         this.$attachements = null;
@@ -3784,10 +4777,18 @@ var NativeDocument = (function (exports) {
         }
     }
 
+
     NDElement.prototype.__$isNDElement = true;
 
     NDElement.$getChild = (el) => el;
 
+    /**
+     * Appends a child element to an internal DocumentFragment (ghost DOM),
+     * keeping it detached from the main document until explicitly mounted.
+     *
+     * @param {HTMLElement|DocumentFragment|NDElement} element - Element to append
+     * @returns {this}
+     */
     NDElement.prototype.ghostDom = function(element) {
         if(!this.$attachements) {
             this.$attachements = document.createDocumentFragment();
@@ -3796,15 +4797,47 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
+    /**
+     * Returns the underlying HTMLElement. Used internally for type coercion.
+     *
+     * @returns {HTMLElement}
+     */
     NDElement.prototype.valueOf = function() {
         return this.$element;
     };
 
+    /**
+     * Stores the underlying HTMLElement in target[name].
+     * Use this to keep a reference to the raw DOM node.
+     *
+     * @param {Record<string, any>} target - Object to store the reference in
+     * @param {string} name - Property name to assign on the target object
+     * @returns {this}
+     * @example
+     * const refs = {};
+     * Input({ type: 'text' }).nd.ref(refs, 'emailInput');
+     * refs.emailInput.focus();
+     */
     NDElement.prototype.ref = function(target, name) {
         target[name] = this.$element;
         return this;
     };
 
+    /**
+     * Stores the NDElement instance itself in target[name].
+     * Use this to expose a component's public API to a parent (via .with()).
+     *
+     * @param {Record<string, any>} target - Object to store the reference in
+     * @param {string} name - Property name to assign on the target object
+     * @returns {this}
+     * @example
+     * const refs = {};
+     * Counter()
+     *   .nd.with({ increment() { count.$value++; return this; } })
+     *   .refSelf(refs, 'counter');
+     *
+     * refs.counter.increment();
+     */
     NDElement.prototype.refSelf = function(target, name) {
         target[name] = this;
         // TODO: @DIM to check
@@ -3812,6 +4845,12 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
+    /**
+     * Calls .nd.remove() on all child NDElements before removing this element.
+     * Used to propagate lifecycle cleanup through the component tree.
+     *
+     * @returns {this}
+     */
     NDElement.prototype.unmountChildren = function() {
         let element = this.$element;
         for(let i = 0, length = element.children.length; i < length; i++) {
@@ -3825,6 +4864,12 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
+    /**
+     * Removes the element from the DOM and cleans up its lifecycle observers.
+     * Also calls unmountChildren() recursively.
+     *
+     * @returns {this}
+     */
     NDElement.prototype.remove = function() {
         let element = this.$element;
         element.nd.unmountChildren();
@@ -3837,6 +4882,19 @@ var NativeDocument = (function (exports) {
     };
 
     const $lifeCycleObservers = new WeakMap();
+
+    /**
+     * Registers mounted and/or unmounted lifecycle callbacks for this element.
+     * Uses MutationObserver internally to detect DOM insertion and removal.
+     *
+     * @param {{ mounted?: (el: HTMLElement) => void, unmounted?: (el: HTMLElement) => boolean|void }} states - Lifecycle hooks
+     * @returns {this}
+     * @example
+     * Div({}).nd.lifecycle({
+     *   mounted: (el) => console.log('mounted', el),
+     *   unmounted: (el) => console.log('unmounted', el),
+     * });
+     */
     NDElement.prototype.lifecycle = function(states) {
         const el = this.$element;
         if (!$lifeCycleObservers.has(el)) {
@@ -3855,31 +4913,68 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
+    /**
+     * Registers an unmounted callback that cleans up all beforeUnmount handlers
+     * and aborts any pending async operations on this element and its children.
+     *
+     * @returns {this}
+     */
     NDElement.prototype.destroyOnUnmount = function() {
-        this.unmounted(() => {
-            this.$element?.querySelectorAll('[data--nd-before-unmount]').forEach(child => {
-                child.remove();
-                child.__$controller?.abort();
-                child.__$controller = null;
-                $lifeCycleObservers.delete(child);
-            });
-
-            this.$element.__$controller?.abort();
-            this.$element.__$controller = null;
-            $lifeCycleObservers.delete(this.$element);
-            this.$element = null;
-        });
+        this.unmounted(() => this.destroy());
         return this;
     };
 
+    /**
+     * aborts any pending async operations on this element and its children.
+     *
+     * @returns {this}
+     */
+    NDElement.prototype.destroy = function() {
+        this.$element?.querySelectorAll('[data--nd-before-unmount]').forEach(child => {
+            child.remove();
+            child.__$controller?.abort();
+            child.__$controller = null;
+            $lifeCycleObservers.delete(child);
+        });
+
+        this.$element.__$controller?.abort();
+        this.$element.__$controller = null;
+        $lifeCycleObservers.delete(this.$element);
+        this.$element = null;
+    };
+
+    /**
+     * Shorthand for lifecycle({ mounted: callback }).
+     *
+     * @param {(el: HTMLElement) => void} callback - Called when element is inserted into the DOM
+     * @returns {this}
+     */
     NDElement.prototype.mounted = function(callback) {
         return this.lifecycle({ mounted: callback });
     };
 
+    /**
+     * Shorthand for lifecycle({ unmounted: callback }).
+     *
+     * @param {(el: HTMLElement) => boolean|void} callback - Called when element is removed from the DOM
+     * @returns {this}
+     */
     NDElement.prototype.unmounted = function(callback) {
         return this.lifecycle({ unmounted: callback });
     };
 
+    /**
+     * Registers an async callback to run before this element is removed from the DOM.
+     * The element's .remove() is delayed until all beforeUnmount callbacks resolve.
+     *
+     * @param {string} id - Unique identifier for this callback (allows overwriting)
+     * @param {(this: NDElement, el: HTMLElement) => void|Promise<void>} callback - Async-compatible callback
+     * @returns {this}
+     * @example
+     * Div({}).nd.beforeUnmount('fade-out', async (el) => {
+     *   await el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300 }).finished;
+     * });
+     */
     NDElement.prototype.beforeUnmount = function(id, callback) {
         const el = this.$element;
 
@@ -3912,18 +5007,31 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
+    /**
+     * Returns the underlying HTMLElement.
+     * Alias: .node()
+     *
+     * @returns {HTMLElement}
+     */
     NDElement.prototype.htmlElement = function() {
         return this.$element;
     };
 
     NDElement.prototype.node = NDElement.prototype.htmlElement;
 
+    /**
+     * Attaches a Shadow DOM to this element, redirecting all child appends to the shadow root.
+     *
+     * @param {'open'|'closed'} mode - Shadow DOM encapsulation mode
+     * @param {string|null} [style=null] - Optional CSS string to inject into the shadow root
+     * @returns {this}
+     */
     NDElement.prototype.shadow = function(mode, style = null) {
         const $element = this.$element;
         const children = Array.from($element.childNodes);
         const shadowRoot = $element.attachShadow({ mode });
         if(style) {
-            const styleNode = document.createElement("style");
+            const styleNode = document.createElement('style');
             styleNode.textContent = style;
             shadowRoot.appendChild(styleNode);
         }
@@ -3934,10 +5042,22 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
+    /**
+     * Shorthand for .shadow('open', style).
+     *
+     * @param {string|null} [style=null] - Optional CSS string to inject into the shadow root
+     * @returns {this}
+     */
     NDElement.prototype.openShadow = function(style = null) {
         return this.shadow('open', style);
     };
 
+    /**
+     * Shorthand for .shadow('closed', style).
+     *
+     * @param {string|null} [style=null] - Optional CSS string to inject into the shadow root
+     * @returns {this}
+     */
     NDElement.prototype.closedShadow = function(style = null) {
         return this.shadow('closed', style);
     };
@@ -3986,7 +5106,16 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
-
+    /**
+     * Sets a single attribute on the element.
+     * If value is an ObservableItem, the attribute is updated reactively.
+     *
+     * @param {string} name - Attribute name
+     * @param {string|ObservableItem<string>} value - Attribute value, static or reactive
+     * @returns {this}
+     * @example
+     * Input({}).nd.attr('placeholder', label); // reactive placeholder
+     */
     NDElement.prototype.attr = function(name, value) {
         if(value?.__$Observable) {
             bindAttributeWithObservable(this.$element, name, value);
@@ -3996,16 +5125,37 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
+    /**
+     * Applies a batch of attributes to the element via AttributesWrapper.
+     * Supports reactive values, class maps, and style maps.
+     *
+     * @param {Object} attrs - Attributes object (same format as HtmlElementWrapper props)
+     * @returns {this}
+     */
     NDElement.prototype.attrs = function(attrs) {
         AttributesWrapper(this.$element, attrs);
         return this;
     };
 
+    /**
+     * Applies a reactive class map to the element.
+     * Each key is a class name; each value is a boolean or ObservableItem<boolean>.
+     *
+     * @param {Record<string, boolean|ObservableItem<boolean>>} classes - Class map
+     * @returns {this}
+     */
     NDElement.prototype.class = function(classes) {
         bindClassAttribute(this.$element, classes);
         return this;
     };
 
+    /**
+     * Applies a reactive style map to the element.
+     * Each key is a CSS property; each value is a string or ObservableItem<string>.
+     *
+     * @param {Record<string, string|ObservableItem<string>>} style - Style map
+     * @returns {this}
+     */
     NDElement.prototype.style = function(style) {
         bindStyleAttribute(this.$element, style);
         return this;
@@ -4041,7 +5191,7 @@ var NativeDocument = (function (exports) {
         const protectedMethods = new Set([
             'constructor', 'valueOf', '$element', '$observer',
             'ref', 'remove', 'cleanup', 'with', 'extend', 'attach',
-            'lifecycle', 'mounted', 'unmounted', 'unmountChildren'
+            'lifecycle', 'mounted', 'unmounted', 'unmountChildren',
         ]);
 
         for (const name in methods) {
@@ -4074,160 +5224,302 @@ var NativeDocument = (function (exports) {
         return NDElement;
     };
 
-    const EVENTS = [
-      "Click",
-      "DblClick",
-      "MouseDown",
-      "MouseEnter",
-      "MouseLeave",
-      "MouseMove",
-      "MouseOut",
-      "MouseOver",
-      "MouseUp",
-      "Wheel",
-      "KeyDown",
-      "KeyPress",
-      "KeyUp",
-      "Blur",
-      "Change",
-      "Focus",
-      "Input",
-      "Invalid",
-      "Reset",
-      "Search",
-      "Select",
-      "Submit",
-      "Drag",
-      "DragEnd",
-      "DragEnter",
-      "DragLeave",
-      "DragOver",
-      "DragStart",
-      "Drop",
-      "AfterPrint",
-      "BeforePrint",
-      "BeforeUnload",
-      "Error",
-      "HashChange",
-      "Load",
-      "Offline",
-      "Online",
-      "PageHide",
-      "PageShow",
-      "Resize",
-      "Scroll",
-      "Unload",
-      "Abort",
-      "CanPlay",
-      "CanPlayThrough",
-      "DurationChange",
-      "Emptied",
-      "Ended",
-      "LoadedData",
-      "LoadedMetadata",
-      "LoadStart",
-      "Pause",
-      "Play",
-      "Playing",
-      "Progress",
-      "RateChange",
-      "Seeked",
-      "Seeking",
-      "Stalled",
-      "Suspend",
-      "TimeUpdate",
-      "VolumeChange",
-      "Waiting",
 
-      "TouchCancel",
-      "TouchEnd",
-      "TouchMove",
-      "TouchStart",
-      "AnimationEnd",
-      "AnimationIteration",
-      "AnimationStart",
-      "TransitionEnd",
-      "Copy",
-      "Cut",
-      "Paste",
-      "FocusIn",
-      "FocusOut",
-      "ContextMenu"
+    /**
+     * The global sanitizer function used by nd.html() when sanitize option is enabled.
+     * Must be set via NDElement.setSanitizer() before using {sanitize: true}.
+     *
+     * @type {Function|null}
+     */
+    NDElement.$sanitizer = null;
+
+    /**
+     * Configures the global sanitizer for nd.html().
+     * The sanitizer function receives the HTML string and an optional config object.
+     * Designed to be decoupled from any specific sanitizer library.
+     *
+     * @param {Function} sanitizerFn - Sanitizer function (html, config) => string
+     * @returns {typeof NDElement}
+     * @throws {NativeDocumentError} If sanitizerFn is not a function
+     * @example
+     * import DOMPurify from 'dompurify';
+     * NDElement.setSanitizer((html, config) => DOMPurify.sanitize(html, config));
+     */
+    NDElement.setSanitizer = function(sanitizerFn) {
+        if(typeof sanitizerFn !== 'function') {
+            throw new NativeDocumentError('NDElement.setSanitizer() expects a function');
+        }
+        NDElement.$sanitizer = sanitizerFn;
+        return NDElement;
+    };
+
+    /**
+     * Sets the inner HTML of the element.
+     * Requires either {unsafe: true} to bypass security checks,
+     * or {sanitize: true|Object|Function} to sanitize the content.
+     * Supports Observable values for reactive HTML updates.
+     *
+     * @param {string|ObservableItem} content - HTML string or Observable<string>
+     * @param {Object} [options={}]
+     * @param {boolean} [options.unsafe=false] - Bypass security check. Use only with trusted content.
+     * @param {boolean|Object|Function} [options.sanitize=false] - Sanitize strategy:
+     *   - true: use global sanitizer with default config
+     *   - Object: use global sanitizer with custom config
+     *   - Function: use this function directly as sanitizer (html) => string
+     * @returns {this}
+     * @throws {NativeDocumentError} If sanitize is true/Object but no global sanitizer is configured
+     * @example
+     * // Unsafe — trusted content only
+     * el.nd.html('<strong>Hello</strong>', {unsafe: true})
+     *
+     * // Global sanitizer with default config
+     * el.nd.html($userContent, {sanitize: true})
+     *
+     * // Global sanitizer with custom config
+     * el.nd.html($userContent, {sanitize: {
+     *     ALLOWED_TAGS: ['b', 'i', 'strong', 'a'],
+     *     ALLOWED_ATTR: ['href'],
+     * }})
+     *
+     * // Custom sanitizer function for this specific case
+     * el.nd.html($userContent, {sanitize: (html) => myCustomSanitizer(html)})
+     *
+     * // Reactive with sanitize
+     * el.nd.html($content, {sanitize: true})
+     */
+    NDElement.prototype.html = function(content, {unsafe = false, sanitize = false} = {}) {
+        const $element = this.$element;
+        const apply = (value) => {
+            if(sanitize) {
+                if(typeof sanitize === 'function') {
+                    $element.innerHTML = sanitize(value);
+                    return;
+                }
+
+                if(!NDElement.$sanitizer) {
+                    throw new NativeDocumentError('nd.html() — no sanitizer configured. Call NDElement.setSanitizer() first.');
+                }
+                const config = sanitize === true ? {} : sanitize;
+                $element.innerHTML = NDElement.$sanitizer(value, config);
+                return;
+            }
+
+            if(!unsafe) {
+                console.warn('nd.html() — use {unsafe: true} or {sanitize: true|Object|Function}');
+                return;
+            }
+
+            $element.innerHTML = value;
+        };
+
+        if(content?.__$Observable) {
+            content.subscribe(apply);
+            apply(content.val());
+            return this;
+        }
+
+        apply(content);
+        return this;
+    };
+
+    /**
+     * Makes the element content editable and binds it to an Observable.
+     * Changes in the DOM update the Observable, and changes to the Observable
+     * update the DOM (only when the element is not focused to avoid cursor issues).
+     *
+     * @param {ObservableItem} $obs - Observable to bind to the element content
+     * @param {Object} [options={}]
+     * @param {string} [options.format='html'] - 'html' uses innerHTML, 'text' uses innerText
+     * @returns {this}
+     * @example
+     * // Basic usage
+     * const $content = $('<b>Hello</b>');
+     * Div({}).nd.contentEditable($content)
+     *
+     * // Text only
+     * Div({}).nd.contentEditable($content, {format: 'text'})
+     */
+    NDElement.prototype.contentEditable = function($obs, {format = 'html'} = {}) {
+        this.$element.contentEditable = true;
+
+        const getValue = format === 'text'
+            ? () => this.$element.innerText
+            : () => this.$element.innerHTML;
+
+        const setValue = format === 'text'
+            ? (value) => { this.$element.innerText  = value; }
+            : (value) => { this.$element.innerHTML = value; };
+
+        if($obs?.__$Observable) {
+            $obs.subscribe((value) => {
+                if(document.activeElement !== this.$element) {
+                    setValue(value);
+                }
+            });
+            setValue($obs.val() || '');
+        }
+
+        this.$element.addEventListener('input', () => {
+            $obs?.set(getValue());
+        }, { signal: this.$getSignal() });
+
+        return this;
+    };
+
+    const EVENTS = [
+        'Click',
+        'DblClick',
+        'MouseDown',
+        'MouseEnter',
+        'MouseLeave',
+        'MouseMove',
+        'MouseOut',
+        'MouseOver',
+        'MouseUp',
+        'Wheel',
+        'KeyDown',
+        'KeyPress',
+        'KeyUp',
+        'Blur',
+        'Change',
+        'Focus',
+        'Input',
+        'Invalid',
+        'Reset',
+        'Search',
+        'Select',
+        'Submit',
+        'Drag',
+        'DragEnd',
+        'DragEnter',
+        'DragLeave',
+        'DragOver',
+        'DragStart',
+        'Drop',
+        'AfterPrint',
+        'BeforePrint',
+        'BeforeUnload',
+        'Error',
+        'HashChange',
+        'Load',
+        'Offline',
+        'Online',
+        'PageHide',
+        'PageShow',
+        'Resize',
+        'Scroll',
+        'Unload',
+        'Abort',
+        'CanPlay',
+        'CanPlayThrough',
+        'DurationChange',
+        'Emptied',
+        'Ended',
+        'LoadedData',
+        'LoadedMetadata',
+        'LoadStart',
+        'Pause',
+        'Play',
+        'Playing',
+        'Progress',
+        'RateChange',
+        'Seeked',
+        'Seeking',
+        'Stalled',
+        'Suspend',
+        'TimeUpdate',
+        'VolumeChange',
+        'Waiting',
+
+        'TouchCancel',
+        'TouchEnd',
+        'TouchMove',
+        'TouchStart',
+        'AnimationEnd',
+        'AnimationIteration',
+        'AnimationStart',
+        'TransitionEnd',
+        'Copy',
+        'Cut',
+        'Paste',
+        'FocusIn',
+        'FocusOut',
+        'ContextMenu',
     ];
 
     const EVENTS_WITH_PREVENT = [
-      "Click",
-      "DblClick",
-      "MouseDown",
-      "MouseUp",
-      "Wheel",
-      "KeyDown",
-      "KeyPress",
-      "Invalid",
-      "Reset",
-      "Submit",
-      "DragOver",
-      "Drop",
-      "BeforeUnload",
-      "TouchCancel",
-      "TouchEnd",
-      "TouchMove",
-      "TouchStart",
-      "Copy",
-      "Cut",
-      "Paste",
-      "ContextMenu"
+        'Click',
+        'DblClick',
+        'MouseDown',
+        'MouseUp',
+        'Wheel',
+        'KeyDown',
+        'KeyPress',
+        'Invalid',
+        'Reset',
+        'Submit',
+        'DragOver',
+        'Drop',
+        'BeforeUnload',
+        'TouchCancel',
+        'TouchEnd',
+        'TouchMove',
+        'TouchStart',
+        'Copy',
+        'Cut',
+        'Paste',
+        'ContextMenu',
     ];
 
     const EVENTS_WITH_STOP =  [
-      "Click",
-      "DblClick",
-      "MouseDown",
-      "MouseMove",
-      "MouseOut",
-      "MouseOver",
-      "MouseUp",
-      "Wheel",
-      "KeyDown",
-      "KeyPress",
-      "KeyUp",
-      "Change",
-      "Input",
-      "Invalid",
-      "Reset",
-      "Search",
-      "Select",
-      "Submit",
-      "Drag",
-      "DragEnd",
-      "DragEnter",
-      "DragLeave",
-      "DragOver",
-      "DragStart",
-      "Drop",
-      "BeforeUnload",
-      "HashChange",
-      "TouchCancel",
-      "TouchEnd",
-      "TouchMove",
-      "TouchStart",
-      "AnimationEnd",
-      "AnimationIteration",
-      "AnimationStart",
-      "TransitionEnd",
-      "Copy",
-      "Cut",
-      "Paste",
-      "FocusIn",
-      "FocusOut",
-      "ContextMenu"
+        'Click',
+        'DblClick',
+        'MouseDown',
+        'MouseMove',
+        'MouseOut',
+        'MouseOver',
+        'MouseUp',
+        'Wheel',
+        'KeyDown',
+        'KeyPress',
+        'KeyUp',
+        'Change',
+        'Input',
+        'Invalid',
+        'Reset',
+        'Search',
+        'Select',
+        'Submit',
+        'Drag',
+        'DragEnd',
+        'DragEnter',
+        'DragLeave',
+        'DragOver',
+        'DragStart',
+        'Drop',
+        'BeforeUnload',
+        'HashChange',
+        'TouchCancel',
+        'TouchEnd',
+        'TouchMove',
+        'TouchStart',
+        'AnimationEnd',
+        'AnimationIteration',
+        'AnimationStart',
+        'TransitionEnd',
+        'Copy',
+        'Cut',
+        'Paste',
+        'FocusIn',
+        'FocusOut',
+        'ContextMenu',
     ];
 
     const property = {
         configurable: true,
         get() {
             return new NDElement(this);
-        }
+        },
     };
 
     Object.defineProperty(HTMLElement.prototype, 'nd', property);
@@ -4238,7 +5530,7 @@ var NativeDocument = (function (exports) {
         configurable: true,
         get: function() {
             return this;
-        }
+        },
     });
 
 
@@ -4251,7 +5543,7 @@ var NativeDocument = (function (exports) {
         NDElement.prototype['on'+eventSourceName] = function(callback = null, options = {}) {
             this.$element.addEventListener(eventName, callback, {
                 signal: this.$getSignal(),
-                ...options
+                ...options,
             });
             return this;
         };
@@ -4262,14 +5554,14 @@ var NativeDocument = (function (exports) {
         NDElement.prototype['onStop'+eventSourceName] = function(callback = null, options = {}) {
             _stop(this.$element, eventName, callback, {
                 signal: this.$getSignal(),
-                ...options
+                ...options,
             });
             return this;
         };
         NDElement.prototype['onPreventStop'+eventSourceName] = function(callback = null, options = {}) {
             _preventStop(this.$element, eventName, callback, {
                 signal: this.$getSignal(),
-                ...options
+                ...options,
             });
             return this;
         };
@@ -4280,12 +5572,20 @@ var NativeDocument = (function (exports) {
         NDElement.prototype['onPrevent'+eventSourceName] = function(callback = null, options = {}) {
             _prevent(this.$element, eventName, callback, {
                 signal: this.$getSignal(),
-                ...options
+                ...options,
             });
             return this;
         };
     });
 
+    /**
+     * Retrieves or creates an AbortController signal tied to this element's lifecycle.
+     * The signal is automatically aborted when the element is removed via .nd.remove().
+     * Used internally by all event listeners (onClick, onInput, etc.) to auto-cleanup on unmount.
+     *
+     * @internal
+     * @returns {AbortSignal} The signal for this element's AbortController
+     */
     NDElement.prototype.$getSignal = function() {
         if(!this.$element.__$controller) {
             this.$element.__$controller = new AbortController();
@@ -4293,27 +5593,63 @@ var NativeDocument = (function (exports) {
         return this.$element.__$controller.signal;
     };
 
+
+    /**
+     * Adds a native event listener to the underlying HTMLElement.
+     * The listener is automatically removed when the element is unmounted (via AbortSignal).
+     *
+     * @param {string} name - Event name (case-insensitive, e.g. 'click', 'input')
+     * @param {EventListener} callback - Handler to call when the event fires
+     * @param {boolean|AddEventListenerOptions} [options] - Listener options merged with the element's AbortSignal
+     * @returns {this}
+     */
     NDElement.prototype.on = function(name, callback, options) {
         this.$element.addEventListener(name.toLowerCase(), callback, {
             signal: this.$getSignal(),
-            ...options
+            ...options,
         });
         return this;
     };
 
+    /**
+     * Removes a previously registered event listener from the underlying HTMLElement.
+     *
+     * @param {string} name - Event name (case-insensitive)
+     * @param {EventListener} callback - The exact handler reference to remove
+     * @returns {this}
+     */
     NDElement.prototype.off = function(name, callback) {
         this.$element.removeEventListener(name.toLowerCase(), callback);
         return this;
     };
 
+    /**
+     * Adds a one-time event listener that removes itself after the first call.
+     * Uses the element's AbortSignal for lifecycle-safe cleanup.
+     *
+     * @param {string} name - Event name (case-insensitive)
+     * @param {EventListener} callback - Handler called once when the event fires
+     * @returns {this}
+     */
     NDElement.prototype.once = function(name, callback) {
         this.$element.addEventListener(name.toLowerCase(), callback, {
             signal: this.$getSignal(),
-            once: true
+            once: true,
         });
         return this;
     };
 
+    /**
+     * Dispatches a custom event on the underlying HTMLElement.
+     * The event bubbles and is cancelable by default.
+     *
+     * @param {string} name - Custom event name
+     * @param {*} [detail=null] - Data passed in event.detail
+     * @returns {this}
+     * @example
+     * Button('Save').nd.emit('saved', { id: 42 });
+     * // Triggers: element.addEventListener('saved', e => console.log(e.detail.id))
+     */
     NDElement.prototype.emit = function(name, detail = null) {
         const event = new CustomEvent(name, {
             detail,
@@ -4397,7 +5733,7 @@ var NativeDocument = (function (exports) {
         },
         contains(value) {
             return this.getClasses().indexOf(value) >= 0;
-        }
+        },
     };
 
     Object.defineProperty(HTMLElement.prototype, 'classes', {
@@ -4405,17 +5741,42 @@ var NativeDocument = (function (exports) {
         get() {
             return {
                 $element: this,
-                ...classListMethods
+                ...classListMethods,
             };
-        }
+        },
     });
 
     DocumentFragment.prototype.__IS_FRAGMENT = true;
 
+    /**
+     * Wraps a function with argument validation based on an ArgTypes schema.
+     * Throws an ArgTypesError if the arguments don't match the schema.
+     *
+     * @param {...ArgType} args - ArgType descriptors defining expected argument types
+     * @returns {Function} Wrapped function that validates its arguments before executing
+     * @example
+     * function greet(name, age) { ... }
+     * const safeGreet = greet.args(ArgTypes.string('name'), ArgTypes.number('age'));
+     * safeGreet('John', 25); // OK
+     * safeGreet('John', 'old'); // throws ArgTypesError
+     */
     Function.prototype.args = function(...args) {
         return exports.withValidation(this, args);
     };
 
+
+    /**
+     * Wraps a function with a try/catch error boundary.
+     * If the function throws, the callback is called with the error and context instead.
+     *
+     * @param {(error: Error, context: { caller: Function, args: any[] }) => *} callback - Error handler
+     * @returns {Function} Wrapped function with error boundary
+     * @example
+     * const safeRender = render.errorBoundary((err, { args }) => {
+     *   console.error('Render failed:', err.message);
+     *   return Div({}, 'Error');
+     * });
+     */
     Function.prototype.errorBoundary = function(callback) {
         const handler = (...args)  => {
             try {
@@ -4435,36 +5796,85 @@ var NativeDocument = (function (exports) {
 
     NDElement.$getChild = ElementCreator.getChild;
 
+    /**
+     * Converts a string to a reactive text node.
+     *
+     * @returns {Text} Static text node containing the string value
+     */
     String.prototype.toNdElement = function () {
         return ElementCreator.createStaticTextNode(null, this);
     };
 
+    /**
+     * Converts a number to a static text node.
+     *
+     * @returns {Text} Static text node containing the number as a string
+     */
     Number.prototype.toNdElement = function () {
         return ElementCreator.createStaticTextNode(null, this.toString());
     };
 
+    /**
+     * Returns the element itself (identity for DOM compatibility).
+     *
+     * @returns {Element} this
+     */
     Element.prototype.toNdElement = function () {
         return this;
     };
+
+    /**
+     * Returns the text node itself (identity for DOM compatibility).
+     *
+     * @returns {Text} this
+     */
     Text.prototype.toNdElement = function () {
         return this;
     };
+
+    /**
+     * Returns the comment node itself (identity for DOM compatibility).
+     *
+     * @returns {Comment} this
+     */
     Comment.prototype.toNdElement = function () {
         return this;
     };
+
+    /**
+     * Returns the document itself (identity for DOM compatibility).
+     *
+     * @returns {Document} this
+     */
     Document.prototype.toNdElement = function () {
         return this;
     };
+
+    /**
+     * Returns the document fragment itself (identity for DOM compatibility).
+     *
+     * @returns {DocumentFragment} this
+     */
     DocumentFragment.prototype.toNdElement = function () {
         return this;
     };
 
+    /**
+     * Converts the ObservableItem to a reactive text node that updates automatically when the value changes.
+     *
+     * @returns {Text} Reactive text node bound to this observable
+     */
     ObservableItem.prototype.toNdElement = function () {
         return ElementCreator.createObservableNode(null, this);
     };
 
     ObservableChecker.prototype.toNdElement = ObservableItem.prototype.toNdElement;
 
+    /**
+     * Converts the NDElement to its underlying HTMLElement (or ghost DOM fragment if ghostDom was used).
+     *
+     * @returns {HTMLElement|DocumentFragment} The underlying DOM node
+     */
     NDElement.prototype.toNdElement = function () {
         const element = this.$element ?? this.$build?.() ?? this.build?.() ?? null;
         if(this.$attachements) {
@@ -4476,6 +5886,12 @@ var NativeDocument = (function (exports) {
         return element;
     };
 
+    /**
+     * Converts the array to a DocumentFragment containing all elements.
+     * Each item is processed through ElementCreator.getChild().
+     *
+     * @returns {DocumentFragment} Fragment containing all array children
+     */
     Array.prototype.toNdElement = function () {
         const fragment = document.createDocumentFragment();
         for(let i = 0, length = this.length; i < length; i++) {
@@ -4486,6 +5902,12 @@ var NativeDocument = (function (exports) {
         return fragment;
     };
 
+    /**
+     * Calls the function and converts its return value to a DOM node.
+     * Used internally by ElementCreator to process function-based children.
+     *
+     * @returns {Node} The DOM node returned by the function
+     */
     Function.prototype.toNdElement = function () {
         const child = this;
         {
@@ -4494,6 +5916,11 @@ var NativeDocument = (function (exports) {
         return ElementCreator.getChild(child());
     };
 
+    /**
+     * Converts the TemplateBinding to a hydratable DOM node for use in TemplateCloner.
+     *
+     * @returns {Node} Hydratable node
+     */
     TemplateBinding.prototype.toNdElement = function () {
         return ElementCreator.createHydratableNode(null, this);
     };
@@ -4532,6 +5959,16 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    /**
+     * Registers a beforeUnmount hook that plays an exit CSS transition before the element is removed.
+     * Adds the class `{transitionName}-exit`, waits for the transition/animation to end, then removes it.
+     *
+     * @param {string} transitionName - CSS class prefix for the exit transition
+     * @returns {this}
+     * @example
+     * Div({ class: 'modal' }).nd.transitionOut('fade');
+     * // Adds 'fade-exit' before removal, waits for transitionend/animationend
+     */
     NDElement.prototype.transitionOut = function(transitionName) {
         const exitClass = transitionName + '-exit';
         const el = this.$element;
@@ -4543,6 +5980,17 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
+    /**
+     * Plays an enter CSS transition when the element is mounted into the DOM.
+     * Adds `{transitionName}-enter-from` immediately, then swaps to `{transitionName}-enter-to`
+     * on the next animation frame, and cleans up after the transition ends.
+     *
+     * @param {string} transitionName - CSS class prefix for the enter transition
+     * @returns {this}
+     * @example
+     * Div({ class: 'modal' }).nd.transitionIn('fade');
+     * // On mount: adds 'fade-enter-from', then swaps to 'fade-enter-to'
+     */
     NDElement.prototype.transitionIn = function(transitionName) {
         const startClass = transitionName + '-enter-from';
         const endClass = transitionName + '-enter-to';
@@ -4566,13 +6014,32 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
-
+    /**
+     * Applies both enter and exit transitions to the element.
+     * Shorthand for calling .transitionIn(name) and .transitionOut(name).
+     *
+     * @param {string} transitionName - CSS class prefix for both enter and exit transitions
+     * @returns {this}
+     * @example
+     * Div({}).nd.transition('slide');
+     * // On mount: enter transition; on unmount: exit transition
+     */
     NDElement.prototype.transition = function (transitionName) {
         this.transitionIn(transitionName);
         this.transitionOut(transitionName);
         return this;
     };
 
+    /**
+     * Immediately applies a CSS animation class to the element.
+     * Removes the class automatically once the animation ends.
+     *
+     * @param {string} animationName - CSS animation class name to add
+     * @returns {this}
+     * @example
+     * Button('Click me').nd.animate('shake');
+     * // Adds 'shake' class, removes it when animationend fires
+     */
     NDElement.prototype.animate = function(animationName) {
         const el = this.$element;
         el.classes.add(animationName);
@@ -4595,14 +6062,17 @@ var NativeDocument = (function (exports) {
 
     ObservableChecker.prototype.handleNdAttribute = ObservableItem.prototype.handleNdAttribute;
 
-        TemplateBinding.prototype.handleNdAttribute = function(element, attributeName) {
+    TemplateBinding.prototype.handleNdAttribute = function(element, attributeName) {
         this.$hydrate(element, attributeName);
     };
 
     /**
+     * Creates a reactive or static text node from the given value.
+     * If the value has a .toNdElement() method, delegates to it.
+     * Otherwise creates an empty text node.
      *
-     * @param {*} value
-     * @returns {Text}
+     * @param {string|number|ObservableItem|*} value - Value to convert to a text node
+     * @returns {Text} Text node, reactive if value is an ObservableItem
      */
     const createTextNode = (value) => {
         if(value) {
@@ -4612,8 +6082,18 @@ var NativeDocument = (function (exports) {
     };
 
 
+    /**
+     * Applies attributes and children to an existing HTMLElement.
+     * Used internally by HtmlElementWrapper on each cloned node.
+     *
+     * @internal
+     * @param {HTMLElement} element - Element to configure
+     * @param {Object|null} _attributes - Attributes object or children if no attrs provided
+     * @param {ValidChild|null} [_children=null] - Children to append
+     * @returns {HTMLElement} The configured element
+     */
     const createHtmlElement = (element, _attributes, _children = null) => {
-        let { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
+        const { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
 
         ElementCreator.processAttributes(element, attributes);
         ElementCreator.processChildren(children, element);
@@ -4621,10 +6101,22 @@ var NativeDocument = (function (exports) {
     };
 
     /**
+     * Creates a reusable element factory function for the given HTML tag.
+     * The factory clones a cached template node on each call for performance.
+     * Optionally wraps the created element with a custom wrapper function.
      *
-     * @param {string} name
-     * @param {?Function=} customWrapper
-     * @returns {Function}
+     * @param {string} name - HTML tag name (e.g. 'div', 'button', 'input'). Pass empty string to create a Fragment.
+     * @param {((element: HTMLElement) => HTMLElement)|null} [customWrapper=null] - Optional function to augment the element before returning
+     * @returns {(attr?: Object, children?: ValidChild) => HTMLElement} Element factory function
+     * @example
+     * const Div = HtmlElementWrapper('div');
+     * Div({ class: 'container' }, 'Hello');
+     *
+     * // With custom wrapper
+     * const Form = HtmlElementWrapper('form', (el) => {
+     *   el.submit = (action) => { ... };
+     *   return el;
+     * });
      */
     function  HtmlElementWrapper(name, customWrapper = null) {
         if(name) {
@@ -4637,7 +6129,7 @@ var NativeDocument = (function (exports) {
                     };
                     return createHtmlElement(customWrapper(node.cloneNode()), attr, children);            };
 
-                return (attr, children) => createElement(attr, children)
+                return (attr, children) => createElement(attr, children);
             }
 
             let node = null;
@@ -4649,7 +6141,7 @@ var NativeDocument = (function (exports) {
                 return createHtmlElement(node.cloneNode(), attr, children);
             };
 
-            return (attr, children) => createElement(attr, children)
+            return (attr, children) => createElement(attr, children);
         }
         return (children, name = '') => {
             const anchor = Anchor(name);
@@ -4658,6 +6150,15 @@ var NativeDocument = (function (exports) {
         };
     }
 
+    /**
+     * Stores deferred attribute, class, style, and event bindings for a cloneable element.
+     * Used internally by TemplateCloner to apply per-instance data to cloned DOM nodes.
+     * Not intended for direct use in application code.
+     *
+     * @internal
+     * @constructor
+     * @param {HTMLElement} $element - The template element to clone
+     */
     function NodeCloner($element) {
         this.$element = $element;
         this.$classes = null;
@@ -4697,6 +6198,12 @@ var NativeDocument = (function (exports) {
         return cache;
     };
 
+    /**
+     * Pre-compiles all registered bindings into a sequence of optimised steps.
+     * Called once before the first clone operation. Subsequent calls are no-ops.
+     *
+     * @internal
+     */
     NodeCloner.prototype.resolve = function() {
         if(this.$content) {
             return;
@@ -4783,26 +6290,56 @@ var NativeDocument = (function (exports) {
         };
     };
 
+    /**
+     * Clones the template element and applies all compiled binding steps with the given data.
+     *
+     * @internal
+     * @param {Array} data - Data array passed to each binding callback
+     * @returns {HTMLElement} The cloned and hydrated element
+     */
     NodeCloner.prototype.cloneNode = function(data) {
         return this.$element.cloneNode(false);
     };
 
+    /**
+     * Registers an NDElement method binding (e.g. onClick, onInput) to be applied on each clone.
+     *
+     * @internal
+     * @param {string} methodName - Name of the NDElement method to call (e.g. 'onClick')
+     * @param {Function} callback - Callback function to pass to the method
+     * @returns {NodeCloner} this
+     */
     NodeCloner.prototype.attach = function(methodName, callback) {
         this.$ndMethods = this.$ndMethods || {};
         this.$ndMethods[methodName] = callback;
         return this;
     };
 
-    NodeCloner.prototype.text = function(value) {
-        this.$content = value;
-        if(typeof value === 'function') {
-            this.cloneNode = (data) => createTextNode(value.apply(null, data));
+    /**
+     * Registers a reactive text content binding for the element.
+     *
+     * @internal
+     * @param {Function} valueorProperty - Function receiving data and returning the text content
+     * @returns {NodeCloner} this
+     */
+    NodeCloner.prototype.text = function(valueorProperty) {
+        this.$content = valueorProperty;
+        if(typeof valueorProperty === 'function') {
+            this.cloneNode = (data) => createTextNode(valueorProperty.apply(null, data));
             return this;
         }
-        this.cloneNode = (data) => createTextNode(data[0][value]);
+        this.cloneNode = (data) => createTextNode(data[0][valueorProperty]);
         return this;
     };
 
+    /**
+     * Registers an attribute binding to be applied on each clone.
+     *
+     * @internal
+     * @param {string} attrName - Attribute name
+     * @param {{property: string, value: *}} value - Function receiving data and returning the attribute value
+     * @returns {NodeCloner} this
+     */
     NodeCloner.prototype.attr = function(attrName, value) {
         if(attrName === 'class') {
             this.$classes = this.$classes || {};
@@ -4819,6 +6356,16 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
+    /**
+     * Applies a binding to a DOM node via its NodeCloner, routing to the correct binding type.
+     * Called internally by TemplateCloner's binder methods (text, style, class, attr, event).
+     *
+     * @internal
+     * @param {Function|string} value - Binding callback or property name
+     * @param {'value'|'style'|'class'|'attach'|string} targetType - Binding type determining which NodeCloner method to call
+     * @param {HTMLElement} element - Target DOM element
+     * @param {string} property - Attribute name or method name (used for 'attach' and 'attr' types)
+     */
     const $hydrateFn = function(value, targetType, element, property) {
         element.nodeCloner = element.nodeCloner || new NodeCloner(element);
         if(targetType === 'value') {
@@ -4832,6 +6379,23 @@ var NativeDocument = (function (exports) {
         element.nodeCloner.attr(targetType, { property, value });
     };
 
+    /**
+     * Creates a high-performance template cloner for repeated rendering of the same structure.
+     * On the first call, builds the template by calling $fn with a binder object.
+     * On subsequent calls, clones the compiled template and hydrates it with new data.
+     * Used internally by ForEachArray and other list renderers.
+     *
+     * @constructor
+     * @param {(binder: TemplateCloner) => HTMLElement} $fn - Function that builds the template using binder methods
+     * @example
+     * const cloner = new TemplateCloner((t) =>
+     *   Div({},
+     *     Span(t.text((item) => item.name)),
+     *     Button({}, 'Delete').nd.onClick(t.event((item) => () => list.removeItem(item)))
+     *   )
+     * );
+     * cloner.clone([item]); // returns a hydrated clone
+     */
     function TemplateCloner($fn) {
         let $node = null;
 
@@ -4876,6 +6440,14 @@ var NativeDocument = (function (exports) {
             return containDynamicNode;
         };
 
+
+        /**
+         * Clones the compiled template and hydrates it with the given data.
+         * On the first call, also compiles the template (builds and optimizes binding steps).
+         *
+         * @param {Array} data - Data array passed to all binding callbacks
+         * @returns {HTMLElement} Cloned and hydrated DOM node
+         */
         this.clone = (data) => {
             const binder = createTemplateCloner(this);
             $node = $fn(binder);
@@ -4894,25 +6466,69 @@ var NativeDocument = (function (exports) {
             });
         };
 
+        /**
+         * Creates a style binding — the result of fn(data) is applied as inline styles.
+         *
+         * @param {((...data: any[]) => Record<string, string>)} fn - Function returning a style object
+         * @returns {TemplateBinding}
+         */
         this.style = (fn) => {
             return createBinding(fn, 'style');
         };
+
+        /**
+         * Creates a class binding — the result of fn(data) is applied as a class map.
+         *
+         * @param {((...data: any[]) => Record<string, boolean>)} fn - Function returning a class map
+         * @returns {TemplateBinding}
+         */
         this.class = (fn) => {
             return createBinding(fn, 'class');
         };
+
         this.property = (propertyName) => {
             return this.value(propertyName);
         };
+
+        /**
+         * Creates a text/value binding — the result is set as text content or input value.
+         * Alias: .text()
+         *
+         * @param {string|(((...data: any[]) => string))} callbackOrProperty - Property name (string) or callback returning the value
+         * @returns {TemplateBinding}
+         */
         this.value = (callbackOrProperty) => {
             return createBinding(callbackOrProperty, 'value');
         };
+
+        /**
+         * Alias for .value() — creates a text content binding.
+         *
+         * @param {string|(((...data: any[]) => string))} callbackOrProperty
+         * @returns {TemplateBinding}
+         */
         this.text = this.value;
+
+        /**
+         * Creates an attribute binding — the result of fn(data) is set as an attribute value.
+         *
+         * @param {((...data: any[]) => string)} fn - Function returning the attribute value
+         * @returns {TemplateBinding}
+         */
         this.attr = (fn) => {
             return createBinding(fn, 'attributes');
         };
+
+        /**
+         * Creates an event binding — fn(data) returns the event handler to attach.
+         *
+         * @param {((...data: any[]) => EventListener)} fn - Function returning the event callback
+         * @returns {TemplateBinding}
+         */
         this.attach = (fn) => {
             return createBinding(fn, 'attach');
         };
+
         this.callback = this.attach;
     }
 
@@ -4925,7 +6541,7 @@ var NativeDocument = (function (exports) {
                 }
                 if (typeof prop === 'symbol') return target[prop];
                 return target.value(prop);
-            }
+            },
         });
     };
 
@@ -4950,10 +6566,34 @@ var NativeDocument = (function (exports) {
         };
     }
 
+    /**
+     * Creates a singleton view — a component that is instantiated only once,
+     * then reused across multiple renders. Useful for performance-critical components
+     * that are frequently shown/hidden or repeated in lists.
+     *
+     * @constructor
+     * @param {(instance: SingletonView) => Node} $viewCreator - Function that builds the view once and returns the root node.
+     * Receives the SingletonView instance so it can call .createSection().
+     * @example
+     * const Card = useSingleton((view) => {
+     *   const nameSection = view.createSection('name');
+     *   return Div({ class: 'card' }, nameSection);
+     * });
+     * Card([{ name: 'John' }]); // Renders once, reused on subsequent calls
+     */
     function SingletonView($viewCreator) {
         let $cacheNode = null;
         let $components = null;
 
+
+        /**
+         * Renders the singleton view with the given data.
+         * On the first call, create the view by calling $viewCreator.
+         * On later calls, updates registered sections via their update functions.
+         *
+         * @param {Array} data - Array where data[0] is an object mapping section names to new content
+         * @returns {Node} The cached root node
+         */
         this.render = (data) => {
             if(!$cacheNode) {
                 $cacheNode = $viewCreator(this);
@@ -4971,6 +6611,18 @@ var NativeDocument = (function (exports) {
             return $cacheNode;
         };
 
+
+        /**
+         * Creates a named anchor section inside the singleton view.
+         * The section can be updated later by passing new content through .render().
+         *
+         * @param {string} name - Unique section name used as the update key
+         * @param {((content: *) => Node)?} [fn] - Optional transform function applied to new content before inserting
+         * @returns {AnchorDocumentFragment} Anchor fragment to place inside the view's DOM
+         * @example
+         * const nameSection = view.createSection('name');
+         * // Later: Card([{ name: 'Jane' }]); // replaces content in nameSection
+         */
         this.createSection = (name, fn) => {
             $components = $components || {};
             const anchor = Anchor('Component ' + name);
@@ -4988,6 +6640,19 @@ var NativeDocument = (function (exports) {
     }
 
 
+    /**
+     * Creates a memoized factory that returns a SingletonView instance.
+     * The singleton is created on the first call and reused for all subsequent calls.
+     *
+     * @param {(instance: SingletonView) => Node} fn - View creator function passed to SingletonView
+     * @returns {(...args: any[]) => Node} Function that renders the singleton with the given data
+     * @example
+     * const Card = useSingleton((view) => {
+     *   const title = view.createSection('title');
+     *   return Div({}, title);
+     * });
+     * Card([{ title: 'Hello' }]);
+     */
     function useSingleton(fn) {
         let $cache = null;
 
@@ -5000,7 +6665,7 @@ var NativeDocument = (function (exports) {
     }
 
     const cssPropertyAccumulator = function(initialValue = {}) {
-        let data = Validator.isString(initialValue) ? initialValue.split(';').filter(Boolean) : initialValue;
+        const data = Validator.isString(initialValue) ? initialValue.split(';').filter(Boolean) : initialValue;
 
         return {
             add(key, value) {
@@ -5027,7 +6692,7 @@ var NativeDocument = (function (exports) {
     };
 
     const classPropertyAccumulator = function(initialValue = []) {
-        let data = Validator.isString(initialValue) ? initialValue.split(" ").filter(Boolean) : initialValue;
+        let data = Validator.isString(initialValue) ? initialValue.split(' ').filter(Boolean) : initialValue;
 
         return {
             add(key, value = true) {
@@ -5070,6 +6735,18 @@ var NativeDocument = (function (exports) {
         };
     };
 
+    /**
+     * Wraps a function so it executes at most once.
+     * Later calls return the cached result without re-executing the function.
+     *
+     * @template T
+     * @param {(...args: any[]) => T} fn - Function to wrap
+     * @returns {(...args: any[]) => T} Memoized function
+     * @example
+     * const init = once(() => expensiveSetup());
+     * init(); // runs setup
+     * init(); // returns cached result
+     */
     const once$1 = (fn) => {
         let result = null;
         return (...args) => {
@@ -5081,6 +6758,18 @@ var NativeDocument = (function (exports) {
         };
     };
 
+    /**
+     * Creates a lazy proxy that calls fn() once on first property access,
+     * then returns properties from the cached result for all later accesses.
+     *
+     * @template T
+     * @param {() => T} fn - Factory function to call once
+     * @returns {T} Proxy to the lazily created object
+     * @example
+     * const store = autoOnce(() => createExpensiveStore());
+     * store.count; // triggers createExpensiveStore() on first access
+     * store.name; // uses a cached result
+     */
     const autoOnce = (fn) => {
         let target = null;
         return new Proxy({}, {
@@ -5090,10 +6779,22 @@ var NativeDocument = (function (exports) {
                 }
                 target = fn();
                 return target[key];
-            }
+            },
         });
     };
 
+    /**
+     * Wraps a function with key-based memoization.
+     * The first argument is used as the cache key; later arguments are passed to fn.
+     *
+     * @template T
+     * @param {(...args: any[]) => T} fn - Function to memoize
+     * @returns {(key: any, ...args: any[]) => T} Memoized function
+     * @example
+     * const getUser = memoize((id) => fetchUser(id));
+     * getUser('user-1', 1); // fetches
+     * getUser('user-1', 1); // returns cached
+     */
     const memoize$1 = (fn) => {
         const cache = new Map();
         return (...args) => {
@@ -5108,6 +6809,23 @@ var NativeDocument = (function (exports) {
         };
     };
 
+    /**
+     * Creates a proxy where each property access memorizes the result of calling fn with the property key.
+     * If fn accepts arguments (fn.length > 0), the proxy returns a memoized function instead.
+     *
+     * @template T
+     * @param {((key: string|symbol, ...args?: any[]) => T)} fn - Factory function
+     * @returns {Record<string|symbol, T>} Proxy with per-key memoized results
+     * @example
+     * // fn with no args — result memoized by key
+     * const icons = autoMemoize((name) => loadIcon(name));
+     * icons.home; // calls loadIcon('home'), caches result
+     * icons.home; // returns cached
+     *
+     * // fn with args — returns a memoized function per key
+     * const formatters = autoMemoize((locale, value) => format(value, locale));
+     * formatters.fr('hello'); // calls format('hello', 'fr'), caches under 'fr'
+     */
     const autoMemoize = (fn) => {
         const cache = new Map();
         return new Proxy({}, {
@@ -5122,12 +6840,12 @@ var NativeDocument = (function (exports) {
                         const result = fn(...args, key);
                         cache.set(key, result);
                         return result;
-                    }
+                    };
                 }
                 const result = fn(key);
                 cache.set(key, result);
                 return result;
-            }
+            },
         });
     };
 
@@ -5144,7 +6862,7 @@ var NativeDocument = (function (exports) {
             if (!item) {
                 DebugManager$2.error('Store', `Store.${method}('${name}') : store not found. Did you call Store.create('${name}') first?`);
                 throw new NativeDocumentError(
-                    `Store.${method}('${name}') : store not found.`
+                    `Store.${method}('${name}') : store not found.`,
                 );
             }
             return item;
@@ -5157,7 +6875,7 @@ var NativeDocument = (function (exports) {
             const readOnlyError = (method) => () => {
                 DebugManager$2.error('Store', `Store.${context}('${name}') is read-only. '${method}()' is not allowed.`);
                 throw new NativeDocumentError(
-                    `Store.${context}('${name}') is read-only.`
+                    `Store.${context}('${name}') is read-only.`,
                 );
             };
             observer.set    = readOnlyError('set');
@@ -5188,7 +6906,7 @@ var NativeDocument = (function (exports) {
                 if ($stores.has(name)) {
                     DebugManager$2.warn('Store', `Store.create('${name}') : a store with this name already exists. Use Store.get('${name}') to retrieve it.`);
                     throw new NativeDocumentError(
-                        `Store.create('${name}') : a store with this name already exists.`
+                        `Store.create('${name}') : a store with this name already exists.`,
                     );
                 }
                 const observer = $createObservable(value);
@@ -5209,7 +6927,7 @@ var NativeDocument = (function (exports) {
                 if ($stores.has(name)) {
                     DebugManager$2.warn('Store', `Store.createResettable('${name}') : a store with this name already exists.`);
                     throw new NativeDocumentError(
-                        `Store.createResettable('${name}') : a store with this name already exists.`
+                        `Store.createResettable('${name}') : a store with this name already exists.`,
                     );
                 }
                 const observer = $createObservable(value, { reset: true });
@@ -5245,17 +6963,17 @@ var NativeDocument = (function (exports) {
                 if ($stores.has(name)) {
                     DebugManager$2.warn('Store', `Store.createComposed('${name}') : a store with this name already exists.`);
                     throw new NativeDocumentError(
-                        `Store.createComposed('${name}') : a store with this name already exists.`
+                        `Store.createComposed('${name}') : a store with this name already exists.`,
                     );
                 }
                 if (typeof computation !== 'function') {
                     throw new NativeDocumentError(
-                        `Store.createComposed('${name}') : computation must be a function.`
+                        `Store.createComposed('${name}') : computation must be a function.`,
                     );
                 }
                 if (!Array.isArray(dependencies) || dependencies.length === 0) {
                     throw new NativeDocumentError(
-                        `Store.createComposed('${name}') : dependencies must be a non-empty array of store names.`
+                        `Store.createComposed('${name}') : dependencies must be a non-empty array of store names.`,
                     );
                 }
 
@@ -5268,7 +6986,7 @@ var NativeDocument = (function (exports) {
                     if (!depItem) {
                         DebugManager$2.error('Store', `Store.createComposed('${name}') : dependency '${depName}' not found. Create it first.`);
                         throw new NativeDocumentError(
-                            `Store.createComposed('${name}') : dependency store '${depName}' not found.`
+                            `Store.createComposed('${name}') : dependency store '${depName}' not found.`,
                         );
                     }
                     return depItem.observer;
@@ -5302,13 +7020,13 @@ var NativeDocument = (function (exports) {
                 if (item.composed) {
                     DebugManager$2.error('Store', `Store.reset('${name}') : composed stores cannot be reset. Their value is derived from dependencies.`);
                     throw new NativeDocumentError(
-                        `Store.reset('${name}') : composed stores cannot be reset.`
+                        `Store.reset('${name}') : composed stores cannot be reset.`,
                     );
                 }
                 if (!item.resettable) {
                     DebugManager$2.error('Store', `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`);
                     throw new NativeDocumentError(
-                        `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`
+                        `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`,
                     );
                 }
                 item.observer.reset();
@@ -5329,7 +7047,7 @@ var NativeDocument = (function (exports) {
                 if (item.composed) {
                     DebugManager$2.error('Store', `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`);
                     throw new NativeDocumentError(
-                        `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`
+                        `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`,
                     );
                 }
 
@@ -5498,7 +7216,7 @@ var NativeDocument = (function (exports) {
                 };
 
                 return observer;
-            }
+            },
         };
 
 
@@ -5519,11 +7237,11 @@ var NativeDocument = (function (exports) {
             },
             set(target, prop, value) {
                 DebugManager$2.error('Store', `Forbidden: You cannot overwrite the store key '${String(prop)}'. Use .use('${String(prop)}').set(value) instead.`);
-                throw new NativeDocumentError(`Store structure is immutable. Use .set() on the observable.`);
+                throw new NativeDocumentError('Store structure is immutable. Use .set() on the observable.');
             },
             deleteProperty(target, prop) {
-                throw new NativeDocumentError(`Store keys cannot be deleted.`);
-            }
+                throw new NativeDocumentError('Store keys cannot be deleted.');
+            },
         });
     };
 
@@ -5559,7 +7277,7 @@ var NativeDocument = (function (exports) {
         const blockEnd = element.endElement();
         element.startElement();
 
-        let cache = new Map();
+        const cache = new Map();
         let lastKeyOrder = null;
         const keyIds = new Set();
 
@@ -5603,9 +7321,9 @@ var NativeDocument = (function (exports) {
 
             try {
                 const indexObserver = callback.length >= 2 ? Observable(indexKey) : null;
-                let child = ElementCreator.getChild(callback(item, indexObserver));
+                const child = ElementCreator.getChild(callback(item, indexObserver));
                 if(!child) {
-                    throw new NativeDocumentError("ForEach child can't be null or undefined!");
+                    throw new NativeDocumentError('ForEach child can\'t be null or undefined!');
                 }
                 cache.set(keyId, { keyId, isNew: true, child: new WeakRef(child), indexObserver});
             } catch (e) {
@@ -5629,7 +7347,7 @@ var NativeDocument = (function (exports) {
         };
 
         const diffingDOMUpdates = (parent) => {
-            let fragment = document.createDocumentFragment();
+            const fragment = document.createDocumentFragment();
             const newKeys = Array.from(keyIds);
             Array.from(lastKeyOrder);
 
@@ -5718,7 +7436,7 @@ var NativeDocument = (function (exports) {
         const element = Anchor('ForEach Array', configs.isParentUniqueChild);
         const blockEnd = element.endElement();
 
-        let cache = new Map();
+        const cache = new Map();
         let lastNumberOfItems = 0;
         const isIndexRequired = callback.length >= 2;
 
@@ -5749,7 +7467,7 @@ var NativeDocument = (function (exports) {
             const child = ElementCreator.getChild(callback(item, null));
             {
                 if(!child) {
-                    throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
+                    throw new NativeDocumentError('ForEachArray child can\'t be null or undefined!');
                 }
             }
             cache.set(item, { child, indexObserver: null });
@@ -5761,7 +7479,7 @@ var NativeDocument = (function (exports) {
             const child = ElementCreator.getChild(callback(item, indexObserver));
             {
                 if(!child) {
-                    throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
+                    throw new NativeDocumentError('ForEachArray child can\'t be null or undefined!');
                 }
             }
             cache.set(item, { child, indexObserver  });
@@ -5772,7 +7490,7 @@ var NativeDocument = (function (exports) {
                 const child = ElementCreator.getChild(callback(item, indexKey));
                 {
                     if(!child) {
-                        throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
+                        throw new NativeDocumentError('ForEachArray child can\'t be null or undefined!');
                     }
                 }
                 cache.set(item, { child, indexObserver: null  });
@@ -5902,7 +7620,7 @@ var NativeDocument = (function (exports) {
                 const garbageFragment = document.createDocumentFragment();
 
                 if(deleted.length > 0) {
-                    let firstItem = deleted[0];
+                    const firstItem = deleted[0];
                     if(deleted.length === 1) {
                         removeByItem(firstItem, garbageFragment);
                     } else if(deleted.length > 1) {
@@ -5954,7 +7672,7 @@ var NativeDocument = (function (exports) {
                 parent.insertBefore(childA, childBNext);
                 childA = null;
                 childB = null;
-            }
+            },
         };
         Actions.merge = Actions.add;
         Actions.push = Actions.add;
@@ -5995,11 +7713,11 @@ var NativeDocument = (function (exports) {
      */
     const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
         if(!Validator.isObservable(condition)) {
-            if(typeof condition === "boolean") {
+            if(typeof condition === 'boolean') {
                 return condition ? ElementCreator.getChild(child) : null;
             }
 
-            return DebugManager$2.warn('ShowIf', "ShowIf : condition must be an Observable or boolean / "+comment, condition);
+            return DebugManager$2.warn('ShowIf', 'ShowIf : condition must be an Observable or boolean / '+comment, condition);
         }
         const element = Anchor('Show if : '+(comment || ''));
 
@@ -6022,7 +7740,7 @@ var NativeDocument = (function (exports) {
         }
 
         condition.subscribe((value) => {
-            if(!!value) {
+            if(value) {
                 element.appendChild(getChildElement());
                 return;
             }
@@ -6097,7 +7815,7 @@ var NativeDocument = (function (exports) {
             if(!Validator.isObservableWhenResult(observer)) {
                 throw new NativeDocumentError('showWhen observer must be an ObservableWhenResult', {
                     data: observer,
-                    'help': 'Use observer.when(target) to create an ObservableWhenResult'
+                    'help': 'Use observer.when(target) to create an ObservableWhenResult',
                 });
             }
             return ShowIf(observer, target);
@@ -6115,7 +7833,7 @@ var NativeDocument = (function (exports) {
             data: [
                 'showWhen(observer, target, view)',
                 'showWhen(observerWhenResult, view)',
-            ]
+            ],
         });
     };
 
@@ -6142,7 +7860,7 @@ var NativeDocument = (function (exports) {
     const Match = function($condition, values, shouldKeepInCache = true) {
 
         if(!Validator.isObservable($condition)) {
-            throw new NativeDocumentError("Toggle : condition must be an Observable");
+            throw new NativeDocumentError('Toggle : condition must be an Observable');
         }
 
         const anchor = Anchor('Match');
@@ -6189,7 +7907,7 @@ var NativeDocument = (function (exports) {
                 shouldKeepInCache && cache.delete(key);
                 $condition.set([...cache.keys()].at(-1) ?? '');
                 delete values[key];
-            }
+            },
         });
     };
 
@@ -6211,7 +7929,7 @@ var NativeDocument = (function (exports) {
      */
     const Switch = function ($condition, onTrue, onFalse) {
         if(!Validator.isObservable($condition)) {
-            throw new NativeDocumentError("Toggle : condition must be an Observable");
+            throw new NativeDocumentError('Toggle : condition must be an Observable');
         }
 
         return Match($condition.toBoolean(), {
@@ -6233,7 +7951,7 @@ var NativeDocument = (function (exports) {
      */
     const When = function($condition) {
         if(!Validator.isObservable($condition)) {
-            throw new NativeDocumentError("When : condition must be an Observable");
+            throw new NativeDocumentError('When : condition must be an Observable');
         }
 
         let $onTrue = null;
@@ -6250,8 +7968,8 @@ var NativeDocument = (function (exports) {
             },
             toNdElement() {
                 return Switch($condition, $onTrue, $onFalse);
-            }
-        }
+            },
+        };
     };
 
     /**
@@ -7321,7 +9039,7 @@ var NativeDocument = (function (exports) {
         $path = '/'+trim($path, '/').replace(/\/+/, '/');
 
         let $pattern = null;
-        let $name = $options.name || null;
+        const $name = $options.name || null;
 
         const $middlewares = $options.middlewares || [];
         const $shouldRebuild = $options.shouldRebuild || false;
@@ -7471,7 +9189,7 @@ var NativeDocument = (function (exports) {
                 }
             }
             return null;
-        }
+        },
     };
 
     function HashRouter() {
@@ -7705,6 +9423,9 @@ var NativeDocument = (function (exports) {
 
         let $lastNodeInserted  = null;
 
+        const $lifecycles = new Map();
+        let $currentPath = null;
+
         const getNodeAnchorForLayout = (node, path) => {
             const existingAnchor = $routeInstanceAnchors.get(node);
             if(existingAnchor) {
@@ -7742,7 +9463,7 @@ var NativeDocument = (function (exports) {
         };
 
         const updateContainerByLayout = (layout, node, route, path) => {
-            let nodeToInsert = getNodeToInsert(node);
+            const nodeToInsert = getNodeToInsert(node);
 
             const cachedLayout = $layoutCache.get(nodeToInsert);
             if(cachedLayout) {
@@ -7776,7 +9497,7 @@ var NativeDocument = (function (exports) {
                 updateContainerByLayout(layout, node, route, path);
                 return;
             }
-            let nodeToInsert = getNodeToInsert(node);
+            const nodeToInsert = getNodeToInsert(node);
 
             cleanContainer();
             container.appendChild(nodeToInsert);
@@ -7787,16 +9508,39 @@ var NativeDocument = (function (exports) {
             if(!state.route) {
                 return;
             }
+
             const { route, params, query, path } = state;
+
+            if($currentPath && $currentPath !== path) {
+                $lifecycles.get($currentPath)?.onLeave?.();
+            }
+
             if($cache.has(path)) {
                 const cacheNode = $cache.get(path);
                 updateContainer(cacheNode, route);
+
+                $lifecycles.get(path)?.onEnter?.(params, query);
+                $currentPath = path;
+
                 return;
             }
+            const pathLifecycles = {};
+            $lifecycles.set(path, pathLifecycles);
+
+
+
             const Component = route.component();
-            const node = Component({ params, query });
+            const node = Component({
+                params,
+                query,
+                onEnter: (cb) => { pathLifecycles.onEnter = cb; },
+                onLeave: (cb) => { pathLifecycles.onLeave = cb; },
+            });
             $cache.set(path, node);
             updateContainer(node, route, path);
+
+            pathLifecycles.onEnter?.(params, query);
+            $currentPath = path;
         };
 
         router.subscribe(handleCurrentRouterState);
@@ -7858,7 +9602,7 @@ var NativeDocument = (function (exports) {
                 ...options,
                 middlewares: RouteGroupHelper.fullMiddlewares($groupTree, options?.middlewares || []),
                 name: options?.name ? RouteGroupHelper.fullName($groupTree, options.name) : null,
-                layout: options?.layout || RouteGroupHelper.layout($groupTree)
+                layout: options?.layout || RouteGroupHelper.layout($groupTree),
             });
             $routes.push(route);
             if(route.name()) {
@@ -7921,7 +9665,7 @@ var NativeDocument = (function (exports) {
                         route,
                         params: [],
                         query: [],
-                        path: route.url({ name: target })
+                        path: route.url({ name: target }),
                     };
                 }
             }
@@ -7934,7 +9678,7 @@ var NativeDocument = (function (exports) {
                     route,
                     params: target.params,
                     query: target.query,
-                    path: route.url({ ...target })
+                    path: route.url({ ...target }),
                 };
             }
 
@@ -8121,7 +9865,7 @@ var NativeDocument = (function (exports) {
 
         const $interceptors = {
             request: [],
-            response: []
+            response: [],
         };
 
         this.interceptors = {
@@ -8130,7 +9874,7 @@ var NativeDocument = (function (exports) {
             },
             request: (callback) => {
                 $interceptors.request.push(callback);
-            }
+            },
         };
 
         this.fetch = async function(method, endpoint, params = {}, options = {}) {
@@ -8147,7 +9891,7 @@ var NativeDocument = (function (exports) {
             let configs = {
                 method,
                 headers: {
-                    ...(options.headers || {})
+                    ...(options.headers || {}),
                 },
             };
             if(params) {

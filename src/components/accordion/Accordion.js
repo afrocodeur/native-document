@@ -1,6 +1,6 @@
 import BaseComponent from '../BaseComponent';
 import HasEventEmitter from '../../core/utils/HasEventEmitter';
-import AccordionItem from './types/AccordionItem';
+import AccordionItem from './AccordionItem';
 
 /**
  * Collapsible accordion component. Manages a list of AccordionItem instances with expand/collapse behaviour.

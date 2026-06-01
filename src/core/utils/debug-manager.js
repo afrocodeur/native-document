@@ -5,7 +5,7 @@ if(process.env.NODE_ENV === 'development') {
         enabled: true,
 
         enable() {
-            DebugManager.log('🔍 NativeDocument Debug Mode enabled');
+            DebugManager.log('NativeDocument Debug Mode enabled');
         },
 
         disable() {
@@ -13,18 +13,18 @@ if(process.env.NODE_ENV === 'development') {
         },
 
         log(category, message, data) {
-            console.group(`🔍 [${category}] ${message}`);
+            console.group(`[${category}] ${message}`);
             if (data) console.log(data);
             console.trace();
             console.groupEnd();
         },
 
         warn(category, message, data) {
-            console.warn(`⚠️ [${category}] ${message}`, data);
+            console.warn(`[${category}] ${message}`, data);
         },
 
         error(category, message, error) {
-            console.error(`❌ [${category}] ${message}`, error);
+            console.error(`[${category}] ${message}`, error);
         },
     };
 

@@ -1,4 +1,4 @@
-import Stack from './types/Stack';
+import Stack from './Stack';
 import DebugManager from '../../core/utils/debug-manager';
 import BaseComponent from '../BaseComponent';
 

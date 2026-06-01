@@ -1,4 +1,4 @@
-import Pagination from './types/Pagination';
+import Pagination from './Pagination';
 
 export {
     Pagination,

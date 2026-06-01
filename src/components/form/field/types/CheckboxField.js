@@ -1,4 +1,4 @@
-import Field from '../../types/Field';
+import Field from '../../field/Field';
 import Validator from '../../../../core/utils/validator';
 
 /**

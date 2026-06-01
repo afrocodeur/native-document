@@ -16,6 +16,9 @@ export function RouterComponent(router, container) {
 
     let $lastNodeInserted  = null;
 
+    const $lifecycles = new Map();
+    let $currentPath = null;
+
     const getNodeAnchorForLayout = (node, path) => {
         const existingAnchor = $routeInstanceAnchors.get(node);
         if(existingAnchor) {
@@ -98,16 +101,39 @@ export function RouterComponent(router, container) {
         if(!state.route) {
             return;
         }
+
         const { route, params, query, path } = state;
+
+        if($currentPath && $currentPath !== path) {
+            $lifecycles.get($currentPath)?.onLeave?.();
+        }
+
         if($cache.has(path)) {
             const cacheNode = $cache.get(path);
             updateContainer(cacheNode, route);
+
+            $lifecycles.get(path)?.onEnter?.(params, query);
+            $currentPath = path;
+
             return;
         }
+        const pathLifecycles = {};
+        $lifecycles.set(path, pathLifecycles);
+
+
+
         const Component = route.component();
-        const node = Component({ params, query });
+        const node = Component({
+            params,
+            query,
+            onEnter: (cb) => { pathLifecycles.onEnter = cb; },
+            onLeave: (cb) => { pathLifecycles.onLeave = cb; },
+        });
         $cache.set(path, node);
         updateContainer(node, route, path);
+
+        pathLifecycles.onEnter?.(params, query);
+        $currentPath = path;
     };
 
     router.subscribe(handleCurrentRouterState);

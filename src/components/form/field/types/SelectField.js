@@ -1,4 +1,4 @@
-import Field from '../../types/Field';
+import Field from '../../field/Field';
 
 /**
  * Select/dropdown field supporting single and multiple selection, search, groups,

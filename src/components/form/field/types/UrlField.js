@@ -1,4 +1,4 @@
-import StringField from '../../types/fields/StringField';
+import StringField from '../../field/types/StringField';
 import {Validation} from '../../validation/Validation';
 
 /**

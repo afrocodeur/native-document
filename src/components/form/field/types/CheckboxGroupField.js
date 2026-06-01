@@ -1,4 +1,4 @@
-import Field from '../../types/Field';
+import Field from '../../field/Field';
 
 /**
  * Group of checkboxes for multi-value selection. Supports vertical/horizontal/grid layout

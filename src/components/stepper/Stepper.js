@@ -2,7 +2,7 @@ import BaseComponent from '../BaseComponent';
 import HasEventEmitter from '../../core/utils/HasEventEmitter';
 import { $ } from '../../core/data/Observable';
 import DebugManager from '../../core/utils/debug-manager';
-import StepperStep from './types/StepperStep';
+import StepperStep from './StepperStep';
 
 /**
  * Multi-step wizard. Supports linear/non-linear modes, horizontal/vertical orientation, editable steps, and step indicator rendering.

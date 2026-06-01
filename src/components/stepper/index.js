@@ -1,5 +1,5 @@
-import Stepper from './types/Stepper';
-import StepperStep from './types/StepperStep';
+import Stepper from './Stepper';
+import StepperStep from './StepperStep';
 
 
 export {

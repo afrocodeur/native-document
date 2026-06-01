@@ -1,5 +1,5 @@
 import {Validation} from '../../validation/Validation';
-import Field from '../../types/Field';
+import Field from '../../field/Field';
 
 /**
  * Numeric input field. Supports min/max/between validation, integer, positive/negative,

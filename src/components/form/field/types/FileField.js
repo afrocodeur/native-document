@@ -1,7 +1,7 @@
-import Field from '../../types/Field';
+import Field from '../../field/Field';
 import {Validation} from '../../validation/Validation';
 import { $ } from '../../../../core/data/Observable';
-import FileItemPreview from '../../types/fields/FileItemPreview';
+import FileItemPreview from '../../field/types/file-field-mode/FileItemPreview';
 
 /**
  * File upload field. Supports single/multiple files, MIME type and extension filtering,
