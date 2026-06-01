@@ -1,4 +1,4 @@
-import {$} from "../../../core/data/Observable";
+import {$} from '../../../core/data/Observable';
 
 /**
  * Mixin for managing a collection of items with manipulation methods

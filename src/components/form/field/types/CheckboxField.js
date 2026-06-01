@@ -1,5 +1,5 @@
-import Field from "../../types/Field";
-import Validator from "../../../../core/utils/validator";
+import Field from '../../types/Field';
+import Validator from '../../../../core/utils/validator';
 
 /**
  * Single checkbox field for boolean values. Supports reactive model binding.

@@ -10,10 +10,10 @@ import {
     Td,
     THead,
     THeadCell,
-    TRow
-} from "../../../../../elements";
-import { $ } from "../../../../core/data/Observable";
-import {classPropertyAccumulator} from "../../../../core/utils/property-accumulator";
+    TRow,
+} from '../../../../../elements';
+import { $ } from '../../../../core/data/Observable';
+import {classPropertyAccumulator} from '../../../../core/utils/property-accumulator';
 
 export const buildTable = ($desc, instance, visibleColumns) => {
     const thead = $desc.noHeader ? null : buildTHead($desc, instance, visibleColumns);
@@ -53,21 +53,21 @@ export const buildTHead = ($desc, instance, visibleColumns) => {
             : $descCol.header;
 
         const classes = {
-            'is-sortable': isSortable
+            'is-sortable': isSortable,
         };
 
         if($descCol.align) {
             if($descCol.align.__$Observable) {
-                classes['_'] = $descCol.align.transform((v) => `is-align-${v}`)
+                classes['_'] = $descCol.align.transform((v) => `is-align-${v}`);
             } else {
-                classes[`is-align-${$descCol.align}`] = true
+                classes[`is-align-${$descCol.align}`] = true;
             }
         }
         if($descCol.pinned) {
             if($descCol.pinned.__$Observable) {
-                classes['__'] = $descCol.pinned.transform((v) => `is-pinned-${v}`)
+                classes['__'] = $descCol.pinned.transform((v) => `is-pinned-${v}`);
             } else {
-                classes[`is-pinned-${$descCol.pinned}`] = true
+                classes[`is-pinned-${$descCol.pinned}`] = true;
             }
         }
 
@@ -216,13 +216,13 @@ export const buildTBody = ($desc, instance, visibleColumns) => {
 export const buildEmpty = ($desc, visibleColumns) => {
     if(!$desc.empty) return null;
 
-    let colspan
+    let colspan;
     if(visibleColumns.__$Observable) {
         colspan = visibleColumns.transform((columns) => {
             return columns.length
                 + ($desc.selectable ? 1 : 0)
-                + ($desc.expandable ? 1 : 0)
-        })
+                + ($desc.expandable ? 1 : 0);
+        });
     } else {
         colspan = visibleColumns.length
             + ($desc.selectable ? 1 : 0)
@@ -235,7 +235,7 @@ export const buildEmpty = ($desc, visibleColumns) => {
 
     return ShowIf($desc.data?.is(items => items.length === 0), () => {
         return TRow(Td({ colspan }, [
-            Div({ class: 'data-table-empty' }, content)
+            Div({ class: 'data-table-empty' }, content),
         ]));
     });
 };
@@ -243,7 +243,7 @@ export const buildEmpty = ($desc, visibleColumns) => {
 export const buildLoading = ($desc) => {
 
     return ShowIf($desc.loading, () => {
-        return Div({ class: 'data-table-loading' }, Span({class: 'data-table-spinner'}))
+        return Div({ class: 'data-table-loading' }, Span({class: 'data-table-spinner'}));
     });
 };
 
@@ -267,8 +267,8 @@ export const buildRow = ($desc, instance, visibleColumns, row) => {
 
         cells.push(
             ShowIf($desc.selectable,
-                () => TBodyCell({class: 'data-table-td-checkbox'}, checkbox)
-            )
+                () => TBodyCell({class: 'data-table-td-checkbox'}, checkbox),
+            ),
         );
     }
 
@@ -276,8 +276,8 @@ export const buildRow = ($desc, instance, visibleColumns, row) => {
     let detailRow = null;
     if($desc.expandable) {
         const $isExpanded = $(false);
-        const toggleBtn   = Span({class: 'data-table-expand-btn',},
-            Switch($isExpanded, $desc.isExpandedIcon, $desc.isNotExpandedIcon)
+        const toggleBtn   = Span({class: 'data-table-expand-btn'},
+            Switch($isExpanded, $desc.isExpandedIcon, $desc.isNotExpandedIcon),
         );
 
         toggleBtn.nd.onClick(() => {
@@ -301,16 +301,16 @@ export const buildRow = ($desc, instance, visibleColumns, row) => {
         const classProperty = classPropertyAccumulator($descCol.props?.class || {});
         if($descCol.align) {
             if($descCol.align.__$Observable) {
-                classProperty.add($descCol.align.transform((v) => `is-align-${v}`))
+                classProperty.add($descCol.align.transform((v) => `is-align-${v}`));
             } else {
-                classProperty.add(`is-align-${$descCol.align}`, true)
+                classProperty.add(`is-align-${$descCol.align}`, true);
             }
         }
         if($descCol.pinned) {
             if($descCol.pinned.__$Observable) {
-                classProperty.add($descCol.pinned.transform((v) => `is-pinned-${v}`))
+                classProperty.add($descCol.pinned.transform((v) => `is-pinned-${v}`));
             } else {
-                classProperty.add(`is-pinned-${$descCol.pinned}`, true)
+                classProperty.add(`is-pinned-${$descCol.pinned}`, true);
             }
         }
 
@@ -353,7 +353,7 @@ export const buildDetailRow = ($desc, visibleColumns, row) => {
             return columns.length
                 + ($desc.selectable ? 1 : 0)
                 + ($desc.expandable ? 1 : 0);
-        })
+        });
     } else {
         colspan = visibleColumns.length
             + ($desc.selectable ? 1 : 0)
@@ -363,6 +363,6 @@ export const buildDetailRow = ($desc, visibleColumns, row) => {
     const content = $desc.expandable(row);
 
     return TRow({class: 'data-table-detail-row'},
-        TBodyCell({colspan, class: 'data-table-detail-cell'}, content)
+        TBodyCell({colspan, class: 'data-table-detail-cell'}, content),
     );
 };

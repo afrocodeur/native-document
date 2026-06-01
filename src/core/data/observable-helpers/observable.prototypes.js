@@ -10,11 +10,11 @@
  * isLoading.subscribe(active => console.log('Loading:', active));
  * status.set('loading'); // Logs: "Loading: true"
  */
-import {ObservableWhen} from "../ObservableWhen";
-import ObservableItem from "../ObservableItem";
-import ObservableChecker from "../ObservableChecker";
-import {Formatters} from "../../utils/formatters";
-import NativeDocumentError from "../../errors/NativeDocumentError";
+import {ObservableWhen} from '../ObservableWhen';
+import ObservableItem from '../ObservableItem';
+import ObservableChecker from '../ObservableChecker';
+import {Formatters} from '../../utils/formatters';
+import NativeDocumentError from '../../errors/NativeDocumentError';
 
 ObservableItem.prototype.when = function(value) {
     return new ObservableWhen(this, value);
@@ -28,7 +28,7 @@ ObservableItem.prototype.when = function(value) {
  * @returns {ObservableChecker}
  */
 ObservableItem.prototype.check = function(callback) {
-    return new ObservableChecker(this, callback)
+    return new ObservableChecker(this, callback);
 };
 
 ObservableItem.prototype.transform = ObservableItem.prototype.check;
@@ -129,7 +129,7 @@ ObservableItem.prototype.format = function(type, options = {}) {
     if (process.env.NODE_ENV === 'development') {
         if (!Formatters[type]) {
             throw new NativeDocumentError(
-                `Observable.format : unknown type '${type}'. Available : ${Object.keys(Formatters).join(', ')}.`
+                `Observable.format : unknown type '${type}'. Available : ${Object.keys(Formatters).join(', ')}.`,
             );
         }
     }
@@ -138,6 +138,6 @@ ObservableItem.prototype.format = function(type, options = {}) {
     const localeObservable = Formatters.locale;
 
     return ObservableItem.computed(() => formatter(self.val(), localeObservable.val(), options),
-        [self, localeObservable]
+        [self, localeObservable],
     );
 };

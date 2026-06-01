@@ -1,8 +1,8 @@
-import DropdownItem from "./types/DropdownItem";
-import BaseComponent from "../BaseComponent";
-import DropdownDivider from "./types/DropdownDivider";
-import { $ } from "../../core/data/Observable";
-import {normalizeDropdownItem} from "./helpers";
+import DropdownItem from './types/DropdownItem';
+import BaseComponent from '../BaseComponent';
+import DropdownDivider from './types/DropdownDivider';
+import { $ } from '../../core/data/Observable';
+import {normalizeDropdownItem} from './helpers';
 
 /**
  * Groups DropdownItem instances under a heading inside a Dropdown.

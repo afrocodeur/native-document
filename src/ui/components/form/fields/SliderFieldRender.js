@@ -114,18 +114,18 @@ const buildTrack = ($desc, $pct) => {
     } else {
         if(isVertical) {
             style = {
-                height: $pct.transform((v) => v+'%')
+                height: $pct.transform((v) => v+'%'),
             };
         } else {
             style = {
-                width: $pct.transform((v) => v+'%')
+                width: $pct.transform((v) => v+'%'),
             };
         }
     }
 
     const fill = Div({
         class: 'slider-fill',
-        style
+        style,
     });
 
     return Div({class: 'slider-track'}, fill);
@@ -193,7 +193,7 @@ const buildThumb = ($desc, instance, $pct, $value, role) => {
         if(isVertical) {
             position = 'right';
             style = {
-                bottom: $pct.transform(p => `calc(${p}% - 9px)`)
+                bottom: $pct.transform(p => `calc(${p}% - 9px)`),
             };
         } else {
             position = 'top';
@@ -262,7 +262,7 @@ const buildMarks = ($desc) => {
                 Div({class: 'slider-mark-dot'}),
                 mark.label ? Span({class: 'slider-mark-label'}, mark.label) : null,
             ].filter(Boolean));
-        })
+        }),
     );
 };
 
@@ -341,7 +341,7 @@ const setValue = ($desc, instance, $value, val, role) => {
 
     if($desc.snapToMarks && $desc.marks?.length) {
         const closest = $desc.marks.reduce((prev, curr) =>
-            Math.abs(curr.value - clamped) < Math.abs(prev.value - clamped) ? curr : prev
+            Math.abs(curr.value - clamped) < Math.abs(prev.value - clamped) ? curr : prev,
         );
         $value.set(closest.value);
         instance.emit('change', closest.value);

@@ -1,5 +1,5 @@
-import {Observable} from "../../core/data/Observable";
-import Validator from "../../core/utils/validator";
+import {Observable} from '../../core/data/Observable';
+import Validator from '../../core/utils/validator';
 
 export const getParams = (params) => {
     if(!params) {

@@ -20,8 +20,8 @@ export default function TimeFieldRender($desc, instance) {
         content.push(
             Switch($desc.range,
                 () => buildRangeWrapper($desc, instance),
-                () => buildSingleWrapper($desc, instance)
-            )
+                () => buildSingleWrapper($desc, instance),
+            ),
         );
     } else {
         content.push(buildSingleWrapper($desc, instance));
@@ -76,7 +76,7 @@ const buildRangeWrapper = ($desc, instance) => {
             const start = $desc.valueStart.val();
             const end = $desc.valueEnd.val();
             if(start && end && getSeconds(end) < getSeconds(start)) {
-                $desc.valueEnd.set(start)
+                $desc.valueEnd.set(start);
             }
             instance.emit('change', {start, end});
         };

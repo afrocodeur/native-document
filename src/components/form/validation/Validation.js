@@ -1,4 +1,4 @@
-import Validator from "../../../core/utils/validator";
+import Validator from '../../../core/utils/validator';
 
 export const Validation = {
 
@@ -6,7 +6,7 @@ export const Validation = {
         const valid = value !== null && value !== undefined && value !== '';
         return {
             valid,
-            message: 'This field is required'
+            message: 'This field is required',
         };
     },
 
@@ -15,7 +15,7 @@ export const Validation = {
         const valid = value.length >= min;
         return {
             valid,
-            message: `Minimum ${min} characters required`
+            message: `Minimum ${min} characters required`,
         };
     },
 
@@ -24,7 +24,7 @@ export const Validation = {
         const valid = value.length <= max;
         return {
             valid,
-            message: `Maximum ${max} characters allowed`
+            message: `Maximum ${max} characters allowed`,
         };
     },
 
@@ -33,7 +33,7 @@ export const Validation = {
         const valid = value.length === length;
         return {
             valid,
-            message: `Must be exactly ${length} characters`
+            message: `Must be exactly ${length} characters`,
         };
     },
 
@@ -43,7 +43,7 @@ export const Validation = {
         const valid = regex.test(value);
         return {
             valid,
-            message: 'Invalid email address'
+            message: 'Invalid email address',
         };
     },
 
@@ -52,7 +52,7 @@ export const Validation = {
         const valid = regex.test(value);
         return {
             valid,
-            message: 'Invalid format'
+            message: 'Invalid format',
         };
     },
 
@@ -61,7 +61,7 @@ export const Validation = {
         const valid = /^[a-zA-Z]+$/.test(value);
         return {
             valid,
-            message: 'Only letters allowed'
+            message: 'Only letters allowed',
         };
     },
 
@@ -70,7 +70,7 @@ export const Validation = {
         const valid = /^[0-9]+$/.test(value);
         return {
             valid,
-            message: 'Only numbers allowed'
+            message: 'Only numbers allowed',
         };
     },
 
@@ -79,7 +79,7 @@ export const Validation = {
         const valid = /^[a-zA-Z0-9]+$/.test(value);
         return {
             valid,
-            message: 'Only letters and numbers allowed'
+            message: 'Only letters and numbers allowed',
         };
     },
 
@@ -88,7 +88,7 @@ export const Validation = {
         const valid = Number(value) >= min;
         return {
             valid,
-            message: `Minimum value is ${min}`
+            message: `Minimum value is ${min}`,
         };
     },
 
@@ -97,7 +97,7 @@ export const Validation = {
         const valid = Number(value) <= max;
         return {
             valid,
-            message: `Maximum value is ${max}`
+            message: `Maximum value is ${max}`,
         };
     },
 
@@ -107,7 +107,7 @@ export const Validation = {
         const valid = num >= min && num <= max;
         return {
             valid,
-            message: `Value must be between ${min} and ${max}`
+            message: `Value must be between ${min} and ${max}`,
         };
     },
 
@@ -116,7 +116,7 @@ export const Validation = {
         const valid = /^-?\d+$/.test(value);
         return {
             valid,
-            message: 'Must be an integer'
+            message: 'Must be an integer',
         };
     },
 
@@ -125,7 +125,7 @@ export const Validation = {
         const valid = Number(value) > 0;
         return {
             valid,
-            message: 'Must be positive'
+            message: 'Must be positive',
         };
     },
 
@@ -134,7 +134,7 @@ export const Validation = {
         const valid = Number(value) < 0;
         return {
             valid,
-            message: 'Must be negative'
+            message: 'Must be negative',
         };
     },
 
@@ -142,7 +142,7 @@ export const Validation = {
         const valid = value === otherValue;
         return {
             valid,
-            message: 'Values must match'
+            message: 'Values must match',
         };
     },
 
@@ -150,7 +150,7 @@ export const Validation = {
         const valid = value !== otherValue;
         return {
             valid,
-            message: 'Values must be different'
+            message: 'Values must be different',
         };
     },
 
@@ -162,7 +162,7 @@ export const Validation = {
         } catch {
             return {
                 valid: false,
-                message: 'Invalid URL'
+                message: 'Invalid URL',
             };
         }
     },
@@ -174,7 +174,7 @@ export const Validation = {
         const valid = regex.test(value);
         return {
             valid,
-            message: 'Invalid phone number'
+            message: 'Invalid phone number',
         };
     },
 
@@ -184,7 +184,7 @@ export const Validation = {
         const valid = !isNaN(date.getTime());
         return {
             valid,
-            message: 'Invalid date'
+            message: 'Invalid date',
         };
     },
 
@@ -195,7 +195,7 @@ export const Validation = {
         const valid = date > compareDate;
         return {
             valid,
-            message: `Date must be after ${afterDate}`
+            message: `Date must be after ${afterDate}`,
         };
     },
 
@@ -206,7 +206,7 @@ export const Validation = {
         const valid = date < compareDate;
         return {
             valid,
-            message: `Date must be before ${beforeDate}`
+            message: `Date must be before ${beforeDate}`,
         };
     },
 
@@ -216,7 +216,7 @@ export const Validation = {
         const mb = (maxBytes / (1024 * 1024)).toFixed(2);
         return {
             valid,
-            message: `File size must not exceed ${mb}MB`
+            message: `File size must not exceed ${mb}MB`,
         };
     },
 
@@ -225,7 +225,7 @@ export const Validation = {
         const valid = allowedTypes.includes(file.type);
         return {
             valid,
-            message: `Allowed types: ${allowedTypes.join(', ')}`
+            message: `Allowed types: ${allowedTypes.join(', ')}`,
         };
     },
 
@@ -234,7 +234,7 @@ export const Validation = {
         const valid = value === value.toLowerCase();
         return {
             valid,
-            message: 'Must be lowercase'
+            message: 'Must be lowercase',
         };
     },
 
@@ -243,7 +243,7 @@ export const Validation = {
         const valid = value === value.toUpperCase();
         return {
             valid,
-            message: 'Must be uppercase'
+            message: 'Must be uppercase',
         };
     },
 
@@ -252,7 +252,7 @@ export const Validation = {
         const valid = !/\s/.test(value);
         return {
             valid,
-            message: 'Spaces not allowed'
+            message: 'Spaces not allowed',
         };
     },
     afterDate(value, afterDate) {
@@ -262,7 +262,7 @@ export const Validation = {
         const valid = date > compareDate;
         return {
             valid,
-            message: `Date must be after ${new Date(afterDate).toLocaleDateString()}`
+            message: `Date must be after ${new Date(afterDate).toLocaleDateString()}`,
         };
     },
 
@@ -273,7 +273,7 @@ export const Validation = {
         const valid = date < compareDate;
         return {
             valid,
-            message: `Date must be before ${new Date(beforeDate).toLocaleDateString()}`
+            message: `Date must be before ${new Date(beforeDate).toLocaleDateString()}`,
         };
     },
 
@@ -285,7 +285,7 @@ export const Validation = {
         const valid = date >= start && date <= end;
         return {
             valid,
-            message: `Date must be between ${start.toLocaleDateString()} and ${end.toLocaleDateString()}`
+            message: `Date must be between ${start.toLocaleDateString()} and ${end.toLocaleDateString()}`,
         };
     },
     weekday(value) {
@@ -294,7 +294,7 @@ export const Validation = {
         const valid = day !== 0 && day !== 6;
         return {
             valid,
-            message: 'Date must be a weekday'
+            message: 'Date must be a weekday',
         };
     },
 
@@ -307,7 +307,7 @@ export const Validation = {
         const valid = getSeconds(value) > getSeconds(afterTime);
         return {
             valid,
-            message: `Time must be after ${afterTime}`
+            message: `Time must be after ${afterTime}`,
         };
     },
 
@@ -320,7 +320,7 @@ export const Validation = {
         const valid = getSeconds(value) < getSeconds(beforeTime);
         return {
             valid,
-            message: `Time must be before ${beforeTime}`
+            message: `Time must be before ${beforeTime}`,
         };
     },
 
@@ -336,7 +336,7 @@ export const Validation = {
         const valid = seconds >= start && seconds <= end;
         return {
             valid,
-            message: `Time must be between ${startTime} and ${endTime}`
+            message: `Time must be between ${startTime} and ${endTime}`,
         };
     },
 
@@ -345,7 +345,7 @@ export const Validation = {
         const valid = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value);
         return {
             valid,
-            message: 'Invalid hex color format'
+            message: 'Invalid hex color format',
         };
     },
 
@@ -354,7 +354,7 @@ export const Validation = {
         const valid = /^rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)$/.test(value);
         return {
             valid,
-            message: 'Invalid RGB color format'
+            message: 'Invalid RGB color format',
         };
     },
 
@@ -367,13 +367,13 @@ export const Validation = {
                 const valid = img.width === width && img.height === height;
                 resolve({
                     valid,
-                    message: `Image must be exactly ${width}x${height}px`
+                    message: `Image must be exactly ${width}x${height}px`,
                 });
             };
             img.onerror = () => {
                 resolve({
                     valid: false,
-                    message: 'Invalid image file'
+                    message: 'Invalid image file',
                 });
             };
             img.src = URL.createObjectURL(file);
@@ -389,13 +389,13 @@ export const Validation = {
                 const valid = img.width <= maxWidth && img.height <= maxHeight;
                 resolve({
                     valid,
-                    message: `Image must not exceed ${maxWidth}x${maxHeight}px`
+                    message: `Image must not exceed ${maxWidth}x${maxHeight}px`,
                 });
             };
             img.onerror = () => {
                 resolve({
                     valid: false,
-                    message: 'Invalid image file'
+                    message: 'Invalid image file',
                 });
             };
             img.src = URL.createObjectURL(file);
@@ -411,13 +411,13 @@ export const Validation = {
                 const valid = img.width >= minWidth && img.height >= minHeight;
                 resolve({
                     valid,
-                    message: `Image must be at least ${minWidth}x${minHeight}px`
+                    message: `Image must be at least ${minWidth}x${minHeight}px`,
                 });
             };
             img.onerror = () => {
                 resolve({
                     valid: false,
-                    message: 'Invalid image file'
+                    message: 'Invalid image file',
                 });
             };
             img.src = URL.createObjectURL(file);
@@ -434,13 +434,13 @@ export const Validation = {
                 const valid = Math.abs(imageRatio - ratio) < 0.01;
                 resolve({
                     valid,
-                    message: `Image aspect ratio must be ${ratio}`
+                    message: `Image aspect ratio must be ${ratio}`,
                 });
             };
             img.onerror = () => {
                 resolve({
                     valid: false,
-                    message: 'Invalid image file'
+                    message: 'Invalid image file',
                 });
             };
             img.src = URL.createObjectURL(file);
@@ -456,7 +456,7 @@ export const Validation = {
                 const mb = (maxBytes / (1024 * 1024)).toFixed(2);
                 return {
                     valid: false,
-                    message: `Each file must not exceed ${mb}MB`
+                    message: `Each file must not exceed ${mb}MB`,
                 };
             }
             return { valid: true };
@@ -466,7 +466,7 @@ export const Validation = {
         const mb = (maxBytes / (1024 * 1024)).toFixed(2);
         return {
             valid,
-            message: `File size must not exceed ${mb}MB`
+            message: `File size must not exceed ${mb}MB`,
         };
     },
 
@@ -479,7 +479,7 @@ export const Validation = {
                 const kb = (minBytes / 1024).toFixed(2);
                 return {
                     valid: false,
-                    message: `Each file must be at least ${kb}KB`
+                    message: `Each file must be at least ${kb}KB`,
                 };
             }
             return { valid: true };
@@ -489,7 +489,7 @@ export const Validation = {
         const kb = (minBytes / 1024).toFixed(2);
         return {
             valid,
-            message: `File must be at least ${kb}KB`
+            message: `File must be at least ${kb}KB`,
         };
     },
 
@@ -506,7 +506,7 @@ export const Validation = {
             if (!allValid) {
                 return {
                     valid: false,
-                    message: `Allowed extensions: ${allowedExts.join(', ')}`
+                    message: `Allowed extensions: ${allowedExts.join(', ')}`,
                 };
             }
             return { valid: true };
@@ -515,7 +515,7 @@ export const Validation = {
         const valid = checkExtension(file);
         return {
             valid,
-            message: `Allowed extensions: ${allowedExts.join(', ')}`
+            message: `Allowed extensions: ${allowedExts.join(', ')}`,
         };
     },
 
@@ -526,7 +526,7 @@ export const Validation = {
         const valid = files.length <= max;
         return {
             valid,
-            message: `Maximum ${max} file${max > 1 ? 's' : ''} allowed`
+            message: `Maximum ${max} file${max > 1 ? 's' : ''} allowed`,
         };
     },
 
@@ -537,7 +537,7 @@ export const Validation = {
         const valid = files.length >= min;
         return {
             valid,
-            message: `At least ${min} file${min > 1 ? 's' : ''} required`
+            message: `At least ${min} file${min > 1 ? 's' : ''} required`,
         };
     },
 
@@ -560,6 +560,6 @@ export const Validation = {
         }
 
         return Validation.required(value);
-    }
+    },
 
 };

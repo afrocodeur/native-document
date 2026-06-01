@@ -29,7 +29,7 @@ export default function AccordionRender($desc, instance) {
         });
 
         return item;
-    }
+    };
 
     return Div(instance.resolveProps(), ForEachArray($desc.items, addItem));
 }

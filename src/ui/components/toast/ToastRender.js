@@ -1,6 +1,6 @@
 import {Div, Span} from '../../../core/elements';
 import Button from '../../../components/button/types/Button';
-import {createPortal} from "../../../core/elements/anchor/anchor";
+import {createPortal} from '../../../core/elements/anchor/anchor';
 
 import './toast.css';
 
@@ -16,7 +16,7 @@ const getContainer = (position) => {
     $containers[position] = container;
 
     return container;
-}
+};
 
 export default function ToastRender($desc, instance) {
     const props    = instance.getEditableProps();
@@ -96,4 +96,4 @@ const buildContent = ($desc, instance) => {
     }
 
     return Div({class: 'toast-body'}, body);
-}
+};

@@ -1,4 +1,4 @@
-import BaseComponent from "../BaseComponent";
+import BaseComponent from '../BaseComponent';
 import { $ } from '../../core/data/Observable';
 
 /**
@@ -35,7 +35,7 @@ export default function SplitterPanel(content, props = {}) {
         resizable: true,
         data: null,
         render: null,
-        props
+        props,
     };
 }
 

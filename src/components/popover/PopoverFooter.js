@@ -1,4 +1,4 @@
-import BaseComponent from "../BaseComponent";
+import BaseComponent from '../BaseComponent';
 
 /**
  * Optional footer slot for a Popover.
@@ -22,7 +22,7 @@ export default function PopoverFooter(content, config = {}) {
         content: content || null,
         data: null,
         render: null,
-        ...config
+        ...config,
     };
 }
 

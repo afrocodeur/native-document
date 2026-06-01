@@ -1,5 +1,5 @@
-import BaseComponent from "../../../../BaseComponent";
-import HasEventEmitter from "../../../../../core/utils/HasEventEmitter";
+import BaseComponent from '../../../../BaseComponent';
+import HasEventEmitter from '../../../../../core/utils/HasEventEmitter';
 
 /**
  * Button-triggered file upload mode for FileField.
@@ -37,7 +37,7 @@ export default function FileUploadButtonMode(props = {}) {
         renderItem:   null,
         renderButton: null,
         renderList:   null,
-        props
+        props,
     };
 }
 

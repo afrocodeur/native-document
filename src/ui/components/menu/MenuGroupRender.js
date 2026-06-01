@@ -43,9 +43,9 @@ const buildGroupHeader = ($desc, instance) => {
         const closedIcon = $desc.collapsableOpenedIcon || '▾';
         const openedIcon = $desc.collapsableClosedIcon || '';
         content.push(
-            Span({ class: $desc.collapsed?.transform(c => 'menu-group-chevron' + (c ? '' : ' is-open')), },
-                Switch($desc.collapsed, openedIcon, closedIcon)
-            )
+            Span({ class: $desc.collapsed?.transform(c => 'menu-group-chevron' + (c ? '' : ' is-open')) },
+                Switch($desc.collapsed, openedIcon, closedIcon),
+            ),
         );
     }
 

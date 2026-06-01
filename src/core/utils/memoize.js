@@ -44,7 +44,7 @@ export const autoOnce = (fn) => {
             }
             target = fn();
             return target[key];
-        }
+        },
     });
 };
 
@@ -105,11 +105,11 @@ export const autoMemoize = (fn) => {
                     const result = fn(...args, key);
                     cache.set(key, result);
                     return result;
-                }
+                };
             }
             const result = fn(key);
             cache.set(key, result);
             return result;
-        }
+        },
     });
 };

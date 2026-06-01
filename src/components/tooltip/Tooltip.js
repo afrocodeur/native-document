@@ -1,8 +1,8 @@
-import {Observable} from "../../core/data/Observable";
-import {NDElement} from "../../core/wrappers/NDElement";
-import BaseComponent from "../BaseComponent";
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import DebugManager from "../../core/utils/debug-manager";
+import {Observable} from '../../core/data/Observable';
+import {NDElement} from '../../core/wrappers/NDElement';
+import BaseComponent from '../BaseComponent';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
+import DebugManager from '../../core/utils/debug-manager';
 
 /**
  * Contextual tooltip anchored to a trigger element. Supports hover/click/focus interactions, position, arrow, and interactive mode.

@@ -1,6 +1,6 @@
-import BaseComponent from "../BaseComponent";
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import AccordionItem from "./types/AccordionItem";
+import BaseComponent from '../BaseComponent';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
+import AccordionItem from './types/AccordionItem';
 
 /**
  * Collapsible accordion component. Manages a list of AccordionItem instances with expand/collapse behaviour.
@@ -34,7 +34,7 @@ export default function Accordion(props = {}) {
         variant: null,
         renderContent: null,
         renderIndicator: null,
-        props
+        props,
     };
 }
 

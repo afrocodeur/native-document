@@ -1,4 +1,4 @@
-import PopoverRender from "../popover/PopoverRender";
+import PopoverRender from '../popover/PopoverRender';
 
 import './tooltip.css';
 

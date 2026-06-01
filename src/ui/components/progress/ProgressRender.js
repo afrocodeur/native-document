@@ -93,35 +93,35 @@ const buildBar = ($desc, instance) => {
             Div({class: 'progress-header'}, [
                 $desc.label ? Span({class: 'progress-label'}, $desc.label) : null,
                 valueLabel  ? Span({class: 'progress-value'}, valueLabel)  : null,
-            ])
+            ]),
         );
     }
 
     content.push(
         Div({class: trackClass.join(' ')},
-            Div({class: fillClass.join(' '), style: fillStyle})
-        )
+            Div({class: fillClass.join(' '), style: fillStyle}),
+        ),
     );
 
     return Div(instance.resolveProps(), content);
-}
+};
 
 const CIRCLE_SIZES = {
     small: { size: 32, stroke: 2 },
     medium: { size: 64, stroke: 6 },
-    large: { size: 128, stroke: 10 }
+    large: { size: 128, stroke: 10 },
 };
 
 const getCircleSize = ($desc) => {
     if(typeof $desc.size === 'number') {
         return {
             size: $desc.size,
-            stroke: $desc.stroke || 3
+            stroke: $desc.stroke || 3,
         };
     }
 
     return CIRCLE_SIZES[$desc.size] || CIRCLE_SIZES.medium;
-}
+};
 
 const buildCircle = ($desc, instance) => {
     const circleSize = getCircleSize($desc);
@@ -141,7 +141,7 @@ const buildCircle = ($desc, instance) => {
             SvgCircle({
                 cx: size / 2, cy: size / 2, r: radius,
                 class: 'progress-circle-track',
-                'stroke-width': stroke
+                'stroke-width': stroke,
             }),
             SvgCircle({
                 cx: size / 2, cy: size / 2, r: radius,
@@ -150,12 +150,12 @@ const buildCircle = ($desc, instance) => {
                 'stroke-dasharray': circumference,
                 'stroke-dashoffset': offset,
                 'stroke-linecap': 'round',
-                transform: `rotate(-90 ${size / 2} ${size / 2})`
-            })
+                transform: `rotate(-90 ${size / 2} ${size / 2})`,
+            }),
         ]),
-        $desc.showValue ? Span({ class: 'progress-circle-label' }, getLabel($desc)) : null
+        $desc.showValue ? Span({ class: 'progress-circle-label' }, getLabel($desc)) : null,
     ]);
-}
+};
 
 const toUnit = (value) => {
     if(typeof value === 'number') {

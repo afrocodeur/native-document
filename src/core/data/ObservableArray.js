@@ -1,9 +1,9 @@
-import {match} from "../utils/filters/index";
-import Validator from "../utils/validator";
-import ObservableItem from "./ObservableItem.js";
-import PluginsManager from "../utils/plugins-manager.js";
-import NativeDocumentError from "../errors/NativeDocumentError.js";
-import {nextTick} from "../utils/helpers";
+import {match} from '../utils/filters/index';
+import Validator from '../utils/validator';
+import ObservableItem from './ObservableItem.js';
+import PluginsManager from '../utils/plugins-manager.js';
+import NativeDocumentError from '../errors/NativeDocumentError.js';
+import {nextTick} from '../utils/helpers';
 
 const mutationMethods = ['push', 'pop', 'shift', 'unshift', 'reverse', 'sort', 'splice'];
 const noMutationMethods = ['map', 'forEach', 'filter', 'reduce', 'some', 'every', 'find', 'findIndex', 'concat', 'includes', 'indexOf'];
@@ -41,7 +41,7 @@ ObservableArray.prototype.__$isObservableArray = true;
 Object.defineProperty(ObservableArray.prototype, 'length', {
     get() {
         return this.$currentValue.length;
-    }
+    },
 });
 
 
@@ -61,7 +61,7 @@ mutationMethods.forEach((method) => {
             const result = this.$currentValue[method].apply(this.$currentValue, argsToUse);
             this.trigger({ action: method, args: argsToUse, result });
             return result;
-        })
+        });
     };
 });
 
@@ -165,7 +165,7 @@ ObservableArray.prototype.swap = function(indexA, indexB) {
             return false;
         }
         const elementA = value[indexA];
-        const elementB = value[indexB]
+        const elementB = value[indexB];
 
         value[indexA] = elementB;
         value[indexB] = elementA;
@@ -356,8 +356,8 @@ ObservableArray.prototype.whereSome = function(fields, filter) {
     return this.where({
         _: {
             dependencies: filter.dependencies,
-            callback: (item) => fields.some(field => filter.callback(item[field]))
-        }
+            callback: (item) => fields.some(field => filter.callback(item[field])),
+        },
     });
 };
 
@@ -379,8 +379,8 @@ ObservableArray.prototype.whereEvery = function(fields, filter) {
     return this.where({
         _: {
             dependencies: filter.dependencies,
-            callback: (item) => fields.every(field => filter.callback(item[field]))
-        }
+            callback: (item) => fields.every(field => filter.callback(item[field])),
+        },
     });
 };
 
@@ -427,33 +427,33 @@ ObservableArray.prototype.deepSubscribe = function(callback) {
 
     this.subscribe((items, _, operations) => {
         switch (operations?.action) {
-            case 'push':
-            case 'unshift':
-                operations.args.forEach(bindItem);
-                break;
+        case 'push':
+        case 'unshift':
+            operations.args.forEach(bindItem);
+            break;
 
-            case 'splice': {
-                const [start, deleteCount, ...newItems] = operations.args;
-                operations.result?.forEach(unbindItem);
-                newItems.forEach(bindItem);
-                break;
-            }
+        case 'splice': {
+            const [start, deleteCount, ...newItems] = operations.args;
+            operations.result?.forEach(unbindItem);
+            newItems.forEach(bindItem);
+            break;
+        }
 
-            case 'remove':
-                unbindItem(operations.result);
-                break;
+        case 'remove':
+            unbindItem(operations.result);
+            break;
 
-            case 'merge':
-                operations.args.forEach(bindItem);
-                break;
+        case 'merge':
+            operations.args.forEach(bindItem);
+            break;
 
-            case 'clear':
-                this.$currentValue.forEach(unbindItem);
-                break;
+        case 'clear':
+            this.$currentValue.forEach(unbindItem);
+            break;
 
-            case 'sort':
-            case 'reverse':
-                break;
+        case 'sort':
+        case 'reverse':
+            break;
         }
     });
 

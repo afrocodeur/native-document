@@ -1,5 +1,5 @@
-import {Div, ShowIf} from "../../../core/elements";
-import {createPortal} from "../../../core/elements/anchor/anchor";
+import {Div, ShowIf} from '../../../core/elements';
+import {createPortal} from '../../../core/elements/anchor/anchor';
 import {computePosition, flip, shift} from '@floating-ui/dom';
 
 import './contextmenu.css';
@@ -57,12 +57,12 @@ export const contextMenuHandler = (trigger, instance, data = null) => {
                 placement: 'bottom-start',
                 middleware: [
                     flip(),
-                    shift({padding: 8})
+                    shift({padding: 8}),
                 ],
             }).then(({x, y}) => {
                 $positionX.set(x);
                 $positionY.set(y);
             });
         });
-    })
-}
+    });
+};

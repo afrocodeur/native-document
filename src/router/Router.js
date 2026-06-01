@@ -1,13 +1,13 @@
-import {Route} from "./Route.js";
-import Validator from "../core/utils/validator.js";
-import RouterError from "./errors/RouterError.js";
-import {RouteGroupHelper} from "./RouteGroupHelper.js";
-import {trim} from "../core/utils/helpers.js";
-import HashRouter from "./modes/HashRouter.js";
-import HistoryRouter from "./modes/HistoryRouter.js";
-import MemoryRouter from "./modes/MemoryRouter.js";
-import DebugManager from "../core/utils/debug-manager.js";
-import {RouterComponent} from "./RouterComponent.js";
+import {Route} from './Route.js';
+import Validator from '../core/utils/validator.js';
+import RouterError from './errors/RouterError.js';
+import {RouteGroupHelper} from './RouteGroupHelper.js';
+import {trim} from '../core/utils/helpers.js';
+import HashRouter from './modes/HashRouter.js';
+import HistoryRouter from './modes/HistoryRouter.js';
+import MemoryRouter from './modes/MemoryRouter.js';
+import DebugManager from '../core/utils/debug-manager.js';
+import {RouterComponent} from './RouterComponent.js';
 
 export const DEFAULT_ROUTER_NAME = 'default';
 
@@ -45,7 +45,7 @@ export default function Router($options = {}) {
                 DebugManager.warn('Route Listener', 'Error in listener:', e);
             }
         }
-    }
+    };
 
     this.routes = () => [...$routes];
     this.currentState = () => ({ ...$currentState });
@@ -62,7 +62,7 @@ export default function Router($options = {}) {
             ...options,
             middlewares: RouteGroupHelper.fullMiddlewares($groupTree, options?.middlewares || []),
             name: options?.name ? RouteGroupHelper.fullName($groupTree, options.name) : null,
-            layout: options?.layout || RouteGroupHelper.layout($groupTree)
+            layout: options?.layout || RouteGroupHelper.layout($groupTree),
         });
         $routes.push(route);
         if(route.name()) {
@@ -125,7 +125,7 @@ export default function Router($options = {}) {
                     route,
                     params: [],
                     query: [],
-                    path: route.url({ name: target })
+                    path: route.url({ name: target }),
                 };
             }
         }
@@ -138,7 +138,7 @@ export default function Router($options = {}) {
                 route,
                 params: target.params,
                 query: target.query,
-                path: route.url({ ...target })
+                path: route.url({ ...target }),
             };
         }
 
@@ -285,7 +285,7 @@ Router.redirectTo = function(pathOrRouteName, params = null, name = null) {
     const router = Router.get(name);
     const route = router.resolve({ name: pathOrRouteName, params });
     if(route) {
-        target = { name: pathOrRouteName, params}
+        target = { name: pathOrRouteName, params};
     }
     return router.push(target);
 };

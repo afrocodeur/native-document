@@ -1,4 +1,4 @@
-import BaseComponent from "../BaseComponent";
+import BaseComponent from '../BaseComponent';
 
 export function Spacer(props = {}) {
     if (!(this instanceof Spacer)) {
@@ -7,7 +7,7 @@ export function Spacer(props = {}) {
     BaseComponent.call(this, props);
     this.$description = {
         type: 'spacer',
-        props
+        props,
     };
 }
 BaseComponent.extends(Spacer);

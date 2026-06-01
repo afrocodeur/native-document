@@ -1,4 +1,4 @@
-import BaseComponent from "../BaseComponent";
+import BaseComponent from '../BaseComponent';
 
 /**
  * Renders a group of overlapping Avatar components with a "+N" overflow indicator.

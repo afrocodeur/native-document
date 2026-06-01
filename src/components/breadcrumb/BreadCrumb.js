@@ -1,7 +1,7 @@
-import BaseComponent from "../BaseComponent";
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import { $ } from "../../core/data/Observable";
-import DebugManager from "../../core/utils/debug-manager";
+import BaseComponent from '../BaseComponent';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
+import { $ } from '../../core/data/Observable';
+import DebugManager from '../../core/utils/debug-manager';
 
 /**
  *

@@ -2,7 +2,7 @@ import {Div, Label, Select, Option, Span, ForEachArray, ShowIf} from '../../../.
 import { $ } from '../../../../core/data/Observable';
 import {Dropdown} from '../../../../components/dropdown';
 import {buildErrors} from '../helpers';
-import DebugManager from "../../../../core/utils/debug-manager";
+import DebugManager from '../../../../core/utils/debug-manager';
 
 export default function SelectFieldRender($desc, instance) {
     const props = instance.getEditableProps();
@@ -100,7 +100,7 @@ const buildTagsDisplay = ($desc) => {
             });
 
             return tag;
-        })
+        }),
     );
 };
 

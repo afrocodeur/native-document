@@ -1,4 +1,4 @@
-import HtmlElementWrapper from "../wrappers/HtmlElementWrapper";
+import HtmlElementWrapper from '../wrappers/HtmlElementWrapper';
 
 
 /**
@@ -27,7 +27,7 @@ export const Form = HtmlElementWrapper('form', (el) => {
     el.multipartFormData = function() {
         this.setAttribute('enctype', 'multipart/form-data');
         return el;
-    }
+    };
     el.post = function(action) {
         this.setAttribute('method', 'post');
         this.setAttribute('action', action);

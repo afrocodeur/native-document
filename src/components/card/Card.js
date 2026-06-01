@@ -1,4 +1,4 @@
-import BaseComponent from "../BaseComponent";
+import BaseComponent from '../BaseComponent';
 
 /**
  * Versatile content container with optional image, header, footer, actions. Supports clickable, hoverable, loading, and horizontal layouts.
@@ -26,7 +26,7 @@ export default function Card(config = {}) {
         return new Card(config);
     }
     this.$description = {
-        ...config
+        ...config,
     };
 };
 

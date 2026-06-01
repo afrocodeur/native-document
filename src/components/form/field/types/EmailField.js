@@ -1,5 +1,5 @@
-import Field from "../../types/Field";
-import {Validation} from "../../validation/Validation";
+import Field from '../../types/Field';
+import {Validation} from '../../validation/Validation';
 
 /**
  * Email input field. Automatically applies email format validation on creation.
@@ -81,7 +81,7 @@ EmailField.prototype.allowedDomain = function(allowedDomains, message) {
             const domain = value.split('@')[1];
             return allowedDomains.includes(domain);
         },
-        message: message || `Allowed domains: ${allowedDomains.join(', ')}`
+        message: message || `Allowed domains: ${allowedDomains.join(', ')}`,
     });
     return this;
 };
@@ -98,7 +98,7 @@ EmailField.prototype.notAllowedDomain = function(blockedDomains, message) {
             const domain = value.split('@')[1];
             return !blockedDomains.includes(domain);
         },
-        message: message || `Domain not allowed`
+        message: message || 'Domain not allowed',
     });
     return this;
 };

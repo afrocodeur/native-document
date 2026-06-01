@@ -1,4 +1,4 @@
-import Validator from "./validator";
+import Validator from './validator';
 
 /**
  * Calls a function with the given arguments and optional context.
@@ -40,7 +40,7 @@ export const debounce = function(fn, delay, options = {}) {
         // debounce mode: reset the timer for each call
         clearTimeout(timer);
         timer = setTimeout(() => invoke(fn, lastArgs, context), delay);
-    }
+    };
 };
 
 export const nextTick = function(fn) {
@@ -95,7 +95,7 @@ export const getKey = (item, defaultKey, key) => {
  */
 export const trim = function(str, char) {
     return str.replace(new RegExp(`^[${char}]+|[${char}]+$`, 'g'), '');
-}
+};
 
 /**
  * Deep clones a value. Uses structuredClone when available.

@@ -1,6 +1,6 @@
-import Badge from './Badge'
+import Badge from './Badge';
 
 
 export {
-    Badge
+    Badge,
 };

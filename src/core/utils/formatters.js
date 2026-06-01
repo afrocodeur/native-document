@@ -12,7 +12,7 @@ const $parseDateParts = (value, locale) => {
         }).formatToParts(d).reduce((acc, { type, value }) => {
             acc[type] = value;
             return acc;
-        }, {})
+        }, {}),
     };
 };
 
@@ -38,20 +38,20 @@ export const Formatters = {
             currency,
             notation,
             minimumFractionDigits,
-            maximumFractionDigits
+            maximumFractionDigits,
         }).format(value),
 
     number: (value, locale, { notation, minimumFractionDigits, maximumFractionDigits } = {}) =>
         new Intl.NumberFormat(locale, {
             notation,
             minimumFractionDigits,
-            maximumFractionDigits
+            maximumFractionDigits,
         }).format(value),
 
     percent: (value, locale, { decimals = 1 } = {}) =>
         new Intl.NumberFormat(locale, {
             style:                'percent',
-            maximumFractionDigits: decimals
+            maximumFractionDigits: decimals,
         }).format(value),
 
     date: (value, locale, { format, dateStyle = 'long' } = {}) => {

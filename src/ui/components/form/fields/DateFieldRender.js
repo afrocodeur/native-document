@@ -24,8 +24,8 @@ export default function DateFieldRender($desc, instance) {
         content.push(
             Switch($desc.range,
                 () => buildRangeWrapper($desc, instance, inputType),
-                () => buildSingleWrapper($desc, instance, inputType)
-            )
+                () => buildSingleWrapper($desc, instance, inputType),
+            ),
         );
     }
     else {
@@ -34,7 +34,7 @@ export default function DateFieldRender($desc, instance) {
 
     if($desc.help) {
         content.push(
-            Span({ class: 'field-hint', ...($desc.elementsProps.hint || {}) }, $desc.help)
+            Span({ class: 'field-hint', ...($desc.elementsProps.hint || {}) }, $desc.help),
         );
     }
 
@@ -62,7 +62,7 @@ const buildSingleWrapper = ($desc, instance, inputType) => {
             callback = () => {
                 instance.emit('clear');
                 $desc.value.set(null);
-            }
+            };
         } else {
             callback = (e) => {
                 e.target.value = '';
@@ -89,7 +89,7 @@ const buildRangeWrapper = ($desc, instance, inputType) => {
             if((new Date($desc.valueEnd.val())) < (new Date($desc.valueStart.val()))) {
                 $desc.valueEnd.set($desc.valueStart.val());
             }
-        }
+        };
     } else {
         callback = () => {
             if((new Date(endInput.value)) < (new Date(startInput.value))) {
@@ -115,12 +115,12 @@ const buildRangeWrapper = ($desc, instance, inputType) => {
     return Div({class: 'date-field-range'}, [
         Div({class: 'date-field-range-start'}, [
             Span({class: 'date-field-range-label'}, 'From'),
-            buildInputWithSlots(startInput, $desc, instance, { source: 'valueStart', onClear: null } )
+            buildInputWithSlots(startInput, $desc, instance, { source: 'valueStart', onClear: null } ),
         ]),
         Span({class: 'date-field-range-separator'}, $desc.rangeSeparator),
         Div({class: 'date-field-range-end'}, [
             Span({class: 'date-field-range-label'}, 'To'),
-            buildInputWithSlots(endInput, $desc, instance, { source: 'valueEnd', onClear: null } )
+            buildInputWithSlots(endInput, $desc, instance, { source: 'valueEnd', onClear: null } ),
         ]),
     ]);
 };

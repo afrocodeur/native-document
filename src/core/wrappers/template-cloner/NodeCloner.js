@@ -1,6 +1,6 @@
-import {ElementCreator} from "../ElementCreator";
-import {createTextNode} from "../HtmlElementWrapper";
-import {NDElement} from "../NDElement";
+import {ElementCreator} from '../ElementCreator';
+import {createTextNode} from '../HtmlElementWrapper';
+import {NDElement} from '../NDElement';
 
 /**
  * Stores deferred attribute, class, style, and event bindings for a cloneable element.

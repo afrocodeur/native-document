@@ -8,5 +8,5 @@ export default function MenuDividerRender($desc, instance) {
     const props = instance.getEditableProps();
     props.class.add('menu-divider');
 
-    return ListItem(Div( { ...instance.resolveProps(), role: "separator" }));
+    return ListItem(Div( { ...instance.resolveProps(), role: 'separator' }));
 }

@@ -8,8 +8,8 @@ const Debug = {
     $warning: [],
     warn(category, message, data) {
         Debug.$warning.push({ message: `[${category}] ${message}`, data });
-    }
-}
+    },
+};
 
 function scanFolder(dirPath, callback) {
     const files = Fs.readdirSync(dirPath);
@@ -42,11 +42,11 @@ function scanFile(filePath) {
 function getKey(args, filePath) {
     const trimmed = args.trim();
     const firstChar = trimmed[0];
-    if(firstChar !== '"' && firstChar !== "'") {
+    if(firstChar !== '"' && firstChar !== '\'') {
         Debug.warn('Key Extract', '', {
             message: `can't extract key from ("${args}") in file.`,
             args: args,
-            file: filePath
+            file: filePath,
         });
 
         return;
@@ -93,7 +93,7 @@ function scan() {
             return;
         }
 
-        console.log(":: scan locales");
+        console.log(':: scan locales');
         scanFolder(config.locales, (filePath) => {
             if(!filePath.endsWith('.json')) {
                 return;
@@ -108,7 +108,7 @@ function scan() {
                 return acc;
             }, {});
 
-            console.log("-- " + locale + ` : ${absentKeys.length} keys are absent in locale file.`);
+            console.log('-- ' + locale + ` : ${absentKeys.length} keys are absent in locale file.`);
             if(!config?.save) {
                 console.log('-- display result:');
                 console.log(result);

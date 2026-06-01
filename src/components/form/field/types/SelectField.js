@@ -1,4 +1,4 @@
-import Field from "../../types/Field";
+import Field from '../../types/Field';
 
 /**
  * Select/dropdown field supporting single and multiple selection, search, groups,
@@ -52,7 +52,7 @@ export default function SelectField(name, props) {
         countRender: false,
         selectedLabelRender: false,
         renderItem: null,
-        truncateMax: null
+        truncateMax: null,
     });
 }
 

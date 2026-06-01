@@ -1,5 +1,5 @@
 import {Div, Span} from '../../../core/elements';
-import { Observable } from "../../../core/data/Observable";
+import { Observable } from '../../../core/data/Observable';
 
 export default function StepperStepRender($desc, instance) {
     if($desc.render) {
@@ -13,13 +13,13 @@ export default function StepperStepRender($desc, instance) {
     props.class.add('stepper-step');
 
     const isActive = Observable.computed(() => {
-        return stepper.$description.currentStep.val() === index.val()
+        return stepper.$description.currentStep.val() === index.val();
     }, [stepper.$description.currentStep, index]) ;
 
     const indicatorClass = {
         'step-indicator' : true,
         '_': $desc.status.transform((status) => 'is-' + status),
-        'is-active': isActive
+        'is-active': isActive,
     };
 
     const stateIndicator = $desc.status.transform((status) => {
@@ -32,7 +32,7 @@ export default function StepperStepRender($desc, instance) {
         return '';
     });
 
-    let indicatorContent = $desc.icon || (stepper.$description.showNumbers ? index.transform((value) => value + 1) : null);
+    const indicatorContent = $desc.icon || (stepper.$description.showNumbers ? index.transform((value) => value + 1) : null);
 
     const labelClass = isActive.transform(a => 'step-label' + (a ? ' is-active' : ''));
 

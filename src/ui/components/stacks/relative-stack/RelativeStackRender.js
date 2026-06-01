@@ -1,4 +1,4 @@
-import PositionStackRender from "../PositionStackRender";
+import PositionStackRender from '../PositionStackRender';
 
 import './relative-stack.css';
 

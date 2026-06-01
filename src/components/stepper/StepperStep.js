@@ -1,4 +1,4 @@
-import BaseComponent from "../BaseComponent";
+import BaseComponent from '../BaseComponent';
 import { $ } from '../../core/data/Observable';
 
 const NO_VALIDATION = () => true;
@@ -45,7 +45,7 @@ export default function StepperStep(label, props = {}) {
         key: null,
         index: $(0),
         isVisible: $(true),
-        props
+        props,
     };
 }
 

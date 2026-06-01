@@ -1,6 +1,6 @@
-import BaseComponent from "../BaseComponent";
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import DebugManager from "../../core/utils/debug-manager";
+import BaseComponent from '../BaseComponent';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
+import DebugManager from '../../core/utils/debug-manager';
 
 /**
  * Contextual feedback alert. Supports variants (info, success, warning, error), icons, closable/auto-dismiss, and action buttons.

@@ -92,7 +92,7 @@ Skeleton.card = function(type) {
         VStack([
             Skeleton().text(1),
             Skeleton().text(2),
-        ]).spacing('cozy')
+        ]).spacing('cozy'),
     ], { class: 'skeleton-card '+type }).spacing('cozy');
 };
 
@@ -106,8 +106,8 @@ Skeleton.list = function(items = 3) {
             HStack([
                 Div({ class: 'skeleton-list-item-avatar' }, Skeleton().circle().size(40, 40)),
                 Div({ class: 'skeleton-list-item-text' }, Skeleton().text(2)),
-            ], { class: 'skeleton-list-item' }).spacing('comfortable').alignCenter()
-        )
+            ], { class: 'skeleton-list-item' }).spacing('comfortable').alignCenter(),
+        ),
     ).spacing('comfortable');
 };
 
@@ -120,14 +120,14 @@ Skeleton.table = function(rows = 5, cols = 4) {
     const buildRow = () =>
         HStack(
             Array.from({length: cols}, () =>
-                Div({ class: 'skeleton-table-col' }, Skeleton().rect().height(16))
+                Div({ class: 'skeleton-table-col' }, Skeleton().rect().height(16)),
             ),
-            { class: 'skeleton-table-row' }
+            { class: 'skeleton-table-row' },
         ).spacing('comfortable').alignCenter();
 
     return VStack([
         buildRow(),
-        ...Array.from({length: rows}, () => buildRow())
+        ...Array.from({length: rows}, () => buildRow()),
     ]).spacing('cozy');
 };
 

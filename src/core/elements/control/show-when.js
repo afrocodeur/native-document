@@ -1,6 +1,6 @@
-import Validator from "../../utils/validator.js";
-import NativeDocumentError from "../../errors/NativeDocumentError.js";
-import {ShowIf} from "./show-if.js";
+import Validator from '../../utils/validator.js';
+import NativeDocumentError from '../../errors/NativeDocumentError.js';
+import {ShowIf} from './show-if.js';
 
 /**
  * Shows content when an observable equals a specific value.
@@ -31,7 +31,7 @@ export const ShowWhen = function() {
         if(!Validator.isObservableWhenResult(observer)) {
             throw new NativeDocumentError('showWhen observer must be an ObservableWhenResult', {
                 data: observer,
-                'help': 'Use observer.when(target) to create an ObservableWhenResult'
+                'help': 'Use observer.when(target) to create an ObservableWhenResult',
             });
         }
         return ShowIf(observer, target);
@@ -49,6 +49,6 @@ export const ShowWhen = function() {
         data: [
             'showWhen(observer, target, view)',
             'showWhen(observerWhenResult, view)',
-        ]
+        ],
     });
 };

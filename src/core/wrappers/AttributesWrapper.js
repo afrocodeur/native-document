@@ -1,7 +1,7 @@
-import Validator from "../utils/validator";
-import NativeDocumentError from "../errors/NativeDocumentError";
-import {BOOL_ATTRIBUTES_NAME, BOOLEAN_ATTRIBUTES} from "./constants.js";
-import {Observable} from "../data/Observable";
+import Validator from '../utils/validator';
+import NativeDocumentError from '../errors/NativeDocumentError';
+import {BOOL_ATTRIBUTES_NAME, BOOLEAN_ATTRIBUTES} from './constants.js';
+import {Observable} from '../data/Observable';
 
 /**
  * Applies a reactive class map to an HTMLElement.
@@ -17,7 +17,7 @@ export const bindClassAttribute = (element, data) => {
         if(value.__$Observable) {
             if(value.__$isObservableChecker) {
                 let lastClass = value.val();
-                if(typeof lastClass === "string") {
+                if(typeof lastClass === 'string') {
                     element.classes.toggle(lastClass, true);
                     value.subscribe((currentValue) => {
                         element.classes.remove(lastClass);
@@ -35,9 +35,9 @@ export const bindClassAttribute = (element, data) => {
             value.$hydrate(element, className);
             continue;
         }
-        element.classes.toggle(className, value)
+        element.classes.toggle(className, value);
     }
-}
+};
 
 /**
  * Applies a reactive style map to an HTMLElement.
@@ -61,7 +61,7 @@ export const bindStyleAttribute = (element, data) => {
                         element.style.removeProperty(styleName);
                         return;
                     }
-                    element.style.setProperty(styleName, newValue)
+                    element.style.setProperty(styleName, newValue);
                 });
             } else {
                 element.style[styleName] = value.val();
@@ -70,7 +70,7 @@ export const bindStyleAttribute = (element, data) => {
                         element.style.removeProperty(styleName);
                         return;
                     }
-                    element.style[styleName] = newValue
+                    element.style[styleName] = newValue;
                 });
             }
             continue;
@@ -135,7 +135,7 @@ export const bindAttributeWithObservable = (element, attributeName, value) => {
         return;
     }
     element.setAttribute(attributeName, value.val());
-}
+};
 
 /**
  *
@@ -150,12 +150,12 @@ const AttributesWrapper = (element, attributes) => {
 
     for(const originalAttributeName in attributes) {
         const attributeName = originalAttributeName.toLowerCase();
-        let value = attributes[originalAttributeName];
+        const value = attributes[originalAttributeName];
         if(value == null) {
             continue;
         }
         if(value.handleNdAttribute) {
-            value.handleNdAttribute(element, attributeName, value)
+            value.handleNdAttribute(element, attributeName, value);
             continue;
         }
         if(typeof value ===  'object') {
@@ -176,6 +176,6 @@ const AttributesWrapper = (element, attributes) => {
         element.setAttribute(attributeName, value);
     }
     return element;
-}
+};
 
 export default AttributesWrapper;

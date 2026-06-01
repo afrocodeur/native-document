@@ -1,5 +1,5 @@
-import BaseComponent from "../BaseComponent";
-import DebugManager from "../../core/utils/debug-manager";
+import BaseComponent from '../BaseComponent';
+import DebugManager from '../../core/utils/debug-manager';
 
 /**
  * Displays a user avatar with image, initials, or icon fallback. Supports status indicators, badges, shape, and size variants.
@@ -40,7 +40,7 @@ export default function Avatar(source, props = {}) {
         textColor: null,
         status: null,
         render: null,
-        props
+        props,
     };
 }
 
@@ -293,7 +293,7 @@ Avatar.prototype.warning = function() {
  */
 Avatar.prototype.info = function() {
     return this.variant('info');
-}
+};
 
 /**
  * Sets the background color of the avatar

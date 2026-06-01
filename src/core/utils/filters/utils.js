@@ -1,4 +1,4 @@
-import Validator from "../../utils/validator";
+import Validator from '../../utils/validator';
 
 /**
  * Converts a value to a Date object. Returns the value as-is if it's already a Date.
@@ -51,7 +51,7 @@ export function createFilter(observableOrValue, callbackFn){
 
     return {
         dependencies: isObservable ? observableOrValue : null,
-        callback: (value) => callbackFn(value, isObservable ? observableOrValue.val() : observableOrValue)
+        callback: (value) => callbackFn(value, isObservable ? observableOrValue.val() : observableOrValue),
     };
 }
 
@@ -67,11 +67,11 @@ export function createMultiSourceFilter(sources, callbackFn){
     const observables = sources.filter(Validator.isObservable);
 
     const getValues = () => sources.map(src =>
-        Validator.isObservable(src) ? src.val() : src
+        Validator.isObservable(src) ? src.val() : src,
     );
 
     return {
         dependencies: observables.length > 0 ? observables : null,
-        callback: (value) => callbackFn(value, getValues())
+        callback: (value) => callbackFn(value, getValues()),
     };
 }

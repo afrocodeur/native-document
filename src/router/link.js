@@ -1,7 +1,7 @@
-import Validator from "../core/utils/validator";
-import {Link as NativeLink} from "../../elements";
-import Router, {DEFAULT_ROUTER_NAME} from "./Router";
-import RouterError from "./errors/RouterError";
+import Validator from '../core/utils/validator';
+import {Link as NativeLink} from '../../elements';
+import Router, {DEFAULT_ROUTER_NAME} from './Router';
+import RouterError from './errors/RouterError';
 
 
 export function Link(options, children){

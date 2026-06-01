@@ -1,4 +1,4 @@
-import FieldRender from "./FieldRender";
+import FieldRender from './FieldRender';
 
 
 const StringFieldRender = FieldRender;

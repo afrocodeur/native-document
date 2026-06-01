@@ -1,6 +1,6 @@
-import Field from "../../types/Field";
-import {Validation} from "../../validation/Validation";
-import BaseComponent from "../../../BaseComponent";
+import Field from '../../types/Field';
+import {Validation} from '../../validation/Validation';
+import BaseComponent from '../../../BaseComponent';
 
 /**
  * Date picker field with format, min/max, disabled dates, range mode, timezone,
@@ -53,7 +53,7 @@ export default function DateField(name, props = {}) {
         valueStart:     null,
         valueEnd:       null,
         rangeSeparator:       null,
-        props
+        props,
     });
 }
 

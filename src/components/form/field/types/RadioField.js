@@ -1,5 +1,5 @@
-import Field from "../../types/Field";
-import Validator from "../../../../core/utils/validator";
+import Field from '../../types/Field';
+import Validator from '../../../../core/utils/validator';
 
 /**
  * Radio button group for single-value selection from a list of options.
@@ -38,7 +38,7 @@ export default function RadioField(name, props = {}) {
     Object.assign(this.$description, {
         options: [],
         layout: 'vertical',
-        checked: false
+        checked: false,
     });
 }
 

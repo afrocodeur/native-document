@@ -1,6 +1,6 @@
 // ColorField.js
-import Field from "../../types/Field";
-import {Validation} from "../../validation/Validation";
+import Field from '../../types/Field';
+import {Validation} from '../../validation/Validation';
 
 /**
  * Color picker field supporting hex, RGB, and HSL formats.
@@ -31,7 +31,7 @@ export default function ColorField(name, props) {
 
     Object.assign(this.$description, {
         format: 'hex',
-        presets: null
+        presets: null,
     });
 }
 

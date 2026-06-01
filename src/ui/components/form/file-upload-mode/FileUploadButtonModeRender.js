@@ -19,8 +19,8 @@ export default function FileUploadButtonModeRender($desc, modeInstance) {
             () => Div({class: 'file-button-list'},
                 $desc.renderList
                     ? $desc.renderList($files, modeInstance)
-                    : ForEachArray($files, builder)
-            )
+                    : ForEachArray($files, builder),
+            ),
         ),
     ]);
 }

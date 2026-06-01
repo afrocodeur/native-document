@@ -1,6 +1,6 @@
-import Column from "./types/Column";
-import ColumnGroup from "./types/ColumnGroup";
-import BaseComponent from "../BaseComponent";
+import Column from './types/Column';
+import ColumnGroup from './types/ColumnGroup';
+import BaseComponent from '../BaseComponent';
 
 /**
  *
@@ -26,7 +26,7 @@ export default function SimpleTable(props = {}) {
         noHeader:    null,
         cellProps:   null,
         headerProps: null,
-        props
+        props,
     };
 }
 

@@ -20,8 +20,8 @@ export default function PaginationRender($desc, instance) {
                 () => instance.first(),
                 $desc,
                 'renderFirst',
-                $isFirstPage
-            )
+                $isFirstPage,
+            ),
         );
     }
 
@@ -32,8 +32,8 @@ export default function PaginationRender($desc, instance) {
                 () => instance.previous(),
                 $desc,
                 'renderPrevious',
-                $isFirstPage
-            )
+                $isFirstPage,
+            ),
         );
     }
 
@@ -46,8 +46,8 @@ export default function PaginationRender($desc, instance) {
                 () => instance.next(),
                 $desc,
                 'renderNext',
-                $isLastPage
-            )
+                $isLastPage,
+            ),
         );
     }
 
@@ -58,8 +58,8 @@ export default function PaginationRender($desc, instance) {
                 () => instance.last(),
                 $desc,
                 'renderLast',
-                $isLastPage
-            )
+                $isLastPage,
+            ),
         );
     }
 
@@ -85,7 +85,7 @@ const buildPages = ($desc, instance) => {
                 return buildEllipsis($desc);
             }
             return buildPage(page, $desc, instance);
-        })
+        }),
     );
 };
 

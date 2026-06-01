@@ -164,7 +164,7 @@ const createTemplateCloner = ($binder) => {
             }
             if (typeof prop === 'symbol') return target[prop];
             return target.value(prop);
-        }
+        },
     });
 };
 

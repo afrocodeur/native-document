@@ -1,10 +1,10 @@
-import BaseComponent from "../BaseComponent";
-import HasItems from "../$traits/has-items/HasItems";
-import MenuDivider from "./types/MenuDivider";
-import MenuGroup from "./types/MenuGroup";
-import HasMenuItem from "./HasMenuItem";
+import BaseComponent from '../BaseComponent';
+import HasItems from '../$traits/has-items/HasItems';
+import MenuDivider from './types/MenuDivider';
+import MenuGroup from './types/MenuGroup';
+import HasMenuItem from './HasMenuItem';
 import { $ } from '../../core/data/Observable';
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
 
 const EMPTY_PROPS = {};
 
@@ -49,7 +49,7 @@ export default function MenuItem(props = {}) {
         render: null,
         trailing: null,
         visibility: null,
-        props
+        props,
     };
 
 }

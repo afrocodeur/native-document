@@ -1,8 +1,8 @@
 import {Div, ForEachArray, Match, Nav, ShowIf, Span} from '../../../core/elements';
 import { $ } from '../../../core/data/Observable';
-import {Button} from "../../../components/button";
+import {Button} from '../../../components/button';
 import {Dropdown} from '../../../components/dropdown';
-import {nextTick} from "../../../core/utils/helpers";
+import {nextTick} from '../../../core/utils/helpers';
 
 import './tabs.css';
 
@@ -55,7 +55,7 @@ export default function TabsRender($desc, instance) {
 
 const buildNavContent = ($keys, $desc, instance) => {
     const tabItemWrapper = Nav({class: 'tabs-nav-wrap', role: 'tablist' },
-        ForEachArray($keys, (key) => buildTab(key, $keys, $desc, instance))
+        ForEachArray($keys, (key) => buildTab(key, $keys, $desc, instance)),
     );
 
     const navOptionsContent = [];
@@ -69,19 +69,19 @@ const buildNavContent = ($keys, $desc, instance) => {
             btnPlusButton
                 .nd.onClick(() => {
                     $desc.addPLusCallback && $desc.addPLusCallback($desc, instance);
-                })
+                }),
         );
     }
 
     if($desc.overflow) {
         navOptionsContent.push(
-            Div({class: 'tab-nav-overflow'}, buildOverflowMenu(tabItemWrapper, $keys, $desc, instance))
+            Div({class: 'tab-nav-overflow'}, buildOverflowMenu(tabItemWrapper, $keys, $desc, instance)),
         );
     }
 
     return [
         tabItemWrapper,
-        Div({ class: 'tab-nav-options'}, navOptionsContent)
+        Div({ class: 'tab-nav-options'}, navOptionsContent),
     ];
 };
 
@@ -139,7 +139,7 @@ const buildOverflowMenu = (tabItemWrapper, $keys, $desc, instance) => {
             })
             .atBottomTrailing()
             .trigger(Button('▾').ghost().small())
-            .onChange((key) => $desc.active.set(key))
+            .onChange((key) => $desc.active.set(key));
     });
 };
 
@@ -157,7 +157,7 @@ const buildTab = (key, $keys, $desc, instance) => {
         'aria-selected': isActive,
         'data-key': key,
         draggable: true,
-        role: 'tab'
+        role: 'tab',
     }, buildTabContent(tab, $desc, instance));
 
 
@@ -216,9 +216,9 @@ const buildTabContent = (tab, $desc, instance) => {
         content.push(
             closeButton
                 .nd.onClick((e) => {
-                e.stopPropagation();
-                instance.closeTab(tab.key);
-            })
+                    e.stopPropagation();
+                    instance.closeTab(tab.key);
+                }),
         );
     }
 

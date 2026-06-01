@@ -1,7 +1,7 @@
-import {classPropertyAccumulator, cssPropertyAccumulator} from "../core/utils/property-accumulator";
-import {Observable} from "../core/data/Observable";
-import {ShowIf} from "../core/elements/control/show-if";
-import {NDElement} from "../core/wrappers/NDElement";
+import {classPropertyAccumulator, cssPropertyAccumulator} from '../core/utils/property-accumulator';
+import {Observable} from '../core/data/Observable';
+import {ShowIf} from '../core/elements/control/show-if';
+import {NDElement} from '../core/wrappers/NDElement';
 
 /**
  *
@@ -28,7 +28,7 @@ Object.defineProperty( BaseComponent.prototype, 'nd', {
             nd.$attachements = this.$attachements;
         }
         return nd;
-    }
+    },
 });
 
 /**

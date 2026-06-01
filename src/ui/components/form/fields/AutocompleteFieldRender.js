@@ -1,8 +1,8 @@
 import { Input, Span, ShowIf} from '../../../../../elements';
 import FieldRender from './FieldRender';
 import { $ } from '../../../../core/data/Observable';
-import {debounce} from "../../../../core/utils/helpers";
-import {Dropdown} from "../../../../components/dropdown";
+import {debounce} from '../../../../core/utils/helpers';
+import {Dropdown} from '../../../../components/dropdown';
 
 export default function AutocompleteFieldRender($desc, instance) {
     const $suggestions = $.array([]);
@@ -53,7 +53,7 @@ const buildInput = ($desc, instance, $suggestions, $loading) => {
     } else {
         input.nd.onInput((e) => {
             const query = e.target.value;
-            handleSuggestions(query)
+            handleSuggestions(query);
         });
     }
 

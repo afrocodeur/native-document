@@ -1,16 +1,16 @@
 import ObservableItem from './ObservableItem';
-import MemoryManager from "./MemoryManager";
-import NativeDocumentError from "../../core/errors/NativeDocumentError";
-import ObservableArray from "./ObservableArray";
-import Validator from "../utils/validator";
-import {nextTick} from "../utils/helpers";
-import PluginsManager from "../utils/plugins-manager";
-import {ObservableObject} from "./ObservableObject";
+import MemoryManager from './MemoryManager';
+import NativeDocumentError from '../../core/errors/NativeDocumentError';
+import ObservableArray from './ObservableArray';
+import Validator from '../utils/validator';
+import {nextTick} from '../utils/helpers';
+import PluginsManager from '../utils/plugins-manager';
+import {ObservableObject} from './ObservableObject';
 
-import "./observable-helpers/observable.is-to";
+import './observable-helpers/observable.is-to';
 import './observable-helpers/observable.prototypes';
-import ObservableResource from "./ObservableResource";
-import {Formatters} from "../utils/formatters";
+import ObservableResource from './ObservableResource';
+import {Formatters} from '../utils/formatters';
 /**
  *
  * @param {*} value
@@ -178,7 +178,7 @@ ObservableItem.computed = Observable.computed;
 
 
 Observable.init = function(initialValue, configs = null) {
-    return new ObservableObject(initialValue, configs)
+    return new ObservableObject(initialValue, configs);
 };
 
 /**
@@ -188,7 +188,7 @@ Observable.init = function(initialValue, configs = null) {
  */
 Observable.arrayOfObject = function(data) {
     return data.map(item => Observable.object(item));
-}
+};
 
 /**
  * Get the value of an observable or an object of observables.

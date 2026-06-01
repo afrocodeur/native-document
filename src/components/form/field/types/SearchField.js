@@ -1,4 +1,4 @@
-import StringField from "../../types/fields/StringField";
+import StringField from '../../types/fields/StringField';
 
 /**
  * Search input field with built-in debounce support.
@@ -26,7 +26,7 @@ export default function SearchField(name, props) {
     StringField.call(this, name, 'search', props);
 
     Object.assign(this.$description, {
-        debounce: 300
+        debounce: 300,
     });
 }
 

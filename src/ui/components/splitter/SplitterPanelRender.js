@@ -24,7 +24,7 @@ const setupVerticalLimit = (props, $desc) => {
     }
 
     props.style.add('height', $desc.size.transform(toUnit));
-}
+};
 const setupHorizontalLimit = (props, $desc) => {
     if($desc.minSize) {
         props.style.add('minWidth', toUnit($desc.minSize));
@@ -33,6 +33,6 @@ const setupHorizontalLimit = (props, $desc) => {
         props.style.add('maxWidth', toUnit($desc.maxSize));
     }
     props.style.add('width', $desc.size.transform(toUnit));
-}
+};
 
 const toUnit = (value) => typeof value === 'number' ? value + 'px' : value;

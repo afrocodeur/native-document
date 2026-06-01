@@ -1,7 +1,7 @@
-import NativeDocumentError from "../../errors/NativeDocumentError";
-import Validator from "../../utils/validator";
-import Anchor from "../anchor/anchor";
-import {ElementCreator} from "../../wrappers/ElementCreator";
+import NativeDocumentError from '../../errors/NativeDocumentError';
+import Validator from '../../utils/validator';
+import Anchor from '../anchor/anchor';
+import {ElementCreator} from '../../wrappers/ElementCreator';
 
 
 
@@ -28,7 +28,7 @@ import {ElementCreator} from "../../wrappers/ElementCreator";
 export const Match = function($condition, values, shouldKeepInCache = true) {
 
     if(!Validator.isObservable($condition)) {
-        throw new NativeDocumentError("Toggle : condition must be an Observable");
+        throw new NativeDocumentError('Toggle : condition must be an Observable');
     }
 
     const anchor = Anchor('Match');
@@ -48,7 +48,7 @@ export const Match = function($condition, values, shouldKeepInCache = true) {
         }
         shouldKeepInCache && cache.set(key, item);
         return item;
-    }
+    };
 
     const defaultValue = $condition.val();
     const defaultContent = getItem(defaultValue);
@@ -75,9 +75,9 @@ export const Match = function($condition, values, shouldKeepInCache = true) {
             shouldKeepInCache && cache.delete(key);
             $condition.set([...cache.keys()].at(-1) ?? '');
             delete values[key];
-        }
+        },
     });
-}
+};
 
 
 /**
@@ -97,14 +97,14 @@ export const Match = function($condition, values, shouldKeepInCache = true) {
  */
 export const Switch = function ($condition, onTrue, onFalse) {
     if(!Validator.isObservable($condition)) {
-        throw new NativeDocumentError("Toggle : condition must be an Observable");
+        throw new NativeDocumentError('Toggle : condition must be an Observable');
     }
 
     return Match($condition.toBoolean(), {
         true: onTrue,
         false: onFalse,
     });
-}
+};
 
 /**
  * Provides a fluent API for conditional rendering with show/otherwise pattern.
@@ -119,7 +119,7 @@ export const Switch = function ($condition, onTrue, onFalse) {
  */
 export const When = function($condition) {
     if(!Validator.isObservable($condition)) {
-        throw new NativeDocumentError("When : condition must be an Observable");
+        throw new NativeDocumentError('When : condition must be an Observable');
     }
 
     let $onTrue = null;
@@ -136,6 +136,6 @@ export const When = function($condition) {
         },
         toNdElement() {
             return Switch($condition, $onTrue, $onFalse);
-        }
-    }
-}
+        },
+    };
+};

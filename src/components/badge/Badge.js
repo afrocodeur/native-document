@@ -1,5 +1,5 @@
-import BaseComponent from "../BaseComponent";
-import DebugManager from "../../core/utils/debug-manager";
+import BaseComponent from '../BaseComponent';
+import DebugManager from '../../core/utils/debug-manager';
 
 /**
  * Small label for status, count, or category. Supports variants, shapes (rounded/pill/circle), and appearance (filled/outline/bordered).
@@ -34,7 +34,7 @@ export default function Badge(content, props = {}) {
         size: 'medium',
         onClick: null,
         content,
-        props
+        props,
     };
 }
 

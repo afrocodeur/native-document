@@ -1,5 +1,5 @@
-import {Validation} from "../../validation/Validation";
-import StringField from "../../types/fields/StringField";
+import {Validation} from '../../validation/Validation';
+import StringField from '../../types/fields/StringField';
 
 /**
  * Password input field. Extends StringField with strength rules, strength meter,
@@ -78,7 +78,7 @@ PasswordField.prototype.strong = function(message) {
     return this.addRule(
         Validation.pattern,
         [strongPattern],
-        message || 'Password must contain uppercase, lowercase, and number'
+        message || 'Password must contain uppercase, lowercase, and number',
     );
 };
 
@@ -90,7 +90,7 @@ PasswordField.prototype.containsNumber = function(message) {
     return this.addRule(
         Validation.pattern,
         [/\d/],
-        message || 'Must contain at least one number'
+        message || 'Must contain at least one number',
     );
 };
 
@@ -102,7 +102,7 @@ PasswordField.prototype.containsUppercase = function(message) {
     return this.addRule(
         Validation.pattern,
         [/[A-Z]/],
-        message || 'Must contain at least one uppercase letter'
+        message || 'Must contain at least one uppercase letter',
     );
 };
 
@@ -114,7 +114,7 @@ PasswordField.prototype.containsLowercase = function(message) {
     return this.addRule(
         Validation.pattern,
         [/[a-z]/],
-        message || 'Must contain at least one lowercase letter'
+        message || 'Must contain at least one lowercase letter',
     );
 };
 
@@ -126,7 +126,7 @@ PasswordField.prototype.containsSpecialChar = function(message) {
     return this.addRule(
         Validation.pattern,
         [/[!@#$%^&*(),.?":{}|<>]/],
-        message || 'Must contain at least one special character'
+        message || 'Must contain at least one special character',
     );
 };
 

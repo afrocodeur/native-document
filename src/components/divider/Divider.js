@@ -1,5 +1,5 @@
-import BaseComponent from "../BaseComponent";
-import DebugManager from "../../core/utils/debug-manager";
+import BaseComponent from '../BaseComponent';
+import DebugManager from '../../core/utils/debug-manager';
 
 /**
  * Visual separator between sections. Supports horizontal/vertical orientation, solid/dashed/dotted style, label, and indent.
@@ -39,7 +39,7 @@ export default function Divider(label, props = {}) {
         indent: null,
         leading: null,
         trailing: null,
-        props
+        props,
     };
 }
 

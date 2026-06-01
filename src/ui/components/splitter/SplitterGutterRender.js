@@ -12,7 +12,7 @@ export default function SplitterGutterRender($desc, instance) {
     // });
 
     const gutter = Div(instance.resolveProps(),
-        Div({class: 'splitter-gutter-handle'})
+        Div({class: 'splitter-gutter-handle'}),
     );
 
     setupDrag(gutter, $desc, instance);

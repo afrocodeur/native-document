@@ -1,4 +1,4 @@
-import StringField from "../../types/fields/StringField";
+import StringField from '../../types/fields/StringField';
 
 /**
  * Multi-line text input field. Supports rows/cols, resize mode, auto-grow,
@@ -136,7 +136,7 @@ TextAreaField.prototype.wordCount = function(min, max, message) {
             if (max && words > max) return false;
             return true;
         },
-        message: message || `Word count must be between ${min || 0} and ${max || '∞'}`
+        message: message || `Word count must be between ${min || 0} and ${max || '∞'}`,
     });
     return this;
 };

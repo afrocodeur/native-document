@@ -1,6 +1,6 @@
-import HtmlElementWrapper from "../wrappers/HtmlElementWrapper"
-import Validator from "../utils/validator";
-import NativeDocumentError from "../errors/NativeDocumentError";
+import HtmlElementWrapper from '../wrappers/HtmlElementWrapper';
+import Validator from '../utils/validator';
+import NativeDocumentError from '../errors/NativeDocumentError';
 
 /**
  * Creates an `<img>` element.

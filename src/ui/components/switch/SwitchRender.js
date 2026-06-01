@@ -13,7 +13,7 @@ export default function SwitchRender($desc, instance) {
         '_':   $desc.variant.transform((value) => `is-${value}`),
         'is-outline':   $desc.outline,
         'is-checked':   $desc.value,
-        '___': $desc.value.transform(value => `is-state-${value ? 'on' : 'off'}`)
+        '___': $desc.value.transform(value => `is-state-${value ? 'on' : 'off'}`),
     });
 
     if($desc.labelPosition) {
@@ -63,8 +63,8 @@ const buildThumb = ($desc) => {
                 Match($desc.value, {
                     true:  $desc.onIcon,
                     false: $desc.offIcon,
-                })
-            )
+                }),
+            ),
         );
     }
 
@@ -78,6 +78,6 @@ const buildInnerLabel = ($desc) => {
         Match($desc.value, {
             true:  $desc.innerOnLabel  || '',
             false: $desc.innerOffLabel || '',
-        })
+        }),
     );
 };

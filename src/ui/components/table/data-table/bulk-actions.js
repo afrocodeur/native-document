@@ -1,7 +1,7 @@
-import {Div, Span, ShowIf} from "../../../../../elements";
-import {Button} from "../../../../components/button";
+import {Div, Span, ShowIf} from '../../../../../elements';
+import {Button} from '../../../../components/button';
 
-export const buildBulkActions = ({bulkCount, bulkButtons}, $desc, instance) => {
+export const buildBulkActions = ({bulkCount, bulkButtons}, $desc) => {
     if(!$desc.bulkActions?.length) return null;
 
     return ShowIf($desc.$selectedRows.is(items => items.length > 0), () => {
@@ -9,13 +9,13 @@ export const buildBulkActions = ({bulkCount, bulkButtons}, $desc, instance) => {
     });
 };
 
-export const buildBulkCount = ($desc, instance) => {
+export const buildBulkCount = ($desc) => {
     return Span({ class: 'data-table-bulk-count' },
-        $desc.$selectedRows.transform(rows => $desc.labels.selected(rows.length))
+        $desc.$selectedRows.transform(rows => $desc.labels.selected(rows.length)),
     );
 };
 
-export const buildBulkButtons = ($desc, instance) => {
+export const buildBulkButtons = ($desc) => {
     if(!$desc.bulkActions?.length) return null;
 
     return Div({class: 'data-table-bulk-buttons'},
@@ -29,6 +29,6 @@ export const buildBulkButtons = ($desc, instance) => {
             }
             btn.nd.onClick(() => action.onClick($desc.$selectedRows.val()));
             return btn;
-        })
+        }),
     );
 };

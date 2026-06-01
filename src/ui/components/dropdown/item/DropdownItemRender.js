@@ -1,4 +1,4 @@
-import {Div, Span} from "../../../../core/elements";
+import {Div, Span} from '../../../../core/elements';
 
 
 export default function DropdownItemRender($desc, instance) {

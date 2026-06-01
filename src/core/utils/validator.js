@@ -1,12 +1,12 @@
-import DebugManager from "./debug-manager";
-import NativeDocumentError from "../errors/NativeDocumentError";
+import DebugManager from './debug-manager';
+import NativeDocumentError from '../errors/NativeDocumentError';
 
 const COMMON_NODE_TYPES = {
     ELEMENT: 1,
     TEXT: 3,
     COMMENT: 8,
     DOCUMENT: 9,
-    DOCUMENT_FRAGMENT: 11
+    DOCUMENT_FRAGMENT: 11,
 };
 
 export const VALID_TYPES = [];
@@ -29,13 +29,13 @@ const Validator = {
         return  value?.__$isObservableArray;
     },
     isProxy(value) {
-        return value?.__isProxy__
+        return value?.__isProxy__;
     },
     isObservableOrProxy(value) {
         return Validator.isObservable(value) || Validator.isProxy(value);
     },
     isAnchor(value) {
-        return value?.__Anchor__
+        return value?.__Anchor__;
     },
     isObservableChecker(value) {
         return value?.__$isObservableChecker;
@@ -62,7 +62,7 @@ const Validator = {
         return typeof value === 'object' && value !== null;
     },
     isJson(value) {
-        return !(typeof value !== 'object' || value === null || Array.isArray(value) || value.constructor.name !== 'Object')
+        return !(typeof value !== 'object' || value === null || Array.isArray(value) || value.constructor.name !== 'Object');
     },
     isElement(value) {
         return value && VALID_TYPES[value.nodeType];
@@ -135,7 +135,7 @@ const Validator = {
         if (typeof callback !== 'function') {
             throw new NativeDocumentError('Event callback must be a function');
         }
-    }
+    },
 };
 if(process.env.NODE_ENV === 'development') {
     Validator.validateAttributes = function(attributes) {

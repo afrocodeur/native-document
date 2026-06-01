@@ -1,4 +1,4 @@
-import {createHtmlElement} from "./HtmlElementWrapper";
+import {createHtmlElement} from './HtmlElementWrapper';
 
 export default function SvgElementWrapper(name) {
     let node = null;

@@ -1,5 +1,5 @@
-import BaseComponent from "../BaseComponent";
-import DebugManager from "../../core/utils/debug-manager";
+import BaseComponent from '../BaseComponent';
+import DebugManager from '../../core/utils/debug-manager';
 
 /**
  * Interactive button with variants, sizes, icon placement, loading and disabled states. Use Button.use() to register a custom render template. Use Button.preset() to define named factory shortcuts.
@@ -53,7 +53,7 @@ export default function Button(label, props = {}) {
         block: null,
         borderRadiusType: null,
         outline: null,
-        props
+        props,
     };
 
     this.$element = null;

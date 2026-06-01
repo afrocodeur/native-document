@@ -1,5 +1,5 @@
 import {Div, Label, Input, Span, ForEachArray} from '../../../../../elements';
-import {buildErrors} from "../helpers";
+import {buildErrors} from '../helpers';
 
 export default function CheckboxGroupFieldRender($desc, instance) {
     const props = instance.getEditableProps();

@@ -1,6 +1,6 @@
-import {Div, Input, Span} from "../../../../../elements";
-import {Button} from "../../../../components/button";
-import {SelectField} from "../../../../components/form";
+import {Div, Input, Span} from '../../../../../elements';
+import {Button} from '../../../../components/button';
+import {SelectField} from '../../../../components/form';
 
 export const buildToolbar = ({ search, filters, exportBtn, columnsBtn }) => {
     return Div({class: 'data-table-toolbar'}, [

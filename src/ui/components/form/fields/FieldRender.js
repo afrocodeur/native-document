@@ -1,5 +1,5 @@
 import {Div, Label, Input, Span, ShowIf, ForEachArray} from '../../../../../elements';
-import {buildInputWithSlots} from "../helpers";
+import {buildInputWithSlots} from '../helpers';
 
 import './field.css';
 
@@ -110,9 +110,9 @@ const buildErrors = ($desc) => {
         return ShowIf($desc.hasErrors,
             () => Div({class: 'field-errors', ...($desc.elementsProps.error || {})},
                 ForEachArray($desc.errors, (error) =>
-                    Span({class: 'field-error'}, error)
-                )
-            )
+                    Span({class: 'field-error'}, error),
+                ),
+            ),
         );
     });
 };

@@ -1,10 +1,10 @@
-import BaseComponent from "../BaseComponent";
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import { Observable } from "../../core/data/Observable";
-import {ElementCreator} from "../../core/wrappers/ElementCreator";
-import {NDElement} from "../../core/wrappers/NDElement";
-import DebugManager from "../../core/utils/debug-manager";
-import HasFullPosition from "../$traits/has-position/HasFullPosition";
+import BaseComponent from '../BaseComponent';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
+import { Observable } from '../../core/data/Observable';
+import {ElementCreator} from '../../core/wrappers/ElementCreator';
+import {NDElement} from '../../core/wrappers/NDElement';
+import DebugManager from '../../core/utils/debug-manager';
+import HasFullPosition from '../$traits/has-position/HasFullPosition';
 
 /**
  * Floating panel anchored to a trigger element. Supports click/hover/focus interactions, arrow, position, header/footer slots, and focus trap.

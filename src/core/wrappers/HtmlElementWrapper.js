@@ -1,6 +1,6 @@
-import Anchor from "../elements/anchor/anchor";
-import {ElementCreator} from "./ElementCreator";
-import {normalizeComponentArgs} from "../utils/args-types";
+import Anchor from '../elements/anchor/anchor';
+import {ElementCreator} from './ElementCreator';
+import {normalizeComponentArgs} from '../utils/args-types';
 import './NdPrototype';
 
 import './NdPrototype';
@@ -38,12 +38,12 @@ export const createTextNode = (value) => {
  * @returns {HTMLElement} The configured element
  */
 export const createHtmlElement = (element, _attributes, _children = null) => {
-    let { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
+    const { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
 
     ElementCreator.processAttributes(element, attributes);
     ElementCreator.processChildren(children, element);
     return element;
-}
+};
 
 /**
  * Creates a reusable element factory function for the given HTML tag.
@@ -75,7 +75,7 @@ export default function  HtmlElementWrapper(name, customWrapper = null) {
                 return createHtmlElement(customWrapper(node.cloneNode()), attr, children);;
             };
 
-            return (attr, children) => createElement(attr, children)
+            return (attr, children) => createElement(attr, children);
         }
 
         let node = null;
@@ -87,7 +87,7 @@ export default function  HtmlElementWrapper(name, customWrapper = null) {
             return createHtmlElement(node.cloneNode(), attr, children);
         };
 
-        return (attr, children) => createElement(attr, children)
+        return (attr, children) => createElement(attr, children);
     }
     return (children, name = '') => {
         const anchor = Anchor(name);

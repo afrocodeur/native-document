@@ -1,4 +1,4 @@
-import StackRender from "../StackRender";
+import StackRender from '../StackRender';
 
 import './h-stack.css';
 

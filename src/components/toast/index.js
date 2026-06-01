@@ -1,5 +1,5 @@
-import Toast from './Toast'
+import Toast from './Toast';
 
 export {
-    Toast
-}
+    Toast,
+};

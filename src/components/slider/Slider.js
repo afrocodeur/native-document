@@ -1,4 +1,4 @@
-import Field from "../form/types/Field";
+import Field from '../form/types/Field';
 
 /**
  * Range input slider. Supports single value, range mode (two handles), marks, tooltip, vertical orientation, and reactive binding.
@@ -59,7 +59,7 @@ export default function Slider(name, props = {}) {
         snapToMarks:   false,
         renderCursor:  null,
         renderThumb:   null,
-        props
+        props,
     };
 }
 

@@ -1,7 +1,7 @@
-import Validator from "./validator";
+import Validator from './validator';
 
 export const cssPropertyAccumulator = function(initialValue = {}) {
-    let data = Validator.isString(initialValue) ? initialValue.split(';').filter(Boolean) : initialValue;
+    const data = Validator.isString(initialValue) ? initialValue.split(';').filter(Boolean) : initialValue;
 
     return {
         add(key, value) {
@@ -25,10 +25,10 @@ export const cssPropertyAccumulator = function(initialValue = {}) {
             return { ...data };
         },
     };
-}
+};
 
 export const classPropertyAccumulator = function(initialValue = []) {
-    let data = Validator.isString(initialValue) ? initialValue.split(" ").filter(Boolean) : initialValue;
+    let data = Validator.isString(initialValue) ? initialValue.split(' ').filter(Boolean) : initialValue;
 
     return {
         add(key, value = true) {
@@ -48,7 +48,7 @@ export const classPropertyAccumulator = function(initialValue = []) {
                     }, {});
                 }
                 if(key.__$Observable) {
-                    const uniqueId = `obs-${Math.random().toString(36).substr(2, 9)}`
+                    const uniqueId = `obs-${Math.random().toString(36).substr(2, 9)}`;
                     data[uniqueId] = key;
                 }
                 else {
@@ -69,4 +69,4 @@ export const classPropertyAccumulator = function(initialValue = []) {
             return { ...data };
         },
     };
-}
+};

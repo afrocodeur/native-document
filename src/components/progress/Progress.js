@@ -1,6 +1,6 @@
-import BaseComponent from "../BaseComponent";
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import DebugManager from "../../core/utils/debug-manager";
+import BaseComponent from '../BaseComponent';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
+import DebugManager from '../../core/utils/debug-manager';
 
 /**
  * Progress indicator supporting bar, circle, and line types. Supports indeterminate, striped/animated variants, and value formatting.
@@ -48,7 +48,7 @@ export default function Progress(props = {}) {
         striped: null,
         animated: null,
         borderRadiusType: null,
-        props
+        props,
     };
 }
 

@@ -1,4 +1,4 @@
-import BaseComponent from "../../../../BaseComponent";
+import BaseComponent from '../../../../BaseComponent';
 
 /**
  * Native browser file input mode for FileField.
@@ -24,7 +24,7 @@ export default function FileNativeMode(props = {}) {
     BaseComponent.call(this, props);
 
     this.$description = {
-        props
+        props,
     };
 }
 

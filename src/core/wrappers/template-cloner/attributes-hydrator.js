@@ -1,4 +1,4 @@
-import {ElementCreator} from "../ElementCreator";
+import {ElementCreator} from '../ElementCreator';
 
 /**
  * Hydrates a cloned node with all attribute, class, style, and attachment bindings

@@ -1,4 +1,4 @@
-import {NDElement} from "../NDElement";
+import {NDElement} from '../NDElement';
 
 /**
  * @param {HTMLElement} el

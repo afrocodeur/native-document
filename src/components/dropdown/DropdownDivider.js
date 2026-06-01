@@ -1,4 +1,4 @@
-import BaseComponent from "../BaseComponent";
+import BaseComponent from '../BaseComponent';
 
 /**
  * Visual separator between groups or items inside a Dropdown.
@@ -16,7 +16,7 @@ export default function DropdownDivider(props = {}) {
     }
     this.$description  = {
         type: 'divider',
-        props
+        props,
     };
 }
 

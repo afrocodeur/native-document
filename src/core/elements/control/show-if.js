@@ -1,8 +1,8 @@
-import { Observable } from "../../data/Observable";
-import Validator from "../../utils/validator";
-import DebugManager from "../../utils/debug-manager.js";
-import Anchor from "../anchor/anchor";
-import {ElementCreator} from "../../wrappers/ElementCreator";
+import { Observable } from '../../data/Observable';
+import Validator from '../../utils/validator';
+import DebugManager from '../../utils/debug-manager.js';
+import Anchor from '../anchor/anchor';
+import {ElementCreator} from '../../wrappers/ElementCreator';
 
 /**
  * Conditionally shows an element based on an observable condition.
@@ -20,11 +20,11 @@ import {ElementCreator} from "../../wrappers/ElementCreator";
  */
 export const ShowIf = function(condition, child, { comment = null, shouldKeepInCache = true} = {}) {
     if(!Validator.isObservable(condition)) {
-        if(typeof condition === "boolean") {
+        if(typeof condition === 'boolean') {
             return condition ? ElementCreator.getChild(child) : null;
         }
 
-        return DebugManager.warn('ShowIf', "ShowIf : condition must be an Observable or boolean / "+comment, condition);
+        return DebugManager.warn('ShowIf', 'ShowIf : condition must be an Observable or boolean / '+comment, condition);
     }
     const element = Anchor('Show if : '+(comment || ''));
 
@@ -47,7 +47,7 @@ export const ShowIf = function(condition, child, { comment = null, shouldKeepInC
     }
 
     condition.subscribe((value) => {
-        if(!!value) {
+        if(value) {
             element.appendChild(getChildElement());
             return;
         }
@@ -55,7 +55,7 @@ export const ShowIf = function(condition, child, { comment = null, shouldKeepInC
     });
 
     return element;
-}
+};
 
 /**
  * Conditionally hides an element when the observable condition is true.
@@ -76,7 +76,7 @@ export const HideIf = function(condition, child, configs) {
     condition.subscribe(value => hideCondition.set(!value));
 
     return ShowIf(hideCondition, child, configs);
-}
+};
 
 /**
  * Conditionally hides an element when the observable condition is false.
@@ -91,4 +91,4 @@ export const HideIf = function(condition, child, configs) {
  */
 export const HideIfNot = function(condition, child, configs) {
     return ShowIf(condition, child, configs);
-}
+};

@@ -3,5 +3,5 @@ import AccordionItem from './AccordionItem';
 
 export {
     Accordion,
-    AccordionItem
-}
+    AccordionItem,
+};

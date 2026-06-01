@@ -1,6 +1,6 @@
-import BaseComponent from "../BaseComponent";
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import {Observable} from "../../core/data/Observable";
+import BaseComponent from '../BaseComponent';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
+import {Observable} from '../../core/data/Observable';
 
 /**
  * Non-blocking notification toast. Supports type variants, duration, pause-on-hover, actions, and positioning.
@@ -43,7 +43,7 @@ export default function Toast(content, props = {}) {
         position: 'top-trailing',
         actions: [],
         render: null,
-        props
+        props,
     };
 }
 

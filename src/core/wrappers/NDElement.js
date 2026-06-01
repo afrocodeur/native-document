@@ -1,12 +1,12 @@
-import DocumentObserver from "./DocumentObserver";
-import PluginsManager from "../utils/plugins-manager";
-import NativeDocumentError from "../errors/NativeDocumentError.js";
-import DebugManager from "../utils/debug-manager.js";
+import DocumentObserver from './DocumentObserver';
+import PluginsManager from '../utils/plugins-manager';
+import NativeDocumentError from '../errors/NativeDocumentError.js';
+import DebugManager from '../utils/debug-manager.js';
 import attributesWrapper, {
     bindAttributeWithObservable,
     bindClassAttribute,
-    bindStyleAttribute
-} from "./AttributesWrapper";
+    bindStyleAttribute,
+} from './AttributesWrapper';
 
 /**
  * Wraps an HTMLElement with NativeDocument's reactivity and lifecycle API.
@@ -274,10 +274,10 @@ NDElement.prototype.node = NDElement.prototype.htmlElement;
  */
 NDElement.prototype.shadow = function(mode, style = null) {
     const $element = this.$element;
-    const children = Array.from($element.childNodes)
+    const children = Array.from($element.childNodes);
     const shadowRoot = $element.attachShadow({ mode });
     if(style) {
-        const styleNode = document.createElement("style");
+        const styleNode = document.createElement('style');
         styleNode.textContent = style;
         shadowRoot.appendChild(styleNode);
     }
@@ -437,7 +437,7 @@ NDElement.extend = function(methods) {
     const protectedMethods = new Set([
         'constructor', 'valueOf', '$element', '$observer',
         'ref', 'remove', 'cleanup', 'with', 'extend', 'attach',
-        'lifecycle', 'mounted', 'unmounted', 'unmountChildren'
+        'lifecycle', 'mounted', 'unmounted', 'unmountChildren',
     ]);
 
     for (const name in methods) {

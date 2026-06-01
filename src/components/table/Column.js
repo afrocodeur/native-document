@@ -28,7 +28,7 @@ export default function Column(key, props = {}) {
         rowspan: null,
         sortable: null,
         onClick: null,
-        props
+        props,
     };
 }
 

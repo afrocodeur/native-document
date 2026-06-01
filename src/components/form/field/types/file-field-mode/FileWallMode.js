@@ -1,5 +1,5 @@
-import BaseComponent from "../../../../BaseComponent";
-import HasEventEmitter from "../../../../../core/utils/HasEventEmitter";
+import BaseComponent from '../../../../BaseComponent';
+import HasEventEmitter from '../../../../../core/utils/HasEventEmitter';
 
 /**
  * Grid/wall layout mode for FileField.
@@ -33,7 +33,7 @@ export default function FileWallMode(props = {}) {
         addIcon:    null,
         renderCell: null,
         renderAdd:  null,
-        props
+        props,
     };
 }
 

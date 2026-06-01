@@ -1,4 +1,4 @@
-import DebugManager from "../../core/utils/debug-manager.js";
+import DebugManager from '../../core/utils/debug-manager.js';
 
 export default function HistoryRouter() {
 
@@ -60,6 +60,6 @@ export default function HistoryRouter() {
         });
         const { route, params, query, path } = this.resolve(defaultPath || (window.location.pathname+window.location.search));
         this.handleRouteChange(route, params, query, path);
-    }
+    };
 
 };

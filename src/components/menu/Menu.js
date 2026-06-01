@@ -1,9 +1,9 @@
-import BaseComponent from "../BaseComponent";
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import HasItems from "../$traits/has-items/HasItems";
-import MenuGroup from "./types/MenuGroup";
-import HasMenuItem from "./HasMenuItem";
-import { $ } from '../../core/data/Observable'
+import BaseComponent from '../BaseComponent';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
+import HasItems from '../$traits/has-items/HasItems';
+import MenuGroup from './types/MenuGroup';
+import HasMenuItem from './HasMenuItem';
+import { $ } from '../../core/data/Observable';
 
 /**
  * Navigation or action menu. Supports horizontal/vertical/inline orientation, keyboard navigation, nested groups, active item tracking.
@@ -50,7 +50,7 @@ export default function Menu(props = {}) {
         menuActive: $(null),
         isMenuActivated: $(false),
         compact: $(null),
-        props
+        props,
     };
 
 }
@@ -204,7 +204,7 @@ Menu.prototype.group = function(label, icon, builder, props = {}) {
  */
 Menu.prototype.getItem = function(key) {
     return this.$description.items.find(
-        item => item.$description.key === key || item.$description.label === key
+        item => item.$description.key === key || item.$description.label === key,
     );
 };
 

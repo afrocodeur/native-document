@@ -1,5 +1,5 @@
-import BaseComponent from "../../../../BaseComponent";
-import HasEventEmitter from "../../../../../core/utils/HasEventEmitter";
+import BaseComponent from '../../../../BaseComponent';
+import HasEventEmitter from '../../../../../core/utils/HasEventEmitter';
 
 /**
  * Avatar-style single file upload mode for FileField.
@@ -41,7 +41,7 @@ export default function FileAvatarMode(props = {}) {
         renderAvatar: null,
         renderOverlay: null,
         renderActions: null,
-        props
+        props,
     };
 }
 

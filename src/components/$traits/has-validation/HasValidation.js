@@ -15,7 +15,7 @@ export default function HasValidation() {}
 HasValidation.prototype.required = function(message) {
     this.$description.rules.push({
         fn:      Validation.required,
-        message: message || `${this.$description.label || this.$description.name} is required`
+        message: message || `${this.$description.label || this.$description.name} is required`,
     });
     return this;
 };
@@ -28,7 +28,7 @@ HasValidation.prototype.required = function(message) {
 HasValidation.prototype.custom = function(validatorFn, message) {
     this.$description.rules.push({
         validate: validatorFn,
-        message:  message || 'Validation failed'
+        message:  message || 'Validation failed',
     });
     return this;
 };
@@ -43,7 +43,7 @@ HasValidation.prototype.addRule = function(validationFn, params, message) {
     this.$description.rules.push({
         fn:      validationFn,
         params:  params || [],
-        message
+        message,
     });
     return this;
 };

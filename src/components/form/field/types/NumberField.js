@@ -1,5 +1,5 @@
-import {Validation} from "../../validation/Validation";
-import Field from "../../types/Field";
+import {Validation} from '../../validation/Validation';
+import Field from '../../types/Field';
 
 /**
  * Numeric input field. Supports min/max/between validation, integer, positive/negative,
@@ -135,7 +135,7 @@ NumberField.prototype.multipleOf = function(n, message) {
             if (!value && value !== 0) return true;
             return Number(value) % n === 0;
         },
-        message: message || `Must be a multiple of ${n}`
+        message: message || `Must be a multiple of ${n}`,
     });
     return this;
 };

@@ -1,17 +1,17 @@
 import {Div} from '../../../../../elements';
 import './data-table.css';
 
-import {buildColumnsBtn, buildExportBtn, buildFiltersBtn, buildSearch, buildToolbar} from "./toolbar";
-import {buildBulkActions, buildBulkButtons, buildBulkCount} from "./bulk-actions";
-import {buildTable} from "./tables";
-import {buildPageInfo, buildPageNav, buildPageSize, buildPagination} from "./pagination";
+import {buildColumnsBtn, buildExportBtn, buildFiltersBtn, buildSearch, buildToolbar} from './toolbar';
+import {buildBulkActions, buildBulkButtons, buildBulkCount} from './bulk-actions';
+import {buildTable} from './tables';
+import {buildPageInfo, buildPageNav, buildPageSize, buildPagination} from './pagination';
 
 export default function DataTableRender($desc, instance) {
     const props = instance.getEditableProps();
     props.class.add('data-table');
 
     const visibleColumns = $desc.columns.filter(col =>
-        col.$description.visible !== false
+        col.$description.visible !== false,
     );
 
 

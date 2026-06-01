@@ -1,7 +1,7 @@
 import {Dialog, Div, Span} from '../../../core/elements';
 import Button from '../../../components/button/types/Button';
-import {ElementCreator} from "../../../core/wrappers/ElementCreator";
-import {createPortal} from "../../../core/elements/anchor/anchor";
+import {ElementCreator} from '../../../core/wrappers/ElementCreator';
+import {createPortal} from '../../../core/elements/anchor/anchor';
 
 import './modal.css';
 
@@ -69,13 +69,13 @@ export default function ModalRender($desc, instance) {
 const buildHeader = ($desc, instance) => {
     const content = [];
 
-    content.push(Div({class: 'modal-title'}, $desc.title))
+    content.push(Div({class: 'modal-title'}, $desc.title));
 
     if($desc.closable) {
         content.push(
             Button('×', {class: 'modal-close'})
                 .ghost()
-                .nd.onClick(() => instance.close())
+                .nd.onClick(() => instance.close()),
         );
     }
 

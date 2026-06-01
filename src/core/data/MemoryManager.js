@@ -1,4 +1,4 @@
-import DebugManager from "../../core/utils/debug-manager";
+import DebugManager from '../../core/utils/debug-manager';
 
 
 const MemoryManager = (function() {
@@ -50,7 +50,7 @@ const MemoryManager = (function() {
             if (cleanedCount > 0) {
                 DebugManager.log('Memory Auto Clean', `🧹 Cleaned ${cleanedCount} orphaned observables`);
             }
-        }
+        },
     };
 }());
 

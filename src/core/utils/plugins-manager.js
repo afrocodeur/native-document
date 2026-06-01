@@ -1,4 +1,4 @@
-import DebugManager from "./debug-manager";
+import DebugManager from './debug-manager';
 
 let PluginsManager = null;
 
@@ -18,7 +18,7 @@ if(process.env.NODE_ENV === 'development') {
                 }
                 name = name || plugin.name;
                 if (!name || typeof name !== 'string') {
-                    throw new Error(`Please, provide a valid plugin name`);
+                    throw new Error('Please, provide a valid plugin name');
                 }
                 if($plugins.has(name)) {
                     return;
@@ -73,7 +73,7 @@ if(process.env.NODE_ENV === 'development') {
                         }
                     }
                 }
-            }
+            },
         };
     }());
 }

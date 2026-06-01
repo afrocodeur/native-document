@@ -1,5 +1,5 @@
-import StringField from "../../types/fields/StringField";
-import {Validation} from "../../validation/Validation";
+import StringField from '../../types/fields/StringField';
+import {Validation} from '../../validation/Validation';
 
 /**
  * Telephone input field. Supports phone format validation, country code prefix,
@@ -29,7 +29,7 @@ export default function TelField(name, props) {
 
     Object.assign(this.$description, {
         countryCode: false,
-        mask: null
+        mask: null,
     });
 }
 
@@ -91,7 +91,7 @@ TelField.prototype.mask = function(pattern) {
         .replace(/#/g, '\\d');
 
     this.addRule(Validation.pattern, [new RegExp(`^${regex}$`)],
-        `Invalid phone format. Expected: ${pattern}`
+        `Invalid phone format. Expected: ${pattern}`,
     );
 
     return this;

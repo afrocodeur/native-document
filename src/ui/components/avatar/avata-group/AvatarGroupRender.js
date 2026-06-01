@@ -39,7 +39,7 @@ function buildMore(count, $desc) {
     const isClickable = $desc.onMoreClick ? ' is-clickable' : '';
 
     const span = Span({
-        class: 'avatar-group-more is-' + size + ' is-' + shape + isClickable
+        class: 'avatar-group-more is-' + size + ' is-' + shape + isClickable,
     }, '+' + count);
 
     if($desc.onMoreClick) {

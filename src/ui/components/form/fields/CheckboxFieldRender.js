@@ -1,5 +1,5 @@
 import {Div, Label, Input, Span} from '../../../../../elements';
-import {buildErrors} from "../helpers";
+import {buildErrors} from '../helpers';
 
 export default function CheckboxFieldRender($desc, instance) {
     const props = instance.getEditableProps();

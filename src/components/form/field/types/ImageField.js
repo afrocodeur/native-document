@@ -1,5 +1,5 @@
-import FileField from "../../types/fields/FileField";
-import {Validation} from "../../validation/Validation";
+import FileField from '../../types/fields/FileField';
+import {Validation} from '../../validation/Validation';
 
 /**
  * Image upload field. Extends FileField with image-specific validation:
@@ -34,7 +34,7 @@ export default function ImageField(name, props) {
     Object.assign(this.$description, {
         maxWidth: null,
         maxHeight: null,
-        crop: false
+        crop: false,
     });
 
     // Auto-apply image mime types

@@ -1,7 +1,7 @@
 
-import BaseComponent from "../BaseComponent";
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import HasItems from "../$traits/has-items/HasItems";
+import BaseComponent from '../BaseComponent';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
+import HasItems from '../$traits/has-items/HasItems';
 
 /**
  * Flexible list container supporting single/multi selection, checkbox or click-to-select modes, dividers, and inset styling.
@@ -38,7 +38,7 @@ export default function List(config = {}) {
         selectByCheckbox: false,
         selectByClick: false,
         loopOnKeyboard: true,
-        ...config
+        ...config,
     };
 
 }

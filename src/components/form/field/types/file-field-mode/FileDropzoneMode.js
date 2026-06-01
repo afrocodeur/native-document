@@ -1,5 +1,5 @@
-import BaseComponent from "../../../../BaseComponent";
-import HasEventEmitter from "../../../../../core/utils/HasEventEmitter";
+import BaseComponent from '../../../../BaseComponent';
+import HasEventEmitter from '../../../../../core/utils/HasEventEmitter';
 
 /**
  * Drag-and-drop zone mode for FileField.
@@ -37,7 +37,7 @@ export default function FileDropzoneMode(props = {}) {
         height:     null,
         renderZone: null,
         removeIcon: null,
-        props
+        props,
     };
 }
 

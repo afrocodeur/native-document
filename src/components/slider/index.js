@@ -1,5 +1,5 @@
-import Slider from "./types/Slider";
+import Slider from './types/Slider';
 
 export {
-    Slider
+    Slider,
 };

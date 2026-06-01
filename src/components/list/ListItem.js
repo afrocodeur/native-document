@@ -1,5 +1,5 @@
-import BaseComponent from "../BaseComponent";
-import Validator from "../../core/utils/validator";
+import BaseComponent from '../BaseComponent';
+import Validator from '../../core/utils/validator';
 import {$ } from '../../core/data/Observable';
 
 /**
@@ -37,7 +37,7 @@ export default function ListItem(content, config = {}) {
         divider: false,
         data: null,
         render: null,
-        ...config
+        ...config,
     };
 }
 

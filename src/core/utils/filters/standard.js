@@ -1,6 +1,6 @@
-import Validator from "../../utils/validator";
-import { createFilter, createMultiSourceFilter } from "./utils";
-import DebugManager from "../debug-manager";
+import Validator from '../../utils/validator';
+import { createFilter, createMultiSourceFilter } from './utils';
+import DebugManager from '../debug-manager';
 
 /**
  * Creates a filter that passes values strictly equal to the target.
@@ -78,7 +78,7 @@ export function lessThanOrEqual(observableOrValue){
 export function between(minObservableOrValue, maxObservableOrValue){
     return createMultiSourceFilter(
         [minObservableOrValue, maxObservableOrValue],
-        (value, [min, max]) => value >= min && value <= max
+        (value, [min, max]) => value >= min && value <= max,
     );
 }
 
@@ -168,7 +168,7 @@ export function match(patternObservableOrValue, asRegexObservableOrValue = true,
                 return String(value).toLowerCase().includes(String(pattern).toLowerCase());
             }
             return String(value).includes(String(pattern));
-        }
+        },
     );
 }
 
@@ -188,7 +188,7 @@ export function and(...filters){
 
     return {
         dependencies: dependencies.length > 0 ? dependencies : null,
-        callback: (value) => filters.every(f => f.callback(value))
+        callback: (value) => filters.every(f => f.callback(value)),
     };
 }
 
@@ -208,7 +208,7 @@ export function or(...filters){
 
     return {
         dependencies: dependencies.length > 0 ? dependencies : null,
-        callback: (value) => filters.some(f => f.callback(value))
+        callback: (value) => filters.some(f => f.callback(value)),
     };
 }
 
@@ -223,7 +223,7 @@ export function or(...filters){
 export function not(filter){
     return {
         dependencies: filter.dependencies,
-        callback: (value) => !filter.callback(value)
+        callback: (value) => !filter.callback(value),
     };
 }
 
@@ -245,10 +245,10 @@ export function custom(callbackFn, ...observables){
         dependencies: dependencies.length > 0 ? dependencies : null,
         callback: (value) => {
             const values = observables.map(o =>
-                Validator.isObservable(o) ? o.val() : o
+                Validator.isObservable(o) ? o.val() : o,
             );
             return callbackFn(value, ...values);
-        }
+        },
     };
 }
 

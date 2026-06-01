@@ -1,9 +1,9 @@
-import Column from "./types/Column";
-import ColumnGroup from "./types/ColumnGroup";
-import BaseComponent from "../BaseComponent";
-import {Observable as $} from "../../core/data/Observable";
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import DebugManager from "../../core/utils/debug-manager";
+import Column from './types/Column';
+import ColumnGroup from './types/ColumnGroup';
+import BaseComponent from '../BaseComponent';
+import {Observable as $} from '../../core/data/Observable';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
+import DebugManager from '../../core/utils/debug-manager';
 
 /**
  * Full-featured data table with sorting, searching, filtering, pagination, selection, editing, expandable rows, bulk actions, and server-side support.
@@ -205,7 +205,7 @@ DataTable.prototype.$beforeRender = function() {
         for(const optionKey in optionsKeys) {
             const source = optionsKeys[optionKey];
             if(options.include.includes(optionKey)) {
-                state[optionKey] = source.val()
+                state[optionKey] = source.val();
             }
         }
 
@@ -223,7 +223,7 @@ DataTable.prototype.$beforeRender = function() {
     for(const optionKey in optionsKeys) {
         const source = optionsKeys[optionKey];
         if(options.include.includes(optionKey)) {
-            source.subscribe(save)
+            source.subscribe(save);
         }
     }
 };
@@ -247,7 +247,7 @@ DataTable.prototype.column = function(key, title, props, callback) {
     }
     const column = new Column(key);
     column.title(title);
-    column.props(props)
+    column.props(props);
     callback && callback(column);
     this.$description.columns.push(column);
     this.$description.header.push(column);

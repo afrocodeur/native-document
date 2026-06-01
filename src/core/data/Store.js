@@ -1,7 +1,7 @@
-import { Observable } from "./Observable";
-import NativeDocumentError from "../errors/NativeDocumentError";
-import DebugManager from "../utils/debug-manager";
-import {$getFromStorage, $saveToStorage, LocalStorage} from "../utils/localstorage";
+import { Observable } from './Observable';
+import NativeDocumentError from '../errors/NativeDocumentError';
+import DebugManager from '../utils/debug-manager';
+import {$getFromStorage, $saveToStorage, LocalStorage} from '../utils/localstorage';
 
 export const StoreFactory = function() {
 
@@ -16,7 +16,7 @@ export const StoreFactory = function() {
         if (!item) {
             DebugManager.error('Store', `Store.${method}('${name}') : store not found. Did you call Store.create('${name}') first?`);
             throw new NativeDocumentError(
-                `Store.${method}('${name}') : store not found.`
+                `Store.${method}('${name}') : store not found.`,
             );
         }
         return item;
@@ -29,7 +29,7 @@ export const StoreFactory = function() {
         const readOnlyError = (method) => () => {
             DebugManager.error('Store', `Store.${context}('${name}') is read-only. '${method}()' is not allowed.`);
             throw new NativeDocumentError(
-                `Store.${context}('${name}') is read-only.`
+                `Store.${context}('${name}') is read-only.`,
             );
         };
         observer.set    = readOnlyError('set');
@@ -45,7 +45,7 @@ export const StoreFactory = function() {
             return Observable.object(value, options);
         }
         return Observable(value, options);
-    }
+    };
 
     const $api = {
         /**
@@ -60,10 +60,10 @@ export const StoreFactory = function() {
             if ($stores.has(name)) {
                 DebugManager.warn('Store', `Store.create('${name}') : a store with this name already exists. Use Store.get('${name}') to retrieve it.`);
                 throw new NativeDocumentError(
-                    `Store.create('${name}') : a store with this name already exists.`
+                    `Store.create('${name}') : a store with this name already exists.`,
                 );
             }
-            const observer = $createObservable(value)
+            const observer = $createObservable(value);
             $stores.set(name, { observer, subscribers: new Set(), resettable: false, composed: false });
             return observer;
         },
@@ -81,7 +81,7 @@ export const StoreFactory = function() {
             if ($stores.has(name)) {
                 DebugManager.warn('Store', `Store.createResettable('${name}') : a store with this name already exists.`);
                 throw new NativeDocumentError(
-                    `Store.createResettable('${name}') : a store with this name already exists.`
+                    `Store.createResettable('${name}') : a store with this name already exists.`,
                 );
             }
             const observer = $createObservable(value, { reset: true });
@@ -117,17 +117,17 @@ export const StoreFactory = function() {
             if ($stores.has(name)) {
                 DebugManager.warn('Store', `Store.createComposed('${name}') : a store with this name already exists.`);
                 throw new NativeDocumentError(
-                    `Store.createComposed('${name}') : a store with this name already exists.`
+                    `Store.createComposed('${name}') : a store with this name already exists.`,
                 );
             }
             if (typeof computation !== 'function') {
                 throw new NativeDocumentError(
-                    `Store.createComposed('${name}') : computation must be a function.`
+                    `Store.createComposed('${name}') : computation must be a function.`,
                 );
             }
             if (!Array.isArray(dependencies) || dependencies.length === 0) {
                 throw new NativeDocumentError(
-                    `Store.createComposed('${name}') : dependencies must be a non-empty array of store names.`
+                    `Store.createComposed('${name}') : dependencies must be a non-empty array of store names.`,
                 );
             }
 
@@ -140,7 +140,7 @@ export const StoreFactory = function() {
                 if (!depItem) {
                     DebugManager.error('Store', `Store.createComposed('${name}') : dependency '${depName}' not found. Create it first.`);
                     throw new NativeDocumentError(
-                        `Store.createComposed('${name}') : dependency store '${depName}' not found.`
+                        `Store.createComposed('${name}') : dependency store '${depName}' not found.`,
                     );
                 }
                 return depItem.observer;
@@ -174,13 +174,13 @@ export const StoreFactory = function() {
             if (item.composed) {
                 DebugManager.error('Store', `Store.reset('${name}') : composed stores cannot be reset. Their value is derived from dependencies.`);
                 throw new NativeDocumentError(
-                    `Store.reset('${name}') : composed stores cannot be reset.`
+                    `Store.reset('${name}') : composed stores cannot be reset.`,
                 );
             }
             if (!item.resettable) {
                 DebugManager.error('Store', `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`);
                 throw new NativeDocumentError(
-                    `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`
+                    `Store.reset('${name}') : this store is not resettable. Use Store.createResettable('${name}', value) instead of Store.create().`,
                 );
             }
             item.observer.reset();
@@ -201,7 +201,7 @@ export const StoreFactory = function() {
             if (item.composed) {
                 DebugManager.error('Store', `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`);
                 throw new NativeDocumentError(
-                    `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`
+                    `Store.use('${name}') : composed stores are read-only. Use Store.follow('${name}') instead.`,
                 );
             }
 
@@ -352,7 +352,7 @@ export const StoreFactory = function() {
         createPersistent(name, value, localstorage_key) {
             localstorage_key = localstorage_key || name;
             const observer = this.create(name, $getFromStorage(localstorage_key, value));
-            const saver = $saveToStorage(value)
+            const saver = $saveToStorage(value);
 
             observer.subscribe((val) => saver(localstorage_key, val));
             return observer;
@@ -360,7 +360,7 @@ export const StoreFactory = function() {
         createPersistentResettable(name, value, localstorage_key) {
             localstorage_key = localstorage_key || name;
             const observer = this.createResettable(name, $getFromStorage(localstorage_key, value));
-            const saver = $saveToStorage(value)
+            const saver = $saveToStorage(value);
             observer.subscribe((val) => saver(localstorage_key, val));
 
             const originalReset = observer.reset.bind(observer);
@@ -370,7 +370,7 @@ export const StoreFactory = function() {
             };
 
             return observer;
-        }
+        },
     };
 
 
@@ -391,11 +391,11 @@ export const StoreFactory = function() {
         },
         set(target, prop, value) {
             DebugManager.error('Store', `Forbidden: You cannot overwrite the store key '${String(prop)}'. Use .use('${String(prop)}').set(value) instead.`);
-            throw new NativeDocumentError(`Store structure is immutable. Use .set() on the observable.`);
+            throw new NativeDocumentError('Store structure is immutable. Use .set() on the observable.');
         },
         deleteProperty(target, prop) {
-            throw new NativeDocumentError(`Store keys cannot be deleted.`);
-        }
+            throw new NativeDocumentError('Store keys cannot be deleted.');
+        },
     });
 };
 

@@ -1,14 +1,14 @@
-import {ForEachArray, ShowIf, Div, Span, Img} from "../../../../elements";
+import {ForEachArray, ShowIf, Div, Span, Img} from '../../../../elements';
 
 export const buildErrors = ($desc) => {
     return ShowIf($desc.showErrors, () =>
         ShowIf($desc.hasErrors,
             () => Div({class: 'field-errors', ...($desc.elementsProps.error || {})},
                 ForEachArray($desc.errors, (error) =>
-                    Span({class: 'field-error'}, error)
-                )
-            )
-        )
+                    Span({class: 'field-error'}, error),
+                ),
+            ),
+        ),
     );
 };
 
@@ -56,10 +56,10 @@ export const buildProgress = (item) => {
                 Div({
                     class: 'file-item-progress-bar',
                     style: {width: $progress.transform(v => v + '%')},
-                })
+                }),
             ),
             Span({class: 'file-item-progress-label'}, $progress.transform(v => v + '%')),
-        ])
+        ]),
     );
 };
 
@@ -95,7 +95,7 @@ export const buildInputWithSlots = (input, $desc, instance, options = {}) => {
         'has-trailing': !!slots.trailing,
         'is-touched': $desc.isTouched,
         'is-dirty': $desc.isDirty,
-        ...(options.class || {})
+        ...(options.class || {}),
     };
 
     input.nd.onInput((e) => {

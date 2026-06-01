@@ -1,5 +1,5 @@
-import BaseComponent from "../../../../BaseComponent";
-import HasEventEmitter from "../../../../../core/utils/HasEventEmitter";
+import BaseComponent from '../../../../BaseComponent';
+import HasEventEmitter from '../../../../../core/utils/HasEventEmitter';
 import { $ } from '../../../../../core/data/Observable';
 
 /**
@@ -43,7 +43,7 @@ export default function FileItemPreview(file, props = {}) {
         status:   $('idle'),
         progress: $(0),
         error:    $(null),
-        props
+        props,
     };
 }
 

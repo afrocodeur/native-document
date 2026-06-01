@@ -1,4 +1,4 @@
-import BaseComponent from "../BaseComponent";
+import BaseComponent from '../BaseComponent';
 
 /**
  * Custom trigger element for a Dropdown that reacts to the open/closed state.
@@ -24,7 +24,7 @@ export default function DropdownTrigger(config) {
         stateOpenIcon: null,
         render: null,
         isOpen: null,
-        ...config
+        ...config,
     };
 }
 

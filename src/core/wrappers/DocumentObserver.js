@@ -116,7 +116,7 @@ const DocumentObserver = {
                     DocumentObserver.unmountedSupposedSize--;
                 }
                 data = null;
-            }
+            },
         };
 
         const addListener = (type, callback) => {
@@ -174,9 +174,9 @@ const DocumentObserver = {
 
             off: (type, callback) => {
                 removeListener(type, callback);
-            }
+            },
         };
-    }
+    },
 };
 
 export default DocumentObserver;

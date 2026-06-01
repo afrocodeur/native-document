@@ -27,13 +27,13 @@ const buildBody = ($desc, instance) => {
     if($desc.renderTitle) {
         body.push(Div({class: 'alert-title'}, [
             $desc.renderTitle($desc, instance),
-            $desc.closable ? buildClose($desc, instance) : null
+            $desc.closable ? buildClose($desc, instance) : null,
         ]));
     }
     else if($desc.title) {
         body.push(Div({class: 'alert-title'}, [
             $desc.title,
-            $desc.closable ? buildClose($desc, instance) : null
+            $desc.closable ? buildClose($desc, instance) : null,
         ]));
     }
 
@@ -52,7 +52,7 @@ const buildBody = ($desc, instance) => {
     }
 
     return Div({class: 'alert-body'}, body);
-}
+};
 
 const buildFooter = ($desc, instance) => {
     const actions = $desc.actions.map((action) => {
@@ -70,12 +70,12 @@ const buildFooter = ($desc, instance) => {
     });
 
     return Div({class: 'alert-footer'}, actions);
-}
+};
 
 const buildClose = ($desc, instance) => {
-   return Button('×', { class: 'alert-close' })
-       .nd.onClick(() => {
-           instance.emit('close');
-           instance.hide();
-       });
-}
+    return Button('×', { class: 'alert-close' })
+        .nd.onClick(() => {
+            instance.emit('close');
+            instance.hide();
+        });
+};

@@ -1,7 +1,7 @@
-import BaseComponent from "../BaseComponent";
-import { $ } from "../../core/data/Observable";
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import DebugManager from "../../core/utils/debug-manager";
+import BaseComponent from '../BaseComponent';
+import { $ } from '../../core/data/Observable';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
+import DebugManager from '../../core/utils/debug-manager';
 
 /**
  * Page navigation control with configurable sibling/boundary page counts, first/last and prev/next buttons.
@@ -48,7 +48,7 @@ export default function Pagination(props = {}) {
         renderFirst: null,
         renderLast: null,
         render: null,
-        props
+        props,
     };
 
     this.$element = null;

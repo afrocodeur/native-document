@@ -76,7 +76,7 @@ const buildAvatar = ($desc, $preview) => {
     });
     const placeholder = () => Div({class: 'file-avatar-placeholder'}, [
         Span({class: 'file-avatar-placeholder-icon'}, $desc.placeholderIcon),
-    ])
+    ]);
 
     return Div({
         class: buildShapeClass('file-avatar', $desc),

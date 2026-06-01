@@ -1,4 +1,4 @@
-import Field from "../../types/Field";
+import Field from '../../types/Field';
 
 /**
  * Group of checkboxes for multi-value selection. Supports vertical/horizontal/grid layout
@@ -38,7 +38,7 @@ export default function CheckboxGroupField(name, props) {
         options: [],
         layout: 'vertical',
         validateOn: 'change',
-        defaultValue: []
+        defaultValue: [],
     });
 }
 
@@ -133,7 +133,7 @@ CheckboxGroupField.prototype.minChecked = function(min, message) {
             if (!Array.isArray(values)) return false;
             return values.length >= min;
         },
-        message: message || `At least ${min} option${min > 1 ? 's' : ''} must be selected`
+        message: message || `At least ${min} option${min > 1 ? 's' : ''} must be selected`,
     });
     return this;
 };
@@ -149,7 +149,7 @@ CheckboxGroupField.prototype.maxChecked = function(max, message) {
             if (!Array.isArray(values)) return false;
             return values.length <= max;
         },
-        message: message || `Maximum ${max} option${max > 1 ? 's' : ''} allowed`
+        message: message || `Maximum ${max} option${max > 1 ? 's' : ''} allowed`,
     });
     return this;
 };
@@ -165,7 +165,7 @@ CheckboxGroupField.prototype.exactChecked = function(count, message) {
             if (!Array.isArray(values)) return false;
             return values.length === count;
         },
-        message: message || `Exactly ${count} option${count > 1 ? 's' : ''} must be selected`
+        message: message || `Exactly ${count} option${count > 1 ? 's' : ''} must be selected`,
     });
     return this;
 };

@@ -1,4 +1,4 @@
-import Field from "../../types/Field";
+import Field from '../../types/Field';
 
 /**
  * Hidden field for carrying form values that are not displayed to the user.

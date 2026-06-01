@@ -1,7 +1,5 @@
-import BaseComponent from "../BaseComponent";
-import DebugManager from "../../core/utils/debug-manager";
-import { HStack, VStack } from "../stacks/index";
-import {Div} from "../../core/elements/index";
+import BaseComponent from '../BaseComponent';
+import DebugManager from '../../core/utils/debug-manager';
 
 /**
  * Loading placeholder skeleton. Supports text, circle, rect, avatar, and image types, plus pulse/wave animations.
@@ -42,7 +40,7 @@ export default function Skeleton(props = {}) {
         height: null,
         loading: null,
         repeat: null,
-        props
+        props,
     };
 }
 

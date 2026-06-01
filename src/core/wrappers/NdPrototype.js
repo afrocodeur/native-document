@@ -1,11 +1,11 @@
-import { NDElement } from "./NDElement";
-import {EVENTS, EVENTS_WITH_PREVENT, EVENTS_WITH_STOP} from "../utils/events";
+import { NDElement } from './NDElement';
+import {EVENTS, EVENTS_WITH_PREVENT, EVENTS_WITH_STOP} from '../utils/events';
 
 const property = {
     configurable: true,
     get() {
         return new NDElement(this);
-    }
+    },
 };
 
 Object.defineProperty(HTMLElement.prototype, 'nd', property);
@@ -16,7 +16,7 @@ Object.defineProperty(NDElement.prototype, 'nd', {
     configurable: true,
     get: function() {
         return this;
-    }
+    },
 });
 
 
@@ -29,25 +29,25 @@ EVENTS.forEach(eventSourceName => {
     NDElement.prototype['on'+eventSourceName] = function(callback = null, options = {}) {
         this.$element.addEventListener(eventName, callback, {
             signal: this.$getSignal(),
-            ...options
+            ...options,
         });
         return this;
     };
-})
+});
 
 EVENTS_WITH_STOP.forEach(eventSourceName => {
     const eventName = eventSourceName.toLowerCase();
     NDElement.prototype['onStop'+eventSourceName] = function(callback = null, options = {}) {
         _stop(this.$element, eventName, callback, {
             signal: this.$getSignal(),
-            ...options
+            ...options,
         });
         return this;
     };
     NDElement.prototype['onPreventStop'+eventSourceName] = function(callback = null, options = {}) {
         _preventStop(this.$element, eventName, callback, {
             signal: this.$getSignal(),
-            ...options
+            ...options,
         });
         return this;
     };
@@ -58,7 +58,7 @@ EVENTS_WITH_PREVENT.forEach(eventSourceName => {
     NDElement.prototype['onPrevent'+eventSourceName] = function(callback = null, options = {}) {
         _prevent(this.$element, eventName, callback, {
             signal: this.$getSignal(),
-            ...options
+            ...options,
         });
         return this;
     };
@@ -92,7 +92,7 @@ NDElement.prototype.$getSignal = function() {
 NDElement.prototype.on = function(name, callback, options) {
     this.$element.addEventListener(name.toLowerCase(), callback, {
         signal: this.$getSignal(),
-        ...options
+        ...options,
     });
     return this;
 };
@@ -120,7 +120,7 @@ NDElement.prototype.off = function(name, callback) {
 NDElement.prototype.once = function(name, callback) {
     this.$element.addEventListener(name.toLowerCase(), callback, {
         signal: this.$getSignal(),
-        once: true
+        once: true,
     });
     return this;
 };
@@ -153,7 +153,7 @@ const _prevent = function(element, eventName, callback, options) {
     };
     element.addEventListener(eventName, handler, options);
     return this;
-}
+};
 
 const _stop = function(element, eventName, callback, options) {
     const handler = (event) => {
@@ -219,15 +219,15 @@ const classListMethods = {
     },
     contains(value) {
         return this.getClasses().indexOf(value) >= 0;
-    }
-}
+    },
+};
 
 Object.defineProperty(HTMLElement.prototype, 'classes', {
     configurable: true,
     get() {
         return {
             $element: this,
-            ...classListMethods
+            ...classListMethods,
         };
-    }
+    },
 });

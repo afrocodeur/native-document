@@ -1,4 +1,4 @@
-import DropdownItem from "./types/DropdownItem";
+import DropdownItem from './types/DropdownItem';
 
 const resolveField = (raw, mapperField, fallbackKeys) => {
     if(!mapperField) {

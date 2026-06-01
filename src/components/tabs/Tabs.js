@@ -1,6 +1,6 @@
-import BaseComponent from "../BaseComponent";
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import { $ } from "../../core/data/Observable";
+import BaseComponent from '../BaseComponent';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
+import { $ } from '../../core/data/Observable';
 
 
 /**

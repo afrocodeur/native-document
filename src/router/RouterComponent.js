@@ -1,6 +1,6 @@
-import Validator from "../core/utils/validator";
-import {Anchor} from "../../elements";
-import {ElementCreator} from "../core/wrappers/ElementCreator";
+import Validator from '../core/utils/validator';
+import {Anchor} from '../../elements';
+import {ElementCreator} from '../core/wrappers/ElementCreator';
 
 /**
  *
@@ -53,7 +53,7 @@ export function RouterComponent(router, container) {
     };
 
     const updateContainerByLayout = (layout, node, route, path) => {
-        let nodeToInsert = getNodeToInsert(node);
+        const nodeToInsert = getNodeToInsert(node);
 
         const cachedLayout = $layoutCache.get(nodeToInsert);
         if(cachedLayout) {
@@ -79,7 +79,7 @@ export function RouterComponent(router, container) {
         $currentLayout = ElementCreator.getChild(layout(anchor));
         $layoutCache.set(nodeToInsert, $currentLayout);
         container.appendChild($currentLayout);
-    }
+    };
 
     const updateContainer = function(node, route, path) {
         const layout = route.layout();
@@ -87,7 +87,7 @@ export function RouterComponent(router, container) {
             updateContainerByLayout(layout, node, route, path);
             return;
         }
-        let nodeToInsert = getNodeToInsert(node);
+        const nodeToInsert = getNodeToInsert(node);
 
         cleanContainer();
         container.appendChild(nodeToInsert);

@@ -1,9 +1,9 @@
-import ObservableItem from "../../data/ObservableItem";
-import {NDElement} from "../NDElement";
-import TemplateBinding from "../TemplateBinding";
-import {ElementCreator} from "../ElementCreator";
-import PluginsManager from "../../utils/plugins-manager";
-import ObservableChecker from "../../data/ObservableChecker";
+import ObservableItem from '../../data/ObservableItem';
+import {NDElement} from '../NDElement';
+import TemplateBinding from '../TemplateBinding';
+import {ElementCreator} from '../ElementCreator';
+import PluginsManager from '../../utils/plugins-manager';
+import ObservableChecker from '../../data/ObservableChecker';
 
 
 NDElement.$getChild = ElementCreator.getChild;

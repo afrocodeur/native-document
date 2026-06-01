@@ -1,5 +1,5 @@
-import BaseComponent from "../BaseComponent";
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
+import BaseComponent from '../BaseComponent';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
 import { $ } from '../../core/data/Observable';
 
 /**
@@ -31,7 +31,7 @@ export default function SplitterGutter(leftPanel, rightPanel, props = {}) {
         cursor: 'col-resize',
         size: 2,
         isDragging: $(false),
-        props
+        props,
     };
 }
 

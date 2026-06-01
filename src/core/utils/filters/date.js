@@ -1,4 +1,4 @@
-import {createFilter, createMultiSourceFilter, getSecondsOfDay, isSameDay, toDate} from "./utils";
+import {createFilter, createMultiSourceFilter, getSecondsOfDay, isSameDay, toDate} from './utils';
 
 /**
  * Creates a filter that passes when the date value is on the same day as the target date.
@@ -59,7 +59,7 @@ export const dateBetween = (startObservableOrValue, endObservableOrValue) => {
             if (!value || !start || !end) return false;
             const date = toDate(value);
             return date >= toDate(start) && date <= toDate(end);
-        }
+        },
     );
 };
 
@@ -119,7 +119,7 @@ export const timeBetween = (startObservableOrValue, endObservableOrValue) => {
             if (!value || !start || !end) return false;
             const date = getSecondsOfDay(value);
             return date >= getSecondsOfDay(start) && date <= getSecondsOfDay(end);
-        }
+        },
     );
 };
 

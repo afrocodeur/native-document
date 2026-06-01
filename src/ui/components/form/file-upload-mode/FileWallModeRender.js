@@ -72,7 +72,7 @@ const buildAddCell = ($desc, input, modeInstance) => {
     if($desc.renderAdd) {
         cell = $desc.renderAdd($desc, modeInstance);
     } else {
-        cell = Div({ class: 'file-wall-cell-add', style: {width: size + 'px', height: size + 'px'}, }, [
+        cell = Div({ class: 'file-wall-cell-add', style: {width: size + 'px', height: size + 'px'} }, [
             Span({class: 'file-wall-cell-add-icon'}, $desc.addIcon || '+'),
             Span({class: 'file-wall-cell-add-label'}, $desc.addLabel || 'Upload'),
         ]);

@@ -1,5 +1,5 @@
 import {Div, Span, ShowIf, Form} from '../../../../elements';
-import {Button} from "../../../components/button";
+import {Button} from '../../../components/button';
 
 import './form-control.css';
 
@@ -51,7 +51,7 @@ const buildDefaultLayout = ({ fields, errors, form }) => {
         Div({ class: 'form-actions' }, [
             Button('Reset').type('reset'),
             Button('Submit').type('submit'),
-        ])
+        ]),
     ]);
 };
 
@@ -76,10 +76,10 @@ const buildErrorsSummary = ($desc, instance) => {
                 Div({class: 'form-error-group'}, [
                     Span({class: 'form-error-field'}, field),
                     Div({class: 'form-error-messages'},
-                        msgs.map(msg => Span({class: 'form-error-message'}, msg))
+                        msgs.map(msg => Span({class: 'form-error-message'}, msg)),
                     ),
-                ])
-            )
+                ]),
+            ),
         );
     });
 };

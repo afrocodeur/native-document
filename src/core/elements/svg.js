@@ -1,4 +1,4 @@
-import SvgElementWrapper from "../wrappers/SvgElementWrapper";
+import SvgElementWrapper from '../wrappers/SvgElementWrapper';
 
 export const SvgSvg                 = SvgElementWrapper('svg');
 export const SvgCircle              = SvgElementWrapper('circle');

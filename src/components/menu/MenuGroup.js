@@ -1,7 +1,7 @@
-import BaseComponent from "../BaseComponent";
-import HasItems from "../$traits/has-items/HasItems";
-import MenuDivider from "./types/MenuDivider";
-import HasMenuItem from "./HasMenuItem";
+import BaseComponent from '../BaseComponent';
+import HasItems from '../$traits/has-items/HasItems';
+import MenuDivider from './types/MenuDivider';
+import HasMenuItem from './HasMenuItem';
 import { $ } from '../../core/data/Observable';
 
 /**
@@ -37,7 +37,7 @@ export default function MenuGroup(label, props = {}) {
         visibility: $(true),
         collapsableOpenedIcon: null,
         collapsableClosedIcon: null,
-        props
+        props,
     };
 }
 

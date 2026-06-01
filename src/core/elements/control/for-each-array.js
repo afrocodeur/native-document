@@ -1,6 +1,6 @@
-import Anchor from "../anchor/anchor";
-import { ElementCreator } from "../../wrappers/ElementCreator";
-import NativeDocumentError from "../../errors/NativeDocumentError";
+import Anchor from '../anchor/anchor';
+import { ElementCreator } from '../../wrappers/ElementCreator';
+import NativeDocumentError from '../../errors/NativeDocumentError';
 
 
 const CREATE_AND_CACHE_ACTIONS = new Set(['clear', 'push', 'unshift', 'replace']);
@@ -30,7 +30,7 @@ export function ForEachArray(data, callback, configs = {}) {
     const element = Anchor('ForEach Array', configs.isParentUniqueChild);
     const blockEnd = element.endElement();
 
-    let cache = new Map();
+    const cache = new Map();
     let lastNumberOfItems = 0;
     const isIndexRequired = callback.length >= 2;
 
@@ -61,7 +61,7 @@ export function ForEachArray(data, callback, configs = {}) {
         const child = ElementCreator.getChild(callback(item, null));
         if(process.env.NODE_ENV === 'development') {
             if(!child) {
-                throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
+                throw new NativeDocumentError('ForEachArray child can\'t be null or undefined!');
             }
         }
         cache.set(item, { child, indexObserver: null });
@@ -73,7 +73,7 @@ export function ForEachArray(data, callback, configs = {}) {
         const child = ElementCreator.getChild(callback(item, indexObserver));
         if(process.env.NODE_ENV === 'development') {
             if(!child) {
-                throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
+                throw new NativeDocumentError('ForEachArray child can\'t be null or undefined!');
             }
         }
         cache.set(item, { child, indexObserver  });
@@ -84,7 +84,7 @@ export function ForEachArray(data, callback, configs = {}) {
             const child = ElementCreator.getChild(callback(item, indexKey));
             if(process.env.NODE_ENV === 'development') {
                 if(!child) {
-                    throw new NativeDocumentError("ForEachArray child can't be null or undefined!");
+                    throw new NativeDocumentError('ForEachArray child can\'t be null or undefined!');
                 }
             }
             cache.set(item, { child, indexObserver: null  });
@@ -214,7 +214,7 @@ export function ForEachArray(data, callback, configs = {}) {
             const garbageFragment = document.createDocumentFragment();
 
             if(deleted.length > 0) {
-                let firstItem = deleted[0];
+                const firstItem = deleted[0];
                 if(deleted.length === 1) {
                     removeByItem(firstItem, garbageFragment);
                 } else if(deleted.length > 1) {
@@ -266,7 +266,7 @@ export function ForEachArray(data, callback, configs = {}) {
             parent.insertBefore(childA, childBNext);
             childA = null;
             childB = null;
-        }
+        },
     };
     Actions.merge = Actions.add;
     Actions.push = Actions.add;

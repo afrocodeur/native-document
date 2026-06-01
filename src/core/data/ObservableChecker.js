@@ -1,5 +1,5 @@
-import ObservableItem from "./ObservableItem";
-import PluginsManager from "../utils/plugins-manager";
+import ObservableItem from './ObservableItem';
+import PluginsManager from '../utils/plugins-manager';
 
 /**
  *

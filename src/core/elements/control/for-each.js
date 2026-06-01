@@ -1,10 +1,10 @@
-import {Observable} from "../../data/Observable";
-import Validator from "../../utils/validator";
-import Anchor from "../anchor/anchor";
-import DebugManager from "../../utils/debug-manager";
-import {getKey} from "../../utils/helpers";
-import { ElementCreator } from "../../wrappers/ElementCreator";
-import NativeDocumentError from "../../errors/NativeDocumentError";
+import {Observable} from '../../data/Observable';
+import Validator from '../../utils/validator';
+import Anchor from '../anchor/anchor';
+import DebugManager from '../../utils/debug-manager';
+import {getKey} from '../../utils/helpers';
+import { ElementCreator } from '../../wrappers/ElementCreator';
+import NativeDocumentError from '../../errors/NativeDocumentError';
 
 const SELF_RENDER = (item) => item;
 
@@ -34,7 +34,7 @@ export function ForEach(data, callback, key, { shouldKeepItemsInCache = false } 
     const blockEnd = element.endElement();
     const blockStart = element.startElement();
 
-    let cache = new Map();
+    const cache = new Map();
     let lastKeyOrder = null;
     const keyIds = new Set();
 
@@ -78,9 +78,9 @@ export function ForEach(data, callback, key, { shouldKeepItemsInCache = false } 
 
         try {
             const indexObserver = callback.length >= 2 ? Observable(indexKey) : null;
-            let child = ElementCreator.getChild(callback(item, indexObserver));
+            const child = ElementCreator.getChild(callback(item, indexObserver));
             if(!child) {
-                throw new NativeDocumentError("ForEach child can't be null or undefined!");
+                throw new NativeDocumentError('ForEach child can\'t be null or undefined!');
             }
             cache.set(keyId, { keyId, isNew: true, child: new WeakRef(child), indexObserver});
         } catch (e) {
@@ -101,15 +101,15 @@ export function ForEach(data, callback, key, { shouldKeepItemsInCache = false } 
             child && fragment.appendChild(child);
         }
         parent.insertBefore(fragment, blockEnd);
-    }
+    };
 
     const diffingDOMUpdates = (parent) => {
         const operations = [];
-        let fragment = document.createDocumentFragment();
+        const fragment = document.createDocumentFragment();
         const newKeys = Array.from(keyIds);
         const oldKeys = Array.from(lastKeyOrder);
 
-        let currentPosition = blockStart;
+        const currentPosition = blockStart;
 
         for(const index in newKeys) {
             const itemKey = newKeys[index];
@@ -164,7 +164,7 @@ export function ForEach(data, callback, key, { shouldKeepItemsInCache = false } 
 
     buildContent();
     if(Validator.isObservable(data)) {
-        data.subscribe(buildContent)
+        data.subscribe(buildContent);
     }
     return element;
 }

@@ -79,8 +79,8 @@ const buildList = ($desc, $files, modeInstance, fieldInstance) => {
 
     return ShowIf($files.is(f => f.length > 0),
         () => Div({class: 'file-dropzone-list'},
-            ForEachArray($files, builder)
-        )
+            ForEachArray($files, builder),
+        ),
     );
 };
 

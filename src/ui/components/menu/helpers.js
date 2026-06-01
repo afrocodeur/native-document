@@ -1,12 +1,12 @@
-import {Div, ForEachArray, UnorderedList} from "../../../core/elements";
-import {computePosition, flip, offset, shift} from "@floating-ui/dom";
+import {Div, ForEachArray, UnorderedList} from '../../../core/elements';
+import {computePosition, flip, offset, shift} from '@floating-ui/dom';
 
 export const buildSubmenu = ($desc, orientation, $isOpen, instance) => {
     const root     = instance.getRoot();
     const $compact = root.$description?.compact;
     if(orientation === 'inline') {
         const submenuEl = Div({ class: 'sub-menu', 'is-open': $isOpen, 'is-inline': $compact.is(false), 'is-vertical': $compact},
-            UnorderedList({class: 'sub-menu-container'}, ForEachArray($desc.items))
+            UnorderedList({class: 'sub-menu-container'}, ForEachArray($desc.items)),
         );
 
         $compact?.subscribe((isCompact) => {
@@ -25,7 +25,7 @@ export const buildSubmenu = ($desc, orientation, $isOpen, instance) => {
     }
 
     return Div({class: 'sub-menu is-' + orientation, 'is-open': $isOpen, style: {position: 'fixed', left: '0px', top: '0px'}},
-        UnorderedList({class: 'sub-menu-container'}, ForEachArray($desc.items))
+        UnorderedList({class: 'sub-menu-container'}, ForEachArray($desc.items)),
     );
 };
 

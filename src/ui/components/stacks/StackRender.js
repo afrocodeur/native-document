@@ -1,4 +1,4 @@
-import {Div} from "../../../core/elements";
+import {Div} from '../../../core/elements';
 
 import './stack.css';
 

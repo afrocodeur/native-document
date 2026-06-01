@@ -1,4 +1,4 @@
-import ObservableItem from "../ObservableItem";
+import ObservableItem from '../ObservableItem';
 
 const $computed = (fn, dependencies) => ObservableItem.computed(fn, dependencies);
 const $checker = (obs, fn) => obs.transform(fn);

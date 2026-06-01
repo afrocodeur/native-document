@@ -25,7 +25,7 @@ if(process.env.NODE_ENV === 'development') {
 
         error(category, message, error) {
             console.error(`❌ [${category}] ${message}`, error);
-        }
+        },
     };
 
 }
@@ -34,7 +34,7 @@ if(process.env.NODE_ENV === 'production') {
         log() {},
         warn() {},
         error() {},
-        disable() {}
+        disable() {},
     };
 }
 export default DebugManager;

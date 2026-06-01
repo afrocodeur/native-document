@@ -1,5 +1,5 @@
-import MenuItem from "./types/MenuItem";
-import HasMenuItem from "./HasMenuItem";
+import MenuItem from './types/MenuItem';
+import HasMenuItem from './HasMenuItem';
 
 
 /**

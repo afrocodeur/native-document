@@ -121,7 +121,7 @@ const displayOnWindows = (shortcut) => {
     parts.push(parsed.key);
 
     return parts.join('+');
-}
+};
 
 /**
  * Display a shortcut string for the current OS.
@@ -154,7 +154,7 @@ const ShortcutManager = {
         if($registry.has(mapKey) && !options.force) {
             const existing = $registry.get(mapKey);
             DebugManager.warn(
-                `ShortcutManager: "${shortcut}" is already registered by "${existing.source}" in context "${context}". Use { force: true } to override.`
+                `ShortcutManager: "${shortcut}" is already registered by "${existing.source}" in context "${context}". Use { force: true } to override.`,
             );
             return this;
         }

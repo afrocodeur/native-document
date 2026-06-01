@@ -32,7 +32,7 @@ export default function HashRouter() {
      */
     const setHash = (path) => {
         window.location.replace(`${window.location.pathname}${window.location.search}#${path}`);
-    }
+    };
 
     const getCurrentHash = () => window.location.hash.slice(1);
 
@@ -79,5 +79,5 @@ export default function HashRouter() {
         $history.push({ route, params, query, path });
         $currentIndex = 0;
         this.handleRouteChange(route, params, query, path);
-    }
+    };
 };

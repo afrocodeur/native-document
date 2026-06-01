@@ -1,6 +1,6 @@
-import Validator from "../utils/validator";
-import AttributesWrapper, { bindClassAttribute, bindStyleAttribute } from "./AttributesWrapper";
-import PluginsManager from "../utils/plugins-manager";
+import Validator from '../utils/validator';
+import AttributesWrapper, { bindClassAttribute, bindStyleAttribute } from './AttributesWrapper';
+import PluginsManager from '../utils/plugins-manager';
 
 let $textNodeCache = null;
 
@@ -44,7 +44,7 @@ export const ElementCreator = {
      * @returns {Text}
      */
     createStaticTextNode: (parent, value) => {
-        let text = ElementCreator.createTextNode();
+        const text = ElementCreator.createTextNode();
         text.nodeValue = value;
         parent && parent.appendChild(text);
         return text;
@@ -76,7 +76,7 @@ export const ElementCreator = {
         if(process.env.NODE_ENV === 'development') {
             PluginsManager.emit('BeforeProcessChildren', parent);
         }
-        let child = ElementCreator.getChild(children);
+        const child = ElementCreator.getChild(children);
         if(child) {
             parent.appendChild(child);
         }

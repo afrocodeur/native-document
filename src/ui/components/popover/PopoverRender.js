@@ -26,7 +26,7 @@ const PLACEMENT_MAP = {
 };
 
 const supportsPopover = () => {
-    return Object.hasOwn(HTMLElement.prototype, "popover");
+    return Object.hasOwn(HTMLElement.prototype, 'popover');
 };
 
 export default function PopoverRender($desc, instance, classPrefix = 'popover') {
@@ -41,7 +41,7 @@ export default function PopoverRender($desc, instance, classPrefix = 'popover') 
     const $x        = Observable(10).intercept(toUnit);
     const $y        = Observable(0).intercept(toUnit);
 
-    let popoverArrow = $desc.arrow ? Span({class: classPrefix+'-arrow'}) : null;
+    const popoverArrow = $desc.arrow ? Span({class: classPrefix+'-arrow'}) : null;
 
     editableProps.class.add(classPrefix);
     editableProps.class.add('is-'+$desc.variant);
@@ -51,7 +51,7 @@ export default function PopoverRender($desc, instance, classPrefix = 'popover') 
         popover: 'manual',
         role:    'dialog',
         id:      popoverId,
-        ...instance.resolveProps()
+        ...instance.resolveProps(),
     }, [
         buildContent($desc, instance, classPrefix),
         popoverArrow,
@@ -94,7 +94,7 @@ export default function PopoverRender($desc, instance, classPrefix = 'popover') 
                 middleware.push(size({
                     apply({rects, elements}) {
                         elements.floating.style.width = rects.reference.width + 'px';
-                    }
+                    },
                 }));
             }
 
@@ -211,21 +211,21 @@ const buildContent = ($desc, instance, classPrefix = 'popover') => {
     if($desc.renderHeader || $desc.header) {
         content.push(Div({class: classPrefix+'-header'}, $desc.renderHeader
             ? $desc.renderHeader($desc, instance)
-            : $desc.header
+            : $desc.header,
         ));
     }
 
     if($desc.renderContent || $desc.content) {
         content.push(Div({class: classPrefix+'-body'}, $desc.renderContent
             ? $desc.renderContent($desc, instance)
-            : $desc.content
+            : $desc.content,
         ));
     }
 
     if($desc.renderFooter || $desc.footer) {
         content.push(Div({class: classPrefix+'-footer'}, $desc.renderFooter
             ? $desc.renderFooter($desc, instance)
-            : $desc.footer
+            : $desc.footer,
         ));
     }
 

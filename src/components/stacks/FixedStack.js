@@ -1,6 +1,6 @@
-import BaseComponent from "../BaseComponent";
-import PositionStack from "./types/PositionStack";
-import DebugManager from "../../core/utils/debug-manager";
+import BaseComponent from '../BaseComponent';
+import PositionStack from './types/PositionStack';
+import DebugManager from '../../core/utils/debug-manager';
 
 /**
  *

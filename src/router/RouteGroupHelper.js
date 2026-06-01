@@ -1,4 +1,4 @@
-import {trim} from "../core/utils/helpers.js";
+import {trim} from '../core/utils/helpers.js';
 
 export const RouteGroupHelper = {
     /**
@@ -56,5 +56,5 @@ export const RouteGroupHelper = {
             }
         }
         return null;
-    }
+    },
 };

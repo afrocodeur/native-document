@@ -1,10 +1,10 @@
-import BaseComponent from "../BaseComponent";
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import { Observable } from "../../core/data/Observable";
-import {NDElement} from "../../core/wrappers/NDElement";
-import HasDraggable from "../$traits/has-draggable/HasDraggable";
-import HasResizable from "../$traits/has-resizable/HasResizable";
-import DebugManager from "../../core/utils/debug-manager";
+import BaseComponent from '../BaseComponent';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
+import { Observable } from '../../core/data/Observable';
+import {NDElement} from '../../core/wrappers/NDElement';
+import HasDraggable from '../$traits/has-draggable/HasDraggable';
+import HasResizable from '../$traits/has-resizable/HasResizable';
+import DebugManager from '../../core/utils/debug-manager';
 
 /**
  * Dialog overlay with header, content, and footer slots. Supports draggable, resizable, scroll lock, focus trap, and close-on-backdrop/escape.
@@ -65,7 +65,7 @@ export default function Modal(content, props = {}) {
         lockScroll: true,
         isOpen: Observable(false),
         variant: null,
-        props
+        props,
     };
 }
 

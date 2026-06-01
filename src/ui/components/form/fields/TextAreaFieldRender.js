@@ -71,7 +71,7 @@ const buildWordCounter = ($desc) => {
         if(!cleanedValue) {
             return 0;
         }
-        return cleanedValue.split(/\s+/).length
+        return cleanedValue.split(/\s+/).length;
     };
     const $count = $desc.value?.__$Observable
         ? $desc.value.transform(countWords)

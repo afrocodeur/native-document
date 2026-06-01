@@ -2,7 +2,7 @@ export default function NativeFetch($baseUrl) {
 
     const $interceptors = {
         request: [],
-        response: []
+        response: [],
     };
 
     this.interceptors = {
@@ -11,7 +11,7 @@ export default function NativeFetch($baseUrl) {
         },
         request: (callback) => {
             $interceptors.request.push(callback);
-        }
+        },
     };
 
     this.fetch = async function(method, endpoint, params = {}, options = {}) {
@@ -28,7 +28,7 @@ export default function NativeFetch($baseUrl) {
         let configs = {
             method,
             headers: {
-                ...(options.headers || {})
+                ...(options.headers || {}),
             },
         };
         if(params) {

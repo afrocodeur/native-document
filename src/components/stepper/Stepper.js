@@ -1,8 +1,8 @@
-import BaseComponent from "../BaseComponent";
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import { $ } from "../../core/data/Observable";
-import DebugManager from "../../core/utils/debug-manager";
-import StepperStep from "./types/StepperStep";
+import BaseComponent from '../BaseComponent';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
+import { $ } from '../../core/data/Observable';
+import DebugManager from '../../core/utils/debug-manager';
+import StepperStep from './types/StepperStep';
 
 /**
  * Multi-step wizard. Supports linear/non-linear modes, horizontal/vertical orientation, editable steps, and step indicator rendering.
@@ -48,7 +48,7 @@ export default function Stepper(props = {}) {
         renderContent: null,
         render: null,
         position: 'bottom',
-        props
+        props,
     };
 
     this.$element = null;
@@ -131,7 +131,7 @@ Stepper.prototype.$build = function() {
             for (let i = 0; i < visibleSteps.length; i++) {
                 const itemStep = visibleSteps.get(i);
                 if (steps.indexOf(itemStep) < originalIndex) {
-                    stepBefore = itemStep
+                    stepBefore = itemStep;
                     continue;
                 }
                 break;

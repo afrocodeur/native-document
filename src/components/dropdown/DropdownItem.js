@@ -1,4 +1,4 @@
-import BaseComponent from "../BaseComponent";
+import BaseComponent from '../BaseComponent';
 
 /**
  * Individual selectable item inside a Dropdown. Supports value, icon, shortcut, disabled/selected states.
@@ -36,7 +36,7 @@ export default function DropdownItem(props = {}) {
         data: null,
         render: null,
         renderContent: null,
-        props
+        props,
     };
 };
 

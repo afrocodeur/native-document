@@ -1,6 +1,6 @@
-import Tabs from './Tabs'
+import Tabs from './Tabs';
 
 
 export {
-    Tabs
-}
+    Tabs,
+};

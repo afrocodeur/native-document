@@ -1,7 +1,7 @@
-import BaseComponent from "../BaseComponent";
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import Validator from "../../core/utils/validator";
-import SplitterPanel from "./types/SplitterPanel";
+import BaseComponent from '../BaseComponent';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
+import Validator from '../../core/utils/validator';
+import SplitterPanel from './types/SplitterPanel';
 import { $ } from '../../core/data/Observable';
 
 /**
@@ -31,7 +31,7 @@ export default function Splitter(props = {}) {
         panels: [],
         gutterSize: 8,
         render: null,
-        props
+        props,
     };
 
     this.$element = null;

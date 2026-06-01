@@ -1,8 +1,8 @@
-import { $ } from "../../../core/data/Observable";
-import Validator from "../../../core/utils/validator";
-import BaseComponent from "../../BaseComponent";
-import HasEventEmitter from "../../../core/utils/HasEventEmitter";
-import HasValidation from "../../$traits/has-validation/HasValidation";
+import { $ } from '../../../core/data/Observable';
+import Validator from '../../../core/utils/validator';
+import BaseComponent from '../../BaseComponent';
+import HasEventEmitter from '../../../core/utils/HasEventEmitter';
+import HasValidation from '../../$traits/has-validation/HasValidation';
 
 /**
  * Base form field with label, hint, placeholder, validation rules, clearable state, and reactive value binding. Extended by all typed field variants.
@@ -54,7 +54,7 @@ export default function Field(name, type, props) {
             label:   null,
             input:   null,
             error:   null,
-            hint:    null
+            hint:    null,
         },
         render:          null,
         clearButtonIcon: null,
@@ -62,7 +62,7 @@ export default function Field(name, type, props) {
         isDirty:  $(false),
         isTouched:  $(false),
         slots: {},
-        props
+        props,
     };
 
     this.$description.errors.intercept((nextValue) => nextValue === null ? [] : nextValue);

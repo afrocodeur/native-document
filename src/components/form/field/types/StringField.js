@@ -1,5 +1,5 @@
-import Field from "../../types/Field";
-import {Validation} from "../../validation/Validation";
+import Field from '../../types/Field';
+import {Validation} from '../../validation/Validation';
 
 /**
  * Text input field. Base for all string-based field types (email, password, search, tel, url).

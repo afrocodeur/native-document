@@ -9,7 +9,7 @@ export default function PasswordFieldRender($desc, instance) {
         const icons    = $desc.visibilityIcons || {show: '👁', hide: '🙈'};
 
         const toggleBtn = Button({class: 'field-visibility-toggle'},
-            $visible.transform(v => v ? icons.hide : icons.show)
+            $visible.transform(v => v ? icons.hide : icons.show),
         );
 
         toggleBtn.nd.onClick(() => {
@@ -47,7 +47,7 @@ const buildStrengthMeter = ($desc) => {
 
     return Span({class: 'field-strength-meter'}, [
         Span({class: 'field-strength-track'},
-            Span({class: $scoreClass, style: {width: $width}})
+            Span({class: $scoreClass, style: {width: $width}}),
         ),
         Span({class: 'field-strength-label'}, $label),
     ]);

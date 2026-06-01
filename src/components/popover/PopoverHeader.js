@@ -1,4 +1,4 @@
-import BaseComponent from "../BaseComponent";
+import BaseComponent from '../BaseComponent';
 
 /**
  * Optional header slot for a Popover, with an optional close button.
@@ -23,7 +23,7 @@ export default function PopoverHeader(content, config = {}) {
         showClose: false,
         data: null,
         render: null,
-        ...config
+        ...config,
     };
 }
 

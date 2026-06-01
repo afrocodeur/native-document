@@ -1,5 +1,5 @@
-import BaseComponent from "../BaseComponent";
-import HasItems from "../$traits/has-items/HasItems";
+import BaseComponent from '../BaseComponent';
+import HasItems from '../$traits/has-items/HasItems';
 
 /**
  * Groups ListItem instances under a header/footer inside a List.
@@ -28,7 +28,7 @@ export default function ListGroup(label, config = {}) {
         renderHeader: null,
         renderFooter: null,
         render: null,
-        ...config
+        ...config,
     };
 }
 

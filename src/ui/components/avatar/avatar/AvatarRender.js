@@ -1,5 +1,5 @@
 import {Div, Img, Span} from '../../../../core/elements';
-import {classPropertyAccumulator} from "../../../../core/utils/property-accumulator";
+import {classPropertyAccumulator} from '../../../../core/utils/property-accumulator';
 
 
 import './avatar.css';

@@ -1,4 +1,4 @@
-import HtmlElementWrapper from "../wrappers/HtmlElementWrapper";
+import HtmlElementWrapper from '../wrappers/HtmlElementWrapper';
 
 /**
  * Creates a `<div>` element.

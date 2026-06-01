@@ -41,7 +41,7 @@ export default function Switch(props = {}) {
         onIcon: null,
         offIcon: null,
         innerOnLabel: null,
-        innerOffLabel: null
+        innerOffLabel: null,
     };
 }
 

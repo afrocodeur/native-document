@@ -1,7 +1,7 @@
-import ObservableItem from "./ObservableItem";
-import Validator from "../utils/validator";
-import {nextTick} from "../utils/helpers";
-import ObservableArray from "./ObservableArray";
+import ObservableItem from './ObservableItem';
+import Validator from '../utils/validator';
+import {nextTick} from '../utils/helpers';
+import ObservableArray from './ObservableArray';
 
 /**
  * Reactive object container extending ObservableItem.
@@ -27,7 +27,7 @@ export const ObservableObject = function(target, configs) {
         if(!Object.hasOwn(this, name)) {
             Object.defineProperty(this, name, {
                 get: () => this.$observables[name],
-                set: (value) => this.$observables[name].set(value)
+                set: (value) => this.$observables[name].set(value),
             });
         }
     }
@@ -42,8 +42,8 @@ Object.defineProperty(ObservableObject, '$value', {
     },
     set(value) {
         this.set(value);
-    }
-})
+    },
+});
 
 ObservableObject.prototype.__$isObservableObject = true;
 ObservableObject.prototype.__isProxy__ = true;
@@ -258,7 +258,7 @@ ObservableObject.prototype.subscribe = function(callback) {
         const observable = observables[i];
         if (observable.__$isObservableArray) {
             observable.deepSubscribe(updatedValue);
-            continue
+            continue;
         }
         observable.subscribe(updatedValue);
     }

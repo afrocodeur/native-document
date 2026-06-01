@@ -1,5 +1,5 @@
-import Column from "./types/Column";
-import { THeadCell } from "../../../elements";
+import Column from './types/Column';
+import { THeadCell } from '../../../elements';
 
 /**
  * Groups multiple columns under a shared header in SimpleTable/DataTable.
@@ -20,7 +20,7 @@ export default function ColumnGroup(title, props = {}) {
         header: title,
         columns: [],
         align: null,
-        props
+        props,
     };
 };
 

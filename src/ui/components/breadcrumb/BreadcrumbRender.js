@@ -8,8 +8,8 @@ export default function BreadcrumbRender($desc, instance) {
 
     return Nav(instance.resolveProps(),
         OrderedList({ class: 'breadcrumb-list' },
-            ForEachArray($desc.items, (item) => buildItem(item, $desc, instance))
-        )
+            ForEachArray($desc.items, (item) => buildItem(item, $desc, instance)),
+        ),
     );
 }
 

@@ -1,8 +1,8 @@
-import NativeDocumentError from "../errors/NativeDocumentError";
+import NativeDocumentError from '../errors/NativeDocumentError';
 
 export const LocalStorage = {
     getJson(key) {
-        let value = localStorage.getItem(key);
+        const value = localStorage.getItem(key);
         try {
             return JSON.parse(value);
         } catch (e) {
@@ -33,25 +33,25 @@ export const LocalStorage = {
     },
     has(key) {
         return localStorage.getItem(key) != null;
-    }
-}
+    },
+};
 
 export const $getFromStorage = (key, value) => {
     if(!LocalStorage.has(key)) {
         return value;
     }
     switch (typeof value) {
-        case 'object': return LocalStorage.getJson(key) ?? value;
-        case 'boolean': return LocalStorage.getBool(key) ?? value;
-        case 'number': return LocalStorage.getNumber(key) ?? value;
-        default: return LocalStorage.get(key, value) ?? value;
+    case 'object': return LocalStorage.getJson(key) ?? value;
+    case 'boolean': return LocalStorage.getBool(key) ?? value;
+    case 'number': return LocalStorage.getNumber(key) ?? value;
+    default: return LocalStorage.get(key, value) ?? value;
     }
 };
 
 export const $saveToStorage = (value) => {
     switch (typeof value) {
-        case 'object': return LocalStorage.setJson;
-        case 'boolean': return LocalStorage.setBool;
-        default: return LocalStorage.set;
+    case 'object': return LocalStorage.setJson;
+    case 'boolean': return LocalStorage.setBool;
+    default: return LocalStorage.set;
     }
 };

@@ -1,7 +1,7 @@
-import Field from "../../types/Field";
-import {Validation} from "../../validation/Validation";
+import Field from '../../types/Field';
+import {Validation} from '../../validation/Validation';
 import { $ } from '../../../../core/data/Observable';
-import FileItemPreview from "../../types/fields/FileItemPreview";
+import FileItemPreview from '../../types/fields/FileItemPreview';
 
 /**
  * File upload field. Supports single/multiple files, MIME type and extension filtering,
@@ -40,7 +40,7 @@ export default function FileField(name, props = {}) {
         mode:     null,
         files:    $.array([]),
         fileIcons: [],
-        props
+        props,
     });
 }
 
@@ -273,4 +273,4 @@ FileField.prototype.fileIcon = function(desc) {
 FileField.prototype.fileIcons = function(icons) {
     this.$description.fileIcons = icons;
     return this;
-}
+};

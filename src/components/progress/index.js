@@ -1,6 +1,6 @@
-import Progress from "./types/Progress";
+import Progress from './types/Progress';
 
 
 export {
-    Progress
-}
+    Progress,
+};

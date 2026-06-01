@@ -1,5 +1,5 @@
-import { ElementCreator } from "../ElementCreator";
-import NodeCloner from "./NodeCloner";
+import { ElementCreator } from '../ElementCreator';
+import NodeCloner from './NodeCloner';
 
 const pathProcess = (target, path, data) => {
     if(path.HYDRATE_TEXT) {
@@ -37,7 +37,7 @@ const prepareBindingMetadata = (bindDingData) => {
         for (const attr in bindDingData.attributes) {
             attributes.push({
                 name: attr,
-                value: bindDingData.attributes[attr]
+                value: bindDingData.attributes[attr],
             });
         }
     }
@@ -48,7 +48,7 @@ const prepareBindingMetadata = (bindDingData) => {
             classAndStyles.push({
                 name: 'class',
                 key: className,
-                value: bindDingData.classes[className]
+                value: bindDingData.classes[className],
             });
         }
     }
@@ -59,7 +59,7 @@ const prepareBindingMetadata = (bindDingData) => {
             classAndStyles.push({
                 name: 'style',
                 key: property,
-                value: bindDingData.styles[property]
+                value: bindDingData.styles[property],
             });
         }
     }

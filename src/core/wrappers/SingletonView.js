@@ -1,4 +1,4 @@
-import Anchor from "../elements/anchor/anchor";
+import Anchor from '../elements/anchor/anchor';
 
 /**
  * Creates a singleton view — a component that is instantiated only once,

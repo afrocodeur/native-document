@@ -1,5 +1,5 @@
-import Validator from "../../utils/validator";
-import {ElementCreator} from "../../wrappers/ElementCreator";
+import Validator from '../../utils/validator';
+import {ElementCreator} from '../../wrappers/ElementCreator';
 
 
 export default function oneChildAnchorOverwriting(anchor, parent) {

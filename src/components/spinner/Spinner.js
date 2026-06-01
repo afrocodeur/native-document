@@ -1,5 +1,5 @@
-import BaseComponent from "../BaseComponent";
-import DebugManager from "../../core/utils/debug-manager";
+import BaseComponent from '../BaseComponent';
+import DebugManager from '../../core/utils/debug-manager';
 
 /**
  * Loading spinner with multiple types (circle, dots, bars, ring, pulse), sizes, variants, label, and overlay mode.
@@ -40,7 +40,7 @@ export default function Spinner(props = {}) {
         render: null,
         speed: 'normal',
         fullScreenOverlay: null,
-        props
+        props,
     };
 }
 

@@ -1,4 +1,4 @@
-import { createFilter, createMultiSourceFilter } from "./utils";
+import { createFilter, createMultiSourceFilter } from './utils';
 
 /**
  * Creates a filter that passes when the value includes the given query string.

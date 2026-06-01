@@ -1,4 +1,4 @@
-import MenuDivider from "./types/MenuDivider";
+import MenuDivider from './types/MenuDivider';
 
 const EMPTY_OPTIONS = {};
 
@@ -20,7 +20,7 @@ HasMenuItem.prototype.setParent = function(parent) {
 
 HasMenuItem.components = {
     MenuItem: null,
-    MenuLink: null
+    MenuLink: null,
 };
 
 const getParams = (options, configBuilder, props) => {

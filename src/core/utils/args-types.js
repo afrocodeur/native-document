@@ -1,6 +1,6 @@
-import Validator from "./validator";
-import ArgTypesError from "../errors/ArgTypesError";
-import NativeDocumentError from "../errors/NativeDocumentError";
+import Validator from './validator';
+import ArgTypesError from '../errors/ArgTypesError';
+import NativeDocumentError from '../errors/NativeDocumentError';
 
 let withValidation = (fn) => fn;
 let ArgTypes = {};
@@ -43,8 +43,8 @@ if(process.env.NODE_ENV === 'development') {
             name,
             type: 'oneOf',
             types: argTypes,
-            validate: (v) => argTypes.some(type => type.validate(v))
-        })
+            validate: (v) => argTypes.some(type => type.validate(v)),
+        }),
     };
 
 
@@ -84,7 +84,7 @@ if(process.env.NODE_ENV === 'development') {
         });
 
         if (errors.length > 0) {
-            throw new ArgTypesError(`Argument validation failed`, errors);
+            throw new ArgTypesError('Argument validation failed', errors);
         }
     };
 
@@ -123,7 +123,7 @@ if(process.env.NODE_ENV === 'production') {
         optional: () => true,
 
         // Union types
-        oneOf: () => true
+        oneOf: () => true,
     };
 }
 
@@ -132,9 +132,9 @@ export const normalizeComponentArgs = function(props, children = null) {
         return { props, children };
     }
     if(typeof props !== 'object' || Array.isArray(props) || props === null || props.constructor.name !== 'Object' ||  props.$hydrate) { // IF it's not a JSON
-        return { props: children, children: props }
+        return { props: children, children: props };
     }
     return { props, children };
-}
+};
 
 export { ArgTypes, withValidation };

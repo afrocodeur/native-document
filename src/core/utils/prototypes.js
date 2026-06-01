@@ -1,4 +1,4 @@
-import {withValidation} from "./args-types.js";
+import {withValidation} from './args-types.js';
 
 
 DocumentFragment.prototype.__IS_FRAGMENT = true;

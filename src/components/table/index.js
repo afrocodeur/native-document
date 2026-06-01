@@ -3,5 +3,5 @@ import DataTable from './DataTable';
 
 export {
     SimpleTable,
-    DataTable
-}
+    DataTable,
+};

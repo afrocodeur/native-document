@@ -1,6 +1,6 @@
 import {Div, Label, Input, Span, ForEachArray} from '../../../../../elements';
 import { $ } from '../../../../core/data/Observable';
-import {buildErrors} from "../helpers";
+import {buildErrors} from '../helpers';
 
 export default function RadioFieldRender($desc, instance) {
     const props = instance.getEditableProps();

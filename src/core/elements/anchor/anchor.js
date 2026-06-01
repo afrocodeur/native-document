@@ -1,7 +1,7 @@
-import Validator from "../../utils/validator";
-import {ElementCreator} from "../../wrappers/ElementCreator";
-import AnchorWithSentinel from "./anchor-with-sentinel";
-import oneChildAnchorOverwriting from "./one-child-anchor-overwriting";
+import Validator from '../../utils/validator';
+import {ElementCreator} from '../../wrappers/ElementCreator';
+import AnchorWithSentinel from './anchor-with-sentinel';
+import oneChildAnchorOverwriting from './one-child-anchor-overwriting';
 
 /**
  * Creates an anchor fragment — a managed DocumentFragment delimited by comment sentinels.
@@ -31,7 +31,7 @@ export default function Anchor(name, isUniqueChild = false) {
     anchorFragment.nativeAppend = anchorFragment.append;
 
     const isParentUniqueChild = isUniqueChild
-        ? () => true: (parent) => (parent.firstChild === anchorStart && parent.lastChild === anchorEnd)
+        ? () => true: (parent) => (parent.firstChild === anchorStart && parent.lastChild === anchorEnd);
 
     const insertBefore = (parent, child, target) => {
         const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
@@ -207,4 +207,4 @@ export function createPortal(children, { parent, name = 'unnamed' } = {}) {
     return anchor;
 }
 
-DocumentFragment.prototype.setAttribute = () => {}
+DocumentFragment.prototype.setAttribute = () => {};

@@ -1,5 +1,5 @@
 import {Button as NativeButton, ShowIf, Span} from '../../../core/elements';
-import {Spinner} from "../../../components/spinner";
+import {Spinner} from '../../../components/spinner';
 
 import './button.css';
 

@@ -1,5 +1,5 @@
 import {Table, THead, TBody, TRow, THeadCell, TBodyCell, Span, ShowIf} from '../../../../core/elements';
-import {classPropertyAccumulator} from "../../../../core/utils/property-accumulator";
+import {classPropertyAccumulator} from '../../../../core/utils/property-accumulator';
 
 import './simple-table.css';
 
@@ -8,7 +8,7 @@ export default function SimpleTableRender($desc, instance) {
     props.class.add('simple-table');
 
     const visibleColumns = $desc.columns.filter(col =>
-        col.$description.visible !== false
+        col.$description.visible !== false,
     );
 
     return Table(instance.resolveProps(), [
@@ -34,7 +34,7 @@ const buildGroupRow = ($desc) => {
                 class:   item.$description.align ? `is-${item.$description.align}` : null,
                 ...extraProps,
             }, item.$description.header);
-        })
+        }),
     );
 };
 
@@ -48,7 +48,7 @@ const buildHeaderRow = ($desc, visibleColumns) => {
                 rowspan: col.$description.rowspan || null,
                 ...extraProps,
             }, col.$description.header);
-        })
+        }),
     );
 };
 
@@ -78,7 +78,7 @@ const buildBody = ($desc, instance, visibleColumns) => {
             return fragment;
         },
         set: () => {
-            mutations.clear()
+            mutations.clear();
             mutations.push($desc.data.val());
         },
         push: (args) => {
@@ -160,10 +160,10 @@ const buildRow = ($desc, visibleColumns, row) => {
         const extraProps = column.$description.props || $desc.cellProps?.(value, row, column) || {};
         const classProperty = classPropertyAccumulator(extraProps.class || {});
         if(column.$description.align) {
-            classProperty.add(`is-${column.$description.align}`)
+            classProperty.add(`is-${column.$description.align}`);
         }
         const cell = TBodyCell({ ...extraProps, class: classProperty.value() },
-            content
+            content,
         );
         if(column.$description.onClick) {
             cell.nd.onClick((event) => column.$description.onClick(row, event));
@@ -173,7 +173,7 @@ const buildRow = ($desc, visibleColumns, row) => {
 
     const rowExtraProps = $desc.rowProps?.(row) || {};
     const classProperty = classPropertyAccumulator(rowExtraProps.class || {});
-    classProperty.add({'has-click': !!$desc.onRowClick})
+    classProperty.add({'has-click': !!$desc.onRowClick});
 
     const tr = TRow({ ...rowExtraProps, class: classProperty.value()}, cells);
 

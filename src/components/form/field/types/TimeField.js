@@ -1,6 +1,6 @@
-import Field from "../../types/Field";
-import {Validation} from "../../validation/Validation";
-import BaseComponent from "../../../BaseComponent";
+import Field from '../../types/Field';
+import {Validation} from '../../validation/Validation';
+import BaseComponent from '../../../BaseComponent';
 
 /**
  * Time picker field with format, step, range mode, and time validation.
@@ -45,7 +45,7 @@ export default function TimeField(name, props = {}) {
         valueStart:     null,
         valueEnd:       null,
         rangeSeparator: null,
-        props
+        props,
     });
 }
 

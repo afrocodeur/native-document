@@ -1,5 +1,5 @@
-import ObservableItem from "./ObservableItem";
-import {debounce} from "../utils/helpers";
+import ObservableItem from './ObservableItem';
+import {debounce} from '../utils/helpers';
 
 const STATE = {
     UNRESOLVED: 'unresolved',
@@ -44,7 +44,7 @@ export default function ObservableResource(fn, deps, config) {
 
     this.loading = ObservableItem.computed(
         (state) => state === STATE.PENDING || state === STATE.REFRESHING,
-        [this.state]
+        [this.state],
     );
 
     if (config.auto) {

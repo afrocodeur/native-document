@@ -1,6 +1,6 @@
-import Skeleton from './Skeleton'
+import Skeleton from './Skeleton';
 
 
 export {
-    Skeleton
-}
+    Skeleton,
+};

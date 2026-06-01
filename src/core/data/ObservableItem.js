@@ -1,10 +1,10 @@
-import DebugManager from "../../core/utils/debug-manager";
-import MemoryManager from "./MemoryManager";
-import NativeDocumentError from "../../core/errors/NativeDocumentError";
-import PluginsManager from "../../core/utils/plugins-manager";
-import Validator from "../../core/utils/validator";
-import {deepClone} from "../utils/helpers";
-import {$getFromStorage, $saveToStorage} from "../utils/localstorage";
+import DebugManager from '../../core/utils/debug-manager';
+import MemoryManager from './MemoryManager';
+import NativeDocumentError from '../../core/errors/NativeDocumentError';
+import PluginsManager from '../../core/utils/plugins-manager';
+import Validator from '../../core/utils/validator';
+import {deepClone} from '../utils/helpers';
+import {$getFromStorage, $saveToStorage} from '../utils/localstorage';
 
 /**
  * Reactive primitive value container.
@@ -171,14 +171,14 @@ ObservableItem.prototype.assocTrigger = function() {
     this.$firstListener = null;
     if(this.$watchers?.size && this.$listeners?.length) {
         this.$firstListener = this.$listeners[0];
-        this.trigger = this.$firstListener.length === 0 ? this.$firstListener : this.triggerFirstListener
+        this.trigger = this.$firstListener.length === 0 ? this.$firstListener : this.triggerFirstListener;
         this.trigger = (this.$listeners.length === 1) ? this.triggerWatchersAndFirstListener : this.triggerAll;
         return;
     }
     if(this.$listeners?.length) {
         if(this.$listeners.length === 1) {
             this.$firstListener = this.$listeners[0];
-            this.trigger = this.$firstListener.length === 0 ? this.$firstListener : this.triggerFirstListener
+            this.trigger = this.$firstListener.length === 0 ? this.$firstListener : this.triggerFirstListener;
         }
         else {
             this.trigger = this.triggerListeners;
@@ -231,7 +231,7 @@ ObservableItem.prototype.$setWithInterceptor = function(data) {
  * @param {*} data
  */
 ObservableItem.prototype.$basicSet = function(data) {
-    let newValue = (typeof data === 'function') ? data(this.$currentValue) : data;
+    const newValue = (typeof data === 'function') ? data(this.$currentValue) : data;
     this.$updateWithNewValue(newValue);
 };
 
@@ -362,7 +362,7 @@ ObservableItem.prototype.on = function(value, callback) {
             for(let i = 0, length = watchValueList.length; i < length; i++) {
                 watchValueList[i](value);
             }
-        }
+        };
         callback.list = watchValueList;
         this.$watchers.set(value, callback);
     } else {
@@ -534,7 +534,7 @@ ObservableItem.prototype.reset = function() {
             observable.reset();
         })
         : this.$initialValue;
-    this.set(resetValue)
+    this.set(resetValue);
 };
 
 /**

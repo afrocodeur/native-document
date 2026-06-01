@@ -1,6 +1,6 @@
-import i18next from "i18next";
-import {Observable} from "../../core/data/Observable";
-import {hasObservableParams, getObservableParams, getParams} from "./functions";
+import i18next from 'i18next';
+import {Observable} from '../../core/data/Observable';
+import {hasObservableParams, getObservableParams, getParams} from './functions';
 
 const I18nService = (function () {
     const defaultLang = import.meta.env.VITE_LOCALE || 'en';
@@ -13,7 +13,7 @@ const I18nService = (function () {
                 lng: import.meta.env.VITE_LOCALE,
                 fallbackLng: import.meta.env.VITE_FALLBACK_LANGUE || 'en',
                 debug: import.meta.env.VITE_ENV === 'development',
-                resources
+                resources,
             });
         },
         current: $current,
@@ -22,7 +22,7 @@ const I18nService = (function () {
         },
         tr(key, ...args) {
             return i18next.t(key, ...args) || key;
-        }
+        },
     };
 }());
 

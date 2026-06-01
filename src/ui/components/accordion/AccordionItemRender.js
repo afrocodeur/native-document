@@ -18,7 +18,7 @@ const buildHeader = ($desc, instance) => {
     }
 
     const indicatorClass = $desc.expanded.transform(
-        (expanded) => 'accordion-indicator' + (expanded ? ' is-expanded' : '')
+        (expanded) => 'accordion-indicator' + (expanded ? ' is-expanded' : ''),
     );
 
     const content = [
@@ -53,11 +53,11 @@ const buildIndicator = ($desc) => {
 const buildContent = ($desc, instance) => {
     if($desc.renderContent) {
         return ShowIf($desc.expanded, () =>
-            Div({class: 'accordion-content'}, $desc.renderContent($desc, instance))
+            Div({class: 'accordion-content'}, $desc.renderContent($desc, instance)),
         );
     }
 
     return ShowIf($desc.expanded, () =>
-        Div({class: 'accordion-content'}, $desc.content)
+        Div({class: 'accordion-content'}, $desc.content),
     );
 };

@@ -1,4 +1,4 @@
-import BaseComponent from "../BaseComponent";
+import BaseComponent from '../BaseComponent';
 
 /**
  * Positioned flex container (base for AbsoluteStack, FixedStack, RelativeStack). Adds top/right/bottom/left/zIndex control.
@@ -32,7 +32,7 @@ export default function PositionStack(content, props = {}) {
         height: null,
         zIndex: null,
         anchor: null,
-        props
+        props,
     };
 }
 

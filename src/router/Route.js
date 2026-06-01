@@ -1,4 +1,4 @@
-import {trim} from "../core/utils/helpers.js";
+import {trim} from '../core/utils/helpers.js';
 
 export const RouteParamPatterns = {
     id:       '[0-9]+',
@@ -39,7 +39,7 @@ export function Route($path, $component, $options = {}) {
     $path = '/'+trim($path, '/').replace(/\/+/, '/');
 
     let $pattern = null;
-    let $name = $options.name || null;
+    const $name = $options.name || null;
 
     const $middlewares = $options.middlewares || [];
     const $shouldRebuild = $options.shouldRebuild || false;
@@ -123,5 +123,5 @@ export function Route($path, $component, $options = {}) {
 
         const queryString = (typeof configs.query === 'object') ? (new URLSearchParams(configs.query)).toString() : null;
         return (configs.basePath ? configs.basePath : '') + (queryString ? `${path}?${queryString}` : path);
-    }
+    };
 }

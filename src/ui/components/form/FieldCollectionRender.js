@@ -97,13 +97,13 @@ export default function FieldCollectionRender($desc, instance) {
         return Div({ class: 'field-collection-actions'},
             $desc.renderAdd()
                 .nd
-                .onClick(() => instance.add())
+                .onClick(() => instance.add()),
         );
     };
 
     return Div(instance.resolveProps(), [
         Div({class: 'field-collection-list'},
-            ForEachArray($items, buildItem)
+            ForEachArray($items, buildItem),
         ),
         buildAddButton(),
     ]);

@@ -1,6 +1,6 @@
-import Divider from "./types/Divider";
+import Divider from './types/Divider';
 
 
 export {
-    Divider
-}
+    Divider,
+};

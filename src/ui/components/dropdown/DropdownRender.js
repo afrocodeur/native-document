@@ -1,7 +1,7 @@
 import {Div, Input, ForEachArray} from '../../../core/elements';
 import PopoverRender from '../popover/PopoverRender';
-import {createFilter} from "../../../core/utils/filters";
-import {normalizeDropdownItem} from "../../../components/dropdown/helpers";
+import {createFilter} from '../../../core/utils/filters';
+import {normalizeDropdownItem} from '../../../components/dropdown/helpers';
 
 import './dropdown.css';
 
@@ -29,15 +29,15 @@ const buildDropdownContent = ($desc, instance) => {
                 items = items.where({
                     _: createFilter($desc.filterDependencies, (...args) => {
                         return $desc.filter(...args);
-                    })
+                    }),
                 });
             }
             else {
                 items = items.where({
                     _: createFilter($desc.searchValue, (item, key) => {
                         return $desc.filter(item, key);
-                    })
-                })
+                    }),
+                });
             }
         }
 
@@ -57,7 +57,7 @@ const buildDropdownContent = ($desc, instance) => {
                         instance.close();
                     }
                 });
-            })
+            }),
         );
         content.push(itemsContainer);
     }
@@ -78,7 +78,7 @@ const buildSearch = ($desc, instance) => {
             }
             return description.value?.toLowerCase().includes(key.toLowerCase())
                 || description.content?.toLowerCase().includes(key.toLowerCase());
-        }
+        };
     }
 
     return Div({class: 'dropdown-search'},
@@ -87,6 +87,6 @@ const buildSearch = ($desc, instance) => {
             type: 'text',
             placeholder: $desc.searchPlaceholder || 'Search...',
             value: $desc.searchValue,
-        }).nd.onInput((e) => instance.emit('search', e.target.value))
+        }).nd.onInput((e) => instance.emit('search', e.target.value)),
     );
 };

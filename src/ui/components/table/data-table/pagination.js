@@ -1,7 +1,7 @@
-import {Div, Span} from "../../../../../elements";
-import { $ } from "../../../../core/data/Observable";
-import {SelectField} from "../../../../components/form";
-import {Pagination} from "../../../../components/pagination";
+import {Div, Span} from '../../../../../elements';
+import { $ } from '../../../../core/data/Observable';
+import {SelectField} from '../../../../components/form';
+import {Pagination} from '../../../../components/pagination';
 
 export const buildPagination = ({ pageInfo, pageSize, pageNav }) => {
     return Div({class: 'data-table-pagination'}, [
@@ -10,7 +10,7 @@ export const buildPagination = ({ pageInfo, pageSize, pageNav }) => {
     ]);
 };
 
-export const buildPageInfo = ($desc, instance) => {
+export const buildPageInfo = ($desc) => {
     const pageInfo = $.computed((total, data, pageSize, page) => {
         total = total || data?.length || 0;
         const pages = Math.ceil(total / pageSize);
@@ -51,6 +51,6 @@ export const buildPageNav = ($desc, instance) => {
             .showPreviousNext(true)
             .onPageChange((page) => {
                 instance.emit('page', page, $desc.$pageSize.val());
-            })
+            }),
     ]);
 };

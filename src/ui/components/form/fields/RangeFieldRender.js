@@ -117,6 +117,6 @@ const buildMarks = ($desc) => {
                     ? Span({class: 'range-field-mark-label'}, mark.label)
                     : null,
             ].filter(Boolean));
-        })
+        }),
     );
 };

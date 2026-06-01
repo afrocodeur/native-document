@@ -1,5 +1,5 @@
-import StringField from "../../types/fields/StringField";
-import {Validation} from "../../validation/Validation";
+import StringField from '../../types/fields/StringField';
+import {Validation} from '../../validation/Validation';
 
 /**
  * URL input field. Automatically validates URL format on creation.
@@ -88,7 +88,7 @@ UrlField.prototype.protocol = function(allowedProtocols, message) {
                 return false;
             }
         },
-        message: message || `Allowed protocols: ${allowedProtocols.join(', ')}`
+        message: message || `Allowed protocols: ${allowedProtocols.join(', ')}`,
     });
     return this;
 };
@@ -109,7 +109,7 @@ UrlField.prototype.domain = function(allowedDomains, message) {
                 return false;
             }
         },
-        message: message || `Allowed domains: ${allowedDomains.join(', ')}`
+        message: message || `Allowed domains: ${allowedDomains.join(', ')}`,
     });
     return this;
 };

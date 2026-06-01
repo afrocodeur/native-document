@@ -67,5 +67,5 @@ export default function MemoryRouter() {
         $currentIndex = 0;
 
         this.handleRouteChange(route, params, query, path);
-    }
+    };
 };

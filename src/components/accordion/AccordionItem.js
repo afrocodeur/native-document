@@ -1,6 +1,6 @@
 import { $ } from '../../core/data/Observable';
-import BaseComponent from "../BaseComponent";
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
+import BaseComponent from '../BaseComponent';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
 
 /**
  * A single collapsible item inside an Accordion. Manages its own expanded/collapsed state.
@@ -39,7 +39,7 @@ export default function AccordionItem(props = {}) {
         render: null,
         expanded: $(false),
         disabled: $(false),
-        props
+        props,
     };
 }
 
@@ -76,7 +76,7 @@ AccordionItem.use = function(template) {
 Object.defineProperty(AccordionItem.prototype, 'id', {
     get() {
         return this.$description.id;
-    }
+    },
 });
 
 /**
@@ -127,7 +127,7 @@ AccordionItem.prototype.icon = function(icon) {
 AccordionItem.prototype.showIndicator = function(show = true) {
     this.$description.showIndicator = show;
     return this;
-}
+};
 
 /**
  * Sets whether the item can be collapsed

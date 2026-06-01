@@ -1,9 +1,9 @@
-import BaseComponent from "../../BaseComponent";
-import HasEventEmitter from "../../../core/utils/HasEventEmitter";
-import HasValidation from "../../$traits/has-validation/HasValidation";
-import { $ } from "../../../core/data/Observable";
-import Validator from "../../../core/utils/validator";
-import NativeDocumentError from "../../../core/errors/NativeDocumentError";
+import BaseComponent from '../../BaseComponent';
+import HasEventEmitter from '../../../core/utils/HasEventEmitter';
+import HasValidation from '../../$traits/has-validation/HasValidation';
+import { $ } from '../../../core/data/Observable';
+import Validator from '../../../core/utils/validator';
+import NativeDocumentError from '../../../core/errors/NativeDocumentError';
 
 /**
  * Repeatable field group. Allows adding/removing instances dynamically with validation rules on the collection (min/max count).
@@ -42,11 +42,11 @@ export default function FieldCollection(name, props = {}) {
         renderItem: null,
         renderAdd: null,
         transition: null,
-        props
+        props,
     };
 
     this.$description.value.interceptMutations((items) =>
-        items.map(item => Validator.isObservable(item) ? item : $.object(item))
+        items.map(item => Validator.isObservable(item) ? item : $.object(item)),
     );
 }
 
@@ -134,7 +134,7 @@ FieldCollection.prototype.model = function(observable) {
     if(Validator.isObservable(observable)) {
         this.$description.value = observable;
         this.$description.value.interceptMutations((items) =>
-            items.map(item => Validator.isObservable(item) ? item : $.object(item))
+            items.map(item => Validator.isObservable(item) ? item : $.object(item)),
         );
         return this;
     }
@@ -190,7 +190,7 @@ FieldCollection.prototype.reset = function() {
  */
 FieldCollection.prototype.value = function() {
     return this.$description.value.map(item =>
-        Validator.isObservable(item) ? item.val() : item
+        Validator.isObservable(item) ? item.val() : item,
     );
 };
 
@@ -247,7 +247,7 @@ FieldCollection.prototype.min = function(minCount, message) {
             message: `Minimum ${minCount} item(s) required`,
         }),
         [],
-        message
+        message,
     );
 };
 

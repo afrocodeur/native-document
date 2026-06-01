@@ -15,8 +15,8 @@ export default function DropdownGroupRender($desc, instance) {
 
     content.push(
         Div({class: 'dropdown-group-items'},
-            ForEachArray(items, (item) => item)
-        )
+            ForEachArray(items, (item) => item),
+        ),
     );
 
     return Div(instance.resolveProps(), content);

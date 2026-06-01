@@ -1,9 +1,9 @@
-import {debounce} from "../../core/utils/helpers";
-import HasEventEmitter from "../../core/utils/HasEventEmitter";
-import { $ } from "../../core/data/Observable";
-import Validator from "../../core/utils/validator";
-import NativeDocumentError from "../../../src/core/errors/NativeDocumentError";
-import BaseComponent from "../BaseComponent";
+import {debounce} from '../../core/utils/helpers';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
+import { $ } from '../../core/data/Observable';
+import Validator from '../../core/utils/validator';
+import NativeDocumentError from '../../../src/core/errors/NativeDocumentError';
+import BaseComponent from '../BaseComponent';
 
 /**
  * Top-level form controller. Manages field registration, layout, validation, submission, error display, and reactive value tracking.
@@ -45,7 +45,7 @@ export default function FormControl(props) {
         errors:          $(null),
         isDirty:         $(false),
         isValid:         $(false),
-        props
+        props,
     };
 }
 
@@ -84,15 +84,15 @@ BaseComponent.extends(FormControl);
 BaseComponent.use(FormControl, HasEventEmitter);
 
 Object.defineProperty(FormControl.prototype, 'isDirty', {
-    get() { return this.$description.isDirty; }
+    get() { return this.$description.isDirty; },
 });
 
 Object.defineProperty(FormControl.prototype, 'isValid', {
-    get() { return this.$description.isValid; }
+    get() { return this.$description.isValid; },
 });
 
 Object.defineProperty(FormControl.prototype, 'submitting', {
-    get() { return this.$description.submitting; }
+    get() { return this.$description.submitting; },
 });
 
 /**

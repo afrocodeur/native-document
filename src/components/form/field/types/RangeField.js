@@ -1,4 +1,4 @@
-import NumberField from "../../types/fields/NumberField";
+import NumberField from '../../types/fields/NumberField';
 
 /**
  * Numeric range/slider field. Extends NumberField with visual slider controls,

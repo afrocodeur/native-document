@@ -1,4 +1,4 @@
-import StringField from "../../types/fields/StringField";
+import StringField from '../../types/fields/StringField';
 
 /**
  * Text field with asynchronous autocomplete suggestions. Supports static arrays
@@ -123,7 +123,7 @@ AutocompleteField.prototype.oneOf = function(allowedValues, message) {
             if (!value) return true;
             return allowedValues.includes(value);
         },
-        message: message || `Must be one of: ${allowedValues.join(', ')}`
+        message: message || `Must be one of: ${allowedValues.join(', ')}`,
     });
     return this;
 };

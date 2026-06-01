@@ -35,7 +35,7 @@ const buildNav = ($desc, instance) => {
             }
 
             return Div({class: 'stepper-step-wrapper'}, items);
-        })
+        }),
     );
 };
 
@@ -65,7 +65,7 @@ const buildContent = ($desc, instance) => {
                 class: isActive.transform(a => 'stepper-panel' + (a ? '' : ' is-hidden')),
             }, step.$description.content);
         };
-    })
+    });
 
     return Div({class: 'stepper-content'}, Match($desc.currentStep, contents));
 };
