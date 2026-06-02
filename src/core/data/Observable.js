@@ -163,8 +163,8 @@ Observable.computed = function(callback, dependencies = []) {
     }
 
     dependencies.forEach(dependency => {
-        if(Validator.isProxy(dependency)) {
-            dependency.$observables.forEach((observable) => {
+        if(dependency.__$isObservableObject) {
+            dependency.observables().forEach((observable) => {
                 observable.subscribe(updatedValue);
             });
             return;
@@ -206,9 +206,6 @@ Observable.value = function(data) {
     }
     if(data?.__$Observable) {
         return data.val();
-    }
-    if(Validator.isProxy(data)) {
-        return data.$value;
     }
     return data;
 };

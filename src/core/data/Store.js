@@ -2,6 +2,13 @@ import { Observable } from './Observable';
 import NativeDocumentError from '../errors/NativeDocumentError';
 import DebugManager from '../utils/debug-manager';
 import {$getFromStorage, $saveToStorage, LocalStorage} from '../utils/localstorage';
+import Validator from '../utils/validator';
+
+
+const WRITE_METHODS = [
+    'use', 'get', 'create', 'createResettable', 'createComposed',
+    'createPersistent', 'createPersistentResettable', 'delete', 'reset',
+];
 
 export const StoreFactory = function() {
 
@@ -41,7 +48,7 @@ export const StoreFactory = function() {
         if(Array.isArray(value)) {
             return Observable.array(value, options);
         }
-        if(typeof value === 'object') {
+        if(Validator.isJson(value)) {
             return Observable.object(value, options);
         }
         return Observable(value, options);
@@ -239,7 +246,9 @@ export const StoreFactory = function() {
             const { observer: originalObserver, subscribers } = $getStoreOrThrow('follow', name);
             const observerFollower = $createObservable(originalObserver.val());
 
-            const onStoreChange = value => observerFollower.set(value);
+            const originalSet = observerFollower.set.bind(observerFollower);
+            const onStoreChange = value => originalSet(value);
+
             originalObserver.subscribe(onStoreChange);
 
             $applyReadOnly(observerFollower, name, 'follow');
@@ -295,6 +304,7 @@ export const StoreFactory = function() {
             item.subscribers.clear();
             item.observer.cleanup();
             $stores.delete(name);
+            $followersCache.delete(name);
         },
         /**
          * Creates an isolated store group with its own state namespace.
@@ -413,6 +423,67 @@ export const StoreFactory = function() {
 
             return observer;
         },
+        /**
+         * Returns a read-only proxy of this store.
+         * All write operations (use, get, create, createResettable, createComposed,
+         * createPersistent, createPersistentResettable, delete, reset) will throw.
+         * Property access returns a read-only follower via follow().
+         *
+         * The recommended pattern is to keep the original store private
+         * and export only the protected version as the public contract.
+         *
+         * @returns {Proxy}
+         *
+         * @example
+         * // store/user.store.js
+         *
+         * const PrivateUserStore = Store.group('user', (group) => {
+         *     group.create('profile', null);
+         *     group.create('role', 'viewer');
+         *     group.create('token', null);
+         * });
+         *
+         * // Only the read-only version is exported
+         * export const UserStore = PrivateUserStore.protected();
+         *
+         * // --- In any other module ---
+         *
+         * import { UserStore } from './store/user.store.js';
+         *
+         * UserStore.profile // ✅ follower read-only
+         * UserStore.follow('role') // ✅
+         * UserStore.has('token') // ✅
+         *
+         * UserStore.use('profile') // ❌ throws — read-only store
+         * UserStore.get('profile') // ❌ throws — read-only store
+         * UserStore.create('x', 1) // ❌ throws — read-only store
+         */
+        protected() {
+            return new Proxy($api, {
+                get(target, prop) {
+                    if (typeof prop === 'symbol' || prop.startsWith('$')) {
+                        return target[prop];
+                    }
+                    if (WRITE_METHODS.includes(prop)) {
+                        return () => {
+                            throw new NativeDocumentError(
+                                `Store.${prop}() is not allowed on a read-only store. Use the original store reference instead.`
+                            );
+                        };
+                    }
+                    if (target.has(prop)) {
+                        return target.follow(prop);
+                    }
+                    return target[prop];
+                },
+                set() {
+                    throw new NativeDocumentError('This store is read-only.');
+                },
+                deleteProperty() {
+                    throw new NativeDocumentError('This store is read-only.');
+                },
+            });
+        },
     };
 
 
@@ -443,4 +514,7 @@ export const StoreFactory = function() {
 
 export const Store = StoreFactory();
 
-Store.create('locale', navigator.language.split('-')[0] || 'en');
+Store.create(
+    'locale',
+    (typeof navigator !== 'undefined' ? navigator.language.split('-')[0] : 'en') || 'en'
+);

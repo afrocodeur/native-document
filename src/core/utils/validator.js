@@ -32,7 +32,7 @@ const Validator = {
         return value?.__isProxy__;
     },
     isObservableOrProxy(value) {
-        return Validator.isObservable(value) || Validator.isProxy(value);
+        return value?.__$Observable;
     },
     isAnchor(value) {
         return value?.__Anchor__;

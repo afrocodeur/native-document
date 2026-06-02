@@ -21,17 +21,29 @@ export const ObservableObject = function(target, configs) {
     this.$observables = {};
     this.configs = configs;
 
-    this.$load(target);
-
-    for(const name in target) {
-        if(!Object.hasOwn(this, name)) {
-            Object.defineProperty(this, name, {
-                get: () => this.$observables[name],
-                set: (value) => this.$observables[name].set(value),
+    for(const key in target) {
+        if(!Object.hasOwn(this, key)) {
+            Object.defineProperty(this, key, {
+                get: () => this.$observables[key],
+                set: (value) => {
+                    this.$observables[key].set(value);
+                },
+                configurable: true,
+                enumerable: true,
             });
         }
     }
 
+    this.$load(target);
+
+    Object.defineProperty(this, '$currentValue', {
+        get: function() {
+            return this.val();
+        },
+        set(value) {
+            this.set(value);
+        }
+    });
 };
 
 ObservableObject.prototype = Object.create(ObservableItem.prototype);
@@ -76,11 +88,11 @@ ObservableObject.prototype.$load = function(initialValue) {
             this.$observables[key] = new ObservableArray(itemValue, configs);
             continue;
         }
-        if(Validator.isObservable(itemValue) || Validator.isProxy(itemValue)) {
+        if(itemValue?.__$Observable) {
             this.$observables[key] = itemValue;
             continue;
         }
-        this.$observables[key] = (typeof itemValue === 'object') ? new ObservableObject(itemValue, configs) : new ObservableItem(itemValue, configs);
+        this.$observables[key] = (Validator.isJson(itemValue)) ? new ObservableObject(itemValue, configs) : new ObservableItem(itemValue, configs);
     }
 };
 
@@ -98,22 +110,17 @@ ObservableObject.prototype.val = function() {
     const result = {};
     for(const key in this.$observables) {
         const dataItem = this.$observables[key];
-        if(Validator.isObservable(dataItem)) {
+        if(dataItem?.__$Observable) {
             let value = dataItem.val();
             if(Array.isArray(value)) {
                 value = value.map(item => {
-                    if(Validator.isObservable(item)) {
+                    if(item.__$Observable) {
                         return item.val();
-                    }
-                    if(Validator.isProxy(item)) {
-                        return item.$value;
                     }
                     return item;
                 });
             }
             result[key] = value;
-        } else if(Validator.isProxy(dataItem)) {
-            result[key] = dataItem.$value;
         } else {
             result[key] = dataItem;
         }
@@ -134,11 +141,8 @@ ObservableObject.prototype.$val = ObservableObject.prototype.val;
  */
 ObservableObject.prototype.get = function(property) {
     const item = this.$observables[property];
-    if(Validator.isObservable(item)) {
+    if(item?.__$Observable) {
         return item.val();
-    }
-    if(Validator.isProxy(item)) {
-        return item.$value;
     }
     return item;
 };
@@ -155,7 +159,7 @@ ObservableObject.prototype.$get = ObservableObject.prototype.get;
  * user.set({ name: 'Jane' }); // Only name changes, age stays 25
  */
 ObservableObject.prototype.set = function(newData) {
-    const data = Validator.isProxy(newData) ? newData.$value : newData;
+    const data = newData?.__$Observable ? newData.$value : newData;
     const configs = this.configs;
 
     for(const key in data) {
@@ -163,15 +167,19 @@ ObservableObject.prototype.set = function(newData) {
         const newValueOrigin = newData[key];
         const newValue = data[key];
 
-        if(Validator.isObservable(targetItem)) {
+        if(targetItem?.__$Observable) {
+            if(targetItem.__$isObservableObject) {
+                targetItem.update(newValue);
+                continue;
+            }
             if(!Validator.isArray(newValue)) {
                 targetItem.set(newValue);
                 continue;
             }
             const firstElementFromOriginalValue = newValueOrigin.at(0);
-            if(Validator.isObservable(firstElementFromOriginalValue) || Validator.isProxy(firstElementFromOriginalValue)) {
+            if(firstElementFromOriginalValue?.__$Observable) {
                 const newValues = newValue.map(item => {
-                    if(Validator.isProxy(firstElementFromOriginalValue)) {
+                    if(firstElementFromOriginalValue.__$isObservableObject) {
                         return new ObservableObject(item, configs);
                     }
                     return ObservableItem(item, configs);
@@ -180,10 +188,6 @@ ObservableObject.prototype.set = function(newData) {
                 continue;
             }
             targetItem.set([...newValue]);
-            continue;
-        }
-        if(Validator.isProxy(targetItem)) {
-            targetItem.update(newValue);
             continue;
         }
         this[key] = newValue;

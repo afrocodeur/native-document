@@ -73,7 +73,7 @@ var NativeDocument = (function (exports) {
             return value?.__isProxy__;
         },
         isObservableOrProxy(value) {
-            return Validator.isObservable(value) || Validator.isProxy(value);
+            return value?.__$Observable;
         },
         isAnchor(value) {
             return value?.__Anchor__;
@@ -2346,17 +2346,29 @@ var NativeDocument = (function (exports) {
         this.$observables = {};
         this.configs = configs;
 
-        this.$load(target);
-
-        for(const name in target) {
-            if(!Object.hasOwn(this, name)) {
-                Object.defineProperty(this, name, {
-                    get: () => this.$observables[name],
-                    set: (value) => this.$observables[name].set(value),
+        for(const key in target) {
+            if(!Object.hasOwn(this, key)) {
+                Object.defineProperty(this, key, {
+                    get: () => this.$observables[key],
+                    set: (value) => {
+                        this.$observables[key].set(value);
+                    },
+                    configurable: true,
+                    enumerable: true,
                 });
             }
         }
 
+        this.$load(target);
+
+        Object.defineProperty(this, '$currentValue', {
+            get: function() {
+                return this.val();
+            },
+            set(value) {
+                this.set(value);
+            }
+        });
     };
 
     ObservableObject.prototype = Object.create(ObservableItem.prototype);
@@ -2401,11 +2413,11 @@ var NativeDocument = (function (exports) {
                 this.$observables[key] = new ObservableArray(itemValue, configs);
                 continue;
             }
-            if(Validator.isObservable(itemValue) || Validator.isProxy(itemValue)) {
+            if(itemValue?.__$Observable) {
                 this.$observables[key] = itemValue;
                 continue;
             }
-            this.$observables[key] = (typeof itemValue === 'object') ? new ObservableObject(itemValue, configs) : new ObservableItem(itemValue, configs);
+            this.$observables[key] = (Validator.isJson(itemValue)) ? new ObservableObject(itemValue, configs) : new ObservableItem(itemValue, configs);
         }
     };
 
@@ -2423,22 +2435,17 @@ var NativeDocument = (function (exports) {
         const result = {};
         for(const key in this.$observables) {
             const dataItem = this.$observables[key];
-            if(Validator.isObservable(dataItem)) {
+            if(dataItem?.__$Observable) {
                 let value = dataItem.val();
                 if(Array.isArray(value)) {
                     value = value.map(item => {
-                        if(Validator.isObservable(item)) {
+                        if(item.__$Observable) {
                             return item.val();
-                        }
-                        if(Validator.isProxy(item)) {
-                            return item.$value;
                         }
                         return item;
                     });
                 }
                 result[key] = value;
-            } else if(Validator.isProxy(dataItem)) {
-                result[key] = dataItem.$value;
             } else {
                 result[key] = dataItem;
             }
@@ -2459,11 +2466,8 @@ var NativeDocument = (function (exports) {
      */
     ObservableObject.prototype.get = function(property) {
         const item = this.$observables[property];
-        if(Validator.isObservable(item)) {
+        if(item?.__$Observable) {
             return item.val();
-        }
-        if(Validator.isProxy(item)) {
-            return item.$value;
         }
         return item;
     };
@@ -2480,7 +2484,7 @@ var NativeDocument = (function (exports) {
      * user.set({ name: 'Jane' }); // Only name changes, age stays 25
      */
     ObservableObject.prototype.set = function(newData) {
-        const data = Validator.isProxy(newData) ? newData.$value : newData;
+        const data = newData?.__$Observable ? newData.$value : newData;
         const configs = this.configs;
 
         for(const key in data) {
@@ -2488,15 +2492,19 @@ var NativeDocument = (function (exports) {
             const newValueOrigin = newData[key];
             const newValue = data[key];
 
-            if(Validator.isObservable(targetItem)) {
+            if(targetItem?.__$Observable) {
+                if(targetItem.__$isObservableObject) {
+                    targetItem.update(newValue);
+                    continue;
+                }
                 if(!Validator.isArray(newValue)) {
                     targetItem.set(newValue);
                     continue;
                 }
                 const firstElementFromOriginalValue = newValueOrigin.at(0);
-                if(Validator.isObservable(firstElementFromOriginalValue) || Validator.isProxy(firstElementFromOriginalValue)) {
+                if(firstElementFromOriginalValue?.__$Observable) {
                     const newValues = newValue.map(item => {
-                        if(Validator.isProxy(firstElementFromOriginalValue)) {
+                        if(firstElementFromOriginalValue.__$isObservableObject) {
                             return new ObservableObject(item, configs);
                         }
                         return ObservableItem(item, configs);
@@ -2505,10 +2513,6 @@ var NativeDocument = (function (exports) {
                     continue;
                 }
                 targetItem.set([...newValue]);
-                continue;
-            }
-            if(Validator.isProxy(targetItem)) {
-                targetItem.update(newValue);
                 continue;
             }
             this[key] = newValue;
@@ -3764,8 +3768,8 @@ var NativeDocument = (function (exports) {
         }
 
         dependencies.forEach(dependency => {
-            if(Validator.isProxy(dependency)) {
-                dependency.$observables.forEach((observable) => {
+            if(dependency.__$isObservableObject) {
+                dependency.observables().forEach((observable) => {
                     observable.subscribe(updatedValue);
                 });
                 return;
@@ -3807,9 +3811,6 @@ var NativeDocument = (function (exports) {
         }
         if(data?.__$Observable) {
             return data.val();
-        }
-        if(Validator.isProxy(data)) {
-            return data.$value;
         }
         return data;
     };
@@ -6849,6 +6850,11 @@ var NativeDocument = (function (exports) {
         });
     };
 
+    const WRITE_METHODS = [
+        'use', 'get', 'create', 'createResettable', 'createComposed',
+        'createPersistent', 'createPersistentResettable', 'delete', 'reset',
+    ];
+
     const StoreFactory = function() {
 
         const $stores = new Map();
@@ -6887,7 +6893,7 @@ var NativeDocument = (function (exports) {
             if(Array.isArray(value)) {
                 return Observable.array(value, options);
             }
-            if(typeof value === 'object') {
+            if(Validator.isJson(value)) {
                 return Observable.object(value, options);
             }
             return Observable(value, options);
@@ -7085,7 +7091,9 @@ var NativeDocument = (function (exports) {
                 const { observer: originalObserver, subscribers } = $getStoreOrThrow('follow', name);
                 const observerFollower = $createObservable(originalObserver.val());
 
-                const onStoreChange = value => observerFollower.set(value);
+                const originalSet = observerFollower.set.bind(observerFollower);
+                const onStoreChange = value => originalSet(value);
+
                 originalObserver.subscribe(onStoreChange);
 
                 $applyReadOnly(observerFollower, name, 'follow');
@@ -7141,6 +7149,7 @@ var NativeDocument = (function (exports) {
                 item.subscribers.clear();
                 item.observer.cleanup();
                 $stores.delete(name);
+                $followersCache.delete(name);
             },
             /**
              * Creates an isolated store group with its own state namespace.
@@ -7195,6 +7204,26 @@ var NativeDocument = (function (exports) {
                 callback && callback(store);
                 return store;
             },
+
+            /**
+             * Creates a store that is automatically persisted to localStorage.
+             * On creation, the store is initialized with the value from localStorage
+             * if it exists, otherwise falls back to the provided default value.
+             * Every mutation is automatically saved to localStorage.
+             *
+             * @param {string} name - Store name
+             * @param {*} value - Default value if nothing is found in localStorage
+             * @param {string} [localstorage_key] - Custom localStorage key. Defaults to the store name.
+             * @returns {ObservableItem}
+             *
+             * @example
+             * const $theme = Store.createPersistent('theme', 'light');
+             *
+             * $theme.set('dark'); // saved to localStorage automatically
+             *
+             * // With a custom key
+             * const $lang = Store.createPersistent('language', 'en', 'nd:lang');
+             */
             createPersistent(name, value, localstorage_key) {
                 localstorage_key = localstorage_key || name;
                 const observer = this.create(name, $getFromStorage(localstorage_key, value));
@@ -7203,6 +7232,28 @@ var NativeDocument = (function (exports) {
                 observer.subscribe((val) => saver(localstorage_key, val));
                 return observer;
             },
+
+            /**
+             * Creates a resettable store that is automatically persisted to localStorage.
+             * On creation, the store is initialized with the value from localStorage
+             * if it exists, otherwise falls back to the provided default value.
+             * Every mutation is automatically saved to localStorage.
+             * Calling reset() restores the initial value AND removes the localStorage entry.
+             *
+             * @param {string} name - Store name
+             * @param {*} value - Default value if nothing is found in localStorage
+             * @param {string} [localstorage_key] - Custom localStorage key. Defaults to the store name.
+             * @returns {ObservableItem}
+             *
+             * @example
+             * const $filters = Store.createPersistentResettable('filters', { category: null, date: null });
+             *
+             * $filters.set({ category: 'news', date: '2024-01-01' }); // saved to localStorage
+             * $filters.reset(); // restored to { category: null, date: null } + localStorage entry removed
+             *
+             * // With a custom key
+             * const $prefs = Store.createPersistentResettable('preferences', { lang: 'en' }, 'nd:prefs');
+             */
             createPersistentResettable(name, value, localstorage_key) {
                 localstorage_key = localstorage_key || name;
                 const observer = this.createResettable(name, $getFromStorage(localstorage_key, value));
@@ -7216,6 +7267,67 @@ var NativeDocument = (function (exports) {
                 };
 
                 return observer;
+            },
+            /**
+             * Returns a read-only proxy of this store.
+             * All write operations (use, get, create, createResettable, createComposed,
+             * createPersistent, createPersistentResettable, delete, reset) will throw.
+             * Property access returns a read-only follower via follow().
+             *
+             * The recommended pattern is to keep the original store private
+             * and export only the protected version as the public contract.
+             *
+             * @returns {Proxy}
+             *
+             * @example
+             * // store/user.store.js
+             *
+             * const PrivateUserStore = Store.group('user', (group) => {
+             *     group.create('profile', null);
+             *     group.create('role', 'viewer');
+             *     group.create('token', null);
+             * });
+             *
+             * // Only the read-only version is exported
+             * export const UserStore = PrivateUserStore.protected();
+             *
+             * // --- In any other module ---
+             *
+             * import { UserStore } from './store/user.store.js';
+             *
+             * UserStore.profile // ✅ follower read-only
+             * UserStore.follow('role') // ✅
+             * UserStore.has('token') // ✅
+             *
+             * UserStore.use('profile') // ❌ throws — read-only store
+             * UserStore.get('profile') // ❌ throws — read-only store
+             * UserStore.create('x', 1) // ❌ throws — read-only store
+             */
+            protected() {
+                return new Proxy($api, {
+                    get(target, prop) {
+                        if (typeof prop === 'symbol' || prop.startsWith('$')) {
+                            return target[prop];
+                        }
+                        if (WRITE_METHODS.includes(prop)) {
+                            return () => {
+                                throw new NativeDocumentError(
+                                    `Store.${prop}() is not allowed on a read-only store. Use the original store reference instead.`
+                                );
+                            };
+                        }
+                        if (target.has(prop)) {
+                            return target.follow(prop);
+                        }
+                        return target[prop];
+                    },
+                    set() {
+                        throw new NativeDocumentError('This store is read-only.');
+                    },
+                    deleteProperty() {
+                        throw new NativeDocumentError('This store is read-only.');
+                    },
+                });
             },
         };
 
@@ -7247,7 +7359,10 @@ var NativeDocument = (function (exports) {
 
     const Store = StoreFactory();
 
-    Store.create('locale', navigator.language.split('-')[0] || 'en');
+    Store.create(
+        'locale',
+        (typeof navigator !== 'undefined' ? navigator.language.split('-')[0] : 'en') || 'en'
+    );
 
     const SELF_RENDER$1 = (item) => item;
 
