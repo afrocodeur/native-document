@@ -34,6 +34,14 @@ export { default as AccordionRender } from './components/accordion/AccordionRend
 export { default as SimpleTableRender } from './components/table/simple-table/SimpleTableRender';
 export { default as DataTableRender } from './components/table/data-table/DataTableRender';
 export { default as SwitchRender } from './components/switch/SwitchRender';
+export { default as SpacerRender } from './components/spacer/SpacerRender';
+
+export { default as ListRender } from './components/list/ListRender';
+export { default as ListGroupRender } from './components/list/group/ListGroupRender';
+export { default as ListItemRender } from './components/list/item/ListItemRender';
+export { default as ListDividerRender } from './components/list/divider/ListDividerRender';
+
+export { default as CardRender } from './components/card/CardRender';
 
 export * from './components/stacks';
 export * from './components/form';

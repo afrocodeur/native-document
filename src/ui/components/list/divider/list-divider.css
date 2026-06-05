@@ -1,0 +1,12 @@
+:root {
+    --list-divider-color:   var(--gray-lite-3);
+    --list-divider-margin:  0;
+}
+
+.list-divider {
+    height:      1px;
+    background:  var(--list-divider-color);
+    margin:      var(--list-divider-margin);
+    list-style:  none;
+    pointer-events: none;
+}

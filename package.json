@@ -24,58 +24,6 @@
   ],
   "type": "module",
   "main": "index.js",
-  "exports": {
-    ".": {
-      "import": "./index.js",
-      "types": "./index.d.ts"
-    },
-    "./elements": {
-      "import": "./elements.js",
-      "types": "./elements.d.ts"
-    },
-    "./components": {
-      "import": "./components.js",
-      "types": "./components.d.ts"
-    },
-    "./router": {
-      "import": "./router.js",
-      "types": "./router.d.ts"
-    },
-    "./ui": {
-      "import": "./ui.js"
-    },
-    "./utils": {
-      "import": "./utils.js",
-      "types": "./utils.d.ts"
-    },
-    "./i18n": {
-      "import": "./i18n.js"
-    },
-    "./filters": {
-      "import": "./src/core/utils/filters/index.js"
-    }
-  },
-  "files": [
-    "src/",
-    "types/",
-    "dist/",
-    "index.js",
-    "index.d.ts",
-    "elements.js",
-    "elements.d.ts",
-    "components.js",
-    "components.d.ts",
-    "router.js",
-    "router.d.ts",
-    "utils.js",
-    "utils.d.ts",
-    "ui.js",
-    "i18n.js",
-    "filters.js",
-    "cdn.js",
-    "CHANGELOG.md",
-    "README.md"
-  ],
   "sideEffects": [
     "index.js",
     "elements.js",

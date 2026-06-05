@@ -1,6 +1,6 @@
 import BaseComponent from '../BaseComponent';
 
-export function Spacer(props = {}) {
+export default function Spacer(props = {}) {
     if (!(this instanceof Spacer)) {
         return new Spacer(props);
     }

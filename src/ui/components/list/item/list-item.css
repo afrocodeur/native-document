@@ -1,0 +1,191 @@
+:root {
+    --list-item-padding-v:              9px;
+    --list-item-padding-h:              14px;
+    --list-item-gap:                    10px;
+    --list-item-font-size:              var(--description-size);
+    --list-item-color:                  var(--text-color);
+    --list-item-bg-hover:               var(--gray-lite-5);
+    --list-item-bg-selected:            color-mix(in srgb, var(--blue) 8%, transparent);
+    --list-item-color-selected:         var(--blue);
+    --list-item-weight-selected:        500;
+    --list-item-disabled-opacity:       0.45;
+    --list-item-transition:             background 0.1s ease;
+
+    --list-item-subtitle-size:          var(--note-size);
+    --list-item-subtitle-color:         var(--gray);
+
+    --list-item-trailing-size:          var(--note-size);
+    --list-item-trailing-color:         var(--gray);
+
+    --list-item-icon-size:              16px;
+    --list-item-icon-color:             var(--gray);
+
+    --list-item-checkbox-size:          15px;
+    --list-item-checkbox-radius:        4px;
+    --list-item-checkbox-border:        var(--gray-lite-2);
+    --list-item-checkbox-bg:            var(--blue);
+
+    --list-item-indicator-size:         12px;
+
+    --list-item-swipe-transition:       transform 0.2s ease-out;
+    --list-item-swipe-leading-bg:       var(--color-success);
+    --list-item-swipe-trailing-bg:      var(--color-danger);
+    --list-item-swipe-actions-min-width: 80px;
+}
+
+/* ── Base ───────────────────────────────────────────────────── */
+
+.list-item {
+    position:   relative;
+    list-style: none;
+    font-size:  var(--list-item-font-size);
+    color:      var(--list-item-color);
+    overflow:   hidden;
+
+    &.is-disabled {
+        opacity:        var(--list-item-disabled-opacity);
+        cursor:         not-allowed;
+        pointer-events: none;
+    }
+
+    &.is-hidden {
+        display: none;
+    }
+}
+
+/* ── Content (front layer) ──────────────────────────────────── */
+
+.list-item-content {
+    position:   relative;
+    z-index:    1;
+    display:    flex;
+    align-items: center;
+    gap:        var(--list-item-gap);
+    padding:    var(--list-item-padding-v) var(--list-item-padding-h);
+    cursor:     pointer;
+    background: var(--list-bg);
+    transition: var(--list-item-transition);
+
+    .list-item:hover & {
+        background: var(--list-item-bg-hover);
+    }
+
+    .list-item.is-selected & {
+        background: var(--list-item-bg-selected);
+        color:      var(--list-item-color-selected);
+
+        .list-item-label {
+            font-weight: var(--list-item-weight-selected);
+        }
+    }
+
+    .list-item.is-swipeable & {
+        transition: transform 0.05s linear, background var(--fast);
+    }
+}
+
+/* ── Slots ──────────────────────────────────────────────────── */
+
+.list-item-icon {
+    font-size:   var(--list-item-icon-size);
+    color:       var(--list-item-icon-color);
+    flex-shrink: 0;
+    display:     flex;
+    align-items: center;
+}
+
+.list-item-body {
+    flex:           1;
+    min-width:      0;
+    display:        flex;
+    flex-direction: column;
+    gap:            2px;
+}
+
+.list-item-label {
+    white-space:   nowrap;
+    overflow:      hidden;
+    text-overflow: ellipsis;
+}
+
+.list-item-subtitle {
+    font-size:     var(--list-item-subtitle-size);
+    color:         var(--list-item-subtitle-color);
+    white-space:   nowrap;
+    overflow:      hidden;
+    text-overflow: ellipsis;
+}
+
+.list-item-trailing {
+    flex-shrink: 0;
+    font-size:   var(--list-item-trailing-size);
+    color:       var(--list-item-trailing-color);
+}
+
+/* ── Checkbox ───────────────────────────────────────────────── */
+
+.list-item-checkbox {
+    flex-shrink:      0;
+    width:            var(--list-item-checkbox-size);
+    height:           var(--list-item-checkbox-size);
+    border-radius:    var(--list-item-checkbox-radius);
+    border:           1.5px solid var(--list-item-checkbox-border);
+    background:       transparent;
+    display:          flex;
+    align-items:      center;
+    justify-content:  center;
+    font-size:        10px;
+    transition:       background 0.1s ease, border-color 0.1s ease;
+
+    &.is-checked {
+        background:   var(--list-item-checkbox-bg);
+        border-color: var(--list-item-checkbox-bg);
+        color:        white;
+    }
+}
+
+/* ── Select indicator (selectByClick) ───────────────────────── */
+
+.list-item-indicator {
+    opacity:     0;
+    flex-shrink: 0;
+    font-size:   var(--list-item-indicator-size);
+    color:       var(--list-item-color-selected);
+    transition:  opacity 0.1s ease;
+
+    &.is-visible {
+        opacity: 1;
+    }
+}
+
+/* ── Swipe ──────────────────────────────────────────────────── */
+
+.list-item-swipe-background {
+    position: absolute;
+    inset:    0;
+    display:  flex;
+    z-index:  0;
+}
+
+.swipe-actions-container {
+    display:        flex;
+    align-items:    center;
+    min-width:      var(--list-item-swipe-actions-min-width);
+
+    &.container-leading {
+        justify-content: flex-start;
+    }
+
+    &.container-trailing {
+        justify-content: flex-end;
+        margin-left:     auto;
+    }
+
+    &.container-trailing,
+    &.container-leading {
+        > * {
+            height: 100%;
+            border-radius: 0;
+        }
+    }
+}

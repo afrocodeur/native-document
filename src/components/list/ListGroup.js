@@ -1,54 +1,79 @@
 import BaseComponent from '../BaseComponent';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
 import HasItems from '../$traits/has-items/HasItems';
+import HasListItem from './HasListItem';
+import { $ } from '../../core/data/Observable';
 
 /**
- * Groups ListItem instances under a header/footer inside a List.
- *
+ * A collapsible group of ListItems inside a List. Can hold items, dividers, and nested groups.
  *
  * @example
- * const group = new ListGroup(Span('Favourites'))
- *     .inset(true)
- *     .renderHeader((desc, instance) => H3(desc.header));
+ * ListGroup('Workspace')
+ *     .icon(FolderIcon())
+ *     .collapsable()
+ *     .item('Dashboard', DashboardIcon())
+ *     .item('Analytics', ChartIcon());
+ *
+ * // From data
+ * ListGroup('Reports')
+ *     .from(reports, (report) =>
+ *         ListItem().label(report.name).value(report.id)
+ *     );
+ *
+ * ListGroup.use((description, instance) => {
+ *     return Div({ class: 'list-group' });
+ * });
  *
  * @constructor
- * @param {NdChild} [label]
- * @param {GlobalAttributes} [config={}]
+ * @param {NdChild} label
+ * @param {GlobalAttributes} [props={}]
  */
-export default function ListGroup(label, config = {}) {
-    if(!(this instanceof ListGroup)) {
-        return new ListGroup(label, config);
+export default function ListGroup(label, props = {}) {
+    if (!(this instanceof ListGroup)) {
+        return new ListGroup(label, props);
     }
 
+    BaseComponent.call(this, props);
+
     this.$description = {
-        header: label || null,
-        footer: null,
-        items: [],
-        inset: false,
-        data: null,
-        renderHeader: null,
-        renderFooter: null,
-        render: null,
-        ...config,
+        selectable:       $(false),
+        multiSelect:      $(false),
+        selectedValues:   $.array(),
+        label:       label,
+        icon:        null,
+        items:       $.array(),
+        render:      null,
+        collapsable: false,
+        collapsed:   null,
+        visibility:  $(true),
+        selectByCheckbox: $(false),
+        selectByClick:    $(false),
+        loopOnKeyboard:   $(false),
+        props,
     };
 }
 
 BaseComponent.extends(ListGroup);
-BaseComponent.use(ListGroup, HasItems);
+BaseComponent.use(ListGroup, HasItems, HasEventEmitter, HasListItem);
+
+HasListItem.components.ListGroup = ListGroup;
 
 ListGroup.defaultTemplate = null;
+ListGroup.prototype.__$ListInstance = true;
 
 /**
  * Registers the render template for ListGroup.
  * @param {(description: {
- *     header: NdChild|null,
- *     footer: NdChild|null,
- *     items: *[],
- *     inset: boolean,
- *     data: *|null,
- *     renderHeader: ((desc: *, instance: ListGroup) => NdChild)|null,
- *     renderFooter: ((desc: *, instance: ListGroup) => NdChild)|null,
- *     render: ((desc: *, instance: ListGroup) => NdChild)|null,
- *     props: GlobalAttributes,
+ *     label:       NdChild,
+ *     icon:        NdChild|null,
+ *     items:       ObservableArray<ListItem|ListGroup|ListDivider>,
+ *     itemBuilder: (item: *) => ListItem|ListGroup|ListDivider,
+ *     data:        *|null,
+ *     render:      ((desc: *, instance: ListGroup) => NdChild)|null,
+ *     collapsable: boolean,
+ *     collapsed:   ObservableItem<boolean>|null,
+ *     visibility:  ObservableItem<boolean>,
+ *     props:       GlobalAttributes,
  * }, instance: ListGroup) => NdChild} template
  */
 ListGroup.use = function(template) {
@@ -56,37 +81,47 @@ ListGroup.use = function(template) {
 };
 
 /**
- * @param {NdChild} header
+ * @param {NdChild} icon
  * @returns {this}
  */
-ListGroup.prototype.header = function(header) {
-    this.$description.header = header;
+ListGroup.prototype.icon = function(icon) {
+    this.$description.icon = icon;
     return this;
 };
 
 /**
- * @param {NdChild} title
+ * @param {boolean} [mode=true]
+ * @param {NdChild} [openedIcon]
+ * @param {NdChild} [closedIcon]
  * @returns {this}
  */
-ListGroup.prototype.title = function(title) {
-    return this.header(title);
-};
-
-/**
- * @param {NdChild} footer
- * @returns {this}
- */
-ListGroup.prototype.footer = function(footer) {
-    this.$description.footer = footer;
+ListGroup.prototype.collapsable = function(mode = true, openedIcon, closedIcon) {
+    this.$description.collapsable = mode;
+    this.$description.collapsed   = this.$description.collapsed || $(false);
+    this.$description.collapsableOpenedIcon = openedIcon || null;
+    this.$description.collapsableClosedIcon = closedIcon || null;
     return this;
 };
 
 /**
- * @param {number} [inset]
+ * @param {boolean} [mode=true]
  * @returns {this}
  */
-ListGroup.prototype.inset = function(inset = true) {
-    this.$description.inset = inset;
+ListGroup.prototype.collapsed = function(mode = true) {
+    if (!this.$description.collapsed) {
+        this.$description.collapsed = $(mode);
+    } else {
+        this.$description.collapsed.set(mode);
+    }
+    return this;
+};
+
+/**
+ * @param {boolean|Observable<boolean>} mode
+ * @returns {this}
+ */
+ListGroup.prototype.visibility = function(mode) {
+    this.$description.visibility = BaseComponent.obs(mode);
     return this;
 };
 
@@ -96,23 +131,5 @@ ListGroup.prototype.inset = function(inset = true) {
  */
 ListGroup.prototype.data = function(data) {
     this.$description.data = data;
-    return this;
-};
-
-/**
- * @param {(desc: *, instance: *) => NdChild} renderFn
- * @returns {this}
- */
-ListGroup.prototype.renderHeader = function(renderFn) {
-    this.$description.renderHeader = renderFn;
-    return this;
-};
-
-/**
- * @param {(desc: *, instance: *) => NdChild} renderFn
- * @returns {this}
- */
-ListGroup.prototype.renderFooter = function(renderFn) {
-    this.$description.renderFooter = renderFn;
     return this;
 };

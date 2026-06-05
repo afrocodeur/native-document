@@ -1,0 +1,24 @@
+:root {
+    --list-bg:              var(--background);
+    --list-border:          var(--gray-lite-3);
+    --list-radius:          var(--radius-card);
+    --list-padding:         0;
+    --list-inset-padding:   0px;
+}
+
+.list {
+    background:    var(--list-bg);
+    border:        1px solid var(--list-border);
+    border-radius: var(--list-radius);
+    padding:       var(--list-padding);
+    overflow:      hidden;
+    list-style:    none;
+    &.with-divider {
+        li {
+            border-bottom: solid 1px var(--list-border, #e0e0e0);
+            &:last-child {
+                border-bottom: none;
+            }
+        }
+    }
+}

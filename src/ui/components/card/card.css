@@ -1,0 +1,169 @@
+:root {
+    --card-bg:                  var(--background);
+    --card-border:              var(--gray-lite-3);
+    --card-radius:              var(--radius-card);
+    --card-shadow:              var(--shadow-card);
+    --card-shadow-elevated:     var(--shadow-lg);
+    --card-shadow-hover:        var(--shadow-md);
+    --card-font-size:           var(--description-size);
+    --card-padding:             var(--space-comfortable);
+    --card-img-height:          200px;
+    --card-title-size:          var(--text-size);
+    --card-title-weight:        600;
+    --card-title-color:         var(--text-color);
+    --card-subtitle-size:       var(--note-size);
+    --card-subtitle-color:      var(--gray);
+    --card-footer-padding:      var(--space-cozy) var(--space-comfortable);
+    --card-footer-border:       var(--gray-lite-3);
+    --card-footer-gap:          var(--space-cozy);
+    --card-transition:          box-shadow 0.2s ease;
+    --card-loading-bg:          var(--gray-lite-5);
+    --card-horizontal-img-width: 175px;
+    --card-clickable-cursor:    pointer;
+    --card-header-row-gap: .5rem;
+}
+
+
+.card {
+    background:    var(--card-bg);
+    border:        1px solid var(--card-border);
+    border-radius: var(--card-radius);
+    overflow:      hidden;
+    font-size:     var(--card-font-size);
+    transition:    var(--card-transition);
+    display:       inline-flex;
+    flex-direction: column;
+
+    &.is-elevated {
+        border:     none;
+        box-shadow: var(--card-shadow-elevated);
+    }
+
+    &.is-flat {
+        border:     none;
+        box-shadow: none;
+    }
+
+    &.is-outlined {
+        border-width: 2px;
+    }
+
+    &.is-hoverable:hover {
+        box-shadow: var(--card-shadow-hover);
+    }
+
+    &.is-clickable {
+        cursor: var(--card-clickable-cursor);
+
+        &:hover {
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        &:active {
+            opacity: 0.95;
+        }
+    }
+
+    &.is-horizontal {
+        flex-direction: row;
+
+        .card-image-wrapper {
+            width: var(--card-horizontal-img-width);
+        }
+        .card-image {
+            flex-shrink: 0;
+        }
+        .card-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+        }
+    }
+
+    &.is-loading {
+        .card-title,
+        .card-subtitle,
+        .card-content {
+            background:    var(--card-loading-bg);
+            border-radius: 4px;
+            color:         transparent;
+            user-select:   none;
+
+            * {
+                visibility: hidden;
+            }
+        }
+
+        .card-title   { width: 60%; }
+        .card-subtitle { width: 40%; }
+        .card-image { background: var(--card-loading-bg); }
+    }
+}
+.card-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    row-gap: var(--card-header-row-gap);
+}
+.card-actions {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    column-gap:  var(--space-tiny);
+    > * {
+        flex: 1;
+    }
+}
+.card-image-wrapper {
+    width: 100%;
+    height:     var(--card-img-height);
+}
+.card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+
+    &.is-top    { order: -1; }
+    &.is-bottom { order: 10; }
+
+    .card.is-horizontal &.is-left  { order: -1; }
+    .card.is-horizontal &.is-right { order: 10; }
+}
+
+.card-body {
+    padding: var(--card-padding);
+    flex:    1;
+    display: flex;
+    flex-direction: column;
+    gap:     var(--space-cozy);
+}
+
+.card-title {
+    font-size:   var(--card-title-size);
+    font-weight: var(--card-title-weight);
+    color:       var(--card-title-color);
+    margin:      0;
+}
+
+.card-subtitle {
+    font-size: var(--card-subtitle-size);
+    color:     var(--card-subtitle-color);
+    margin:    0;
+}
+
+.card-content {
+    flex: 1;
+}
+
+.card-footer {
+    width: 100%;
+    display:       flex;
+    align-items:   center;
+    justify-content: flex-end;
+    gap:           var(--card-footer-gap);
+    padding:       var(--card-footer-padding);
+    border-top:    1px solid var(--card-footer-border);
+}

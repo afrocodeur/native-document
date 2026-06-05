@@ -1,8 +1,8 @@
 import BaseComponent from '../BaseComponent';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
 
 /**
  * Versatile content container with optional image, header, footer, actions. Supports clickable, hoverable, loading, and horizontal layouts.
- *
  *
  * @example
  * const card = new Card()
@@ -19,25 +19,58 @@ import BaseComponent from '../BaseComponent';
  * });
  *
  * @constructor
- * @param {GlobalAttributes} [config={}]
+ * @param {GlobalAttributes} [props={}]
  */
-export default function Card(config = {}) {
-    if(!(this instanceof Card)) {
-        return new Card(config);
+export default function Card(props = {}) {
+    if (!(this instanceof Card)) {
+        return new Card(props);
     }
+
     this.$description = {
-        ...config,
+        title:         null,
+        subtitle:      null,
+        image:         null,
+        imagePosition: 'top',
+        content:       null,
+        variant:       null,
+        loading:       null,
+        horizontal:    false,
+        hoverable:     false,
+        actions:       [],
+        renderImage:   null,
+        renderHeader:  null,
+        renderContent: null,
+        renderFooter:  null,
+        renderActions: null,
+        layout:        null,
+        props,
     };
-};
+}
 
 BaseComponent.extends(Card);
+BaseComponent.use(Card, HasEventEmitter);
 
 Card.defaultTemplate = null;
 
 /**
  * Registers the render template for Card.
  * @param {(description: {
- *     [key: string]: unknown,
+ *     title: NdChild|null,
+ *     subtitle: NdChild|null,
+ *     image: string|null,
+ *     imagePosition: 'top'|'bottom'|'left'|'right',
+ *     content: NdChild|null,
+ *     variant: 'elevated'|'outlined'|'flat'|string|null,
+ *     loading: Observable<boolean>|null,
+ *     horizontal: boolean,
+ *     hoverable: boolean,
+ *     actions: { label: NdChild, callback: () => void }[],
+ *     renderImage: ((desc: *, instance: Card) => NdChild)|null,
+ *     renderHeader: ((desc: *, instance: Card) => NdChild)|null,
+ *     renderContent: ((desc: *, instance: Card) => NdChild)|null,
+ *     renderFooter: ((desc: *, instance: Card) => NdChild)|null,
+ *     renderActions: ((desc: *, instance: Card) => NdChild)|null,
+ *     layout: ((slots: { header: NdChild, content: NdChild, footer: NdChild, image: NdChild, actions: NdChild }, instance: Card) => NdChild)|null,
  *     props: GlobalAttributes,
  * }, instance: Card) => NdChild} template
  */
@@ -50,14 +83,16 @@ Card.use = function(template) {
  * @returns {this}
  */
 Card.prototype.title = function(title) {
+    this.$description.title = title;
     return this;
 };
 
 /**
- * @param {NdChild} title
+ * @param {NdChild} subtitle
  * @returns {this}
  */
-Card.prototype.subtitle = function(title) {
+Card.prototype.subtitle = function(subtitle) {
+    this.$description.subtitle = subtitle;
     return this;
 };
 
@@ -67,6 +102,8 @@ Card.prototype.subtitle = function(title) {
  * @returns {this}
  */
 Card.prototype.image = function(src, position = 'top') {
+    this.$description.image         = src;
+    this.$description.imagePosition = position;
     return this;
 };
 
@@ -75,6 +112,7 @@ Card.prototype.image = function(src, position = 'top') {
  * @returns {this}
  */
 Card.prototype.content = function(content) {
+    this.$description.content = content;
     return this;
 };
 
@@ -85,13 +123,7 @@ Card.prototype.content = function(content) {
  * @returns {this}
  */
 Card.prototype.variant = function(name) {
-    return this;
-};
-
-/**
- * @returns {this}
- */
-Card.prototype.outlined = function() {
+    this.$description.variant = name;
     return this;
 };
 
@@ -99,37 +131,47 @@ Card.prototype.outlined = function() {
  * @returns {this}
  */
 Card.prototype.elevated = function() {
-    return this;
+    return this.variant('elevated');
+};
+
+/**
+ * @returns {this}
+ */
+Card.prototype.outlined = function() {
+    return this.variant('outlined');
 };
 
 /**
  * @returns {this}
  */
 Card.prototype.flat = function() {
-    return this;
+    return this.variant('flat');
 };
 
 // Behavior
+
 /**
  * @param {Function} handler
  * @returns {this}
  */
 Card.prototype.clickable = function(handler) {
-    return this;
+    return this.onClick(handler);
 };
 
 /**
  * @returns {this}
  */
 Card.prototype.hoverable = function() {
+    this.$description.hoverable = true;
     return this;
 };
 
 /**
- * @param {boolean|Observable<boolean>} [isLoading]
+ * @param {boolean|Observable<boolean>} [isLoading=true]
  * @returns {this}
  */
 Card.prototype.loading = function(isLoading = true) {
+    this.$description.loading = BaseComponent.obs(isLoading);
     return this;
 };
 
@@ -139,33 +181,11 @@ Card.prototype.loading = function(isLoading = true) {
  * @returns {this}
  */
 Card.prototype.horizontal = function() {
+    this.$description.horizontal = true;
     return this;
 };
 
-// Events
-/**
- * @param {Function} handler
- * @returns {this}
- */
-Card.prototype.onClick = function(handler) {
-    return this;
-};
-
-/**
- * @param {Function} handler
- * @returns {this}
- */
-Card.prototype.onHover = function(handler) {
-    return this;
-};
-
-/**
- * @returns {this}
- */
-Card.prototype.clearActions = function() {
-    this.$description.actions = [];
-    return this;
-};
+// Actions
 
 /**
  * @param {NdChild} label
@@ -178,7 +198,37 @@ Card.prototype.action = function(label, callback) {
 };
 
 /**
- * @param {(desc: *, instance: *) => NdChild} renderFn
+ * @returns {this}
+ */
+Card.prototype.clearActions = function() {
+    this.$description.actions = [];
+    return this;
+};
+
+// Events
+
+/**
+ * @param {Function} handler
+ * @returns {this}
+ */
+Card.prototype.onClick = function(handler) {
+    this.on('click', handler);
+    return this;
+};
+
+/**
+ * @param {Function} handler
+ * @returns {this}
+ */
+Card.prototype.onHover = function(handler) {
+    this.on('hover', handler);
+    return this;
+};
+
+// Custom renderers
+
+/**
+ * @param {(desc: *, instance: Card) => NdChild} renderFn
  * @returns {this}
  */
 Card.prototype.renderImage = function(renderFn) {
@@ -187,7 +237,7 @@ Card.prototype.renderImage = function(renderFn) {
 };
 
 /**
- * @param {(desc: *, instance: *) => NdChild} renderFn
+ * @param {(desc: *, instance: Card) => NdChild} renderFn
  * @returns {this}
  */
 Card.prototype.renderHeader = function(renderFn) {
@@ -196,7 +246,7 @@ Card.prototype.renderHeader = function(renderFn) {
 };
 
 /**
- * @param {(desc: *, instance: *) => NdChild} renderFn
+ * @param {(desc: *, instance: Card) => NdChild} renderFn
  * @returns {this}
  */
 Card.prototype.renderContent = function(renderFn) {
@@ -205,7 +255,7 @@ Card.prototype.renderContent = function(renderFn) {
 };
 
 /**
- * @param {(desc: *, instance: *) => NdChild} renderFn
+ * @param {(desc: *, instance: Card) => NdChild} renderFn
  * @returns {this}
  */
 Card.prototype.renderFooter = function(renderFn) {
@@ -214,17 +264,19 @@ Card.prototype.renderFooter = function(renderFn) {
 };
 
 /**
- * @param {(desc: *, instance: *) => NdChild} layoutFn
+ * @param {(desc: *, instance: Card) => NdChild} renderFn
  * @returns {this}
  */
-Card.prototype.layout = function(layoutFn) {
-    this.$description.layout = layoutFn;
+Card.prototype.renderActions = function(renderFn) {
+    this.$description.renderActions = renderFn;
     return this;
 };
 
 /**
- * @returns {HTMLElement|DocumentFragment}
+ * @param {(slots: { header: NdChild, content: NdChild, footer: NdChild, image: NdChild, actions: NdChild }, instance: Card) => NdChild} layoutFn
+ * @returns {this}
  */
-Card.prototype.toNdElement = function() {
+Card.prototype.layout = function(layoutFn) {
+    this.$description.layout = layoutFn;
     return this;
 };

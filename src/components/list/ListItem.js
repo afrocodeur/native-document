@@ -1,64 +1,81 @@
 import BaseComponent from '../BaseComponent';
-import Validator from '../../core/utils/validator';
-import {$ } from '../../core/data/Observable';
+import HasEventEmitter from '../../core/utils/HasEventEmitter';
+import HasListItem from './HasListItem';
 
 /**
- * A single row inside a List. Supports leading/trailing slots, icon, selection, divider, and disabled state.
- *
+ * A single item in a List. Supports icon, label, subtitle, trailing slot,
+ * disabled/selected states, swipe actions (mobile), and custom render.
  *
  * @example
- * const item = new ListItem(Span('Item label'))
- *     .icon(StarIcon())
- *     .trailing(Span('chevron >'))
- *     .selectable()
- *     .divider(true);
+ * ListItem()
+ *     .label('Dashboard')
+ *     .icon(DashboardIcon())
+ *     .subtitle('View your metrics')
+ *     .trailing(Badge('New').primary())
+ *     .value('dashboard')
+ *     .selected(isActive)
+ *     .swipeLeading([Button('Archive').success()])
+ *     .swipeTrailing([Button('Delete').danger()])
+ *     .onClick(() => navigate('/dashboard'));
  *
  * ListItem.use((description, instance) => {
- *     return Li(description.leading, description.content, description.trailing);
+ *     return Li({ class: 'list-item' }, description.label);
  * });
  *
  * @constructor
- * @param {NdChild} [content]
- * @param {GlobalAttributes} [config={}]
+ * @param {GlobalAttributes} [props={}]
  */
-export default function ListItem(content, config = {}) {
-    if(!(this instanceof ListItem)) {
-        return new ListItem(content, config);
+export default function ListItem(props = {}) {
+    if (!(this instanceof ListItem)) {
+        return new ListItem(props);
     }
 
+    BaseComponent.call(this, props);
+
     this.$description = {
-        content: content || null,
-        icon: null,
-        trailing: null,
-        leading: null,
-        disabled: false,
-        selectable: false,
-        selected: false,
-        divider: false,
-        data: null,
-        render: null,
-        ...config,
+        label:           null,
+        subtitle:        null,
+        icon:            null,
+        trailing:        null,
+        value:           null,
+        data:            null,
+        key:             null,
+        disabled:        null,
+        selected:        null,
+        visibility:      null,
+        isSelectedIcon:  null,
+        swipeLeading:    [],
+        swipeTrailing:   [],
+        render:          null,
+        props,
     };
 }
 
 BaseComponent.extends(ListItem);
+BaseComponent.use(ListItem, HasEventEmitter);
+
+HasListItem.components.ListItem = ListItem;
 
 ListItem.defaultTemplate = null;
 
 /**
  * Registers the render template for ListItem.
  * @param {(description: {
- *     content: NdChild|null,
- *     icon: NdChild|null,
- *     trailing: NdChild|null,
- *     leading: NdChild|null,
- *     disabled: boolean,
- *     selectable: boolean,
- *     selected: boolean|Observable<boolean>,
- *     divider: boolean,
- *     data: *|null,
- *     render: ((desc: *, instance: ListItem) => NdChild)|null,
- *     props: GlobalAttributes,
+ *     label:          NdChild|null,
+ *     subtitle:       NdChild|null,
+ *     icon:           NdChild|null,
+ *     trailing:       NdChild|null,
+ *     value:          *,
+ *     data:           *|null,
+ *     key:            string|null,
+ *     disabled:       Observable<boolean>|null,
+ *     selected:       Observable<boolean>|null,
+ *     visibility:     Observable<boolean>|null,
+ *     isSelectedIcon: NdChild|null,
+ *     swipeLeading:   NdChild[],
+ *     swipeTrailing:  NdChild[],
+ *     render:         ((desc: *, instance: ListItem) => NdChild)|null,
+ *     props:          GlobalAttributes,
  * }, instance: ListItem) => NdChild} template
  */
 ListItem.use = function(template) {
@@ -66,20 +83,20 @@ ListItem.use = function(template) {
 };
 
 /**
- * @param {NdChild} content
- * @returns {this}
- */
-ListItem.prototype.content = function(content) {
-    this.$description.content = content;
-    return this;
-};
-
-/**
  * @param {NdChild} label
  * @returns {this}
  */
 ListItem.prototype.label = function(label) {
-    this.$description.content = label;
+    this.$description.label = label;
+    return this;
+};
+
+/**
+ * @param {NdChild} subtitle
+ * @returns {this}
+ */
+ListItem.prototype.subtitle = function(subtitle) {
+    this.$description.subtitle = subtitle;
     return this;
 };
 
@@ -93,15 +110,6 @@ ListItem.prototype.icon = function(icon) {
 };
 
 /**
- * @param {NdChild} leading
- * @returns {this}
- */
-ListItem.prototype.leading = function(leading) {
-    this.$description.leading = leading;
-    return this;
-};
-
-/**
  * @param {NdChild} trailing
  * @returns {this}
  */
@@ -110,47 +118,12 @@ ListItem.prototype.trailing = function(trailing) {
     return this;
 };
 
-
 /**
- * @param {boolean|Observable<boolean>} [disabled=true]
+ * @param {*} value
  * @returns {this}
  */
-ListItem.prototype.disabled = function(disabled = true) {
-    this.$description.disabled = disabled;
-    return this;
-};
-
-/**
- * @returns {this}
- */
-ListItem.prototype.selectable = function() {
-    this.$description.selectable = true;
-    if(Validator.isObservable(this.$description.selected)) {
-        return this;
-    }
-    this.$description.selected = $(false);
-    return this;
-};
-
-/**
- * @param {boolean|Observable<boolean>} [selected]
- * @returns {this}
- */
-ListItem.prototype.selected = function(selected = true) {
-    if(Validator.isObservable(this.$description.selected)) {
-        this.$description.selected.set(selected);
-        return this;
-    }
-    this.$description.selected = selected;
-    return this;
-};
-
-/**
- * @param {NdChild} [show]
- * @returns {this}
- */
-ListItem.prototype.divider = function(show = true) {
-    this.$description.divider = show;
+ListItem.prototype.value = function(value) {
+    this.$description.value = value;
     return this;
 };
 
@@ -160,5 +133,80 @@ ListItem.prototype.divider = function(show = true) {
  */
 ListItem.prototype.data = function(data) {
     this.$description.data = data;
+    return this;
+};
+
+/**
+ * @param {string} key
+ * @returns {this}
+ */
+ListItem.prototype.key = function(key) {
+    this.$description.key = key;
+    return this;
+};
+
+/**
+ * @param {boolean|Observable<boolean>} [disabled=true]
+ * @returns {this}
+ */
+ListItem.prototype.disabled = function(disabled = true) {
+    this.$description.disabled = BaseComponent.obs(disabled);
+    return this;
+};
+
+/**
+ * @param {boolean|Observable<boolean>} [selected=true]
+ * @returns {this}
+ */
+ListItem.prototype.selected = function(selected = true) {
+    this.$description.selected = BaseComponent.obs(selected);
+    return this;
+};
+
+/**
+ * @param {boolean|Observable<boolean>} mode
+ * @returns {this}
+ */
+ListItem.prototype.visibility = function(mode) {
+    this.$description.visibility = BaseComponent.obs(mode);
+    return this;
+};
+
+/**
+ * Icon displayed when the item is selected (selectByClick mode).
+ * @param {NdChild} icon
+ * @returns {this}
+ */
+ListItem.prototype.isSelectedIcon = function(icon) {
+    this.$description.isSelectedIcon = icon;
+    return this;
+};
+
+/**
+ * Swipe actions revealed on the leading (left) side — mobile swipe gesture.
+ * @param {NdChild[]} actions
+ * @returns {this}
+ */
+ListItem.prototype.swipeLeading = function(actions) {
+    this.$description.swipeLeading = Array.isArray(actions) ? actions : [actions];
+    return this;
+};
+
+/**
+ * Swipe actions revealed on the trailing (right) side — mobile swipe gesture.
+ * @param {NdChild[]} actions
+ * @returns {this}
+ */
+ListItem.prototype.swipeTrailing = function(actions) {
+    this.$description.swipeTrailing = Array.isArray(actions) ? actions : [actions];
+    return this;
+};
+
+/**
+ * @param {Function} handler
+ * @returns {this}
+ */
+ListItem.prototype.onClick = function(handler) {
+    this.on('click', handler);
     return this;
 };
