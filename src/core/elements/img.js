@@ -6,7 +6,7 @@ import NativeDocumentError from '../errors/NativeDocumentError';
  * Creates an `<img>` element.
  * @type {function(ImgAttributes=): HTMLImageElement}
  */
-export const BaseImage = HtmlElementWrapper('img');
+export const BaseImage = HtmlElementWrapper('img', null, true);
 
 /**
  * Creates an `<img>` element.

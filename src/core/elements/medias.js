@@ -16,13 +16,13 @@ export const Video = HtmlElementWrapper('video');
  * Creates a `<source>` element.
  * @type {function(SourceAttributes=): HTMLSourceElement}
  */
-export const Source = HtmlElementWrapper('source');
+export const Source = HtmlElementWrapper('source', null, true);
 
 /**
  * Creates a `<track>` element.
  * @type {function(TrackAttributes=): HTMLTrackElement}
  */
-export const Track = HtmlElementWrapper('track');
+export const Track = HtmlElementWrapper('track', null, true);
 
 /**
  * Creates a `<canvas>` element.

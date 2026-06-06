@@ -89,30 +89,23 @@ export const ElementCreator = {
 
     },
     getChild: (child) => {
-        if(child == null) {
-            return null;
-        }
-        if(child.toNdElement) {
-            do {
-                child =  child.toNdElement();
-                if(Validator.isElement(child)) {
-                    return child;
-                }
-            } while (child.toNdElement);
+        if (child == null) return null;
+
+        child = child.toNdElement();
+        if (child instanceof Node) return child;
+
+        while (child != null && !(child instanceof Node)) {
+            child = child.toNdElement?.();
         }
 
-        return ElementCreator.createStaticTextNode(null, child);
+        return child instanceof Node ? child : null;
     },
     /**
      *
      * @param {HTMLElement} element
      * @param {Object} attributes
      */
-    processAttributes: (element, attributes) => {
-        if (attributes) {
-            AttributesWrapper(element, attributes);
-        }
-    },
+    processAttributes: AttributesWrapper,
     /**
      *
      * @param {HTMLElement} element

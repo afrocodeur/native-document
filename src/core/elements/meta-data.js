@@ -40,4 +40,4 @@ export const Var = HtmlElementWrapper('var');
  * Creates a `<wbr>` element.
  * @type {function(GlobalAttributes=): HTMLElement}
  */
-export const Wbr = HtmlElementWrapper('wbr');
+export const Wbr = HtmlElementWrapper('wbr', null, true);

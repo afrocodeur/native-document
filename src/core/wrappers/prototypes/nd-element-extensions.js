@@ -88,14 +88,7 @@ ObservableChecker.prototype.toNdElement = ObservableItem.prototype.toNdElement;
  * @returns {HTMLElement|DocumentFragment} The underlying DOM node
  */
 NDElement.prototype.toNdElement = function () {
-    const element = this.$element ?? this.$build?.() ?? this.build?.() ?? null;
-    if(this.$attachements) {
-        if(!this.$attachements.contains(this.$element)) {
-            this.$attachements.append(this.$element);
-        }
-        return this.$attachements;
-    }
-    return element;
+    return this.$element;
 };
 
 /**

@@ -14,27 +14,31 @@ import {Observable} from '../data/Observable';
 export const bindClassAttribute = (element, data) => {
     for(const className in data) {
         const value = data[className];
-        if(value.__$Observable) {
-            if(value.__$isObservableChecker) {
-                let lastClass = value.val();
-                if(typeof lastClass === 'string') {
-                    element.classes.toggle(lastClass, true);
-                    value.subscribe((currentValue) => {
-                        element.classes.remove(lastClass);
-                        element.classes.toggle(currentValue, true);
-                        lastClass = currentValue;
-                    });
-                    continue;
-                }
+
+        if (value.__$isObservableChecker) {
+            let lastClass = value.val();
+            if (typeof lastClass === 'string') {
+                element.classes.toggle(lastClass, true);
+                value.subscribe((currentValue) => {
+                    element.classes.remove(lastClass);
+                    element.classes.toggle(currentValue, true);
+                    lastClass = currentValue;
+                });
+                continue;
             }
+        }
+
+        if (value.__$Observable) {
             element.classes.toggle(className, value.val());
             value.subscribe((shouldAdd) => element.classes.toggle(className, shouldAdd));
             continue;
         }
-        if(value.$hydrate) {
+
+        if (value.$hydrate) {
             value.$hydrate(element, className);
             continue;
         }
+
         element.classes.toggle(className, value);
     }
 };
@@ -92,12 +96,12 @@ export const bindStyleAttribute = (element, data) => {
  * @param {boolean|number|Observable} value
  */
 export const bindBooleanAttribute = (element, attributeName, value) => {
-    const isObservable = value.__$isObservable;
+    const isObservable = value.__$Observable;
     const defaultValue = isObservable? value.val() : value;
 
     const attributeRealName = BOOL_ATTRIBUTES_NAME[attributeName];
 
-    if(Validator.isBoolean(defaultValue)) {
+    if(typeof defaultValue === 'boolean') {
         element[attributeRealName] = defaultValue;
     }
     else {
@@ -126,15 +130,14 @@ export const bindBooleanAttribute = (element, attributeName, value) => {
  * @param {Observable} value
  */
 export const bindAttributeWithObservable = (element, attributeName, value) => {
-    const applyValue = attributeName === 'value' ? (newValue) => element.value = newValue : (newValue) => element.setAttribute(attributeName, newValue);
-    value.subscribe(applyValue);
-
     if(attributeName === 'value') {
         element.value = value.val();
         element.addEventListener('input', () => value.set(element.value));
+        value.subscribe((newValue) => element.value = newValue);
         return;
     }
     element.setAttribute(attributeName, value.val());
+    value.subscribe((newValue) => element.setAttribute(attributeName, newValue));
 };
 
 /**
@@ -149,16 +152,25 @@ const AttributesWrapper = (element, attributes) => {
     }
 
     for(const originalAttributeName in attributes) {
-        const attributeName = originalAttributeName.toLowerCase();
         const value = attributes[originalAttributeName];
         if(value == null) {
             continue;
         }
-        if(value.handleNdAttribute) {
-            value.handleNdAttribute(element, attributeName, value);
+        const type = typeof value;
+        if(type === 'string' || type === 'number') {
+            element.setAttribute(originalAttributeName, value);
             continue;
         }
-        if(typeof value ===  'object') {
+        const attributeName = originalAttributeName.toLowerCase();
+        if(value.__$Observable) {
+            if(BOOLEAN_ATTRIBUTES.has(attributeName)) {
+                bindBooleanAttribute(element, attributeName, value);
+                continue;
+            }
+            bindAttributeWithObservable(element, originalAttributeName, value);
+            continue;
+        }
+        if(type ===  'object') {
             if(attributeName === 'class') {
                 bindClassAttribute(element, value);
                 continue;
@@ -171,6 +183,9 @@ const AttributesWrapper = (element, attributes) => {
         if(BOOLEAN_ATTRIBUTES.has(attributeName)) {
             bindBooleanAttribute(element, attributeName, value);
             continue;
+        }
+        if(value.__$isTemplateBinding) {
+            value.$hydrate(element, attributeName);
         }
 
         element.setAttribute(attributeName, value);

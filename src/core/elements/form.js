@@ -44,7 +44,7 @@ export const Form = HtmlElementWrapper('form', (el) => {
  * Creates an `<input>` element.
  * @type {function(InputAttributes=): HTMLInputElement}
  */
-export const Input = HtmlElementWrapper('input');
+export const Input = HtmlElementWrapper('input', null, true);
 
 /**
  * Creates a `<textarea>` element.

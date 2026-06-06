@@ -3,7 +3,6 @@ import {ElementCreator} from './ElementCreator';
 import {normalizeComponentArgs} from '../utils/args-types';
 import './NdPrototype';
 
-import './NdPrototype';
 import '../../core/utils/prototypes.js';
 import '../wrappers/prototypes/nd-element-extensions';
 import '../wrappers/prototypes/bind-class-extensions';
@@ -28,6 +27,21 @@ export const createTextNode = (value) => {
 
 
 /**
+ * Applies attributes to an existing HTMLElement.
+ * Used internally by HtmlElementWrapper on each cloned node.
+ *
+ * @internal
+ * @param {HTMLElement} element - Element to configure
+ * @param {Object|null} attributes - Attributes object or children if no attrs provided
+ * @returns {HTMLElement} The configured element
+ */
+export const createVoidHtmlElement = (element, attributes) => {
+    ElementCreator.processAttributes(element, attributes);
+    return element;
+};
+
+const OBJECT_PROTOTYPE = Object.prototype;
+/**
  * Applies attributes and children to an existing HTMLElement.
  * Used internally by HtmlElementWrapper on each cloned node.
  *
@@ -38,7 +52,11 @@ export const createTextNode = (value) => {
  * @returns {HTMLElement} The configured element
  */
 export const createHtmlElement = (element, _attributes, _children = null) => {
-    const { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
+    let attributes = _attributes, children = _children;
+    if((!_attributes || !_children) && (typeof _attributes !== 'object' || Array.isArray(_attributes) || _attributes === null || Object.getPrototypeOf(_attributes) !== OBJECT_PROTOTYPE ||  _attributes.$hydrate)) { // IF it's not a JSON
+        attributes = _children;
+        children = _attributes;
+    }
 
     ElementCreator.processAttributes(element, attributes);
     ElementCreator.processChildren(children, element);
@@ -63,16 +81,17 @@ export const createHtmlElement = (element, _attributes, _children = null) => {
  *   return el;
  * });
  */
-export default function  HtmlElementWrapper(name, customWrapper = null) {
+export default function  HtmlElementWrapper(name, customWrapper = null, isVoid = false) {
+    const elementCreator = isVoid ? createVoidHtmlElement : createHtmlElement;
     if(name) {
         if(customWrapper) {
             let node = null;
             let createElement = (attr, children) => {
                 node = document.createElement(name);
                 createElement = (attr, children) => {
-                    return createHtmlElement(customWrapper(node.cloneNode()), attr, children);
+                    return elementCreator(customWrapper(node.cloneNode()), attr, children);
                 };
-                return createHtmlElement(customWrapper(node.cloneNode()), attr, children);;
+                return elementCreator(customWrapper(node.cloneNode()), attr, children);;
             };
 
             return (attr, children) => createElement(attr, children);
@@ -82,9 +101,9 @@ export default function  HtmlElementWrapper(name, customWrapper = null) {
         let createElement = (attr, children) => {
             node = document.createElement(name);
             createElement = (attr, children) => {
-                return createHtmlElement(node.cloneNode(), attr, children);
+                return elementCreator(node.cloneNode(), attr, children);
             };
-            return createHtmlElement(node.cloneNode(), attr, children);
+            return elementCreator(node.cloneNode(), attr, children);
         };
 
         return (attr, children) => createElement(attr, children);

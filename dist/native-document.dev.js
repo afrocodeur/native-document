@@ -3849,27 +3849,31 @@ var NativeDocument = (function (exports) {
     const bindClassAttribute = (element, data) => {
         for(const className in data) {
             const value = data[className];
-            if(value.__$Observable) {
-                if(value.__$isObservableChecker) {
-                    let lastClass = value.val();
-                    if(typeof lastClass === 'string') {
-                        element.classes.toggle(lastClass, true);
-                        value.subscribe((currentValue) => {
-                            element.classes.remove(lastClass);
-                            element.classes.toggle(currentValue, true);
-                            lastClass = currentValue;
-                        });
-                        continue;
-                    }
+
+            if (value.__$isObservableChecker) {
+                let lastClass = value.val();
+                if (typeof lastClass === 'string') {
+                    element.classes.toggle(lastClass, true);
+                    value.subscribe((currentValue) => {
+                        element.classes.remove(lastClass);
+                        element.classes.toggle(currentValue, true);
+                        lastClass = currentValue;
+                    });
+                    continue;
                 }
+            }
+
+            if (value.__$Observable) {
                 element.classes.toggle(className, value.val());
                 value.subscribe((shouldAdd) => element.classes.toggle(className, shouldAdd));
                 continue;
             }
-            if(value.$hydrate) {
+
+            if (value.$hydrate) {
                 value.$hydrate(element, className);
                 continue;
             }
+
             element.classes.toggle(className, value);
         }
     };
@@ -3927,12 +3931,12 @@ var NativeDocument = (function (exports) {
      * @param {boolean|number|Observable} value
      */
     const bindBooleanAttribute = (element, attributeName, value) => {
-        const isObservable = value.__$isObservable;
+        const isObservable = value.__$Observable;
         const defaultValue = isObservable? value.val() : value;
 
         const attributeRealName = BOOL_ATTRIBUTES_NAME[attributeName];
 
-        if(Validator.isBoolean(defaultValue)) {
+        if(typeof defaultValue === 'boolean') {
             element[attributeRealName] = defaultValue;
         }
         else {
@@ -3961,15 +3965,14 @@ var NativeDocument = (function (exports) {
      * @param {Observable} value
      */
     const bindAttributeWithObservable = (element, attributeName, value) => {
-        const applyValue = attributeName === 'value' ? (newValue) => element.value = newValue : (newValue) => element.setAttribute(attributeName, newValue);
-        value.subscribe(applyValue);
-
         if(attributeName === 'value') {
             element.value = value.val();
             element.addEventListener('input', () => value.set(element.value));
+            value.subscribe((newValue) => element.value = newValue);
             return;
         }
         element.setAttribute(attributeName, value.val());
+        value.subscribe((newValue) => element.setAttribute(attributeName, newValue));
     };
 
     /**
@@ -3984,16 +3987,25 @@ var NativeDocument = (function (exports) {
         }
 
         for(const originalAttributeName in attributes) {
-            const attributeName = originalAttributeName.toLowerCase();
             const value = attributes[originalAttributeName];
             if(value == null) {
                 continue;
             }
-            if(value.handleNdAttribute) {
-                value.handleNdAttribute(element, attributeName, value);
+            const type = typeof value;
+            if(type === 'string' || type === 'number') {
+                element.setAttribute(originalAttributeName, value);
                 continue;
             }
-            if(typeof value ===  'object') {
+            const attributeName = originalAttributeName.toLowerCase();
+            if(value.__$Observable) {
+                if(BOOLEAN_ATTRIBUTES.has(attributeName)) {
+                    bindBooleanAttribute(element, attributeName, value);
+                    continue;
+                }
+                bindAttributeWithObservable(element, originalAttributeName, value);
+                continue;
+            }
+            if(type ===  'object') {
                 if(attributeName === 'class') {
                     bindClassAttribute(element, value);
                     continue;
@@ -4006,6 +4018,9 @@ var NativeDocument = (function (exports) {
             if(BOOLEAN_ATTRIBUTES.has(attributeName)) {
                 bindBooleanAttribute(element, attributeName, value);
                 continue;
+            }
+            if(value.__$isTemplateBinding) {
+                value.$hydrate(element, attributeName);
             }
 
             element.setAttribute(attributeName, value);
@@ -4100,30 +4115,23 @@ var NativeDocument = (function (exports) {
 
         },
         getChild: (child) => {
-            if(child == null) {
-                return null;
-            }
-            if(child.toNdElement) {
-                do {
-                    child =  child.toNdElement();
-                    if(Validator.isElement(child)) {
-                        return child;
-                    }
-                } while (child.toNdElement);
+            if (child == null) return null;
+
+            child = child.toNdElement();
+            if (child instanceof Node) return child;
+
+            while (child != null && !(child instanceof Node)) {
+                child = child.toNdElement?.();
             }
 
-            return ElementCreator.createStaticTextNode(null, child);
+            return child instanceof Node ? child : null;
         },
         /**
          *
          * @param {HTMLElement} element
          * @param {Object} attributes
          */
-        processAttributes: (element, attributes) => {
-            if (attributes) {
-                AttributesWrapper(element, attributes);
-            }
-        },
+        processAttributes: AttributesWrapper,
         /**
          *
          * @param {HTMLElement} element
@@ -4800,8 +4808,19 @@ var NativeDocument = (function (exports) {
     NDElement.prototype.ghostDom = function(element) {
         if(!this.$attachements) {
             this.$attachements = document.createDocumentFragment();
+            this.toNdElement = () => {
+                const fragment = document.createDocumentFragment();
+                if(!this.$attachements.contains(this.$element)) {
+                    fragment.appendChild(this.$element);
+                }
+                fragment.appendChild(this.$attachements);
+                return fragment;
+            };
         }
-        this.$attachements.appendChild(NDElement.$getChild(element));
+        const child = NDElement.$getChild(element);
+        if(child) {
+            this.$attachements.appendChild(child);
+        }
         return this;
     };
 
@@ -5884,14 +5903,7 @@ var NativeDocument = (function (exports) {
      * @returns {HTMLElement|DocumentFragment} The underlying DOM node
      */
     NDElement.prototype.toNdElement = function () {
-        const element = this.$element ?? this.$build?.() ?? this.build?.() ?? null;
-        if(this.$attachements) {
-            if(!this.$attachements.contains(this.$element)) {
-                this.$attachements.append(this.$element);
-            }
-            return this.$attachements;
-        }
-        return element;
+        return this.$element;
     };
 
     /**
@@ -6059,21 +6071,6 @@ var NativeDocument = (function (exports) {
         return this;
     };
 
-    ObservableItem.prototype.handleNdAttribute = function(element, attributeName) {
-        if(BOOLEAN_ATTRIBUTES.has(attributeName)) {
-            bindBooleanAttribute(element, attributeName, this);
-            return;
-        }
-
-        bindAttributeWithObservable(element, attributeName, this);
-    };
-
-    ObservableChecker.prototype.handleNdAttribute = ObservableItem.prototype.handleNdAttribute;
-
-    TemplateBinding.prototype.handleNdAttribute = function(element, attributeName) {
-        this.$hydrate(element, attributeName);
-    };
-
     /**
      * Creates a reactive or static text node from the given value.
      * If the value has a .toNdElement() method, delegates to it.
@@ -6091,6 +6088,21 @@ var NativeDocument = (function (exports) {
 
 
     /**
+     * Applies attributes to an existing HTMLElement.
+     * Used internally by HtmlElementWrapper on each cloned node.
+     *
+     * @internal
+     * @param {HTMLElement} element - Element to configure
+     * @param {Object|null} attributes - Attributes object or children if no attrs provided
+     * @returns {HTMLElement} The configured element
+     */
+    const createVoidHtmlElement = (element, attributes) => {
+        ElementCreator.processAttributes(element, attributes);
+        return element;
+    };
+
+    const OBJECT_PROTOTYPE = Object.prototype;
+    /**
      * Applies attributes and children to an existing HTMLElement.
      * Used internally by HtmlElementWrapper on each cloned node.
      *
@@ -6101,7 +6113,11 @@ var NativeDocument = (function (exports) {
      * @returns {HTMLElement} The configured element
      */
     const createHtmlElement = (element, _attributes, _children = null) => {
-        const { props: attributes, children = null } = normalizeComponentArgs(_attributes, _children);
+        let attributes = _attributes, children = _children;
+        if((!_attributes || !_children) && (typeof _attributes !== 'object' || Array.isArray(_attributes) || _attributes === null || Object.getPrototypeOf(_attributes) !== OBJECT_PROTOTYPE ||  _attributes.$hydrate)) { // IF it's not a JSON
+            attributes = _children;
+            children = _attributes;
+        }
 
         ElementCreator.processAttributes(element, attributes);
         ElementCreator.processChildren(children, element);
@@ -6126,16 +6142,17 @@ var NativeDocument = (function (exports) {
      *   return el;
      * });
      */
-    function  HtmlElementWrapper(name, customWrapper = null) {
+    function  HtmlElementWrapper(name, customWrapper = null, isVoid = false) {
+        const elementCreator = isVoid ? createVoidHtmlElement : createHtmlElement;
         if(name) {
             if(customWrapper) {
                 let node = null;
                 let createElement = (attr, children) => {
                     node = document.createElement(name);
                     createElement = (attr, children) => {
-                        return createHtmlElement(customWrapper(node.cloneNode()), attr, children);
+                        return elementCreator(customWrapper(node.cloneNode()), attr, children);
                     };
-                    return createHtmlElement(customWrapper(node.cloneNode()), attr, children);            };
+                    return elementCreator(customWrapper(node.cloneNode()), attr, children);            };
 
                 return (attr, children) => createElement(attr, children);
             }
@@ -6144,9 +6161,9 @@ var NativeDocument = (function (exports) {
             let createElement = (attr, children) => {
                 node = document.createElement(name);
                 createElement = (attr, children) => {
-                    return createHtmlElement(node.cloneNode(), attr, children);
+                    return elementCreator(node.cloneNode(), attr, children);
                 };
-                return createHtmlElement(node.cloneNode(), attr, children);
+                return elementCreator(node.cloneNode(), attr, children);
             };
 
             return (attr, children) => createElement(attr, children);
@@ -8170,7 +8187,7 @@ var NativeDocument = (function (exports) {
      * Creates a `<br>` element.
      * @type {function(GlobalAttributes=): HTMLBRElement}
      */
-    const Br = HtmlElementWrapper('br');
+    const Br = HtmlElementWrapper('br', null, true);
 
     /**
      * Creates an `<a>` element.
@@ -8200,7 +8217,7 @@ var NativeDocument = (function (exports) {
      * Creates an `<hr>` element.
      * @type {function(GlobalAttributes=): HTMLHRElement}
      */
-    const Hr = HtmlElementWrapper('hr');
+    const Hr = HtmlElementWrapper('hr', null, true);
 
     /**
      * Creates an `<em>` element.
@@ -8323,7 +8340,7 @@ var NativeDocument = (function (exports) {
      * Creates an `<input>` element.
      * @type {function(InputAttributes=): HTMLInputElement}
      */
-    const Input = HtmlElementWrapper('input');
+    const Input = HtmlElementWrapper('input', null, true);
 
     /**
      * Creates a `<textarea>` element.
@@ -8591,7 +8608,7 @@ var NativeDocument = (function (exports) {
      * Creates an `<img>` element.
      * @type {function(ImgAttributes=): HTMLImageElement}
      */
-    const BaseImage = HtmlElementWrapper('img');
+    const BaseImage = HtmlElementWrapper('img', null, true);
 
     /**
      * Creates an `<img>` element.
@@ -8719,13 +8736,13 @@ var NativeDocument = (function (exports) {
      * Creates a `<source>` element.
      * @type {function(SourceAttributes=): HTMLSourceElement}
      */
-    const Source = HtmlElementWrapper('source');
+    const Source = HtmlElementWrapper('source', null, true);
 
     /**
      * Creates a `<track>` element.
      * @type {function(TrackAttributes=): HTMLTrackElement}
      */
-    const Track = HtmlElementWrapper('track');
+    const Track = HtmlElementWrapper('track', null, true);
 
     /**
      * Creates a `<canvas>` element.
@@ -8779,7 +8796,7 @@ var NativeDocument = (function (exports) {
      * Creates a `<wbr>` element.
      * @type {function(GlobalAttributes=): HTMLElement}
      */
-    const Wbr = HtmlElementWrapper('wbr');
+    const Wbr = HtmlElementWrapper('wbr', null, true);
 
     /**
      * Creates a `<caption>` element.

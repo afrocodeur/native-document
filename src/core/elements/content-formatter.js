@@ -76,7 +76,7 @@ export const H6 = HtmlElementWrapper('h6');
  * Creates a `<br>` element.
  * @type {function(GlobalAttributes=): HTMLBRElement}
  */
-export const Br = HtmlElementWrapper('br');
+export const Br = HtmlElementWrapper('br', null, true);
 
 /**
  * Creates an `<a>` element.
@@ -106,7 +106,7 @@ export const Blockquote = HtmlElementWrapper('blockquote');
  * Creates an `<hr>` element.
  * @type {function(GlobalAttributes=): HTMLHRElement}
  */
-export const Hr = HtmlElementWrapper('hr');
+export const Hr = HtmlElementWrapper('hr', null, true);
 
 /**
  * Creates an `<em>` element.

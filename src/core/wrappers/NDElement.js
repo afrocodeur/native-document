@@ -38,8 +38,19 @@ NDElement.$getChild = (el) => el;
 NDElement.prototype.ghostDom = function(element) {
     if(!this.$attachements) {
         this.$attachements = document.createDocumentFragment();
+        this.toNdElement = () => {
+            const fragment = document.createDocumentFragment();
+            if(!this.$attachements.contains(this.$element)) {
+                fragment.appendChild(this.$element);
+            }
+            fragment.appendChild(this.$attachements);
+            return fragment;
+        };
     }
-    this.$attachements.appendChild(NDElement.$getChild(element));
+    const child = NDElement.$getChild(element);
+    if(child) {
+        this.$attachements.appendChild(child);
+    }
     return this;
 };
 
