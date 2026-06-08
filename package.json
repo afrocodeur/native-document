@@ -1,6 +1,6 @@
 {
   "name": "native-document",
-  "version": "1.0.168.05",
+  "version": "1.0.169",
   "description": "A reactive JavaScript framework that preserves native DOM simplicity without sacrificing modern features",
   "author": "AfroCodeur <https://github.com/afrocodeur>",
   "license": "MIT",
