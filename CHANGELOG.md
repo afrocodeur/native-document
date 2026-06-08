@@ -9,12 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.0.169] - 2026-06-06
+
 ### Added
 
-- `Card` - versatile content container with image, header, footer, actions, clickable and loading states (renderer implementation in progress)
-- `List` - flexible list with single/multi selection, checkbox or click-to-select modes, dividers and keyboard navigation (renderer implementation in progress)
+- `Icon` - adapter-based icon system with chainable API (`Icon.search.fill().large()`),
+  `Icon.use(renderer, defaultConfigs)`, and 120+ semantic icon names accessible
+  via `Icon.{name}` getters
+- `TablerIconRender` - Tabler Icons adapter (outline + fill)
+- `PhosphorIconRender` - Phosphor Icons adapter (thin/light/regular/bold/fill/duotone)
+- `MaterialIconRender` - Google Material Icons adapter (fill/outline/round/sharp/twoTone)
 
 ---
+
+## [1.0.167] - 2026-06-06
+
+### Added
+
+#### Components
+- `Card` - content container with image, header, footer, actions, variants (elevated, outlined, flat), clickable, hoverable, loading state, horizontal layout, custom renderers (`renderImage`, `renderHeader`, `renderContent`, `renderFooter`, `renderActions`), and fully custom `layout(slots, instance)` function
+- `List` - flexible list with `HasListItem` trait, `from(source, builder)` reactive data binding, `withDivider`, `inset`, `selectable`, `multiSelect`, `selectByClick`, `selectByCheckbox`, `selectInto`
+- `ListItem` - list item with icon, label, subtitle, trailing, disabled, selected, visibility, `isSelectedIcon`, `swipeLeading`, `swipeTrailing` for mobile swipe actions with auto-close on outside click and `stopPropagation` on swipe action clicks
+- `ListGroup` - collapsible group of items with icon, `collapsable(mode, openedIcon, closedIcon)`, `collapsed()`, visibility, and full `HasListItem` API (`.item()`, `.group()`, `.divider()`, `.add()`, `.from()`)
+- `ListDivider` - visual separator between list items
+- `HasListItem` - trait adding `.item()`, `.group()`, `.divider()`, `.add()`, `.from()` to `List` and `ListGroup`
+- `SpacerRender` - render for `Spacer` component (`flex: 1` layout utility)
+
+#### UI (renders)
+- `CardRender` + `card.css` - Card renderer with 5 build slots and `layout(slots)` support
+- `ListRender` + `list.css` - `ForEachArray($desc.items)` — items self-render
+- `ListItemRender` + `list-item.css` - reactive checkbox, select indicator, swipe gesture with pointer events, auto-close and stopPropagation
+- `ListGroupRender` + `list-group.css` - collapsible group with reactive chevron via `Switch`
+- `ListDividerRender` + `list-divider.css`
+- `SpacerRender`
+
+### Fixed
+- `Card.use()` was a no-op (empty body) - now correctly assigns `Card.defaultTemplate`
 
 ## [1.0.166] - 2026-06-03
 
@@ -149,5 +181,7 @@ Entries use the following categories:
 
 ---
 
-[Unreleased]: https://github.com/afrocodeur/native-document/compare/v1.0.166...HEAD
+[Unreleased]: https://github.com/afrocodeur/native-document/compare/v1.0.169...HEAD
+[1.0.169]: https://github.com/afrocodeur/native-document/compare/v1.0.167...v1.0.169
+[1.0.167]: https://github.com/afrocodeur/native-document/compare/v1.0.166...v1.0.167
 [1.0.166]: https://github.com/afrocodeur/native-document/releases/tag/v1.0.166

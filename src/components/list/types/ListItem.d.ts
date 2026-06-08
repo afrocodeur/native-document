@@ -1,8 +1,8 @@
-import { GlobalAttributes, Observable } from '../../../../types/globals';
-import { ValidChild } from '../../../../types/elements';
-import { ObservableArray } from '../../../../types/observable';
+import type { ValidChild }      from '../../../../types/elements';
+import type { ObservableItem }  from '../../../../types/observable';
+import type { GlobalAttributes } from '../../../../types/globals';
 
-export interface ListItemDescription {
+export type ListItemDescription = {
     label:          ValidChild | null;
     subtitle:       ValidChild | null;
     icon:           ValidChild | null;
@@ -10,24 +10,19 @@ export interface ListItemDescription {
     value:          unknown;
     data:           unknown | null;
     key:            string | null;
-    disabled:       Observable<boolean> | null;
-    selected:       Observable<boolean> | null;
-    visibility:     Observable<boolean> | null;
+    disabled:       ObservableItem<boolean> | null;
+    selected:       ObservableItem<boolean> | null;
+    visibility:     ObservableItem<boolean> | null;
     isSelectedIcon: ValidChild | null;
     swipeLeading:   ValidChild[];
     swipeTrailing:  ValidChild[];
-    render:         ((desc: ListItemDescription, instance: ListItem) => ValidChild) | null;
+    render:         ((desc: ListItemDescription, instance: ListItemInterface) => ValidChild) | null;
     props:          GlobalAttributes;
-}
+};
 
-export declare class ListItem {
+export interface ListItemInterface {
     $description: ListItemDescription;
-    $parent: unknown;
-
-    constructor(props?: GlobalAttributes);
-
-    static use(template: (description: ListItemDescription, instance: ListItem) => ValidChild): void;
-    static defaultTemplate: ((description: ListItemDescription, instance: ListItem) => ValidChild) | null;
+    $parent:      unknown;
 
     label(label: ValidChild): this;
     subtitle(subtitle: ValidChild): this;
@@ -36,13 +31,13 @@ export declare class ListItem {
     value(value: unknown): this;
     data(data: unknown): this;
     key(key: string): this;
-    disabled(disabled?: boolean | Observable<boolean>): this;
-    selected(selected?: boolean | Observable<boolean>): this;
-    visibility(mode: boolean | Observable<boolean>): this;
+    disabled(disabled?: boolean | ObservableItem<boolean>): this;
+    selected(selected?: boolean | ObservableItem<boolean>): this;
+    visibility(mode: boolean | ObservableItem<boolean>): this;
     isSelectedIcon(icon: ValidChild): this;
     swipeLeading(actions: ValidChild | ValidChild[]): this;
     swipeTrailing(actions: ValidChild | ValidChild[]): this;
-    onClick(handler: (item: ListItem, event: MouseEvent) => void): this;
+    onClick(handler: (item: ListItemInterface, event: MouseEvent) => void): this;
 
     // HasEventEmitter
     on(event: string, handler: (...args: unknown[]) => void): this;
@@ -50,4 +45,8 @@ export declare class ListItem {
     hasListeners(event: string): boolean;
 }
 
-export declare function ListItem(props?: GlobalAttributes): ListItem;
+export declare function ListItem(props?: GlobalAttributes): ListItemInterface;
+export declare namespace ListItem {
+    function use(template: (description: ListItemDescription, instance: ListItemInterface) => ValidChild): void;
+    let defaultTemplate: ((description: ListItemDescription, instance: ListItemInterface) => ValidChild) | null;
+}
