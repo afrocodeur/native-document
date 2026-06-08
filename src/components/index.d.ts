@@ -84,7 +84,7 @@ export type { FileWallMode, FileWallModeInterface, FileWallModeDescription } fro
 // --- List --------------------------------------------------------------------
 export type { List, ListInterface, ListDescription } from './list/types/List';
 export type { ListGroup, ListGroupInterface, ListGroupDescription } from './list/types/ListGroup';
-export type { ListItem, ListItemInterface, ListItemDescription } from './list/types/ListItem';
+export type { ListItem, ListItemDescription } from './list/types/ListItem';
 
 // --- Menu --------------------------------------------------------------------
 export type { Menu, MenuInterface, MenuDescription } from './menu/types/Menu';
@@ -158,3 +158,8 @@ export type { ToastWarning, ToastWarningInterface } from './toast/types/ToastWar
 
 // --- Tooltip -----------------------------------------------------------------
 export type { Tooltip, TooltipInterface, TooltipDescription } from './tooltip/types/Tooltip';
+
+
+// --- Icon -----------------------------------------------------------------
+
+export type { Icon } from './icon/types/Icon'

@@ -1,0 +1,14 @@
+/*
+ * Tabler Icons webfont
+ * Outline : @tabler/icons-webfont/tabler-icons.css
+ * Filled  : @tabler/icons-webfont/tabler-icons-filled.css
+ *
+ * Install : npm install @tabler/icons-webfont
+ */
+/*@import '@tabler/icons-webfont/tabler-icons.css';*/
+
+/*
+ * Uncomment to enable filled variant (ti ti-{name}-filled)
+ * Note: filled and outline use separate font files
+ */
+/* @import '@tabler/icons-webfont/tabler-icons-filled.css'; */

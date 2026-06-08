@@ -31,10 +31,24 @@ export const P = HtmlElementWrapper('p');
 export const Paragraph = P;
 
 /**
+ * Creates a `<i>` element.
+ * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+ */
+export const I = HtmlElementWrapper('i');
+export const Italic = I;
+
+/**
  * Creates a `<strong>` element.
  * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
  */
 export const Strong = HtmlElementWrapper('strong');
+
+/**
+ * Creates a `<strong>` element.
+ * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLElement}
+ */
+export const B = HtmlElementWrapper('b');
+export const Bold = B;
 
 /**
  * Creates a `<h1>` element.

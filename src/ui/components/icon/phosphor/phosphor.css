@@ -1,0 +1,17 @@
+/*
+ * Phosphor Icons webfont
+ * Install : npm install @phosphor-icons/web
+ *
+ * Each variant requires its own CSS file.
+ * Import only the variants you need to keep bundle size minimal.
+ */
+/*@import '@phosphor-icons/web/src/regular/style.css';*/
+
+/*
+ * Uncomment the variants you need:
+ */
+/* @import '@phosphor-icons/web/src/thin/style.css';    */
+/* @import '@phosphor-icons/web/src/light/style.css';   */
+/* @import '@phosphor-icons/web/src/bold/style.css';    */
+/* @import '@phosphor-icons/web/src/fill/style.css';    */
+/* @import '@phosphor-icons/web/src/duotone/style.css'; */

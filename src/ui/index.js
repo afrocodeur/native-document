@@ -43,5 +43,10 @@ export { default as ListDividerRender } from './components/list/divider/ListDivi
 
 export { default as CardRender } from './components/card/CardRender';
 
+
+export { default as TablerIconRender } from './components/icon/tabler/TablerIconRender';
+export { default as MaterialIconRender } from './components/icon/material/MaterialIconRender';
+export { default as PhosphorIconRender } from './components/icon/phosphor/PhosphorIconRender';
+
 export * from './components/stacks';
 export * from './components/form';

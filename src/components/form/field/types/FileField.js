@@ -13,7 +13,7 @@ import FileItemPreview from '../../field/types/file-field-mode/FileItemPreview';
  *     .accept(['application/pdf', 'image/png'])
  *     .maxSize(5 * 1024 * 1024, 'Max 5MB per file')
  *     .maxFiles(3, 'Max 3 files')
- *     .mode('dropzone')
+ *     .mode(FileDropzoneMode())
  *     .onFileAdd((file) => console.log('added', file.name))
  *     .onFileRemove((file) => console.log('removed', file.name));
  *
@@ -54,7 +54,7 @@ FileField.defaultTemplate = null;
  *     label: NdChild|null,
  *     accept: string|null,
  *     multiple: boolean,
- *     mode: 'native'|'dropzone'|'button'|'wall'|'avatar'|null,
+ *     mode: FileNativeMode|FileAvatarMode|FileDropzoneMode|FileUploadButtonMode|FileWallMode|null,
  *     files: Observable<FileItemPreview[]>,
  *     fileIcons: Array<(file: File) => NdChild>,
  *     disabled: boolean|Observable<boolean>,
@@ -91,7 +91,7 @@ FileField.prototype.multiple = function(enabled = true) {
 };
 
 /**
- * @param {'native'|'dropzone'|'button'|'wall'|'avatar'} mode
+ * @param {FileNativeMode|FileAvatarMode|FileDropzoneMode|FileUploadButtonMode|FileWallMode|null} mode
  * @returns {this}
  */
 FileField.prototype.mode = function(mode) {
