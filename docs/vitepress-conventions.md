@@ -75,7 +75,7 @@ docs/
 ## Internal Links
 
 VitePress resolves links relative to the current file.
-Always use `.md` extension — VitePress strips it at build time.
+Always use `.md` extension - VitePress strips it at build time.
 
 ```markdown
 <!-- From docs/readme.md or docs/getting-started.md -->
@@ -93,7 +93,7 @@ Never use absolute paths (`/docs/...`) or paths without `.md`.
 
 ---
 
-## `.vitepress/config.js` — Sidebar & Nav
+## `.vitepress/config.js` - Sidebar & Nav
 
 ```javascript
 // .vitepress/config.js

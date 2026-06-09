@@ -16,6 +16,7 @@ export default function HStack(content, props = {}) {
 
     Stack.call(this, content, props);
     this.$description.orientation = 'horizontal';
+    this.aria = {};
 }
 
 BaseComponent.extends(HStack,  Stack);

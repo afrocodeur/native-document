@@ -36,6 +36,7 @@ export default function Stack(content, props = {}) {
         reverse: false,
         props,
     };
+    this.aria = {};
 }
 
 BaseComponent.extends(Stack);

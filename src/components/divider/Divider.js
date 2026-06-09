@@ -41,6 +41,8 @@ export default function Divider(label, props = {}) {
         trailing: null,
         props,
     };
+
+    this.aria = { 'role': 'separator' };
 }
 
 BaseComponent.extends(Divider);

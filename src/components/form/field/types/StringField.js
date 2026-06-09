@@ -26,7 +26,7 @@ import {Validation} from '../../validation/Validation';
  */
 export default function StringField(name, type = 'text', props = {}) {
     if(!(this instanceof StringField)) {
-        return new StringField(name, props);
+        return new StringField(name, type, props);
     }
 
     Field.call(this, name, type, props);

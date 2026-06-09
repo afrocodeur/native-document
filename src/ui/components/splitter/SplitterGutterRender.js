@@ -7,6 +7,10 @@ export default function SplitterGutterRender($desc, instance) {
     props.class.add('is-' + ($desc.orientation || 'horizontal'));
     props.class.add({'is-dragging': $desc.isDragging});
 
+    // [a11y] aria-orientation and aria-valuenow for resizable separator
+    props['aria-orientation'] = $desc.orientation === 'vertical' ? 'horizontal' : 'vertical';
+    props['tabindex'] = props['tabindex'] ?? '0';
+
     // props.style.add({
     //     [($desc.orientation === 'vertical') ? 'height' : 'width']: ($desc.size || 8) + 'px',
     // });

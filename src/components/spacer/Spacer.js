@@ -9,6 +9,7 @@ export default function Spacer(props = {}) {
         type: 'spacer',
         props,
     };
+    this.aria = { 'aria-hidden': 'true' };
 }
 BaseComponent.extends(Spacer);
 

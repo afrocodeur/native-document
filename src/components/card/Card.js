@@ -45,6 +45,7 @@ export default function Card(props = {}) {
         layout:        null,
         props,
     };
+    this.aria = {};
 }
 
 BaseComponent.extends(Card);

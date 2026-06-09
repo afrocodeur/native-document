@@ -26,6 +26,10 @@ export default function ToastRender($desc, instance) {
     props.class.add('toast');
     props.class.add('is-' + type);
 
+    // [a11y] aria-live: assertive for error, polite for others
+    props['aria-live'] = (type === 'error' || type === 'danger') ? 'assertive' : 'polite';
+    props['aria-atomic'] = 'true';
+
     const content = [];
 
     if($desc.showIcon && $desc.icon) {

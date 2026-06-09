@@ -53,6 +53,9 @@ export default function Menu(props = {}) {
         props,
     };
 
+
+    this.aria = { 'role': 'menu' };
+
 }
 
 BaseComponent.extends(Menu);

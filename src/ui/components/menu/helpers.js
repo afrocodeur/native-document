@@ -113,9 +113,10 @@ export const setupInteraction = (listItem, el, submenuEl, orientation, interacti
         });
     }
 
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', () => {
         $isMenuActivated?.set(false);
         $isOpen.set(false);
         $activeItem?.set(null);
     });
+
 };

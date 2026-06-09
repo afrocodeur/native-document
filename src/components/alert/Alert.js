@@ -44,6 +44,10 @@ export default function Alert(content, props = {}) {
         actions: [],
         props,
     };
+    this.aria = {
+        'role': 'alert',
+        'aria-live': 'assertive'
+    };
 }
 
 Alert.defaultTemplate = null;

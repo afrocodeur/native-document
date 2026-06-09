@@ -10,6 +10,12 @@ export default function AlertRender($desc, instance) {
     props.class.add('is-' + ($desc.variant || 'info'));
     props.class.add('is-' + ($desc.appearance || 'bordered'));
 
+    // [a11y] aria-live: assertive for error/warning, polite for others
+    const ariaLive = ($desc.variant === 'error' || $desc.variant === 'danger' || $desc.variant === 'warning')
+        ? 'assertive'
+        : 'polite';
+    props['aria-live'] = ariaLive;
+
     const content = [];
 
     if($desc.showIcon && $desc.icon) {

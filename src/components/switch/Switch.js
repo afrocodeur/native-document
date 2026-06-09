@@ -43,6 +43,7 @@ export default function Switch(props = {}) {
         innerOnLabel: null,
         innerOffLabel: null,
     };
+    this.aria = { 'role': 'switch' };
 }
 
 BaseComponent.extends(Switch);

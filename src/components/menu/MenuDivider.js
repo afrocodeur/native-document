@@ -19,6 +19,7 @@ export default function MenuDivider(props = {}) {
     this.$description = {
         props,
     };
+    this.aria = { 'role': 'separator' };
 }
 
 BaseComponent.extends(MenuDivider);

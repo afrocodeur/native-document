@@ -50,6 +50,7 @@ export default function Stepper(props = {}) {
         position: 'bottom',
         props,
     };
+    this.aria = { 'role': 'list' };
 
     this.$element = null;
 }

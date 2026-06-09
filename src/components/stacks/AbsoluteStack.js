@@ -15,6 +15,7 @@ export default function AbsoluteStack(content, props = {}) {
     }
     PositionStack.call(this, content, props);
     this.$description.position = 'absolute';
+    this.aria = {};
 }
 
 BaseComponent.extends(AbsoluteStack, PositionStack);

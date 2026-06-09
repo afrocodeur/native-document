@@ -115,6 +115,7 @@ export default function DataTable(props = {}) {
         isExpandedIcon: null,
         isNotExpandedIcon: null,
     };
+    this.aria = { 'role': 'table' };
 }
 
 BaseComponent.extends(DataTable);

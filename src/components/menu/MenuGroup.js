@@ -39,6 +39,7 @@ export default function MenuGroup(label, props = {}) {
         collapsableClosedIcon: null,
         props,
     };
+    this.aria = { 'role': 'group' };
 }
 
 HasMenuItem.components.MenuGroup = MenuGroup;

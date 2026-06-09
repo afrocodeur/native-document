@@ -8,6 +8,11 @@ export default function MenuRender($desc, instance) {
     props.class.add('menu');
     props.class.add('is-' + ($desc.orientation || 'horizontal'));
 
+    // [a11y] aria-label if provided
+    if($desc.label) {
+        props['aria-label'] = $desc.label;
+    }
+
     const nav = Nav(instance.resolveProps(), ForEachArray($desc.items));
 
     if($desc.compactThreshold) {

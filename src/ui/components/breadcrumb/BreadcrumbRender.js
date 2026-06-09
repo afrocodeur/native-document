@@ -6,6 +6,9 @@ export default function BreadcrumbRender($desc, instance) {
     const props = instance.getEditableProps();
     props.class.add('breadcrumb');
 
+    // [a11y] aria-label on nav
+    props['aria-label'] = (typeof $desc.label === 'string') ? $desc.label : 'Breadcrumb';
+
     return Nav(instance.resolveProps(),
         OrderedList({ class: 'breadcrumb-list' },
             ForEachArray($desc.items, (item) => buildItem(item, $desc, instance)),
@@ -40,5 +43,10 @@ const buildItem = (item, $desc, instance) => {
 
     content.push(buildSeparator($desc));
 
-    return ListItem({class: 'breadcrumb-item'}, content);
+    // [a11y] aria-current on last item (no href = current page)
+    const isCurrent = !item.href;
+    return ListItem({
+        class: 'breadcrumb-item',
+        ...( isCurrent ? { 'aria-current': 'page' } : {} ),
+    }, content);
 };

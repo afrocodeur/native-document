@@ -15,6 +15,7 @@ export default function FixedStack(content, props = {}) {
     }
     PositionStack.call(this, content, props);
     this.$description.position = 'fixed';
+    this.aria = {};
 }
 
 BaseComponent.extends(FixedStack, PositionStack);

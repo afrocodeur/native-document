@@ -20,6 +20,7 @@ export function Icon(name, props = {}) {
         size:    null,
         ...props,
     };
+    this.aria = { 'aria-hidden': 'true' };
 }
 
 BaseComponent.extends(Icon);

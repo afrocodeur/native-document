@@ -28,6 +28,7 @@ export default function SimpleTable(props = {}) {
         headerProps: null,
         props,
     };
+    this.aria = { 'role': 'table' };
 }
 
 BaseComponent.extends(SimpleTable);

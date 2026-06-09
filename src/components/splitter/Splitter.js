@@ -33,6 +33,7 @@ export default function Splitter(props = {}) {
         render: null,
         props,
     };
+    this.aria = { 'role': 'group' };
 
     this.$element = null;
 }

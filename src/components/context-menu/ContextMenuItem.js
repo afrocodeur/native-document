@@ -12,6 +12,8 @@ export default function ContextMenuItem(config) {
     }
 
     MenuItem.call(this, config);
+
+    this.aria = { 'role': 'menuitem' };
 }
 
 

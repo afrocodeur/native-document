@@ -47,6 +47,7 @@ export default function Tabs(props = {}) {
         renderPlusButton: null,
         props,
     };
+    this.aria = { 'role': 'tablist' };
 }
 
 BaseComponent.extends(Tabs);

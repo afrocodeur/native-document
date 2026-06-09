@@ -47,6 +47,7 @@ export default function StepperStep(label, props = {}) {
         isVisible: $(true),
         props,
     };
+    this.aria = { 'role': 'listitem', 'tabindex': '0' };
 }
 
 BaseComponent.extends(StepperStep);

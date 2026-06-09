@@ -42,6 +42,7 @@ export default function Avatar(source, props = {}) {
         render: null,
         props,
     };
+    this.aria = { 'role': 'img' };
 }
 
 BaseComponent.extends(Avatar);

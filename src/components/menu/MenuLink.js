@@ -21,6 +21,7 @@ export default function MenuLink(props = {}) {
         return new MenuLink(props);
     }
     MenuItem.call(this, props);
+    this.aria = { 'role': 'menuitem' };
 }
 
 MenuLink.prototype = Object.create(MenuItem.prototype);

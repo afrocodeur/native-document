@@ -47,6 +47,7 @@ export default function FormControl(props) {
         isValid:         $(false),
         props,
     };
+    this.aria = { 'role': 'form' };
 }
 
 FormControl.defaultTemplate = null;

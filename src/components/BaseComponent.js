@@ -181,6 +181,12 @@ BaseComponent.prototype.getEditableProps = function() {
             class: classPropertyAccumulator(rawProps.class || {}),
             style: cssPropertyAccumulator(rawProps.style || {}),
         };
+
+        if (this.aria) {
+            for (const key in this.aria) {
+                this.$editableProps[resolveAriaKey(key)] = this.aria[key];
+            }
+        }
     }
 
     return this.$editableProps;
@@ -245,3 +251,39 @@ BaseComponent.prototype.context = function(context) {
 };
 
 BaseComponent.prototype.visibility = BaseComponent.prototype.showIf;
+
+//------------------------------------------------------------------------------
+//--Component Aria -------------------------------------------------------------
+//------------------------------------------------------------------------------
+const ARIA_NO_PREFIX = new Set(['role', 'id', 'tabindex']);
+
+/**
+ * @param {string} key
+ * @returns {string}
+ */
+const resolveAriaKey = (key) =>
+    ARIA_NO_PREFIX.has(key) || key.startsWith('aria-') ? key : `aria-${key}`;
+
+/**
+ * Override or extend aria attributes on the root element.
+ * Automatically prefixes keys with 'aria-' unless they are in ARIA_NO_PREFIX.
+ *
+ * @example
+ * Modal()
+ *     .setAria({ label: 'Confirmation dialog' })
+ *     .setAria({ describedby: 'modal-desc' })
+ *
+ * @param {Record<string, string|boolean|Observable>} attrs
+ * @returns {this}
+ */
+BaseComponent.prototype.setAria = function(attrs) {
+    if (!this.aria) {
+        this.aria = {};
+    }
+    for (const key in attrs) {
+        this.aria[resolveAriaKey(key)] = attrs[key];
+    }
+    return this;
+};
+
+

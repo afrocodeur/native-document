@@ -3,6 +3,10 @@ import {Div} from '../../../core/elements';
 export default function SplitterPanelRender($desc, instance) {
     const props = instance.getEditableProps();
     props.class.add('splitter-panel');
+    // [a11y] aria-label if provided
+    if($desc.label) {
+        props['aria-label'] = $desc.label;
+    }
 
     if($desc.collapsed) {
         props.class.add('is-collapsed');

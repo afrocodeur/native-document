@@ -48,7 +48,14 @@ export default function StepperStepRender($desc, instance) {
         labelContent.push(Span({class: 'step-optional'}, 'Optional'));
     }
 
-    const stepEl = Div(instance.resolveProps(), [
+    // [a11y] aria-current, aria-disabled on step
+    const resolvedProps = instance.resolveProps();
+    resolvedProps['aria-current'] = isActive.transform((a) => a ? 'step' : undefined);
+    if($desc.disabled?.val()) {
+        resolvedProps['aria-disabled'] = 'true';
+    }
+
+    const stepEl = Div(resolvedProps, [
         Div({class: indicatorClass}, [
             indicatorContent,
             Span({class: 'step-state-indicator'}, stateIndicator),

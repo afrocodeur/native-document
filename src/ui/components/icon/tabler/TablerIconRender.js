@@ -49,7 +49,6 @@ export default function TablerIconRender($desc) {
     if($desc.color) {
         style.color = $desc.color;
     }
-    console.log(style);
 
     return Italic({
         'aria-hidden': 'true',

@@ -4,9 +4,12 @@ import {createFilter} from '../../../core/utils/filters';
 import {normalizeDropdownItem} from '../../../components/dropdown/helpers';
 
 import './dropdown.css';
+import {ariaTrigger} from '../../utils/aria';
 
 export default function DropdownRender($desc, instance) {
     $desc.content = buildDropdownContent($desc, instance);
+    ariaTrigger($desc.trigger, $desc.isOpen, 'listbox');
+
 
     return PopoverRender($desc, instance, 'dropdown');
 }

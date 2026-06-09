@@ -18,6 +18,7 @@ export default function VStack(content, props = {}) {
 
     this.$description.orientation = 'vertical';
     this.$description.alignment = 'leading';
+    this.aria = {};
 }
 BaseComponent.extends(VStack, Stack);
 

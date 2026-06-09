@@ -50,6 +50,11 @@ export default function Progress(props = {}) {
         borderRadiusType: null,
         props,
     };
+    this.aria = {
+        'role': 'progressbar',
+        'aria-valuemin': '0',
+        'aria-valuemax': '100'
+    };
 }
 
 BaseComponent.extends(Progress);

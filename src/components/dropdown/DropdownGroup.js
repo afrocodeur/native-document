@@ -27,6 +27,7 @@ export default function DropdownGroup(props) {
     Object.assign(this.$description, {
         items: $.array([]),
     });
+    this.aria = { 'role': 'group' };
 }
 
 BaseComponent.extends(DropdownGroup, DropdownItem);

@@ -34,6 +34,7 @@ export default function PositionStack(content, props = {}) {
         anchor: null,
         props,
     };
+    this.aria = {};
 }
 
 BaseComponent.extends(PositionStack);

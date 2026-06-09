@@ -47,6 +47,7 @@ export default function Tooltip(content, props = {}) {
         updatePositionOn: null,
         props,
     };
+    this.aria = { 'role': 'tooltip' };
 }
 
 BaseComponent.extends(Tooltip);

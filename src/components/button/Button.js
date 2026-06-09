@@ -55,6 +55,7 @@ export default function Button(label, props = {}) {
         outline: null,
         props,
     };
+    this.aria = { 'role': 'button' };
 
     this.$element = null;
 }

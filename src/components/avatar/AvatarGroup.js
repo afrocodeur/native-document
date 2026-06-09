@@ -31,6 +31,7 @@ export default function AvatarGroup(props = {}) {
         props,
     };
 
+    this.aria = { 'role': 'group' };
 };
 
 BaseComponent.extends(AvatarGroup);

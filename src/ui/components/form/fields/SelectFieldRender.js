@@ -61,8 +61,13 @@ const buildSelectWrapper = ($desc, instance) => {
     }
     triggerOptions.push(Span({class: 'select-field-chevron'}, '▾'));
 
+    const isRequired = $desc.rules?.some(rule => rule.fn?.name === 'required');
     const trigger = Div({
         class: {'field-input select-field-trigger': true, 'has-tags': isTags},
+        // [a11y] aria-haspopup, aria-expanded, aria-required
+        'aria-haspopup':  'listbox',
+        'aria-expanded':  'false',
+        ...( isRequired ? { 'aria-required': 'true' } : {} ),
         ...($desc.elementsProps.input || {}),
     }, [
         valueDisplay,

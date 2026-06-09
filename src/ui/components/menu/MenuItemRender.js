@@ -24,6 +24,14 @@ export default function MenuItemRender($desc, instance) {
 
     if(hasSubmenu) {
         props.class.add('has-submenu');
+        // [a11y] aria-haspopup for submenu items
+        props['aria-haspopup'] = 'menu';
+        props['aria-expanded'] = 'false';
+    }
+
+    // [a11y] aria-disabled
+    if($desc.disabled) {
+        props['aria-disabled'] = $desc.disabled;
     }
 
     const content = [

@@ -5,6 +5,7 @@ import {createPortal} from '../../../core/elements/anchor/anchor';
 
 import './modal.css';
 
+let _modalIdCounter = 0;
 export default function ModalRender($desc, instance) {
     const editableProps = instance.getEditableProps();
 
@@ -66,10 +67,15 @@ export default function ModalRender($desc, instance) {
     return createPortal(dialog);
 }
 
-const buildHeader = ($desc, instance) => {
+
+const buildHeader = ($desc, instance, dialog) => {
     const content = [];
 
-    content.push(Div({class: 'modal-title'}, $desc.title));
+    if($desc.title) {
+        const titleId = `modal-title-${++_modalIdCounter}`;
+        dialog.setAttribute('aria-labelledby', titleId);
+        content.push(Div({class: 'modal-title', id: titleId }, $desc.title));
+    }
 
     if($desc.closable) {
         content.push(

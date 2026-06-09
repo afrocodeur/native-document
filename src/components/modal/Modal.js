@@ -67,6 +67,10 @@ export default function Modal(content, props = {}) {
         variant: null,
         props,
     };
+    this.aria = {
+        'role': 'dialog',
+        'aria-modal': 'true'
+    };
 }
 
 BaseComponent.extends(Modal);

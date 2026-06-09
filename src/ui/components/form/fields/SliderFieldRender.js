@@ -7,6 +7,9 @@ export default function SliderRender($desc, instance) {
     const props = instance.getEditableProps();
 
     props.class.add('slider');
+    // [a11y] aria-valuemin, aria-valuemax
+    props['aria-valuemin'] = String($desc.min ?? 0);
+    props['aria-valuemax'] = String($desc.max ?? 100);
     props.class.add({
         'is-vertical':  $desc.vertical,
         'is-reverse':   $desc.reverse,

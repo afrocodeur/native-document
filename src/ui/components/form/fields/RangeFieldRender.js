@@ -66,6 +66,10 @@ const buildInput = ($desc, instance) => {
         step: $desc.step ?? 1,
         disabled: $desc.disabled,
         value: $desc.value,
+        // [a11y] aria-valuemin, aria-valuemax, aria-valuenow
+        'aria-valuemin': String($desc.min ?? 0),
+        'aria-valuemax': String($desc.max ?? 100),
+        ...($desc.value?.__$Observable ? { 'aria-valuenow': $desc.value.transform((v) => String(v)) } : { 'aria-valuenow': String($desc.value ?? 0) }),
         ...($desc.elementsProps.input || {}),
     });
 

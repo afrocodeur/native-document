@@ -36,6 +36,7 @@ export default function Badge(content, props = {}) {
         content,
         props,
     };
+    this.aria = {};
 }
 
 BaseComponent.extends(Badge);

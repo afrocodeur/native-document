@@ -25,6 +25,7 @@ export default function CheckboxFieldRender($desc, instance) {
 }
 
 const buildCheckbox = ($desc, instance) => {
+    const isRequired = $desc.rules?.some(rule => rule.fn?.name === 'required');
     const input = Input({
         class:    'field-checkbox',
         type:     'checkbox',
@@ -32,6 +33,9 @@ const buildCheckbox = ($desc, instance) => {
         id:       $desc.id || $desc.name,
         disabled: $desc.disabled,
         checked:  $desc.checked,
+        // [a11y] aria-required, aria-invalid
+        ...(isRequired      ? { 'aria-required': 'true'        } : {}),
+        ...($desc.hasErrors ? { 'aria-invalid':  $desc.hasErrors } : {}),
         ...($desc.elementsProps.input || {}),
     });
 

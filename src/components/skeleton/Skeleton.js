@@ -42,6 +42,10 @@ export default function Skeleton(props = {}) {
         repeat: null,
         props,
     };
+    this.aria = {
+        'aria-busy': 'true',
+        'aria-live': 'polite'
+    };
 }
 
 BaseComponent.extends(Skeleton);

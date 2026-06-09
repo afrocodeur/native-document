@@ -50,6 +50,7 @@ export default function Pagination(props = {}) {
         render: null,
         props,
     };
+    this.aria = { 'role': 'navigation', 'aria-label': 'Pagination' };
 
     this.$element = null;
 }

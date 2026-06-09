@@ -26,6 +26,7 @@ export default function DropdownTrigger(config) {
         isOpen: null,
         ...config,
     };
+    this.aria = { 'aria-haspopup': 'listbox' };
 }
 
 BaseComponent.extends(DropdownTrigger);

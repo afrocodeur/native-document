@@ -9,6 +9,8 @@ export default function SplitterRender($desc, instance) {
 
     props.class.add('splitter');
     props.class.add('is-' + ($desc.orientation || 'horizontal'));
+    // [a11y] aria-orientation
+    props['aria-orientation'] = $desc.orientation || 'horizontal';
 
     const container = Div(instance.resolveProps());
 

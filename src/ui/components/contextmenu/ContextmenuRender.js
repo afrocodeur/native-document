@@ -3,6 +3,7 @@ import {createPortal} from '../../../core/elements/anchor/anchor';
 import {computePosition, flip, shift} from '@floating-ui/dom';
 
 import './contextmenu.css';
+import {ariaTrigger} from '../../utils/aria';
 
 export default function ContextMenuRender($desc, instance) {
     const $positionX = instance.$description.positionX, $positionY = instance.$description.positionY;
@@ -19,6 +20,7 @@ export default function ContextMenuRender($desc, instance) {
     createPortal(container, {name: 'context-menu'});
 
     if($desc.trigger && instance) {
+        ariaTrigger($desc.trigger, $desc.isOpen, 'menu');
         contextMenuHandler($desc.trigger, instance);
     }
 

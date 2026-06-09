@@ -64,6 +64,7 @@ export default function Popover(content, props = {}) {
         includeTriggerIntoGhost: true,
         props,
     };
+    this.aria = { 'role': 'tooltip' };
 
     this.$element = null;
 

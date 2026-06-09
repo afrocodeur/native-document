@@ -35,6 +35,8 @@ export default function ContextMenu(props = {}) {
         trigger: null,
         data: null,
     });
+
+    this.aria = { 'role': 'menu' };
 }
 
 BaseComponent.extends(ContextMenu);

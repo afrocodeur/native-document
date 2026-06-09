@@ -24,6 +24,17 @@ export default function MenuLinkRender($desc, instance) {
 
     if(hasSubmenu) {
         props.class.add('has-submenu');
+        // [a11y] aria-haspopup for submenu links
+        props['aria-haspopup'] = 'menu';
+        props['aria-expanded'] = 'false';
+    }
+
+    // [a11y] aria-disabled, aria-current
+    if($desc.disabled) {
+        props['aria-disabled'] = $desc.disabled;
+    }
+    if($desc.selected) {
+        props['aria-current'] = $desc.selected.transform ? $desc.selected.transform((s) => s ? 'page' : undefined) : ($desc.selected ? 'page' : undefined);
     }
 
     const content = [

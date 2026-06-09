@@ -15,6 +15,7 @@ export default function RelativeStack(content, props = {}) {
     }
     PositionStack.call(this, content, props);
     this.$description.position = 'relative';
+    this.aria = {};
 }
 
 BaseComponent.extends(RelativeStack, PositionStack);

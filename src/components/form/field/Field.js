@@ -27,6 +27,7 @@ export default function Field(name, type, props) {
         return new Field(name, type, props);
     }
 
+    console.log({ type, name })
     BaseComponent.call(this, props);
 
     this.$description = {
@@ -64,6 +65,7 @@ export default function Field(name, type, props) {
         slots: {},
         props,
     };
+    this.aria = { 'role': 'group' };
 
     this.$description.errors.intercept((nextValue) => nextValue === null ? [] : nextValue);
 }

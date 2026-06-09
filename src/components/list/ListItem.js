@@ -49,6 +49,7 @@ export default function ListItem(props = {}) {
         render:          null,
         props,
     };
+    this.aria = { 'role': 'listitem', 'tabindex': '-1' };
 }
 
 BaseComponent.extends(ListItem);

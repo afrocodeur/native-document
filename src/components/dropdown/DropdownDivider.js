@@ -18,6 +18,7 @@ export default function DropdownDivider(props = {}) {
         type: 'divider',
         props,
     };
+    this.aria = { 'role': 'separator' };
 }
 
 BaseComponent.extends(DropdownDivider);

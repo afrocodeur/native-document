@@ -51,6 +51,7 @@ export default function MenuItem(props = {}) {
         visibility: null,
         props,
     };
+    this.aria = { 'role': 'menuitem', 'tabindex': '-1' };
 
 }
 

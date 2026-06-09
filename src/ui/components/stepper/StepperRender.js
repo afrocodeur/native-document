@@ -24,7 +24,8 @@ export default function StepperRender($desc, instance) {
 }
 
 const buildNav = ($desc, instance) => {
-    return Div({class: 'stepper-nav'},
+    // [a11y] aria-label on stepper nav
+    return Div({ class: 'stepper-nav', 'aria-label': $desc.label || 'Steps' },
         ForEachArray($desc.visibleSteps, (step, index) => {
             step.$setStepper(instance);
             const items = [];

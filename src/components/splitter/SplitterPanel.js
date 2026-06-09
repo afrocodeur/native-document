@@ -37,6 +37,7 @@ export default function SplitterPanel(content, props = {}) {
         render: null,
         props,
     };
+    this.aria = { 'role': 'region' };
 }
 
 BaseComponent.extends(SplitterPanel);

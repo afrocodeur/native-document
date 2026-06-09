@@ -45,6 +45,7 @@ export default function Toast(content, props = {}) {
         render: null,
         props,
     };
+    this.aria = { 'role': 'status', 'aria-live': 'polite' };
 }
 
 BaseComponent.extends(Toast);

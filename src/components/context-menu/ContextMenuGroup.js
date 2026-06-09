@@ -13,6 +13,8 @@ export default function ContextMenuGroup(label, config) {
     }
 
     MenuGroup.call(this, label, config);
+
+    this.aria = { 'role': 'group' };
 }
 
 

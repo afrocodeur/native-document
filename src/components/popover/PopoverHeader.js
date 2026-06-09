@@ -25,6 +25,7 @@ export default function PopoverHeader(content, config = {}) {
         render: null,
         ...config,
     };
+    this.aria = { 'role': 'heading' };
 }
 
 BaseComponent.extends(PopoverHeader);

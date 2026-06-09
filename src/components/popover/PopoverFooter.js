@@ -24,6 +24,7 @@ export default function PopoverFooter(content, config = {}) {
         render: null,
         ...config,
     };
+    this.aria = {  };
 }
 
 BaseComponent.extends(PopoverFooter);

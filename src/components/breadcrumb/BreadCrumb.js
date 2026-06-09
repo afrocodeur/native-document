@@ -21,6 +21,10 @@ export default function Breadcrumb(props = {}) {
         renderItem: null,
         props,
     };
+    this.aria = {
+        'role': 'navigation',
+        'aria-label': 'Breadcrumb'
+    };
 }
 
 BaseComponent.extends(Breadcrumb);

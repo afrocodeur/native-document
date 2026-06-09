@@ -46,6 +46,8 @@ const buildHeaderRow = ($desc, visibleColumns) => {
                 class:   col.$description.align ? `is-${col.$description.align}` : null,
                 colspan: col.$description.colspan || null,
                 rowspan: col.$description.rowspan || null,
+                // [a11y] scope=col on header cells
+                scope: 'col',
                 ...extraProps,
             }, col.$description.header);
         }),

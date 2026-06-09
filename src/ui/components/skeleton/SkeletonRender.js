@@ -26,6 +26,8 @@ export default function SkeletonRender($desc, instance) {
 
     props.class.add('skeleton');
     props.class.add('is-' + variant);
+    // [a11y] aria-label for screen readers
+    props['aria-label'] = $desc.label || 'Loading content';
     props.class.add('is-' + ($desc.borderRadiusType || 'rounded'));
 
     if(type === 'circle' || type === 'avatar') {

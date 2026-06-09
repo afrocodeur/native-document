@@ -7,6 +7,10 @@ export default function FieldCollectionRender($desc, instance) {
     const props = instance.getEditableProps();
 
     props.class.add('field-collection');
+    // [a11y] aria-label if provided
+    if($desc.label) {
+        props['aria-label'] = $desc.label;
+    }
 
     const $items     = $desc.value;
     const $itemsMap  = new WeakMap();

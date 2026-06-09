@@ -13,9 +13,13 @@ export default function ListItemRender($desc, instance) {
 
     if ($desc.disabled) {
         props.class.add('is-disabled', $desc.disabled);
+        // [a11y] aria-disabled
+        props['aria-disabled'] = $desc.disabled;
     }
     if ($desc.selected) {
         props.class.add('is-selected', $desc.selected);
+        // [a11y] aria-selected
+        props['aria-selected'] = $desc.selected;
     }
     if ($desc.visibility) {
         props.class.add('is-hidden', $desc.visibility.isFalsy());

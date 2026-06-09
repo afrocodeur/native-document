@@ -36,6 +36,9 @@ export default function ButtonRender($desc, instance) {
         ...instance.resolveProps(),
         type:     $desc.type || 'button',
         disabled: $desc.disabled,
+        // [a11y] aria-busy and aria-disabled
+        ...($desc.loading  ? { 'aria-busy':     $desc.loading  } : {}),
+        ...($desc.disabled ? { 'aria-disabled': $desc.disabled } : {}),
     }, content);
 }
 

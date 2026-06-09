@@ -9,6 +9,10 @@ import {buildPageInfo, buildPageNav, buildPageSize, buildPagination} from './pag
 export default function DataTableRender($desc, instance) {
     const props = instance.getEditableProps();
     props.class.add('data-table');
+    // [a11y] aria-label on data table
+    if($desc.label) {
+        props['aria-label'] = $desc.label;
+    }
 
     const visibleColumns = $desc.columns.filter(col =>
         col.$description.visible !== false,

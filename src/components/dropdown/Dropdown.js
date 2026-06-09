@@ -66,6 +66,7 @@ export default function Dropdown(props = {}) {
         includeTriggerIntoGhost: true,
         props,
     };
+    this.aria = { 'role': 'listbox' };
 }
 
 BaseComponent.extends(Dropdown);

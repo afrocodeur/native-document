@@ -37,6 +37,9 @@ export default function SpinnerRender($desc, instance) {
 
     const icon = Div({ class: 'spinner-icon', style: iconStyle });
 
+    // [a11y] aria-label: use label if provided, fallback to 'Loading'
+    props['aria-label'] = $desc.label || 'Loading';
+
     const content = [icon];
 
     if($desc.label) {

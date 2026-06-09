@@ -25,6 +25,9 @@ export default function SwitchRender($desc, instance) {
         type:     'checkbox',
         checked:  $desc.value,
         disabled: $desc.disabled,
+        // [a11y] aria-checked and aria-disabled
+        'aria-checked':  $desc.value,
+        ...($desc.disabled ? { 'aria-disabled': $desc.disabled } : {}),
     });
 
     $desc.value.subscribe(() => {

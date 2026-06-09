@@ -70,8 +70,12 @@ const buildOptions = ($desc, instance) => {
         ]);
     };
 
+    const isRequired = $desc.rules?.some(rule => rule.fn?.name === 'required');
     return Div({
         class: 'field-radio-group is-' + ($desc.layout || 'vertical'),
+        // [a11y] role=radiogroup, aria-required
+        role: 'radiogroup',
+        ...( isRequired ? { 'aria-required': 'true' } : {} ),
         ...($desc.elementsProps.wrapper || {}),
     }, ForEachArray($options, buildOption));
 };

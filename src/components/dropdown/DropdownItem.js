@@ -38,6 +38,7 @@ export default function DropdownItem(props = {}) {
         renderContent: null,
         props,
     };
+    this.aria = { 'role': 'option', 'tabindex': '-1' };
 };
 
 BaseComponent.extends(DropdownItem);

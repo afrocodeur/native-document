@@ -46,6 +46,15 @@ const buildBar = ($desc, instance) => {
 
     props.class.add('progress');
 
+    // [a11y] aria-valuenow and aria-valuemax
+    const ariaMax = $desc.max || 100;
+    props['aria-valuemax'] = String(ariaMax);
+    if($desc.value?.__$Observable) {
+        props['aria-valuenow'] = $desc.value.transform((v) => String(Math.min(v, ariaMax)));
+    } else if($desc.value !== null && $desc.value !== undefined) {
+        props['aria-valuenow'] = String($desc.value);
+    }
+
     const fillClass = ['progress-fill', 'is-' + variant];
 
     if($desc.striped) {

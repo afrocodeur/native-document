@@ -61,6 +61,7 @@ export default function Slider(name, props = {}) {
         renderThumb:   null,
         props,
     };
+    this.aria = { 'role': 'slider', 'tabindex': '0' };
 }
 
 Slider.prototype = Object.create(Field.prototype);

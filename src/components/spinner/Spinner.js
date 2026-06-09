@@ -42,6 +42,7 @@ export default function Spinner(props = {}) {
         fullScreenOverlay: null,
         props,
     };
+    this.aria = { 'role': 'status', 'aria-label': 'Loading' };
 }
 
 Spinner.defaultTemplate = null;

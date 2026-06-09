@@ -85,8 +85,12 @@ const buildOptions = ($desc, instance) => {
         ]);
     };
 
+    const isRequired = $desc.rules?.some(rule => rule.fn?.name === 'required');
     return Div({
         class: 'field-checkbox-group is-' + ($desc.layout || 'vertical'),
+        // [a11y] role=group, aria-required
+        role:  'group',
+        ...( isRequired ? { 'aria-required': 'true' } : {} ),
         ...($desc.elementsProps.wrapper || {}),
     }, ForEachArray($desc.options, buildItem));
 };

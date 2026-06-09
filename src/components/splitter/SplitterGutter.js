@@ -33,6 +33,10 @@ export default function SplitterGutter(leftPanel, rightPanel, props = {}) {
         isDragging: $(false),
         props,
     };
+    this.aria = {
+        'role': 'separator',
+        'aria-orientation': 'horizontal',
+    };
 }
 
 BaseComponent.extends(SplitterGutter);
@@ -62,6 +66,7 @@ SplitterGutter.use = function(template) {
 SplitterGutter.prototype.vertical = function() {
     this.$description.orientation = 'vertical';
     this.$description.cursor = 'row-resize';
+    this.aria['aria-orientation'] = 'vertical';
     return this;
 };
 
@@ -71,6 +76,7 @@ SplitterGutter.prototype.vertical = function() {
 SplitterGutter.prototype.horizontal = function() {
     this.$description.orientation = 'horizontal';
     this.$description.cursor = 'col-resize';
+    this.aria['aria-orientation'] = 'horizontal';
     return this;
 };
 

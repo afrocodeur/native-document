@@ -41,6 +41,7 @@ export default function AccordionItem(props = {}) {
         disabled: $(false),
         props,
     };
+    this.aria = { 'tabindex': '0' };
 }
 
 BaseComponent.extends(AccordionItem);

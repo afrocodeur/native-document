@@ -5,7 +5,12 @@ export default function DropdownItemRender($desc, instance) {
     const props = instance.getEditableProps();
 
     props.class.add('dropdown-item');
-    // props.class.add({ 'is-disabled': $desc.disabled, 'is-selected': $desc.selected });
+    props.class.add({ 'is-disabled': $desc.disabled, 'is-selected': $desc.selected });
+
+    if($desc.selected != null) {
+        props['aria-selected'] = $desc.selected;
+    }
+
 
     const content = [];
     if($desc.renderContent) {
