@@ -187,6 +187,14 @@ NDElement.prototype.destroyOnUnmount = function() {
  * @returns {this}
  */
 NDElement.prototype.destroy = function() {
+    if(!this.$element) {
+        return this;
+    }
+    const observer = $lifeCycleObservers.get(this.$element);
+    if(observer) {
+        observer.disconnect();
+    }
+
     this.$element?.querySelectorAll('[data--nd-before-unmount]').forEach(child => {
         child.remove();
         child.__$controller?.abort();
