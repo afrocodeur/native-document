@@ -11,6 +11,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.170] - 2026-06-10
+
+### Added
+
+- Vitest test suite — `vitest.config.js`, happy-dom environment, scripts `test`, `test:watch`, `test:ui`, `test:coverage`
+- 372 tests passing across 13 files — 0 failures, 0 todo
+
+#### Unit tests — core
+- `observable-item` — 48 cases: set, val, subscribe, on/off, once, toggle, reset, transform, equals, clone, cleanup, intercept, assocTrigger
+- `observable-array` — 48 cases: push, remove, clear, merge, swap, insertAfter, isIncludes, where, sync, clone, reset, deepSubscribe
+- `observable-object` — 30 cases: constructor, val, get, set, subscribe, keys, observables, reset, clone
+- `observable-resource` — 29 cases: states, fetch, refetch, mutate, abort, race condition, deps, onSuccess, onError, into, apply, destroy
+- `store` — 43 cases: create, createResettable, createComposed, use, follow, reset, delete, group, protected, createPersistent
+
+#### Unit tests — router
+- `route-matching` — 26 cases: exact path, params, typed params, custom validators, url(), metadata
+- `router-guards` — 14 cases: middleware execution, group middlewares, subscribe, resolve, currentState
+
+#### Unit tests — utils
+- `cache` — 12 cases: singleton, once, memoize
+- `filters` — 60 cases: equals, comparison, inArray, isEmpty, match, and/or/not, custom, string filters, date/time filters
+
+#### Integration tests — UI
+- `attributes-wrapper` — 22 cases: string, class map, style, Observable, boolean, aria attributes
+- `show-if` — 16 cases: static boolean, observable, factory child, HideIf, HideIfNot
+- `for-each-array` — 13 cases: static array, push, removeItem, clear, set, swap, index observable, order preservation
+- `lifecycle` — 11 cases: mounted, unmounted, destroy, destroyOnUnmount
+
+### Fixed
+
+- `NDElement.prototype.destroy()` — guard against double call when `$element` is already null
+- `NDElement.prototype.destroy()` — disconnect lifecycle observer to prevent callbacks from firing after destroy
+
+---
+
 ## [1.0.169] - 2026-06-06
 
 ### Added
@@ -181,7 +216,8 @@ Entries use the following categories:
 
 ---
 
-[Unreleased]: https://github.com/afrocodeur/native-document/compare/v1.0.169...HEAD
+[Unreleased]: https://github.com/afrocodeur/native-document/compare/v1.0.170...HEAD
+[1.0.170]: https://github.com/afrocodeur/native-document/compare/v1.0.169...v1.0.170
 [1.0.169]: https://github.com/afrocodeur/native-document/compare/v1.0.167...v1.0.169
 [1.0.167]: https://github.com/afrocodeur/native-document/compare/v1.0.166...v1.0.167
 [1.0.166]: https://github.com/afrocodeur/native-document/releases/tag/v1.0.166
