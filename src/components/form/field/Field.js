@@ -27,7 +27,6 @@ export default function Field(name, type, props) {
         return new Field(name, type, props);
     }
 
-    console.log({ type, name })
     BaseComponent.call(this, props);
 
     this.$description = {
