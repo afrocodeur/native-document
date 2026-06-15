@@ -1,4 +1,3 @@
-import Validator from '../utils/validator';
 import AttributesWrapper, { bindClassAttribute, bindStyleAttribute } from './AttributesWrapper';
 import PluginsManager from '../utils/plugins-manager';
 
@@ -8,7 +7,7 @@ export const ElementCreator = {
     createTextNode() {
         if(!$textNodeCache) {
             $textNodeCache = document.createTextNode('');
-            ElementCreator.createTextNode = () => $textNodeCache.cloneNode();
+            ElementCreator.createTextNode = $textNodeCache.cloneNode.bind($textNodeCache);
         }
         return $textNodeCache.cloneNode();
     },
@@ -19,10 +18,19 @@ export const ElementCreator = {
      * @returns {Text}
      */
     createObservableNode: (parent, observable) => {
+        const text = ElementCreator.createObservableNodeWithoutParent(observable);
+        parent && parent.appendChild(text);
+        return text;
+    },
+    /**
+     *
+     * @param {ObservableItem} observable
+     * @returns {Text}
+     */
+    createObservableNodeWithoutParent: (observable) => {
         const text = ElementCreator.createTextNode();
         observable.subscribe(value => text.nodeValue = value);
         text.nodeValue = observable.val();
-        parent && parent.appendChild(text);
         return text;
     },
     /**
@@ -49,6 +57,11 @@ export const ElementCreator = {
         parent && parent.appendChild(text);
         return text;
     },
+    createStaticTextNodeWithoutParent: (value) => {
+        const text = ElementCreator.createTextNode();
+        text.nodeValue = value;
+        return text;
+    },
     /**
      *
      * @param {string} name
@@ -72,27 +85,37 @@ export const ElementCreator = {
      * @param {HTMLElement|DocumentFragment} parent
      */
     processChildren: (children, parent) => {
-        if(children === null) return;
         if(process.env.NODE_ENV === 'development') {
             PluginsManager.emit('BeforeProcessChildren', parent);
         }
-        const child = ElementCreator.getChild(children);
-        if(child) {
-            parent.appendChild(child);
+        if(Array.isArray(children)) {
+            for(let i = 0, length = children.length; i < length; i++) {
+                const child = ElementCreator.getChild(children[i]);
+                if(child === null) {
+                    continue;
+                }
+                parent.appendChild(child);
+            }
+            return;
         }
+        const child = ElementCreator.getChild(children);
+        parent.appendChild(child);
         if(process.env.NODE_ENV === 'development') {
             PluginsManager.emit('AfterProcessChildren', parent);
         }
     },
     async safeRemove(element) {
         await element.remove();
-
     },
     getChild: (child) => {
-        if (child == null) return null;
+        if (child == null) {
+            return null;
+        }
 
         child = child.toNdElement();
-        if (child instanceof Node) return child;
+        if (child && (child instanceof Node)) {
+            return child;
+        }
 
         while (child != null && !(child instanceof Node)) {
             child = child.toNdElement?.();

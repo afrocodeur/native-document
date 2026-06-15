@@ -24,6 +24,25 @@ export const Label = HtmlElementWrapper('label');
  */
 export const P = HtmlElementWrapper('p');
 
+
+/**
+ * Parses a string containing Observable placeholders and returns an array
+ * of strings and Observable instances ready to be used as NativeDocument children.
+ *
+ * Observable placeholders are generated automatically when an ObservableItem
+ * is interpolated in a template string via its toString() method.
+ *
+ * @param {string} string - Template string with optional Observable placeholders
+ * @returns {Array<string|ObservableItem>} Mixed array of static strings and resolved Observables
+ * @example
+ * const name = Observable('John');
+ * const count = Observable(5);
+ *
+ * Text(`Hello ${name}, count: ${count}`)
+ * // → ['Hello ', ObservableItem(John), ', count: ', ObservableItem(5)]
+ */
+export const Text = (string) => string.toNdChildren();
+
 /**
  * Alias for {@link P}.
  * @type {function(GlobalAttributes=, NdChild|NdChild[]=): HTMLParagraphElement}

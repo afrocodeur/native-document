@@ -2,6 +2,9 @@
 import { ObservableItem } from './observable';
 import { BindingHydrator } from './template-cloner';
 import { NDElement } from './nd-element';
+import {AnchorAttributes,
+    AudioAttributes, CanvasAttributes, DetailsAttributes, DialogAttributes, GlobalAttributes, OlAttributes,
+    SourceAttributes, SvgAttributes, TrackAttributes, VideoAttributes, ThAttributes, ModAttributes, TdAttributes, TimeAttributes } from './globals';
 
 // - Re-export all attribute types and utilities from globals
 export type {
@@ -75,6 +78,8 @@ export type NdHTMLElement<T extends HTMLElement = HTMLElement> = T & { nd: NDEle
 // Text & structural elements
 // ---------------------------------------------------------
 
+
+export declare function Text(string: string): string | Array<string | ObservableItem>;
 export declare const Div:        ElementFunction<GlobalAttributes, HTMLDivElement>;
 export declare const Span:       ElementFunction<GlobalAttributes, HTMLSpanElement>;
 export declare const P:          ElementFunction<GlobalAttributes, HTMLParagraphElement>;

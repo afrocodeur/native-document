@@ -36,9 +36,10 @@ export const createTextNode = (value) => {
  * @returns {HTMLElement} The configured element
  */
 export const createVoidHtmlElement = (element, attributes) => {
-    ElementCreator.processAttributes(element, attributes);
+    attributes && ElementCreator.processAttributes(element, attributes);
     return element;
 };
+
 
 const OBJECT_PROTOTYPE = Object.prototype;
 /**
@@ -53,13 +54,17 @@ const OBJECT_PROTOTYPE = Object.prototype;
  */
 export const createHtmlElement = (element, _attributes, _children = null) => {
     let attributes = _attributes, children = _children;
-    if((!_attributes || !_children) && (typeof _attributes !== 'object' || Array.isArray(_attributes) || _attributes === null || Object.getPrototypeOf(_attributes) !== OBJECT_PROTOTYPE ||  _attributes.$hydrate)) { // IF it's not a JSON
+    if(_attributes?.__$isValidNdChild) { // If attributes is a ValidChild
         attributes = _children;
         children = _attributes;
     }
 
-    ElementCreator.processAttributes(element, attributes);
-    ElementCreator.processChildren(children, element);
+    if(attributes) {
+        ElementCreator.processAttributes(element, attributes);
+    }
+    if(children) {
+        ElementCreator.processChildren(children, element);
+    }
     return element;
 };
 

@@ -23,7 +23,12 @@ const MemoryManager = (function() {
             $observables.delete(id);
         },
         getObservableById(id) {
-            return $observables.get(id)?.deref();
+            const observable = $observables.get(id);
+            if(!observable) {
+                $observables.delete(id);
+                return null;
+            }
+            return observable.deref();
         },
         cleanup() {
             for (const [_, weakObservableRef] of $observables) {

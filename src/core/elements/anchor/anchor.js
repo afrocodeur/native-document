@@ -2,6 +2,7 @@ import Validator from '../../utils/validator';
 import {ElementCreator} from '../../wrappers/ElementCreator';
 import AnchorWithSentinel from './anchor-with-sentinel';
 import oneChildAnchorOverwriting from './one-child-anchor-overwriting';
+import DebugManager from '../../utils/debug-manager';
 
 /**
  * Creates an anchor fragment — a managed DocumentFragment delimited by comment sentinels.
@@ -34,7 +35,7 @@ export default function Anchor(name, isUniqueChild = false) {
         ? () => true: (parent) => (parent.firstChild === anchorStart && parent.lastChild === anchorEnd);
 
     const insertBefore = (parent, child, target) => {
-        const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+        const childElement = child.__$isNativeNode ? child : ElementCreator.getChild(child);
         insertBeforeRaw(parent, childElement, target);
     };
 
@@ -84,7 +85,7 @@ export default function Anchor(name, isUniqueChild = false) {
     anchorFragment.appendRaw = anchorFragment.appendChildRaw;
 
     anchorFragment.insertAtStart = function(child) {
-        child = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+        child = child.__$isNativeNode? child : ElementCreator.getChild(child);
         anchorFragment.insertAtStartRaw(child);
     };
 
@@ -141,7 +142,7 @@ export default function Anchor(name, isUniqueChild = false) {
     anchorFragment.delete = anchorFragment.removeWithAnchors;
 
     anchorFragment.replaceContent = function(child) {
-        const childElement = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+        const childElement = child.__$isNativeNode ? child : ElementCreator.getChild(child);
         anchorFragment.replaceContentRaw(childElement);
     };
 

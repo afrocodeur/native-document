@@ -195,16 +195,24 @@ NDElement.prototype.destroy = function() {
         observer.disconnect();
     }
 
-    this.$element?.querySelectorAll('[data--nd-before-unmount]').forEach(child => {
-        child.remove();
-        child.__$controller?.abort();
-        child.__$controller = null;
-        $lifeCycleObservers.delete(child);
-    });
+    const treewalk = document.createTreeWalker(this.$element, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    while(treewalk.nextNode()) {
+        nodes.push(treewalk.currentNode);
+    }
 
-    this.$element.__$controller?.abort();
-    this.$element.__$controller = null;
+    for(let i = 0, length = nodes.length; i < length; i++) {
+        const child = nodes[i];
+        child.remove();
+        const childObserver = $lifeCycleObservers.get(child);
+        if(childObserver) {
+            childObserver.disconnect();
+        }
+        $lifeCycleObservers.delete(child);
+    }
+
     $lifeCycleObservers.delete(this.$element);
+    this.$element.remove();
     this.$element = null;
 };
 
@@ -426,7 +434,6 @@ NDElement.prototype.style = function(style) {
     return this;
 };
 
-
 /**
  * Extends the NDElement prototype with new methods available to all NDElement instances.
  * Use this to add global methods to all NDElements.
@@ -626,7 +633,7 @@ NDElement.prototype.contentEditable = function($obs, {format = 'html'} = {}) {
 
     this.$element.addEventListener('input', () => {
         $obs?.set(getValue());
-    }, { signal: this.$getSignal() });
+    });
 
     return this;
 };

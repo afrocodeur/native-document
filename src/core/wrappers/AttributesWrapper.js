@@ -1,7 +1,8 @@
 import Validator from '../utils/validator';
-import NativeDocumentError from '../errors/NativeDocumentError';
 import {BOOL_ATTRIBUTES_NAME, BOOLEAN_ATTRIBUTES} from './constants.js';
 import {Observable} from '../data/Observable';
+
+
 
 /**
  * Applies a reactive class map to an HTMLElement.
@@ -14,7 +15,6 @@ import {Observable} from '../data/Observable';
 export const bindClassAttribute = (element, data) => {
     for(const className in data) {
         const value = data[className];
-
         if (value.__$isObservableChecker) {
             let lastClass = value.val();
             if (typeof lastClass === 'string') {
@@ -24,19 +24,19 @@ export const bindClassAttribute = (element, data) => {
                     element.classes.toggle(currentValue, true);
                     lastClass = currentValue;
                 });
-                continue;
+                return;
             }
         }
 
         if (value.__$Observable) {
             element.classes.toggle(className, value.val());
             value.subscribe((shouldAdd) => element.classes.toggle(className, shouldAdd));
-            continue;
+            return;
         }
 
         if (value.$hydrate) {
             value.$hydrate(element, className);
-            continue;
+            return;
         }
 
         element.classes.toggle(className, value);
@@ -99,7 +99,7 @@ export const bindBooleanAttribute = (element, attributeName, value) => {
     const isObservable = value.__$Observable;
     const defaultValue = isObservable? value.val() : value;
 
-    const attributeRealName = BOOL_ATTRIBUTES_NAME[attributeName];
+    const attributeRealName = BOOL_ATTRIBUTES_NAME[attributeName] || attributeName;
 
     if(typeof defaultValue === 'boolean') {
         element[attributeRealName] = defaultValue;
@@ -145,29 +145,29 @@ export const bindAttributeWithObservable = (element, attributeName, value) => {
  * @param {HTMLElement} element
  * @param {Object} attributes
  */
-const AttributesWrapper = (element, attributes) => {
+const AttributesWrapper = (element, attributes = {}) => {
 
     if(process.env.NODE_ENV === 'development') {
         Validator.validateAttributes(attributes);
     }
 
-    for(const originalAttributeName in attributes) {
-        const value = attributes[originalAttributeName];
+    for(const attributeName in attributes) {
+        const value = attributes[attributeName];
         if(value == null) {
             continue;
         }
         const type = typeof value;
         if(type === 'string' || type === 'number') {
-            element.setAttribute(originalAttributeName, value);
+            element.setAttribute(attributeName, value);
             continue;
         }
-        const attributeName = originalAttributeName.toLowerCase();
+        // const attributeName = originalAttributeName.toLowerCase();
         if(value.__$Observable) {
             if(BOOLEAN_ATTRIBUTES.has(attributeName)) {
                 bindBooleanAttribute(element, attributeName, value);
                 continue;
             }
-            bindAttributeWithObservable(element, originalAttributeName, value);
+            bindAttributeWithObservable(element, attributeName, value);
             continue;
         }
         if(type ===  'object') {

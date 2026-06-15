@@ -36,8 +36,8 @@ const buildHeader = ($desc, instance, headerId, panelId) => {
     ];
 
     const header = Div({
-        class:          'accordion-header',
-        id:             headerId,
+        class: 'accordion-header',
+        id: headerId,
         // [a11y] aria-expanded reactive, aria-controls points to panel
         'aria-expanded': $desc.expanded.transform((v) => String(v)),
         'aria-controls': panelId,
@@ -64,12 +64,12 @@ const buildIndicator = ($desc) => {
     }, '▾');
 };
 
-const buildContent = ($desc, instance) => {
+const buildContent = ($desc, instance, headerId, panelId) => {
     // [a11y] role=region + aria-labelledby on panel
     const panelProps = {
-        class:            'accordion-content',
-        id:               panelId,
-        role:             'region',
+        class: 'accordion-content',
+        id: panelId,
+        role: 'region',
         'aria-labelledby': headerId,
     };
 

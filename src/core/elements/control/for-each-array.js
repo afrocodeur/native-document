@@ -1,6 +1,7 @@
 import Anchor from '../anchor/anchor';
 import { ElementCreator } from '../../wrappers/ElementCreator';
 import NativeDocumentError from '../../errors/NativeDocumentError';
+import ForEachArrayCache from './for-each-array-cache';
 
 
 const CREATE_AND_CACHE_ACTIONS = new Set(['clear', 'push', 'unshift', 'replace']);
@@ -30,9 +31,9 @@ export function ForEachArray(data, callback, configs = {}) {
     const element = Anchor('ForEach Array', configs.isParentUniqueChild);
     const blockEnd = element.endElement();
 
-    const cache = new Map();
     let lastNumberOfItems = 0;
     const isIndexRequired = callback.length >= 2;
+    const cache = new ForEachArrayCache(isIndexRequired);
 
     const clear = (items) => {
         element.removeChildren();
@@ -64,7 +65,7 @@ export function ForEachArray(data, callback, configs = {}) {
                 throw new NativeDocumentError('ForEachArray child can\'t be null or undefined!');
             }
         }
-        cache.set(item, { child, indexObserver: null });
+        cache.set(item, child);
         return child;
     };
 
@@ -76,7 +77,7 @@ export function ForEachArray(data, callback, configs = {}) {
                 throw new NativeDocumentError('ForEachArray child can\'t be null or undefined!');
             }
         }
-        cache.set(item, { child, indexObserver  });
+        cache.set(item, child, indexObserver);
         return child;
     };
     if(!data.__$Observable) {
@@ -87,7 +88,7 @@ export function ForEachArray(data, callback, configs = {}) {
                     throw new NativeDocumentError('ForEachArray child can\'t be null or undefined!');
                 }
             }
-            cache.set(item, { child, indexObserver: null  });
+            cache.set(item, child);
             return child;
         };
     }
@@ -150,14 +151,14 @@ export function ForEachArray(data, callback, configs = {}) {
     if(Array.isArray(data)) {
         set = () => {
             clear(data);
-            element.appendChildRaw(Actions.toFragment(data));
+            Actions.appendToElement(data);
         };
     }
     else {
         set = () => {
             const items = data.val();
             clear(items);
-            element.appendChildRaw(Actions.toFragment(items));
+            Actions.appendToElement(items);
         };
     }
 
@@ -166,45 +167,36 @@ export function ForEachArray(data, callback, configs = {}) {
             const fragment = document.createDocumentFragment();
             for(let i = 0, length = items.length; i < length; i++) {
                 fragment.appendChild(buildItem(items[i], lastNumberOfItems));
-                lastNumberOfItems++;
             }
             return fragment;
         },
+        appendToElement: (items) => {
+            for(let i = 0, length = items.length; i < length; i++) {
+                element.appendChild(buildItem(items[i], i));
+            }
+        },
         add: (items) => {
-            element.appendChildRaw(Actions.toFragment(items));
+            Actions.appendToElement(items);
         },
         replace: (items) => {
             clear(items);
-            element.appendChildRaw(Actions.toFragment(items));
+            Actions.appendToElement(items);
         },
         set,
         reOrder: (items) => {
             let child = null;
-            const fragment = document.createDocumentFragment();
             for(const item of items) {
                 child = getItemChild(item);
                 if(child) {
-                    fragment.appendChild(child);
+                    element.appendChild(child);
                 }
             }
             child = null;
-            element.appendChildRaw(fragment);
         },
         removeOne: (element, index) => {
             removeCacheItem(element, true);
         },
         clear,
-        populate: ([target, iteration, callback]) => {
-            const fragment = document.createDocumentFragment();
-            for (let i = 0; i < iteration; i++) {
-                const data = callback(i);
-                target.push(data);
-                fragment.append(buildItem(data, i));
-                lastNumberOfItems++;
-            }
-            element.appendChildRaw(fragment);
-            fragment.replaceChildren();
-        },
         unshift: (values) => {
             element.insertAtStartRaw(Actions.toFragment(values));
         },

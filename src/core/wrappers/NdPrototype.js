@@ -20,64 +20,41 @@ Object.defineProperty(NDElement.prototype, 'nd', {
 });
 
 
-
 // ----------------------------------------------------------------
 // Events helpers
 // ----------------------------------------------------------------
 EVENTS.forEach(eventSourceName => {
     const eventName = eventSourceName.toLowerCase();
-    NDElement.prototype['on'+eventSourceName] = function(callback = null, options = {}) {
-        this.$element.addEventListener(eventName, callback, {
-            signal: this.$getSignal(),
-            ...options,
-        });
+    const inlineHandler = 'on'+eventName;
+    NDElement.prototype['on'+eventSourceName] = function(callback = null, options = null) {
+        if(!this.$element[inlineHandler] && !options) {
+            this.$element[inlineHandler] = callback;
+            return this;
+        }
+        this.$element.addEventListener(eventName, callback, options);
         return this;
     };
 });
 
 EVENTS_WITH_STOP.forEach(eventSourceName => {
     const eventName = eventSourceName.toLowerCase();
-    NDElement.prototype['onStop'+eventSourceName] = function(callback = null, options = {}) {
-        _stop(this.$element, eventName, callback, {
-            signal: this.$getSignal(),
-            ...options,
-        });
+    NDElement.prototype['onStop'+eventSourceName] = function(callback = null, options = null) {
+        _stop(this.$element, eventName, callback, options);
         return this;
     };
-    NDElement.prototype['onPreventStop'+eventSourceName] = function(callback = null, options = {}) {
-        _preventStop(this.$element, eventName, callback, {
-            signal: this.$getSignal(),
-            ...options,
-        });
+    NDElement.prototype['onPreventStop'+eventSourceName] = function(callback = null, options = null) {
+        _preventStop(this.$element, eventName, callback, options);
         return this;
     };
 });
 
 EVENTS_WITH_PREVENT.forEach(eventSourceName => {
     const eventName = eventSourceName.toLowerCase();
-    NDElement.prototype['onPrevent'+eventSourceName] = function(callback = null, options = {}) {
-        _prevent(this.$element, eventName, callback, {
-            signal: this.$getSignal(),
-            ...options,
-        });
+    NDElement.prototype['onPrevent'+eventSourceName] = function(callback = null, options = null) {
+        _prevent(this.$element, eventName, callback, options);
         return this;
     };
 });
-
-/**
- * Retrieves or creates an AbortController signal tied to this element's lifecycle.
- * The signal is automatically aborted when the element is removed via .nd.remove().
- * Used internally by all event listeners (onClick, onInput, etc.) to auto-cleanup on unmount.
- *
- * @internal
- * @returns {AbortSignal} The signal for this element's AbortController
- */
-NDElement.prototype.$getSignal = function() {
-    if(!this.$element.__$controller) {
-        this.$element.__$controller = new AbortController();
-    }
-    return this.$element.__$controller.signal;
-};
 
 
 /**
@@ -91,7 +68,6 @@ NDElement.prototype.$getSignal = function() {
  */
 NDElement.prototype.on = function(name, callback, options) {
     this.$element.addEventListener(name.toLowerCase(), callback, {
-        signal: this.$getSignal(),
         ...options,
     });
     return this;
@@ -119,7 +95,6 @@ NDElement.prototype.off = function(name, callback) {
  */
 NDElement.prototype.once = function(name, callback) {
     this.$element.addEventListener(name.toLowerCase(), callback, {
-        signal: this.$getSignal(),
         once: true,
     });
     return this;
@@ -151,8 +126,13 @@ const _prevent = function(element, eventName, callback, options) {
         event.preventDefault();
         callback && callback.call(element, event);
     };
+
+    const inlineHandler = 'on' + eventName;
+    if(!element[inlineHandler] && !options) {
+        element[inlineHandler] = handler;
+        return;
+    }
     element.addEventListener(eventName, handler, options);
-    return this;
 };
 
 const _stop = function(element, eventName, callback, options) {
@@ -160,6 +140,13 @@ const _stop = function(element, eventName, callback, options) {
         event.stopPropagation();
         callback && callback.call(element, event);
     };
+
+    const inlineHandler = 'on' + eventName;
+    if(!element[inlineHandler] && !options) {
+        element[inlineHandler] = handler;
+        return;
+    }
+
     element.addEventListener(eventName, handler, options);
     return this;
 };
@@ -170,6 +157,11 @@ const _preventStop = function(element, eventName, callback, options) {
         event.preventDefault();
         callback && callback.call(element, event);
     };
+    const inlineHandler = 'on' + eventName;
+    if(!element[inlineHandler] && !options) {
+        element[inlineHandler] = handler;
+        return;
+    }
     element.addEventListener(eventName, handler, options);
     return this;
 };

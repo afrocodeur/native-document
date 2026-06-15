@@ -10,7 +10,7 @@ export default function oneChildAnchorOverwriting(anchor, parent) {
     anchor.getParent = () => parent;
 
     anchor.appendChild = (child) => {
-        child = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+        child = child.__$isNativeNode ? child : ElementCreator.getChild(child);
         parent.appendChild(child);
     };
 
@@ -19,7 +19,7 @@ export default function oneChildAnchorOverwriting(anchor, parent) {
     anchor.appendRaw = anchor.appendChildRaw;
 
     anchor.insertAtStart = (child) => {
-        child = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+        child = child.__$isNativeNode ? child : ElementCreator.getChild(child);
         parent.firstChild ? parent.insertBefore(child, parent.firstChild) : parent.appendChild(child);
     };
     anchor.insertAtStartRaw = (child) => {
@@ -33,7 +33,7 @@ export default function oneChildAnchorOverwriting(anchor, parent) {
     };
 
     anchor.replaceContent = function(content) {
-        const child = Validator.isElement(content) ? content : ElementCreator.getChild(content);
+        const child = (content && content.__$isNativeNode) ? content : ElementCreator.getChild(content);
         parent.replaceChildren(child);
     };
 
@@ -43,7 +43,7 @@ export default function oneChildAnchorOverwriting(anchor, parent) {
     anchor.setContent = anchor.replaceContent;
 
     anchor.insertBefore = (child, anchor) => {
-        child = Validator.isElement(child) ? child : ElementCreator.getChild(child);
+        child = child.__$isNativeNode ? child : ElementCreator.getChild(child);
         parent.insertBefore(child, anchor);
     };
     anchor.insertBeforeRaw = (child, anchor) => {

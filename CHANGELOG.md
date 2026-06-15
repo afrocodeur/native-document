@@ -11,6 +11,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.172] - 2026-06-15
+
+### Added
+
+- `Text(string)` — shorthand for `string.toNdChildren()`, parses Observable placeholders in template strings
+- `String.prototype.toNdChildren()` — splits a string containing `{{obs:N}}` placeholders into a mixed array of strings and resolved Observables
+- `ObservableItem.prototype.toString()` — auto-registers the Observable in MemoryManager and returns `{{obs:id}}`, enabling reactive interpolation via standard template literals
+- `NDElement.prototype.className(classes)` — adds static classes, bypasses AttributesWrapper
+- `NDElement.prototype.class(className, value)` — adds a reactive class binding, bypasses AttributesWrapper
+- `__$isNativeNode` flag on DOM prototypes (`Element`, `Text`, `Comment`, `Document`, `DocumentFragment`) — faster alternative to `instanceof Node`
+- `__$isValidNdChild` flag on all valid NdChild prototypes — single property check replaces multiple type guards
+- `defineToNdElement`, `defineValidNdChild`, `defineNativeNode` — non-enumerable prototype helpers in `nd-element-extensions`
+- camelCase variants added to `BOOLEAN_ATTRIBUTES` — removes `toLowerCase()` call on each attribute in the hot path
+
+### Changed
+
+- `ElementCreator.processChildren` and `getChild` — refactored for better performance
+- `nd-element-extensions` — all prototype extensions converted to non-enumerable `defineProperty`
+- `AttributesWrapper` — `options` defaults to `null` instead of `{}`, fixes truthy check issue
+- NDElement events — inline handler (`on*`) used when no existing handler and no options; falls back to `addEventListener` for subsequent handlers or when options are provided
+- `_prevent`, `_stop`, `_preventStop` — updated with same inline handler strategy
+
+---
+
 ## [1.0.170] - 2026-06-10
 
 ### Added
@@ -216,7 +240,8 @@ Entries use the following categories:
 
 ---
 
-[Unreleased]: https://github.com/afrocodeur/native-document/compare/v1.0.170...HEAD
+[Unreleased]: https://github.com/afrocodeur/native-document/compare/v1.0.172...HEAD
+[1.0.172]: https://github.com/afrocodeur/native-document/compare/v1.0.170...v1.0.172
 [1.0.170]: https://github.com/afrocodeur/native-document/compare/v1.0.169...v1.0.170
 [1.0.169]: https://github.com/afrocodeur/native-document/compare/v1.0.167...v1.0.169
 [1.0.167]: https://github.com/afrocodeur/native-document/compare/v1.0.166...v1.0.167

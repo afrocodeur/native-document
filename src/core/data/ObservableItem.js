@@ -124,6 +124,9 @@ ObservableItem.prototype.triggerListeners = function(operations) {
  * @param {{ action?: string, args?: any[], result?: any }} [operations] - Mutation metadata
  */
 ObservableItem.prototype.triggerWatchers = function(operations) {
+    if(!this.$watchers) {
+        return;
+    }
     const $watchers = this.$watchers;
     const $previousValue = this.$previousValue;
     const $currentValue = this.$currentValue;
@@ -160,6 +163,7 @@ ObservableItem.prototype.triggerWatchersAndFirstListener = function(operations) 
     this.triggerFirstListener(operations);
 };
 
+
 /**
  * Selects and assigns the optimal trigger strategy based on the current
  * combination of listeners and watchers (internal).
@@ -167,31 +171,40 @@ ObservableItem.prototype.triggerWatchersAndFirstListener = function(operations) 
  *
  * @internal
  */
-ObservableItem.prototype.assocTrigger = function() {
+ObservableItem.prototype.$runAssocTrigger = function() {
     this.$firstListener = null;
     if(this.$watchers?.size && this.$listeners?.length) {
-        this.$firstListener = this.$listeners[0];
-        this.trigger = this.$firstListener.length === 0 ? this.$firstListener : this.triggerFirstListener;
-        this.trigger = (this.$listeners.length === 1) ? this.triggerWatchersAndFirstListener : this.triggerAll;
+        this.$trigger = (this.$listeners.length === 1) ? this.triggerWatchersAndFirstListener : this.triggerAll;
         return;
     }
     if(this.$listeners?.length) {
         if(this.$listeners.length === 1) {
             this.$firstListener = this.$listeners[0];
-            this.trigger = this.$firstListener.length === 0 ? this.$firstListener : this.triggerFirstListener;
+            this.$trigger = this.$firstListener.length === 0 ? this.$firstListener : this.triggerFirstListener;
         }
         else {
-            this.trigger = this.triggerListeners;
+            this.$trigger = this.triggerListeners;
         }
         return;
     }
     if(this.$watchers?.size) {
-        this.trigger = this.triggerWatchers;
+        this.$trigger = this.triggerWatchers;
         return;
     }
-    this.trigger = noneTrigger;
+    this.$trigger = noneTrigger;
 };
-ObservableItem.prototype.trigger = noneTrigger;
+ObservableItem.prototype.assocTrigger = function() {
+    this.$trigger = null;
+};
+Object.defineProperty(ObservableItem.prototype, 'trigger', {
+    value: function (operations) {
+        if(!this.$trigger) {
+            this.$runAssocTrigger();
+        }
+        return this.$trigger(operations);
+    },
+    configurable: false,
+});
 
 
 const $setOperation = { action: 'set' };
@@ -543,7 +556,12 @@ ObservableItem.prototype.reset = function() {
  * @returns {string} String representation of the current value
  */
 ObservableItem.prototype.toString = function() {
-    return String(this.$currentValue);
+    if(this.$id) {
+        return this.$id.toString();
+    }
+    const id = MemoryManager.register(this);
+    this.$id = id;
+    return '{{obs:'+id+'}}';
 };
 
 /**
