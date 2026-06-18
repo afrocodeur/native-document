@@ -17,8 +17,12 @@ export default function NodeCloner($element) {
     this.$styles = null;
     this.$attrs = null;
     this.$ndMethods = null;
+    this.$content = null;
 }
 
+NodeCloner.prototype.shouldBeHydrate = function() {
+    return this.$attrs !== null || this.$classes !== null || this.$styles !== null || this.$ndMethods !== null || this.$content !== null;
+};
 
 /**
  * Attaches a template binding to the element by hydrating it with the specified method.
@@ -171,16 +175,16 @@ NodeCloner.prototype.attach = function(methodName, callback) {
  * Registers a reactive text content binding for the element.
  *
  * @internal
- * @param {Function} valueorProperty - Function receiving data and returning the text content
+ * @param {Function} valueOrProperty - Function receiving data and returning the text content
  * @returns {NodeCloner} this
  */
-NodeCloner.prototype.text = function(valueorProperty) {
-    this.$content = valueorProperty;
-    if(typeof valueorProperty === 'function') {
-        this.cloneNode = (data) => createTextNode(valueorProperty.apply(null, data));
+NodeCloner.prototype.text = function(valueOrProperty) {
+    this.$content = valueOrProperty;
+    if(typeof valueOrProperty === 'function') {
+        this.cloneNode = (data) => createTextNode(valueOrProperty.apply(null, data));
         return this;
     }
-    this.cloneNode = (data) => createTextNode(data[0][valueorProperty]);
+    this.cloneNode = (data) => createTextNode(data[0][valueOrProperty]);
     return this;
 };
 

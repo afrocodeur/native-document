@@ -198,14 +198,13 @@ ObservableObject.prototype.$updateWith = ObservableObject.prototype.set;
 
 /**
  * Returns an array of all internal observable instances (one per property).
- * Alias: $observables()
  *
  * @returns {ObservableItem[]} Array of observable instances
  */
 ObservableObject.prototype.observables = function() {
     return Object.values(this.$observables);
 };
-ObservableObject.prototype.$observables = ObservableObject.prototype.observables;
+// ObservableObject.prototype.$observables = ObservableObject.prototype.observables;
 
 /**
  * Returns all property names of the observable object.

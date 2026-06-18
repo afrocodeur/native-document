@@ -18,10 +18,10 @@ import {$getFromStorage, $saveToStorage} from '../utils/localstorage';
  * @param {boolean} [configs.propagation] - Controls whether changes propagate to parent observables
  * @example
  * const count = new ObservableItem(0);
- * const name  = new ObservableItem('John', { reset: true });
+ * const name = new ObservableItem('John', { reset: true });
  */
 export default function ObservableItem(value, configs = null) {
-    value = Validator.isObservable(value) ? value.val() : value;
+    value = value?.__$Observable ? value.val() : value;
 
     this.$previousValue = null;
     this.$currentValue = value;
@@ -33,9 +33,9 @@ export default function ObservableItem(value, configs = null) {
     this.$listeners = null;
     this.$watchers = null;
 
-    this.$memoryId = null;
+    this.$id = null;
 
-    if(configs) {
+    if(configs !== null) {
         this.configs = configs;
         if(configs.reset) {
             this.$initialValue = Validator.isObject(value) ? deepClone(value) : value;
@@ -308,7 +308,7 @@ ObservableItem.prototype.cleanup = function() {
         }
         this.$cleanupListeners = null;
     }
-    MemoryManager.unregister(this.$memoryId);
+    MemoryManager.unregister(this.$id);
     this.disconnectAll();
     if(process.env.NODE_ENV === 'development') {
         this.$isCleanedUp = true;

@@ -110,7 +110,7 @@ const buildErrors = ($desc) => {
         return ShowIf($desc.hasErrors,
             () => Div({class: 'field-errors', ...($desc.elementsProps.error || {})},
                 ForEachArray($desc.errors, (error) =>
-                    Span({class: 'field-error'}, error),
+                    Span({class: 'field-error'}, (typeof error === 'string' ? error.resolve() : error)),
                 ),
             ),
         );

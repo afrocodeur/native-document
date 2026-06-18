@@ -1,6 +1,5 @@
 import Anchor from '../elements/anchor/anchor';
 import {ElementCreator} from './ElementCreator';
-import {normalizeComponentArgs} from '../utils/args-types';
 import './NdPrototype';
 
 import '../../core/utils/prototypes.js';
@@ -19,7 +18,7 @@ import '../wrappers/prototypes/attributes-extensions';
  * @returns {Text} Text node, reactive if value is an ObservableItem
  */
 export const createTextNode = (value) => {
-    if(value) {
+    if(value != null) {
         return value.toNdElement();
     }
     return ElementCreator.createTextNode();
@@ -58,11 +57,12 @@ export const createHtmlElement = (element, _attributes, _children = null) => {
         attributes = _children;
         children = _attributes;
     }
+    element = element.cloneNode();
 
-    if(attributes) {
+    if(attributes != null) {
         ElementCreator.processAttributes(element, attributes);
     }
-    if(children) {
+    if(children != null) {
         ElementCreator.processChildren(children, element);
     }
     return element;
@@ -75,6 +75,7 @@ export const createHtmlElement = (element, _attributes, _children = null) => {
  *
  * @param {string} name - HTML tag name (e.g. 'div', 'button', 'input'). Pass empty string to create a Fragment.
  * @param {((element: HTMLElement) => HTMLElement)|null} [customWrapper=null] - Optional function to augment the element before returning
+ * @param {boolean} [isVoid=false] - If true, the element is a void element (no children allowed, e.g. input, img)
  * @returns {(attr?: Object, children?: ValidChild) => HTMLElement} Element factory function
  * @example
  * const Div = HtmlElementWrapper('div');
@@ -89,14 +90,12 @@ export const createHtmlElement = (element, _attributes, _children = null) => {
 export default function  HtmlElementWrapper(name, customWrapper = null, isVoid = false) {
     const elementCreator = isVoid ? createVoidHtmlElement : createHtmlElement;
     if(name) {
-        if(customWrapper) {
+        if(customWrapper == null) {
             let node = null;
             let createElement = (attr, children) => {
                 node = document.createElement(name);
-                createElement = (attr, children) => {
-                    return elementCreator(customWrapper(node.cloneNode()), attr, children);
-                };
-                return elementCreator(customWrapper(node.cloneNode()), attr, children);;
+                createElement = elementCreator.bind(null, node);
+                return elementCreator(node.cloneNode(), attr, children);
             };
 
             return (attr, children) => createElement(attr, children);
@@ -106,9 +105,9 @@ export default function  HtmlElementWrapper(name, customWrapper = null, isVoid =
         let createElement = (attr, children) => {
             node = document.createElement(name);
             createElement = (attr, children) => {
-                return elementCreator(node.cloneNode(), attr, children);
+                return elementCreator(customWrapper(node.cloneNode()), attr, children);
             };
-            return elementCreator(node.cloneNode(), attr, children);
+            return elementCreator(customWrapper(node.cloneNode()), attr, children);;
         };
 
         return (attr, children) => createElement(attr, children);

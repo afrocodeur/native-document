@@ -1,3 +1,3 @@
-import { ObservableItem, ObservableChecker, ObservableResourceConfig, ObservableResource } from './observable';
+// import { ObservableResourceConfig, ObservableResource } from './observable';
 
-export type { ObservableResource, ObservableResourceConfig };
+// export type { ObservableResource, ObservableResourceConfig };
