@@ -21,3 +21,4 @@ interface ServiceStatic {
 }
 
 export const Service: ServiceStatic;
+export const Cache: ServiceStatic;

@@ -32,7 +32,7 @@ interface Interceptors {
     response: (callback: ResponseInterceptor) => void;
 }
 
-declare class NativeFetch {
+export declare class NativeFetch {
     constructor(baseUrl: string);
 
     interceptors: Interceptors;

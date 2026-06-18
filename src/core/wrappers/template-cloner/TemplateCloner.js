@@ -24,11 +24,11 @@ export function TemplateCloner($fn) {
 
     const assignClonerToNode = ($node) => {
         const childNodes = $node.childNodes;
-        let containDynamicNode = !!$node.nodeCloner;
+        let containDynamicNode = $node.nodeCloner?.shouldBeHydrate();
         const childNodesLength = childNodes.length;
         for(let i = 0; i < childNodesLength; i++) {
             const child = childNodes[i];
-            if(child.nodeCloner) {
+            if(child.nodeCloner && child.nodeCloner.shouldBeHydrate()) {
                 containDynamicNode = true;
             }
             const localContainDynamicNode = assignClonerToNode(child);
@@ -179,9 +179,12 @@ export function useCache(fn) {
         return node;
     };
 
+    if(fn.length === 0) {
+        return () => wrapper();
+    }
     if(fn.length < 2) {
-        return (...args) => {
-            return wrapper(args);
+        return (arg) => {
+            return wrapper([arg]);
         };
     }
     return (_, __, ...args) => {

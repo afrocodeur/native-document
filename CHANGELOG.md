@@ -11,27 +11,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.173] - 2026-06-18
+
+### Fixed
+
+- `ObservableItem` TypeScript definitions - `subscribe()` and `on()` no longer
+  typed as returning `Unsubscribe`; they return nothing in the actual
+  implementation. Use `.unsubscribe(callback)` / `.off(value, callback)` with
+  the same reference to remove a subscription.
+
+### Added
+
+- `ObservableItem` type definitions - `interceptMutations`, `clone`, `valueOf`
+- `ObservableItem` comparison helpers typed: `isEqualTo`, `isNotEqualTo`,
+  `isGreaterThan`, `isGreaterThanOrEqualTo`, `isLessThan`,
+  `isLessThanOrEqualTo`, `isBetween`, `isNull`, `isTruthy`, `isFalsy`,
+  `isStartingWith`, `isEndingWith`, `isMatchingPattern`, `isEmpty`,
+  `isNotEmpty`, `isIncludes`, `isIncludedIn`, `isOneOf`, `isHaving`
+- `ObservableItem` transform helpers typed: `toUpperCase`, `toLowerCase`,
+  `toTrimmed`, `toBoolean`, `toLiteral`, `toFormatted`, `toProperty`,
+  `toLength`, `toClamped`, `toPercent`
+- `ObservableArray` type definitions - `swapItems`, `insertAfter`, `sync`,
+  `clone`, `isNotEmpty`, `indexOf`, `includes`; `deepSubscribe` and `sync`
+  correctly typed to return `Unsubscribe`
+- `ObservableObject` type definitions - `$observables()` and `configs()` typed
+  as callable methods; `subscribe()` documented as deep-subscribing nested
+  observables and observable arrays
+- `ObservableResource` type definitions (previously entirely missing) -
+  `ResourceState`, `ObservableResourceConfig`, `data`, `error`, `state`,
+  `loading`, `fetch`, `refetch`, `mutate`, `into`, `apply`, `destroy`,
+  `isReady`, `isPending`, `isRefreshing`, `isErrored`, `isUnresolved`,
+  `onSuccess`, `onError`
+- `ObservableStatic` type definitions - `resource()`, `setLocale()`,
+  `useValueProperty()`
+
+---
+
 ## [1.0.172] - 2026-06-15
 
 ### Added
 
-- `Text(string)` — shorthand for `string.toNdChildren()`, parses Observable placeholders in template strings
-- `String.prototype.toNdChildren()` — splits a string containing `{{obs:N}}` placeholders into a mixed array of strings and resolved Observables
-- `ObservableItem.prototype.toString()` — auto-registers the Observable in MemoryManager and returns `{{obs:id}}`, enabling reactive interpolation via standard template literals
-- `NDElement.prototype.className(classes)` — adds static classes, bypasses AttributesWrapper
-- `NDElement.prototype.class(className, value)` — adds a reactive class binding, bypasses AttributesWrapper
-- `__$isNativeNode` flag on DOM prototypes (`Element`, `Text`, `Comment`, `Document`, `DocumentFragment`) — faster alternative to `instanceof Node`
-- `__$isValidNdChild` flag on all valid NdChild prototypes — single property check replaces multiple type guards
-- `defineToNdElement`, `defineValidNdChild`, `defineNativeNode` — non-enumerable prototype helpers in `nd-element-extensions`
-- camelCase variants added to `BOOLEAN_ATTRIBUTES` — removes `toLowerCase()` call on each attribute in the hot path
+- `Text(string)` - shorthand for `string.toNdChildren()`, parses Observable placeholders in template strings
+- `String.prototype.toNdChildren()` - splits a string containing `{{obs:N}}` placeholders into a mixed array of strings and resolved Observables
+- `ObservableItem.prototype.toString()` - auto-registers the Observable in MemoryManager and returns `{{obs:id}}`, enabling reactive interpolation via standard template literals
+- `NDElement.prototype.className(classes)` - adds static classes, bypasses AttributesWrapper
+- `NDElement.prototype.class(className, value)` - adds a reactive class binding, bypasses AttributesWrapper
+- `__$isNativeNode` flag on DOM prototypes (`Element`, `Text`, `Comment`, `Document`, `DocumentFragment`) - faster alternative to `instanceof Node`
+- `__$isValidNdChild` flag on all valid NdChild prototypes - single property check replaces multiple type guards
+- `defineToNdElement`, `defineValidNdChild`, `defineNativeNode` - non-enumerable prototype helpers in `nd-element-extensions`
+- camelCase variants added to `BOOLEAN_ATTRIBUTES` - removes `toLowerCase()` call on each attribute in the hot path
 
 ### Changed
 
-- `ElementCreator.processChildren` and `getChild` — refactored for better performance
-- `nd-element-extensions` — all prototype extensions converted to non-enumerable `defineProperty`
-- `AttributesWrapper` — `options` defaults to `null` instead of `{}`, fixes truthy check issue
-- NDElement events — inline handler (`on*`) used when no existing handler and no options; falls back to `addEventListener` for subsequent handlers or when options are provided
-- `_prevent`, `_stop`, `_preventStop` — updated with same inline handler strategy
+- `ElementCreator.processChildren` and `getChild` - refactored for better performance
+- `nd-element-extensions` - all prototype extensions converted to non-enumerable `defineProperty`
+- `AttributesWrapper` - `options` defaults to `null` instead of `{}`, fixes truthy check issue
+- NDElement events - inline handler (`on*`) used when no existing handler and no options; falls back to `addEventListener` for subsequent handlers or when options are provided
+- `_prevent`, `_stop`, `_preventStop` - updated with same inline handler strategy
 
 ---
 
@@ -39,34 +75,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Vitest test suite — `vitest.config.js`, happy-dom environment, scripts `test`, `test:watch`, `test:ui`, `test:coverage`
-- 372 tests passing across 13 files — 0 failures, 0 todo
+- Vitest test suite - `vitest.config.js`, happy-dom environment, scripts `test`, `test:watch`, `test:ui`, `test:coverage`
+- 372 tests passing across 13 files - 0 failures, 0 todo
 
-#### Unit tests — core
-- `observable-item` — 48 cases: set, val, subscribe, on/off, once, toggle, reset, transform, equals, clone, cleanup, intercept, assocTrigger
-- `observable-array` — 48 cases: push, remove, clear, merge, swap, insertAfter, isIncludes, where, sync, clone, reset, deepSubscribe
-- `observable-object` — 30 cases: constructor, val, get, set, subscribe, keys, observables, reset, clone
-- `observable-resource` — 29 cases: states, fetch, refetch, mutate, abort, race condition, deps, onSuccess, onError, into, apply, destroy
-- `store` — 43 cases: create, createResettable, createComposed, use, follow, reset, delete, group, protected, createPersistent
+#### Unit tests - core
+- `observable-item` - 48 cases: set, val, subscribe, on/off, once, toggle, reset, transform, equals, clone, cleanup, intercept, assocTrigger
+- `observable-array` - 48 cases: push, remove, clear, merge, swap, insertAfter, isIncludes, where, sync, clone, reset, deepSubscribe
+- `observable-object` - 30 cases: constructor, val, get, set, subscribe, keys, observables, reset, clone
+- `observable-resource` - 29 cases: states, fetch, refetch, mutate, abort, race condition, deps, onSuccess, onError, into, apply, destroy
+- `store` - 43 cases: create, createResettable, createComposed, use, follow, reset, delete, group, protected, createPersistent
 
-#### Unit tests — router
-- `route-matching` — 26 cases: exact path, params, typed params, custom validators, url(), metadata
-- `router-guards` — 14 cases: middleware execution, group middlewares, subscribe, resolve, currentState
+#### Unit tests - router
+- `route-matching` - 26 cases: exact path, params, typed params, custom validators, url(), metadata
+- `router-guards` - 14 cases: middleware execution, group middlewares, subscribe, resolve, currentState
 
-#### Unit tests — utils
-- `cache` — 12 cases: singleton, once, memoize
-- `filters` — 60 cases: equals, comparison, inArray, isEmpty, match, and/or/not, custom, string filters, date/time filters
+#### Unit tests - utils
+- `cache` - 12 cases: singleton, once, memoize
+- `filters` - 60 cases: equals, comparison, inArray, isEmpty, match, and/or/not, custom, string filters, date/time filters
 
-#### Integration tests — UI
-- `attributes-wrapper` — 22 cases: string, class map, style, Observable, boolean, aria attributes
-- `show-if` — 16 cases: static boolean, observable, factory child, HideIf, HideIfNot
-- `for-each-array` — 13 cases: static array, push, removeItem, clear, set, swap, index observable, order preservation
-- `lifecycle` — 11 cases: mounted, unmounted, destroy, destroyOnUnmount
+#### Integration tests - UI
+- `attributes-wrapper` - 22 cases: string, class map, style, Observable, boolean, aria attributes
+- `show-if` - 16 cases: static boolean, observable, factory child, HideIf, HideIfNot
+- `for-each-array` - 13 cases: static array, push, removeItem, clear, set, swap, index observable, order preservation
+- `lifecycle` - 11 cases: mounted, unmounted, destroy, destroyOnUnmount
 
 ### Fixed
 
-- `NDElement.prototype.destroy()` — guard against double call when `$element` is already null
-- `NDElement.prototype.destroy()` — disconnect lifecycle observer to prevent callbacks from firing after destroy
+- `NDElement.prototype.destroy()` - guard against double call when `$element` is already null
+- `NDElement.prototype.destroy()` - disconnect lifecycle observer to prevent callbacks from firing after destroy
 
 ---
 
@@ -98,7 +134,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### UI (renders)
 - `CardRender` + `card.css` - Card renderer with 5 build slots and `layout(slots)` support
-- `ListRender` + `list.css` - `ForEachArray($desc.items)` — items self-render
+- `ListRender` + `list.css` - `ForEachArray($desc.items)` - items self-render
 - `ListItemRender` + `list-item.css` - reactive checkbox, select indicator, swipe gesture with pointer events, auto-close and stopPropagation
 - `ListGroupRender` + `list-group.css` - collapsible group with reactive chevron via `Switch`
 - `ListDividerRender` + `list-divider.css`
@@ -240,7 +276,8 @@ Entries use the following categories:
 
 ---
 
-[Unreleased]: https://github.com/afrocodeur/native-document/compare/v1.0.172...HEAD
+[Unreleased]: https://github.com/afrocodeur/native-document/compare/v1.0.173...HEAD
+[1.0.173]: https://github.com/afrocodeur/native-document/compare/v1.0.172...v1.0.173
 [1.0.172]: https://github.com/afrocodeur/native-document/compare/v1.0.170...v1.0.172
 [1.0.170]: https://github.com/afrocodeur/native-document/compare/v1.0.169...v1.0.170
 [1.0.169]: https://github.com/afrocodeur/native-document/compare/v1.0.167...v1.0.169

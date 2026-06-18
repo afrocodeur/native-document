@@ -26,7 +26,8 @@ Object.defineProperty(NDElement.prototype, 'nd', {
 EVENTS.forEach(eventSourceName => {
     const eventName = eventSourceName.toLowerCase();
     const inlineHandler = 'on'+eventName;
-    NDElement.prototype['on'+eventSourceName] = function(callback = null, options = null) {
+    const fnName = 'on'+eventSourceName;
+    NDElement.prototype[fnName] = function(callback = null, options = null) {
         if(!this.$element[inlineHandler] && !options) {
             this.$element[inlineHandler] = callback;
             return this;
@@ -34,26 +35,58 @@ EVENTS.forEach(eventSourceName => {
         this.$element.addEventListener(eventName, callback, options);
         return this;
     };
+    if(!HTMLElement.prototype[fnName]) {
+        HTMLElement.prototype[fnName] = function(callback, options) {
+            if(!this[inlineHandler] && !options) {
+                this[inlineHandler] = callback;
+                return this;
+            }
+            this.addEventListener(eventName, callback, options);
+            return this;
+        }
+    }
 });
 
 EVENTS_WITH_STOP.forEach(eventSourceName => {
     const eventName = eventSourceName.toLowerCase();
-    NDElement.prototype['onStop'+eventSourceName] = function(callback = null, options = null) {
+    const stopFnName = 'onStop'+eventSourceName;
+    const preventStopFnName = 'onPreventStop'+eventSourceName;
+
+    NDElement.prototype[stopFnName] = function(callback = null, options = null) {
         _stop(this.$element, eventName, callback, options);
         return this;
     };
-    NDElement.prototype['onPreventStop'+eventSourceName] = function(callback = null, options = null) {
+    NDElement.prototype[preventStopFnName] = function(callback = null, options = null) {
         _preventStop(this.$element, eventName, callback, options);
         return this;
     };
+    if(HTMLElement.prototype[stopFnName]) {
+        HTMLElement.prototype[stopFnName] = function(callback = null, options = null) {
+            _stop(this, eventName, callback, options);
+            return this;
+        };
+    }
+    if(!HTMLElement.prototype[preventStopFnName]) {
+        HTMLElement.prototype[preventStopFnName] = function(callback = null, options = null) {
+            _preventStop(this, eventName, callback, options);
+            return this;
+        };
+    }
 });
 
 EVENTS_WITH_PREVENT.forEach(eventSourceName => {
     const eventName = eventSourceName.toLowerCase();
-    NDElement.prototype['onPrevent'+eventSourceName] = function(callback = null, options = null) {
+    const preventFnName = 'onPrevent'+eventSourceName;
+    NDElement.prototype[preventFnName] = function(callback = null, options = null) {
         _prevent(this.$element, eventName, callback, options);
         return this;
     };
+    if(HTMLElement.prototype[preventFnName]) {
+        HTMLElement.prototype[preventFnName] = function(callback = null, options = null) {
+            _prevent(this, eventName, callback, options);
+            return this;
+        };
+    }
 });
 
 
