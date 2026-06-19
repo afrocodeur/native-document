@@ -598,7 +598,12 @@ ObservableItem.prototype.persist = function(key, options = {}) {
     this.set(value);
     const saver = $saveToStorage(this.$currentValue);
     this.subscribe((newValue) => {
-        saver(key, options.set ? options.set(newValue) : newValue);
+        const finalValue = options.set ? options.set(newValue) : newValue;
+        if(finalValue == null) {
+            localStorage.removeItem(key);
+            return;
+        }
+        saver(key, finalValue);
     });
     return this;
 };

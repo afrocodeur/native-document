@@ -61,7 +61,7 @@ export const bindStyleAttribute = (element, data) => {
             if(isCustomProperty) {
                 element.style.setProperty(styleName, value.val());
                 value.subscribe((newValue) => {
-                    if(newValue === false) {
+                    if(newValue === false || newValue == null) {
                         element.style.removeProperty(styleName);
                         return;
                     }
@@ -70,7 +70,7 @@ export const bindStyleAttribute = (element, data) => {
             } else {
                 element.style[styleName] = value.val();
                 value.subscribe((newValue) => {
-                    if(newValue === false) {
+                    if(newValue === false || newValue == null) {
                         element.style.removeProperty(styleName);
                         return;
                     }
@@ -137,7 +137,13 @@ export const bindAttributeWithObservable = (element, attributeName, value) => {
         return;
     }
     element.setAttribute(attributeName, value.val());
-    value.subscribe((newValue) => element.setAttribute(attributeName, newValue));
+    value.subscribe((newValue) => {
+        if(newValue == null) {
+            element.removeAttribute(attributeName);
+            return;
+        }
+        element.setAttribute(attributeName, newValue);
+    });
 };
 
 /**

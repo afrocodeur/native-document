@@ -94,7 +94,7 @@ export default function  HtmlElementWrapper(name, customWrapper = null, isVoid =
             let node = null;
             let createElement = (attr, children) => {
                 node = document.createElement(name);
-                createElement = elementCreator.bind(null, node);
+                createElement = (attr, children) => elementCreator(node.cloneNode(), attr, children);
                 return elementCreator(node.cloneNode(), attr, children);
             };
 
