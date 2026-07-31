@@ -6,6 +6,8 @@ export { default as DividerRender } from './components/divider/DividerRender';
 export { default as SkeletonRender } from './components/skeleton/SkeletonRender';
 export { default as ProgressRender } from './components/progress/ProgressRender';
 export { default as ButtonRender } from './components/button/ButtonRender';
+export { default as CopyButtonRender } from './components/button/CopyButtonRender';
+export { default as PasteButtonRender } from './components/button/PasteButtonRender';
 export { default as AlertRender } from './components/alert/AlertRender';
 export { default as ToastRender } from './components/toast/ToastRender';
 export { default as PopoverRender } from './components/popover/PopoverRender';
@@ -42,6 +44,7 @@ export { default as ListItemRender } from './components/list/item/ListItemRender
 export { default as ListDividerRender } from './components/list/divider/ListDividerRender';
 
 export { default as CardRender } from './components/card/CardRender';
+export { default as DrawerRender } from './components/drawer/DrawerRender';
 
 
 export { default as TablerIconRender } from './components/icon/tabler/TablerIconRender';

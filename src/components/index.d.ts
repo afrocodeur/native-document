@@ -31,6 +31,10 @@ export type { BreadCrumb, BreadCrumbInterface, BreadCrumbDescription } from './b
 
 // --- Button ------------------------------------------------------------------
 export type { Button, ButtonInterface, ButtonDescription } from './button/types/Button';
+export type { CopyButton } from './button/types/CopyButton';
+export type { PasteButton } from './button/types/PasteButton';
+export type { SubmitButton } from './button/types/SubmitButton';
+export type { ResetButton } from './button/types/ResetButton';
 
 // --- Card --------------------------------------------------------------------
 export type { Card, CardInterface, CardDescription } from './card/types/Card';
@@ -74,7 +78,7 @@ export type { RangeField, RangeFieldInterface } from './form/types/fields/RangeF
 export type { SearchField, SearchFieldInterface } from './form/types/fields/SearchField';
 export type { FileField, FileFieldInterface } from './form/types/fields/FileField';
 export type { ImageField, ImageFieldInterface } from './form/types/fields/ImageField';
-export type { FileAvatarMode, FileAvatarModeInterface, FileAvatarModeDescription } from './form/types/fields/FileAvatarMode';
+export type { FileImagePreviewMode, FileImagePreviewModeInterface, FileImagePreviewModeDescription } from './form/types/fields/FileImagePreviewMode';
 export type { FileDropzoneMode, FileDropzoneModeInterface, FileDropzoneModeDescription } from './form/types/fields/FileDropzoneMode';
 export type { FileItemPreview, FileItemPreviewInterface, FileItemPreviewDescription } from './form/types/fields/FileItemPreview';
 export type { FileNativeMode, FileNativeModeInterface, FileNativeModeDescription } from './form/types/fields/FileNativeMode';
@@ -158,6 +162,7 @@ export type { ToastWarning, ToastWarningInterface } from './toast/types/ToastWar
 
 // --- Tooltip -----------------------------------------------------------------
 export type { Tooltip, TooltipInterface, TooltipDescription } from './tooltip/types/Tooltip';
+export type { Drawer, DrawerDescription, DrawerInterface } from './drawer/types/Drawer';
 
 
 // --- Icon -----------------------------------------------------------------

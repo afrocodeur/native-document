@@ -36,6 +36,7 @@ export default function DropdownItem(props = {}) {
         data: null,
         render: null,
         renderContent: null,
+        action: null,
         props,
     };
     this.aria = { 'role': 'option', 'tabindex': '-1' };
@@ -113,6 +114,14 @@ DropdownItem.prototype.icon = function(icon) {
  */
 DropdownItem.prototype.content = function(content) {
     this.$description.content = content;
+    return this;
+};
+/**
+ * @param {Function} action
+ * @returns {this}
+ */
+DropdownItem.prototype.action = function(action) {
+    this.$description.action = action;
     return this;
 };
 

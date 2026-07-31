@@ -59,6 +59,7 @@ Object.defineProperty(ObservableItem.prototype, '$value', {
 ObservableItem.prototype.__$Observable = true;
 ObservableItem.prototype.__$isObservable = true;
 ObservableItem.computed = () => {};
+ObservableItem.auto = () => {};
 
 const DEFAULT_OPERATIONS = {};
 const noneTrigger = function() {};
@@ -174,7 +175,12 @@ ObservableItem.prototype.triggerWatchersAndFirstListener = function(operations) 
 ObservableItem.prototype.$runAssocTrigger = function() {
     this.$firstListener = null;
     if(this.$watchers?.size && this.$listeners?.length) {
-        this.$trigger = (this.$listeners.length === 1) ? this.triggerWatchersAndFirstListener : this.triggerAll;
+        if(this.$listeners.length === 1) {
+            this.$firstListener = this.$listeners[0];
+            this.$trigger = this.triggerWatchersAndFirstListener;
+        } else {
+            this.$trigger =  this.triggerAll;
+        }
         return;
     }
     if(this.$listeners?.length) {
@@ -592,6 +598,7 @@ ObservableItem.prototype.valueOf = function() {
  */
 ObservableItem.prototype.persist = function(key, options = {}) {
     let value = $getFromStorage(key, this.$currentValue);
+    this.$persistKey = key;
     if(options.get) {
         value = options.get(value);
     }
@@ -606,6 +613,10 @@ ObservableItem.prototype.persist = function(key, options = {}) {
         saver(key, finalValue);
     });
     return this;
+};
+
+ObservableItem.prototype.persistKey = function() {
+    return this.$persistKey;
 };
 
 /**

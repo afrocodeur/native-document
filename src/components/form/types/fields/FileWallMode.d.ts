@@ -1,7 +1,9 @@
-import type { ValidChild } from '../../../../../types/elements';
+import type { ValidChild} from '../../../../../types/elements';
 import type { GlobalAttributes } from '../../../../../types/globals';
 import type { BaseComponent } from '../../../BaseComponent';
 import type { FileItemPreviewInterface } from './FileItemPreview';
+import {ObservableArray} from "../../../../../types/observable";
+import * as url from "node:url";
 
 export type FileWallModeDescription = {
     cellSize: string | number;
@@ -19,6 +21,7 @@ export interface FileWallModeInterface extends BaseComponent {
     addIcon(icon: ValidChild): this;
     renderCell(fn: (file: File, preview: FileItemPreviewInterface) => ValidChild): this;
     renderAdd(fn: () => ValidChild): this;
+    previewItemsFrom(observable: ObservableArray<Record<string, any> & { file: string } >): this;
 }
 
 

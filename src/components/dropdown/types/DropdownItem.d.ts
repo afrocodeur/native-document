@@ -25,6 +25,7 @@ export interface DropdownItemInterface extends BaseComponent {
     content(content: ValidChild): this;
     data(data: unknown): this;
     getData(): unknown;
+    action(action: Function): this;
     shortcut(shortcut: ValidChild): this;
     render(template: (description: DropdownItemDescription, instance: DropdownItemInterface) => ValidChild): this;
     renderContent(callback: (item: DropdownItemInterface) => ValidChild): this;

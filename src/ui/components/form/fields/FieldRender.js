@@ -1,5 +1,6 @@
 import {Div, Label, Input, Span, ShowIf, ForEachArray} from '../../../../../elements';
 import {buildInputWithSlots} from '../helpers';
+import {Observable} from '../../../../core/data/Observable';
 
 import './field.css';
 
@@ -106,13 +107,14 @@ const setupEvents = (input, $desc, instance) => {
 };
 
 const buildErrors = ($desc) => {
-    return ShowIf($desc.showErrors, () => {
-        return ShowIf($desc.hasErrors,
-            () => Div({class: 'field-errors', ...($desc.elementsProps.error || {})},
-                ForEachArray($desc.errors, (error) =>
-                    Span({class: 'field-error'}, (typeof error === 'string' ? error.toNdChildren() : error)),
-                ),
+    const $shouldShowErrors = Observable.computed((showErrors, hasErrors) => {
+        return showErrors && hasErrors;
+    }, [$desc.showErrors, $desc.hasErrors]);
+    return ShowIf($shouldShowErrors,
+        () => Div({class: 'field-errors', ...($desc.elementsProps.error || {})},
+            ForEachArray($desc.errors, (error) =>
+                Span({class: 'field-error'}, (typeof error === 'string' ? error.toNdChildren() : error)),
             ),
-        );
-    });
+        ),
+    );
 };

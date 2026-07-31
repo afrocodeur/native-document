@@ -1,6 +1,8 @@
 import TemplateBinding from '../TemplateBinding';
 import { $hydrateFn} from './utils';
 import NodeCloner from './NodeCloner';
+import {ElementCreator} from '../ElementCreator';
+import NativeDocumentError from '../../errors/NativeDocumentError';
 
 /**
  * Creates a high-performance template cloner for repeated rendering of the same structure.
@@ -22,7 +24,10 @@ import NodeCloner from './NodeCloner';
 export function TemplateCloner($fn) {
     let $node = null;
 
+    this.$scopeDataBuilder = null;
+
     const assignClonerToNode = ($node) => {
+        $node = ElementCreator.getChild($node);
         const childNodes = $node.childNodes;
         let containDynamicNode = $node.nodeCloner?.shouldBeHydrate();
         const childNodesLength = childNodes.length;
@@ -73,20 +78,46 @@ export function TemplateCloner($fn) {
      */
     this.clone = (data) => {
         const binder = createTemplateCloner(this);
-        $node = $fn(binder);
+        const helpers = {
+            useCallback: binder.attach.bind(binder),
+            useCallbacks: (callbacks) => {
+                for(const key in callbacks) {
+                    callbacks[key] = binder.attach(callbacks[key]);
+                }
+                return callbacks;
+            },
+            useData: (callback) => {
+                this.$scopeDataBuilder = callback;
+            },
+            use: binder.freeProps.bind(binder),
+        };
+        $node = ElementCreator.getChild($fn(binder, helpers));
         if(!$node.nodeCloner) {
             $node.nodeCloner = new NodeCloner($node);
         }
         assignClonerToNode($node);
+
+        if(this.$scopeDataBuilder) {
+            this.clone = (data) => {
+                const scopeData = this.scopeData();
+                return $node.dynamicCloneNode([...data, scopeData]);
+            };
+            return $node.dynamicCloneNode([...data, this.scopeData()]);
+        }
+
         this.clone = $node.dynamicCloneNode;
         return $node.dynamicCloneNode(data);
+    };
+
+    this.scopeData = () => {
+        return this.$scopeDataBuilder?.() || {};
     };
 
 
     const createBinding = (hydrateFunction, targetType) => {
         return new TemplateBinding((element, property) => {
             $hydrateFn(hydrateFunction, targetType, element, property);
-        });
+        }, this);
     };
 
     /**
@@ -111,6 +142,18 @@ export function TemplateCloner($fn) {
 
     this.property = (propertyName) => {
         return this.value(propertyName);
+    };
+
+    this.data = (property) => {
+        return this.freeProps((...Args) => {
+            const data = Args.at(-1);
+            if(process.env.NODE_ENV === 'development') {
+                if(!data[property]) {
+                    throw new NativeDocumentError(property + ' is not defined in useData');
+                }
+            }
+            return data[property];
+        });
     };
 
     /**
@@ -142,6 +185,16 @@ export function TemplateCloner($fn) {
         return createBinding(fn, 'attributes');
     };
 
+    this.freeProps = (callbackOrProperty) => {
+        return new TemplateBinding((element, property, type) => {
+            let targetType = type;
+            if(type === 'attribute') {
+                targetType = 'attributes';
+            }
+            $hydrateFn(callbackOrProperty, targetType, element, property);
+        });
+    };
+
     /**
      * Creates an event binding — fn(data) returns the event handler to attach.
      *
@@ -155,6 +208,13 @@ export function TemplateCloner($fn) {
     this.callback = this.attach;
 }
 
+const createDataProxy = ($binder) => {
+    return new Proxy($binder, {
+        get(target, key) {
+            return target.data(key);
+        },
+    });
+};
 
 const createTemplateCloner = ($binder) => {
     return new Proxy($binder, {
@@ -162,18 +222,98 @@ const createTemplateCloner = ($binder) => {
             if(prop in target) {
                 return target[prop];
             }
-            if (typeof prop === 'symbol') return target[prop];
-            return target.value(prop);
+            if (typeof prop === 'symbol') {
+                return target[prop];
+            }
+            if(prop === '$data') {
+                return createDataProxy($binder);
+            }
+            return target.freeProps(prop);
         },
     });
 };
 
+/**
+ * Creates a high-performance template factory that compiles once and clones efficiently.
+ * The template function is called only on the first render to build and optimise the DOM
+ * structure. Subsequent calls clone the compiled result and hydrate it with new data.
+ *
+ * Execution happens in three distinct phases:
+ *
+ * **Phase 1 — Compilation** (runs once, on first call)
+ * The template function receives `$scope` — a binding proxy. Accessing `$scope.name`,
+ * `$scope.color` etc. declares bindings on the template node without reading values yet.
+ * `$scope.$data` provides direct bindings to local state properties declared via `useData`.
+ * The DOM structure is built and optimised during this phase.
+ *
+ * **Phase 2 — Hydration** (runs once per clone)
+ * `useData(() => ({ ... }))` creates isolated local state for each cloned instance.
+ * The factory is called once per item — every clone gets its own independent state object.
+ *
+ * **Phase 3 — Runtime** (runs on each interaction or reactive update)
+ * `useCallback`, `useCallbacks` and `use` callbacks receive the same arguments as the
+ * template function, plus the local state object as the last argument:
+ * - `item`  — the actual item data at the time of execution
+ * - `index` — position in the list (when used with ForEachArray)
+ * - `data`  — the local state for this specific clone (from useData)
+ *
+ * @template T
+ * @param {(
+ *   $scope: T & { $data: Record<string, any> },
+ *   helpers: {
+ *     useData: (factory: () => Record<string, any>) => void,
+ *     useCallback: (fn: (item: T, index: number, data: Record<string, any>) => EventListener) => TemplateBinding,
+ *     useCallbacks: (callbacks: Record<string, (item: T, index: number, data: Record<string, any>) => EventListener>) => Record<string, TemplateBinding>,
+ *     use: (fn: (item: T, index: number, data: Record<string, any>) => any) => TemplateBinding,
+ *   }
+ * ) => HTMLElement} fn - Template builder function called once during compilation
+ * @returns {(item: T, index?: number) => HTMLElement} Factory function — pass directly to ForEachArray or call manually
+ *
+ * @example
+ * const UserRow = useCache(($scope, { useData, useCallback, useCallbacks, use }) => {
+ *
+ *     // Phase 1 — declare bindings (runs once)
+ *     const color = $scope.color;
+ *     // Bind directly from local state via $scope.$data
+ *     const selectedClass = $scope.$data.selected;
+ *
+ *     // Phase 2 — local state per clone (runs once per item)
+ *     useData(() => ({
+ *         selected: $(false),
+ *     }));
+ *
+ *     // Phase 3 — runtime callbacks (run on interaction)
+ *
+ *     // Single callback
+ *     const toggle = useCallback((item, index, data) => {
+ *         data.selected.toggle();
+ *     });
+ *
+ *     // Multiple callbacks at once
+ *     const { select, deselect } = useCallbacks({
+ *         select:   (item, index, data) => data.selected.set(true),
+ *         deselect: (item, index, data) => data.selected.set(false),
+ *     });
+ *
+ *     const isSelected = use((item, index, data) => {
+ *         return data.selected.val() ? 'is-selected' : '';
+ *     });
+ *
+ *     return Div({ class: isSelected, style: { color } }, Strong($scope.name))
+ *         .onClick(toggle);
+ * });
+ *
+ * // Pass directly to ForEachArray
+ * ForEachArray($users, UserRow)
+ *
+ * // Or call manually
+ * UserRow(item, index)
+ */
 export function useCache(fn) {
     let $cache = null;
 
     let wrapper = (args) => {
         $cache = new TemplateCloner(fn);
-
         const node = $cache.clone(args);
         wrapper = $cache.clone;
         return node;

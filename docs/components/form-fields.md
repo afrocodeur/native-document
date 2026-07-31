@@ -361,7 +361,7 @@ Tokens spécifiques au `Slider` / `RangeField` :
 }
 ```
 
-Tokens spécifiques à `FileAvatarMode` :
+Tokens spécifiques à `FileImagePreviewMode` :
 
 ```css
 :root {

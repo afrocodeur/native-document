@@ -18,6 +18,7 @@ export default function NodeCloner($element) {
     this.$attrs = null;
     this.$ndMethods = null;
     this.$content = null;
+    this.$uniqueCallbacks= new Map();
 }
 
 NodeCloner.prototype.shouldBeHydrate = function() {
@@ -49,101 +50,140 @@ NodeCloner.prototype.__$isNodeCloner = true;
 
 const buildProperties = (cache, properties, data) => {
     for(const key in properties) {
-        cache[key] = properties[key].apply(null, data);
+        const value = properties[key];
+        cache[key] = getPropertyValue(value, data);
     }
     return cache;
 };
 
+const getPropertyValue = (callbackOrProperty, data) => {
+    if(callbackOrProperty?.__$Observable) {
+        return callbackOrProperty;
+    }
+    const value = (typeof callbackOrProperty ==='string') ? data[0][callbackOrProperty] :  callbackOrProperty;
+    return (typeof value === 'function') ? value.apply(this, data) : value;
+};
+
+
+const $nodeClonerCallbackCaller = function(callback, event) {
+    const data = event.currentTarget.$ndScopeData;
+    callback.apply(event.currentTarget, [...data, event]);
+};
+
+NodeCloner.prototype.resolveMethods = function() {
+    for(const methodName in this.$ndMethods) {
+        const callback = this.$ndMethods[methodName];
+        this.$ndMethods[methodName] = $nodeClonerCallbackCaller.bind($nodeClonerCallbackCaller, callback);
+    }
+};
 /**
  * Pre-compiles all registered bindings into a sequence of optimised steps.
  * Called once before the first clone operation. Subsequent calls are no-ops.
  *
  * @internal
  */
-NodeCloner.prototype.resolve = function() {
-    if(this.$content) {
-        return;
-    }
-    const steps = [];
-    if(this.$ndMethods) {
-        const methods = Object.keys(this.$ndMethods);
-        if(methods.length === 1) {
-            const methodName = methods[0];
+NodeCloner.prototype.$cleanResolve = function() {
+    const fns = [];
+    const fnsParamNames = [];
+    const fnsParams = [];
+
+    const $element = this.$element;
+
+    if(this.$ndMethods !== null) {
+        const methodNames = Object.keys(this.$ndMethods);
+        if(methodNames.length === 1) {
+            const methodName = methodNames[0];
             const callback = this.$ndMethods[methodName];
-            steps.push((clonedNode, data) => {
-                clonedNode.nd[methodName](callback.bind(clonedNode, ...data));
-            });
+            if($element[methodName]) {
+                fns.push(`clonedNode.${methodName}(callback)`);
+            } else {
+                fns.push(`clonedNode.nd.${methodName}(callback)`);
+            }
+            fnsParamNames.push('callback');
+            fnsParams.push(callback);
         } else {
-            steps.push((clonedNode, data) => {
-                const nd = clonedNode.nd;
-                for(const methodName in this.$ndMethods) {
-                    nd[methodName](this.$ndMethods[methodName].bind(clonedNode, ...data));
+
+            for(const methodName in this.$ndMethods) {
+                const callbackName = methodName+'Callback';
+                const callback = this.$ndMethods[methodName];
+                if($element[methodName]) {
+                    fns.push(`clonedNode.${methodName}(${callbackName})`);
+                } else {
+                    fns.push(`clonedNode.nd.${methodName}(${callbackName})`);
                 }
-            });
+                fnsParamNames.push(callbackName);
+                fnsParams.push(callback);
+            }
         }
     }
-    if(this.$classes) {
+    if(this.$classes !== null) {
         const cache = {};
         const keys = Object.keys(this.$classes);
 
         if(keys.length === 1) {
             const key = keys[0];
             const callback = this.$classes[key];
-            steps.push((clonedNode, data) => {
-                cache[key] = callback.apply(null, data);
-                ElementCreator.processClassAttribute(clonedNode, cache);
-            });
+            fns.push(`ElementCreator.processClassAttribute(clonedNode, { ${key}: getPropertyValue(getPropertyValueCallback, data) })`);
+            fnsParamNames.push('getPropertyValueCallback');
+            fnsParams.push(callback);
         } else {
-            steps.push((clonedNode, data) => {
-                ElementCreator.processClassAttribute(clonedNode, buildProperties(cache, this.$classes, data));
-            });
+            fns.push(`const classesCache = {}`);
+            fns.push(`ElementCreator.processClassAttribute(clonedNode, buildProperties(classesCache, $classes, data))`);
+            fnsParamNames.push('$classes');
+            fnsParams.push(this.$classes);
         }
     }
-    if(this.$styles) {
+    if(this.$styles !== null) {
         const cache = {};
         const keys = Object.keys(this.$styles);
 
         if(keys.length === 1) {
             const key = keys[0];
             const callback = this.$styles[key];
-            steps.push((clonedNode, data) => {
-                cache[key] = callback.apply(null, data);
-                ElementCreator.processStyleAttribute(clonedNode, cache);
-            });
+            fns.push(`ElementCreator.processStyleAttribute(clonedNode, { ${key}: getPropertyValue(getStyleValueCallback, data) } )`);
+            fnsParamNames.push('getStyleValueCallback');
+            fnsParams.push(callback);
         } else {
-            steps.push((clonedNode, data) => {
-                ElementCreator.processStyleAttribute(clonedNode, buildProperties(cache, this.$styles, data));
-            });
+            fns.push(`const stylesCache = {}`);
+            fns.push(`ElementCreator.processStyleAttribute(clonedNode, buildProperties(stylesCache, $styles, data))`);
+            fnsParamNames.push('$styles');
+            fnsParams.push(this.$styles);
         }
     }
-    if(this.$attrs) {
+    if(this.$attrs !== null) {
         const cache = {};
         const keys = Object.keys(this.$attrs);
 
         if(keys.length === 1) {
             const key = keys[0];
             const callback = this.$attrs[key];
-            steps.push((clonedNode, data) => {
-                cache[key] = callback.apply(null, data);
-                ElementCreator.processAttributes(clonedNode, cache);
-            });
+            fns.push(`ElementCreator.processAttributes(clonedNode, { ${key}: getPropertyValue(getAttrValueCallback, data) } )`);
+            fnsParamNames.push('getAttrValueCallback');
+            fnsParams.push(callback);
         } else {
-            steps.push((clonedNode, data) => {
-                ElementCreator.processAttributes(clonedNode, buildProperties(cache, this.$attrs, data));
-            });
+            fns.push(`const attrsCache = {}`);
+            fns.push(`ElementCreator.processAttributes(clonedNode, buildProperties(attrsCache, this.$attrs, data))`);
+            fnsParamNames.push('$attrs');
+            fnsParams.push(this.$attrs);
         }
     }
 
-    const stepsCount = steps.length;
-    const $element = this.$element;
+    fnsParamNames.push('ElementCreator', 'buildProperties', 'getPropertyValue', '$element', 'data');
+    fnsParams.push(ElementCreator, buildProperties, getPropertyValue, $element);
+    fns.unshift('const clonedNode = $element.cloneNode(false)', 'clonedNode.$ndScopeData = data');
+    fns.push('return clonedNode');
 
-    this.cloneNode = (data) => {
-        const clonedNode = $element.cloneNode(false);
-        for(let i = 0; i < stepsCount; i++) {
-            steps[i](clonedNode, data);
-        }
-        return clonedNode;
-    };
+    this.cloneNode = (new Function(fnsParamNames, fns.join(';'))).bind(null, ...fnsParams);
+};
+
+NodeCloner.prototype.resolve = function() {
+    if(this.$content) {
+        return;
+    }
+    this.resolveMethods();
+    this.$cleanResolve();
+    this.resolve = this.$cleanResolve();
+    return this;
 };
 
 /**
@@ -180,11 +220,7 @@ NodeCloner.prototype.attach = function(methodName, callback) {
  */
 NodeCloner.prototype.text = function(valueOrProperty) {
     this.$content = valueOrProperty;
-    if(typeof valueOrProperty === 'function') {
-        this.cloneNode = (data) => createTextNode(valueOrProperty.apply(null, data));
-        return this;
-    }
-    this.cloneNode = (data) => createTextNode(data[0][valueOrProperty]);
+    this.cloneNode = (data) => createTextNode(getPropertyValue(valueOrProperty, data));
     return this;
 };
 
@@ -207,7 +243,8 @@ NodeCloner.prototype.attr = function(attrName, value) {
         this.$styles[value.property] = value.value;
         return this;
     }
+
     this.$attrs = this.$attrs || {};
-    this.$attrs[attrName] = value.value;
+    this.$attrs[value.property] = value.value;
     return this;
 };

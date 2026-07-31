@@ -123,13 +123,18 @@ Avatar.prototype.alt = function(alt) {
 
 /**
  * Sets the name associated with the avatar
- * @param {string} name - The name
+ * @param {string|Observable} name - The name
  * @returns {Avatar}
  */
 Avatar.prototype.name = function(name) {
     this.$description.name = name;
     if(!this.$description.initials) {
-        this.$description.initials = name.split(' ').map(n => n[0]).join('');
+        if(name.__$Observable) {
+            this.$description.initials = name.format((value) => value.split(' ').map(n => n[0]).join(''));
+        }
+        else {
+            this.$description.initials = name.split(' ').map(n => n[0]).join('');
+        }
     }
     return this;
 };

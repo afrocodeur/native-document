@@ -5,6 +5,7 @@ export * from './src/components/badge/index';
 export * from './src/components/breadcrumb/index';
 export * from './src/components/button/index';
 export * from './src/components/card/index';
+export * from './src/components/drawer/index';
 export * from './src/components/context-menu/index';
 export * from './src/components/divider/index';
 export * from './src/components/dropdown/index';

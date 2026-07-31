@@ -28,6 +28,10 @@ EVENTS.forEach(eventSourceName => {
     const inlineHandler = 'on'+eventName;
     const fnName = 'on'+eventSourceName;
     NDElement.prototype[fnName] = function(callback = null, options = null) {
+        if(callback.__$isTemplateBinding) {
+            this.attach(fnName, callback);
+            return this;
+        }
         if(!this.$element[inlineHandler] && !options) {
             this.$element[inlineHandler] = callback;
             return this;
@@ -37,37 +41,58 @@ EVENTS.forEach(eventSourceName => {
     };
     if(!HTMLElement.prototype[fnName]) {
         HTMLElement.prototype[fnName] = function(callback, options) {
+            if(callback.__$isTemplateBinding) {
+                this.nd.attach(fnName, callback);
+                return this;
+            }
             if(!this[inlineHandler] && !options) {
                 this[inlineHandler] = callback;
                 return this;
             }
             this.addEventListener(eventName, callback, options);
             return this;
-        }
+        };
     }
 });
 
 EVENTS_WITH_STOP.forEach(eventSourceName => {
     const eventName = eventSourceName.toLowerCase();
     const stopFnName = 'onStop'+eventSourceName;
-    const preventStopFnName = 'onPreventStop'+eventSourceName;
 
     NDElement.prototype[stopFnName] = function(callback = null, options = null) {
+        if(callback.__$isTemplateBinding) {
+            this.attach(stopFnName, callback);
+            return this;
+        }
         _stop(this.$element, eventName, callback, options);
         return this;
     };
-    NDElement.prototype[preventStopFnName] = function(callback = null, options = null) {
-        _preventStop(this.$element, eventName, callback, options);
-        return this;
-    };
-    if(HTMLElement.prototype[stopFnName]) {
+    if(!HTMLElement.prototype[stopFnName]) {
         HTMLElement.prototype[stopFnName] = function(callback = null, options = null) {
+            if(callback.__$isTemplateBinding) {
+                this.nd.attach(stopFnName, callback);
+                return this;
+            }
             _stop(this, eventName, callback, options);
             return this;
         };
     }
+    // ------
+    const preventStopFnName = 'onPreventStop'+eventSourceName;
+    NDElement.prototype[preventStopFnName] = function(callback = null, options = null) {
+        if(callback.__$isTemplateBinding) {
+            this.attach(preventStopFnName, callback);
+            return this;
+        }
+        _preventStop(this.$element, eventName, callback, options);
+        return this;
+    };
     if(!HTMLElement.prototype[preventStopFnName]) {
         HTMLElement.prototype[preventStopFnName] = function(callback = null, options = null) {
+            if(callback.__$isTemplateBinding) {
+                this.nd.attach(preventStopFnName, callback);
+                return this;
+            }
             _preventStop(this, eventName, callback, options);
             return this;
         };
@@ -78,11 +103,19 @@ EVENTS_WITH_PREVENT.forEach(eventSourceName => {
     const eventName = eventSourceName.toLowerCase();
     const preventFnName = 'onPrevent'+eventSourceName;
     NDElement.prototype[preventFnName] = function(callback = null, options = null) {
+        if(callback.__$isTemplateBinding) {
+            this.attach(preventFnName, callback);
+            return this;
+        }
         _prevent(this.$element, eventName, callback, options);
         return this;
     };
-    if(HTMLElement.prototype[preventFnName]) {
+    if(!HTMLElement.prototype[preventFnName]) {
         HTMLElement.prototype[preventFnName] = function(callback = null, options = null) {
+            if(callback.__$isTemplateBinding) {
+                this.nd.attach(preventFnName, callback);
+                return this;
+            }
             _prevent(this, eventName, callback, options);
             return this;
         };

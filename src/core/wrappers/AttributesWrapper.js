@@ -35,7 +35,7 @@ export const bindClassAttribute = (element, data) => {
         }
 
         if (value.$hydrate) {
-            value.$hydrate(element, className);
+            value.$hydrate(element, className, 'class');
             return;
         }
 
@@ -83,6 +83,10 @@ export const bindStyleAttribute = (element, data) => {
         if(isCustomProperty) {
             element.style.setProperty(styleName, value);
             continue;
+        }
+
+        if(value.$hydrate) {
+            value.$hydrate(element, styleName, 'style');
         }
 
         element.style[styleName] = value;
@@ -167,6 +171,10 @@ const AttributesWrapper = (element, attributes = {}) => {
             element.setAttribute(attributeName, value);
             continue;
         }
+        // if(value.$hydrate) {
+        //     value.$hydrate(element,  attributeName, 'attribute');
+        //     continue;
+        // }
         // const attributeName = originalAttributeName.toLowerCase();
         if(value.__$Observable) {
             if(BOOLEAN_ATTRIBUTES.has(attributeName)) {
@@ -190,8 +198,9 @@ const AttributesWrapper = (element, attributes = {}) => {
             bindBooleanAttribute(element, attributeName, value);
             continue;
         }
+
         if(value.__$isTemplateBinding) {
-            value.$hydrate(element, attributeName);
+            value.$hydrate(element, attributeName, 'attribute');
         }
 
         element.setAttribute(attributeName, value);

@@ -1,16 +1,21 @@
 :root {
-    --file-avatar-radius-circle: 50%;
-    --file-avatar-radius-square: 12px;
-    --file-avatar-badge-size: 26px;
+    --file-image-preview-radius-circle: 50%;
+    --file-image-preview-radius-square: 12px;
+    --file-image-preview-badge-size: 26px;
+    --cover-aspect-ratio: 16 / 9;
+    --cover-border-radius: 12px;
+    --cover-overlay-bg: rgba(0, 0, 0, 0.5);
+    --cover-transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --file-image-preview-size: 100%;
 }
 
-.file-avatar-wrapper {
+.file-image-preview-wrapper {
     position: relative;
     display: inline-block;
     cursor: pointer;
 }
 
-.file-avatar {
+.file-image-preview {
     overflow: hidden;
     background: var(--gray-lite-5);
     border: 1px solid var(--field-input-border);
@@ -20,11 +25,37 @@
     flex-shrink: 0;
     position: relative;
 
-    &.is-circle { border-radius: var(--file-avatar-radius-circle); }
-    &.is-square { border-radius: var(--file-avatar-radius-square); }
+    &.is-circle,
+    &.is-square {
+    }
+    &.is-circle {
+        border-radius: var(--file-image-preview-radius-circle);
+    }
+    &.is-square {
+        border-radius: var(--file-image-preview-radius-square);
+    }
+
+    &.is-avatar-mode {
+        width: var(--file-image-preview-size);
+        height: var(--file-image-preview-size);
+    }
+    &.is-cover-mode {
+        position: relative;
+        width: var(--file-image-preview-size);
+        aspect-ratio: var(--cover-aspect-ratio);
+        border-radius: var(--cover-border-radius);
+        overflow: hidden;
+        background-color: #f3f4f6;
+        border: 1px dashed #d1d5db;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--cover-transition);
+    }
 }
 
-.file-avatar-img {
+.file-image-preview-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -33,7 +64,7 @@
     inset: 0;
 }
 
-.file-avatar-placeholder {
+.file-image-preview-placeholder {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -41,13 +72,13 @@
     height: 100%;
 }
 
-.file-avatar-placeholder-icon {
+.file-image-preview-placeholder-icon {
     font-size: 36px;
 }
 
 /* Hover overlay variant */
-.file-avatar-wrapper.is-hover-overlay {
-    .file-avatar-overlay {
+.file-image-preview-wrapper.is-hover-overlay {
+    .file-image-preview-overlay {
         position: absolute;
         inset: 0;
         background: rgba(0, 0, 0, 0.4);
@@ -58,26 +89,26 @@
         transition: opacity 0.15s ease;
     }
 
-    &.is-circle .file-avatar-overlay { border-radius: var(--file-avatar-radius-circle); }
-    &.is-square .file-avatar-overlay { border-radius: var(--file-avatar-radius-square); }
+    &.is-circle .file-image-preview-overlay { border-radius: var(--file-image-preview-radius-circle); }
+    &.is-square .file-image-preview-overlay { border-radius: var(--file-image-preview-radius-square); }
 
-    &:hover .file-avatar-overlay {
+    &:hover .file-image-preview-overlay {
         opacity: 1;
     }
 
-    .file-avatar-overlay-icon {
+    .file-image-preview-overlay-icon {
         font-size: 24px;
     }
 }
 
 /* Corner badge variant */
-.file-avatar-wrapper.is-corner-badge {
-    .file-avatar-badge {
+.file-image-preview-wrapper.is-corner-badge {
+    .file-image-preview-badge {
         position: absolute;
         bottom: 0;
         right: 0;
-        width: var(--file-avatar-badge-size);
-        height: var(--file-avatar-badge-size);
+        width: var(--file-image-preview-badge-size);
+        height: var(--file-image-preview-badge-size);
         border-radius: 50%;
         background: var(--background);
         border: 1px solid var(--field-input-border);
@@ -95,19 +126,19 @@
 }
 
 /* Action buttons variant */
-.file-avatar-action-wrapper {
+.file-image-preview-action-wrapper {
     display: flex;
     align-items: center;
     gap: var(--space-comfortable);
 }
 
-.file-avatar-actions {
+.file-image-preview-actions {
     display: flex;
     flex-direction: column;
     gap: var(--space-cozy);
 }
 
-.file-avatar-btn {
+.file-image-preview-btn {
     display: inline-flex;
     align-items: center;
     padding: var(--space-cozy) var(--space-comfortable);

@@ -61,6 +61,7 @@ export default function PopoverRender($desc, instance, classPrefix = 'popover') 
 
 
     let position;
+    const isSupportsPopover = supportsPopover();
     const updatePosition = (state) => {
         if(!state) {
             return;
@@ -79,7 +80,7 @@ export default function PopoverRender($desc, instance, classPrefix = 'popover') 
             if($desc.showIf && $desc.showIf.val() === false) {
                 return;
             }
-            if(supportsPopover()) {
+            if(isSupportsPopover) {
                 popover.showPopover();
             }
 

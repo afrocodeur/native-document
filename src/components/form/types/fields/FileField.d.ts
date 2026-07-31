@@ -2,7 +2,7 @@ import type { ValidChild } from '../../../../../types/elements';
 import type { ObservableItem } from '../../../../../types/observable';
 import type { GlobalAttributes } from '../../../../../types/globals';
 import type { FieldInterface } from '../Field';
-import type { FileItemPreviewInterface } from './FileItemPreview';
+import {FileItemPreviewDescription, FileItemPreviewInterface} from './FileItemPreview';
 
 export type FileFieldDescription = {
     name: string;
@@ -31,10 +31,11 @@ export interface FileFieldInterface extends Omit<FieldInterface, 'render' | 'res
     extensions(extensions: string[], message?: string): this;
     maxFiles(max: number, message?: string): this;
     minFiles(min: number, message?: string): this;
-    onFileAdd(handler: (file: File) => void): this;
+    onSelectFile(handler: (file: File) => void): this;
+    onAddFile(handler: (file: FileItemPreviewInterface) => void): this;
     onReset(handler: () => void): this;
-    onFileRemove(handler: (file: File) => void): this;
-    addFile(file: File, update?: boolean): this;
+    onRemoveFile(handler: (file: FileItemPreviewInterface) => void): this;
+    addFile(file: FileItemPreviewInterface, update?: boolean): this;
     setFiles(files: File[]): this;
     addFiles(files: File[]): this;
     removeFile(file: File): this;

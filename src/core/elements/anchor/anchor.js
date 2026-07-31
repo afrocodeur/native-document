@@ -35,7 +35,7 @@ export default function Anchor(name, isUniqueChild = false) {
         ? () => true: (parent) => (parent.firstChild === anchorStart && parent.lastChild === anchorEnd);
 
     const insertBefore = (parent, child, target) => {
-        const childElement = child.__$isNativeNode ? child : ElementCreator.getChild(child);
+        const childElement = ElementCreator.getChild(child);
         insertBeforeRaw(parent, childElement, target);
     };
 

@@ -57,7 +57,14 @@ function buildContent($desc) {
     }
 
     if($desc.initials || $desc.name) {
-        return Span({class: 'avatar-initials'}, $desc.initials || $desc.name.split(' ').map(n => n[0]).join(''));
+        let initials = $desc.initials;
+        if(!initials) {
+            initials = $desc.name;
+            if($desc.anme.__$Observable) {
+                initials = $desc.name.format((name) => name.split(' ').map(n => n[0]).join(''));
+            }
+        }
+        return Span({class: 'avatar-initials'}, initials);
     }
 
     if($desc.icon) {

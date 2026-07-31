@@ -1,10 +1,14 @@
-import {Div, Input, Span, ForEachArray} from '../../../../../elements';
+import {Div, Input, Span, ForEachArray, ShowIf} from '../../../../../elements';
 import {getFileThumbnail} from '../helpers';
+import FileItemPreview from '../../../../components/form/field/types/file-field-mode/FileItemPreview';
+import { $ } from '../../../../core/data/Observable';
 
 import './file-wall-mode.css';
 
 export default function FileWallModeRender($desc, modeInstance) {
     const {$files, fieldDesc, fieldInstance} = $desc.$context;
+
+    const data  = $desc.previewItemsFrom ?? $files;
 
     const input = buildInput(fieldDesc, fieldInstance, $files);
 
@@ -15,8 +19,12 @@ export default function FileWallModeRender($desc, modeInstance) {
     return Div({class: 'file-wall-wrapper'}, [
         input,
         Div({class: 'file-wall'}, [
-            ForEachArray($files, addCell),
-            buildAddCell($desc, input, modeInstance),
+            fieldDesc.defaultValue ? ForEachArray(fieldDesc.defaultValue, (file) => addCell(new FileItemPreview(file))) : null,
+            ForEachArray(data, (item) => {
+                item = item instanceof FileItemPreview ? item : new FileItemPreview(item);
+                return addCell(item);
+            }),
+            buildAddCell($desc, input, modeInstance, data),
         ]),
     ]);
 }
@@ -64,7 +72,7 @@ const buildCell = (item, $desc, modeInstance, fieldInstance) => {
     return cell;
 };
 
-const buildAddCell = ($desc, input, modeInstance) => {
+const buildAddCell = ($desc, input, modeInstance, $previewList) => {
     let cell = null;
     const size = $desc.cellSize || 100;
 
@@ -79,6 +87,18 @@ const buildAddCell = ($desc, input, modeInstance) => {
     }
 
     cell.nd.onClick(() => input.click());
+
+    if($desc.maxFiles > 0) {
+        let nbTotalPreview = null;
+        if($desc.defaultValue) {
+            nbTotalPreview = $.computed((defaults, list) => {
+                return defaults.length + list.length;
+            }, [$desc.defaultValue, $previewList]);
+        } else {
+            nbTotalPreview = $previewList.toLength();
+        }
+        return ShowIf(nbTotalPreview.isLessThanOrEqualTo($desc.maxFiles), cell);
+    }
 
     return cell;
 };

@@ -14,8 +14,8 @@ import FileItemPreview from '../../field/types/file-field-mode/FileItemPreview';
  *     .maxSize(5 * 1024 * 1024, 'Max 5MB per file')
  *     .maxFiles(3, 'Max 3 files')
  *     .mode(FileDropzoneMode())
- *     .onFileAdd((file) => console.log('added', file.name))
- *     .onFileRemove((file) => console.log('removed', file.name));
+ *     .onAddFile((file) => console.log('added', file.name))
+ *     .onRemoveFile((file) => console.log('removed', file.name));
  *
  * FileField.use((description, instance) => {
  *     // description.accept, description.multiple, description.mode,
@@ -40,6 +40,7 @@ export default function FileField(name, props = {}) {
         mode:     null,
         files:    $.array([]),
         fileIcons: [],
+        maxFiles: null,
         props,
     });
 }
@@ -54,7 +55,7 @@ FileField.defaultTemplate = null;
  *     label: NdChild|null,
  *     accept: string|null,
  *     multiple: boolean,
- *     mode: FileNativeMode|FileAvatarMode|FileDropzoneMode|FileUploadButtonMode|FileWallMode|null,
+ *     mode: FileNativeMode|FileImagePreviewMode|FileDropzoneMode|FileUploadButtonMode|FileWallMode|null,
  *     files: Observable<FileItemPreview[]>,
  *     fileIcons: Array<(file: File) => NdChild>,
  *     disabled: boolean|Observable<boolean>,
@@ -91,7 +92,7 @@ FileField.prototype.multiple = function(enabled = true) {
 };
 
 /**
- * @param {FileNativeMode|FileAvatarMode|FileDropzoneMode|FileUploadButtonMode|FileWallMode|null} mode
+ * @param {FileNativeMode|FileImagePreviewMode|FileDropzoneMode|FileUploadButtonMode|FileWallMode|null} mode
  * @returns {this}
  */
 FileField.prototype.mode = function(mode) {
@@ -141,6 +142,7 @@ FileField.prototype.extensions = function(extensions, message) {
  * @returns {this}
  */
 FileField.prototype.maxFiles = function(max, message) {
+    this.$description.maxFiles = max;
     return this.addRule(Validation.maxFiles, [max], message);
 };
 
@@ -154,11 +156,20 @@ FileField.prototype.minFiles = function(min, message) {
 };
 
 /**
+ * @param {(file: FileItemPreview) => void} handler
+ * @returns {this}
+ */
+FileField.prototype.onAddFile = function(handler) {
+    this.on('fileAdd', handler);
+    return this;
+};
+
+/**
  * @param {(file: File) => void} handler
  * @returns {this}
  */
-FileField.prototype.onFileAdd = function(handler) {
-    this.on('fileAdd', handler);
+FileField.prototype.onSelectFile = function(handler) {
+    this.on('selectFile', handler);
     return this;
 };
 
@@ -175,7 +186,7 @@ FileField.prototype.onReset = function(handler) {
  * @param {(file: File) => void} handler
  * @returns {this}
  */
-FileField.prototype.onFileRemove = function(handler) {
+FileField.prototype.onRemoveFile = function(handler) {
     this.on('fileRemove', handler);
     return this;
 };
@@ -189,6 +200,7 @@ FileField.prototype.onFileRemove = function(handler) {
 FileField.prototype.addFile = function(file, update = true) {
     const item = new FileItemPreview(file);
     this.$description.files.push(item);
+    this.emit('selectFile', file);
     this.emit('fileAdd', item);
     update && this.$update();
     return this;
@@ -222,7 +234,7 @@ FileField.prototype.addFiles = function(files) {
 
 FileField.prototype.$update = function() {
     const files = this.$description.files.val();
-    this.$description.value.set(this.$description.multiple ? files.map(i => i.file()) : files[0]?.file() || null);
+    this.$description.value?.set(this.$description.multiple ? files.map(i => i.file()) : files[0]?.file() || null);
     this.validate();
 };
 

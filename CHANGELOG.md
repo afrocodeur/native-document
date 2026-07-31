@@ -247,7 +247,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Data**: `DataTable` + `Column` + `ColumnGroup`, `SimpleTable`, `Accordion` + `AccordionItem`, `List`
 - **Interaction**: `Button`, `Switch`, `Slider`
 - **Media**: `Avatar`, `AvatarGroup`, `Card`
-- **Forms**: `FormControl`, `FieldCollection`, `StringField`, `EmailField`, `PasswordField`, `TelField`, `UrlField`, `HiddenField`, `NumberField`, `RangeField`, `TextAreaField`, `CheckboxField`, `CheckboxGroupField`, `RadioField`, `SelectField`, `AutocompleteField`, `DateField`, `TimeField`, `ColorField`, `SliderField`, `ImageField`, `FileField` (with `FileNativeMode`, `FileDropzoneMode`, `FileUploadButtonMode`, `FileWallMode`, `FileAvatarMode`)
+- **Forms**: `FormControl`, `FieldCollection`, `StringField`, `EmailField`, `PasswordField`, `TelField`, `UrlField`, `HiddenField`, `NumberField`, `RangeField`, `TextAreaField`, `CheckboxField`, `CheckboxGroupField`, `RadioField`, `SelectField`, `AutocompleteField`, `DateField`, `TimeField`, `ColorField`, `SliderField`, `ImageField`, `FileField` (with `FileNativeMode`, `FileDropzoneMode`, `FileUploadButtonMode`, `FileWallMode`, `FileImagePreviewMode`)
 - **Traits**: `HasEventEmitter`, `HasDraggable`, `HasResizable`, `HasItems`, `HasPosition`, `HasFullPosition`, `HasValidation`
 
 #### CLI (`@native-document/cli`)

@@ -4,6 +4,8 @@ import {Dropdown} from '../../../../components/dropdown';
 import {buildErrors} from '../helpers';
 import DebugManager from '../../../../core/utils/debug-manager';
 
+import './select-field.css';
+
 export default function SelectFieldRender($desc, instance) {
     const props = instance.getEditableProps();
 
@@ -118,15 +120,20 @@ const buildSelectedLabel = ($desc) => {
         return $desc.selectedLabelRender($desc);
     }
 
-    return $desc.value.transform((val) => {
+    const dependencies = [$desc.value];
+    if(!Array.isArray($desc.options)) {
+        dependencies.push($desc.options);
+    }
+
+    return $.computed((val) => {
         if(!val || (Array.isArray(val) && val.length === 0)) {
             return $desc.placeholder || 'Select...';
         }
 
-        const options = Array.isArray($desc.options) ? $desc.options : [];
+        const options = $desc.options;
 
         if(!$desc.multiple || !Array.isArray(val)) {
-            const opt = options.find(o => (o.value ?? o) === val);
+            const opt = options.find(o => (o.value ?? o) == val);
             return opt?.label ?? opt ?? val;
         }
 
@@ -154,7 +161,7 @@ const buildSelectedLabel = ($desc) => {
         }
 
         return labels.join(', ');
-    });
+    }, dependencies);
 };
 
 const buildNativeSelect = ($desc) => {

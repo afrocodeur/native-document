@@ -2,6 +2,7 @@ import type { ValidChild } from '../../../../../types/elements';
 import type { ObservableItem } from '../../../../../types/observable';
 import type { GlobalAttributes } from '../../../../../types/globals';
 import type { FieldInterface } from '../Field';
+import {HTMLInputElement} from "happy-dom";
 
 interface RadioOption {
     value: unknown;
@@ -35,6 +36,7 @@ export interface RadioFieldInterface extends Omit<FieldInterface, 'render' | 'mo
     horizontal(): this;
     vertical(): this;
     grid(): this;
+    renderItem(item: (input: HTMLInputElement, data: RadioOption) => ValidChild): this;
 }
 
 

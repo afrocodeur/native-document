@@ -1,4 +1,5 @@
 import {trim} from '../core/utils/helpers.js';
+import {Observable} from '../core/data/Observable';
 
 export const RouteParamPatterns = {
     id:       '[0-9]+',
@@ -112,16 +113,26 @@ export function Route($path, $component, $options = {}) {
     /**
      * @param {{params: ?Object, query: ?Object, basePath: ?string}} configs
      */
-    this.url = function(configs) {
+    this.url = function(configs = {}) {
         const path = $path.replace(/\{(.*?)}/ig, (block, definition) => {
             const description = paramsExtractor(definition);
             if(configs.params && configs.params[description.name]) {
-                return configs.params[description.name];
+                const value =  configs.params[description.name];
+                return value?.__$Observable ? value.val() : value;
             }
             throw new Error(`Missing parameter '${description.name}'`);
         });
 
-        const queryString = (typeof configs.query === 'object') ? (new URLSearchParams(configs.query)).toString() : null;
+        let queries = null;
+        if(typeof configs.query === 'object') {
+            queries = {};
+            for(const property in configs.query) {
+                const value = configs.query[property];
+                queries[property] = value?.__$Observable ? value.val() : value;
+            }
+        }
+
+        const queryString = (queries) ? (new URLSearchParams(queries)).toString() : null;
         return (configs.basePath ? configs.basePath : '') + (queryString ? `${path}?${queryString}` : path);
     };
 }

@@ -23,7 +23,7 @@ ImageField.use(FileFieldRender);
 
 ## Methods
 
-All `FileField` methods apply (`accept`, `maxSize`, `mode`, `onFileAdd`…). See **[FileField](./file-field.md)** for the full reference. Image-specific additions:
+All `FileField` methods apply (`accept`, `maxSize`, `mode`, `onAddFile`…). See **[FileField](./file-field.md)** for the full reference. Image-specific additions:
 
 | Method | Parameters | Description |
 |---|---|---|
@@ -64,10 +64,10 @@ ImageField('cover')
 ## Avatar example
 
 ```javascript
-import { FileAvatarMode } from 'native-document/components';
-import { FileAvatarModeRender } from 'native-document/ui';
+import { FileImagePreviewMode } from 'native-document/components';
+import { FileImagePreviewModeRender } from 'native-document/ui';
 
-FileAvatarMode.use(FileAvatarModeRender);
+FileImagePreviewMode.use(FileImagePreviewModeRender);
 
 ImageField('avatar')
     .label('Profile picture')
@@ -77,7 +77,7 @@ ImageField('avatar')
     .aspectRatio('1:1', 'Must be square')
     .crop()
     .mode(
-        FileAvatarMode()
+        FileImagePreviewMode()
             .hoverOverlay()
             .circle()
     )

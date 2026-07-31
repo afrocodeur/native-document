@@ -39,6 +39,7 @@ export default function RadioField(name, props = {}) {
         options: [],
         layout: 'vertical',
         checked: false,
+        renderItem: null,
     });
 }
 
@@ -141,5 +142,14 @@ RadioField.prototype.vertical = function() {
 /** @returns {this} */
 RadioField.prototype.grid = function() {
     this.$description.layout = 'grid';
+    return this;
+};
+
+/**
+ * @param {Function} renderFn
+ * @returns {RadioField}
+ */
+RadioField.prototype.renderItem = function(renderFn) {
+    this.$description.renderItem = renderFn;
     return this;
 };

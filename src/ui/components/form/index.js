@@ -18,7 +18,7 @@ export { default as FileNativeModeRender } from './file-upload-mode/FileNativeMo
 export { default as FileDropzoneModeRender } from './file-upload-mode/FileDropzoneModeRender';
 export { default as FileWallModeRender } from './file-upload-mode/FileWallModeRender';
 export { default as FileUploadButtonModeRender } from './file-upload-mode/FileUploadButtonModeRender';
-export { default as FileAvatarModeRender } from './file-upload-mode/FileAvatarModeRender';
+export { default as FileImagePreviewModeRender } from './file-upload-mode/FileImagePreviewModeRender';
 export { default as DateFieldRender } from './fields/DateFieldRender';
 export { default as TimeFieldRender } from './fields/TimeFieldRender';
 export { default as SliderFieldRender } from './fields/SliderFieldRender';

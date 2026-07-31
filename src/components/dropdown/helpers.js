@@ -18,6 +18,12 @@ export const normalizeDropdownItem = (raw, mapper = null, props = {}) => {
         return raw;
     }
 
+    if(typeof raw === 'function') {
+        const item = new DropdownItem({});
+        raw(item);
+        return item;
+    }
+
     let config;
 
     if(typeof mapper === 'function') {

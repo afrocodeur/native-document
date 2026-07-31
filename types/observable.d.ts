@@ -232,6 +232,7 @@ export type ObservableObject<T extends Record<string, any>> = ObservableItem<T> 
     $val(): T;
     val(): T;
     get(key: string): any;
+    only<K extends keyof T>(properties: K[]): Pick<T, K>;
     $get(key: string): any;
     set(values: Partial<T>): void;
     $set(values: Partial<T>): void;
@@ -267,6 +268,7 @@ export interface ObservableResourceConfig<T = any> {
     debounce?: number;
     into?: ObservableItem<T>;
     apply?: (result: any, data: ObservableItem<T>) => void;
+    throw: boolean;
 }
 
 export interface ObservableResource<T = any> {
@@ -317,6 +319,8 @@ export interface ObservableStatic {
     init<T extends Record<string, any>>(value: T, configs?: ObservableConfig | null): ObservableObject<T>;
     object<T extends Record<string, any>>(value: T, configs?: ObservableConfig | null): ObservableObject<T>;
     json<T extends Record<string, any>>(value: T, configs?: ObservableConfig | null): ObservableObject<T>;
+
+    auto<T>(value: T): ObservableArray<T>|ObservableObject<T>|ObservableItem<T>;
 
     resource<T = any>(
         fn: (...args: any[]) => Promise<T>,

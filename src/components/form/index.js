@@ -24,7 +24,7 @@ import FileNativeMode from './field/types/file-field-mode/FileNativeMode';
 import FileDropzoneMode from './field/types/file-field-mode/FileDropzoneMode';
 import FileUploadButtonMode from './field/types/file-field-mode/FileUploadButtonMode';
 import FileWallMode from './field/types/file-field-mode/FileWallMode';
-import FileAvatarMode from './field/types/file-field-mode/FileAvatarMode';
+import FileImagePreviewMode from './field/types/file-field-mode/FileImagePreviewMode';
 
 // import './field/FieldFactory';
 
@@ -53,7 +53,7 @@ export {
     FieldCollection,
 
     FileNativeMode,
-    FileAvatarMode,
+    FileImagePreviewMode,
     FileWallMode,
     FileUploadButtonMode,
     FileDropzoneMode,

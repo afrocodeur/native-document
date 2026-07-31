@@ -47,7 +47,7 @@ const buildOptions = ($desc, instance) => {
         instance.validate();
     };
 
-    const buildOption = (option) => {
+    const buildOption = ($desc, option) => {
         const optValue = option.value ?? option;
         const optLabel = option.label ?? option;
         const optId    = ($desc.id || $desc.name) + '-' + optValue;
@@ -64,6 +64,10 @@ const buildOptions = ($desc, instance) => {
 
         input.nd.onChange(() => onSelect(optValue));
 
+        if($desc.renderItem) {
+            return Div({class: 'field-radio-wrapper'}, $desc.renderItem(input, option));
+        }
+
         return Div({class: 'field-radio-wrapper'}, [
             input,
             Label({class: 'field-radio-label', for: optId}, optLabel),
@@ -71,11 +75,12 @@ const buildOptions = ($desc, instance) => {
     };
 
     const isRequired = $desc.rules?.some(rule => rule.fn?.name === 'required');
+    const optionBuilder = buildOption.bind(null, $desc);
     return Div({
         class: 'field-radio-group is-' + ($desc.layout || 'vertical'),
         // [a11y] role=radiogroup, aria-required
         role: 'radiogroup',
         ...( isRequired ? { 'aria-required': 'true' } : {} ),
         ...($desc.elementsProps.wrapper || {}),
-    }, ForEachArray($options, buildOption));
+    }, ForEachArray($options, optionBuilder));
 };

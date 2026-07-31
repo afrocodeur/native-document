@@ -308,7 +308,7 @@ Dropdown.prototype.trigger = function(trigger, includeTriggerIntoGhost = true) {
  * @returns {this}
  */
 Dropdown.prototype.add = function(item, props = {}) {
-    this.$description.items.push(normalizeDropdownItem(item, null, props));
+    this.$description.items.push(normalizeDropdownItem(item, props));
     return this;
 };
 

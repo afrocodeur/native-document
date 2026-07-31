@@ -56,7 +56,7 @@ export interface FormControlInterface extends BaseComponent {
 export declare function FormControl(props?: Record<string, unknown>): FormControlInterface;
 export declare namespace FormControl {
 
-
+    function setDefaultErrorsMapper(mapper: (error: Error) => Record<string, string|[]>): void;
     function use(template: (description: FormControlDescription, instance: FormControlInterface) => ValidChild): void;
     function create(props?: Record<string, unknown>): FormControlInterface;
 

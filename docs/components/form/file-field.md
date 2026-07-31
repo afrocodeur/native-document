@@ -9,7 +9,7 @@ description: File upload component with multiple modes - native, dropzone, butto
 import {
     FileField,
     FileNativeMode, FileDropzoneMode,
-    FileUploadButtonMode, FileWallMode, FileAvatarMode
+    FileUploadButtonMode, FileWallMode, FileImagePreviewMode
 } from 'native-document/components';
 ```
 
@@ -19,7 +19,7 @@ import {
 import {
     FileFieldRender,
     FileNativeModeRender, FileDropzoneModeRender,
-    FileUploadButtonModeRender, FileWallModeRender, FileAvatarModeRender
+    FileUploadButtonModeRender, FileWallModeRender, FileImagePreviewModeRender
 } from 'native-document/ui';
 
 FileField.use(FileFieldRender);
@@ -27,7 +27,7 @@ FileNativeMode.use(FileNativeModeRender);
 FileDropzoneMode.use(FileDropzoneModeRender);
 FileUploadButtonMode.use(FileUploadButtonModeRender);
 FileWallMode.use(FileWallModeRender);
-FileAvatarMode.use(FileAvatarModeRender);
+FileImagePreviewMode.use(FileImagePreviewModeRender);
 ```
 
 ## Methods
@@ -66,11 +66,11 @@ FileAvatarMode.use(FileAvatarModeRender);
 
 ### Events
 
-| Method | Parameters | Description |
-|---|---|---|
-| `.onFileAdd(handler)` | `handler: (file, files) => void` | Fires when a file is added |
-| `.onFileRemove(handler)` | `handler: (file, files) => void` | Fires when a file is removed |
-| `.onReset(handler)` | `handler: () => void` | Fires when files are cleared |
+| Method                   | Parameters | Description |
+|--------------------------|---|---|
+| `.onAddFile(handler)`    | `handler: (file, files) => void` | Fires when a file is added |
+| `.onRemoveFile(handler)` | `handler: (file, files) => void` | Fires when a file is removed |
+| `.onReset(handler)`      | `handler: () => void` | Fires when files are cleared |
 
 ## Modes
 
@@ -156,7 +156,7 @@ FileField('gallery')
     )
 ```
 
-### `FileAvatarMode`
+### `FileImagePreviewMode`
 
 Single image upload styled as a circular avatar.
 
@@ -177,7 +177,7 @@ Single image upload styled as a circular avatar.
 FileField('avatar')
     .accept(['image/*'])
     .mode(
-        FileAvatarMode()
+        FileImagePreviewMode()
             .hoverOverlay()
             .circle()
     )
@@ -196,7 +196,7 @@ FileField('documents')
             .text('Drop PDFs here')
             .icon(PdfIcon)
     )
-    .onFileAdd(async (file) => {
+    .onAddFile(async (file) => {
         const url = await uploadFile(file);
         console.log('Uploaded:', url);
     })

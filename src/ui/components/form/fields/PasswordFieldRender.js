@@ -8,7 +8,7 @@ export default function PasswordFieldRender($desc, instance) {
         const $visible = $(false);
         const icons    = $desc.visibilityIcons || {show: '👁', hide: '🙈'};
 
-        const toggleBtn = Button({class: 'field-visibility-toggle'},
+        const toggleBtn = Button({ type: 'button', class: 'field-visibility-toggle'},
             $visible.transform(v => v ? icons.hide : icons.show),
         );
 

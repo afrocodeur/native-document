@@ -33,6 +33,7 @@ export default function FileWallMode(props = {}) {
         addIcon:    null,
         renderCell: null,
         renderAdd:  null,
+        previewItemsFrom:  null,
         props,
     };
 }
@@ -102,5 +103,14 @@ FileWallMode.prototype.renderCell = function(fn) {
  */
 FileWallMode.prototype.renderAdd = function(fn) {
     this.$description.renderAdd = fn;
+    return this;
+};
+
+/**
+ *
+ * @param {Observable} observable
+ */
+FileWallMode.prototype.previewItemsFrom = function(observable) {
+    this.$description.previewItemsFrom = observable;
     return this;
 };

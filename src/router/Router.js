@@ -72,6 +72,15 @@ export default function Router($options = {}) {
     };
 
     /**
+     * @param {Function} page
+     */
+    this.notFound = function(page) {
+        this.add('{path}', page, {
+            with: { path: '(.*)' },
+        });
+    };
+
+    /**
      * Groups routes under a common path prefix with shared options.
      *
      * @param {string} suffix - Path prefix to prepend to all routes in the group

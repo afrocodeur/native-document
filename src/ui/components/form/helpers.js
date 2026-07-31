@@ -21,8 +21,8 @@ export const formatSize = (bytes) => {
 
 
 export const getFileThumbnail = (file, fieldInstance) => {
-    const isImage = file.type?.startsWith('image/');
-    const url = URL.createObjectURL(file);
+    const isImage = file.type?.startsWith('image/') || !!file.url;
+    const url = file.url ??  URL.createObjectURL(file);
     if(isImage) {
         return Img(url, {
             class: 'file-item-img',

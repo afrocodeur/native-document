@@ -176,6 +176,19 @@ Observable.computed = function(callback, dependencies = []) {
 };
 ObservableItem.computed = Observable.computed;
 
+Observable.auto = (value) => {
+    if(value == null) {
+        return new ObservableItem(value);
+    }
+    if(Validator.isArray(value)) {
+        return new ObservableArray(value);
+    } else if(typeof value === 'object') {
+        return new ObservableObject(value);
+    }
+    return new ObservableItem(value);
+};
+ObservableItem.auto = Observable.auto;
+
 
 Observable.init = function(initialValue, configs = null) {
     return new ObservableObject(initialValue, configs);
@@ -216,8 +229,8 @@ Observable.json = Observable.init;
 
 Observable.resource = function(fn, deps = [], options = false) {
     const config = (typeof options === 'boolean')
-        ? { auto: options, debounce: 0, lazy: false }
-        : { auto: false, debounce: 0, lazy: false, ...options };
+        ? { auto: options, debounce: 0, lazy: false, throw: true }
+        : { auto: false, debounce: 0, lazy: false, ...options, throw: true };
 
     return new ObservableResource(fn, deps, config);
 };

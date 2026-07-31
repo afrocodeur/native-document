@@ -41,7 +41,7 @@ export const ElementCreator = {
      */
     createHydratableNode: (parent, item) => {
         const text = ElementCreator.createTextNode();
-        item.$hydrate(text);
+        item.$hydrate(text, null, 'value');
         return text;
     },
 

@@ -22,16 +22,7 @@ export const ObservableObject = function(target, configs) {
     this.configs = configs;
 
     for(const key in target) {
-        if(!Object.hasOwn(this, key)) {
-            Object.defineProperty(this, key, {
-                get: () => this.$observables[key],
-                set: (value) => {
-                    this.$observables[key].set(value);
-                },
-                configurable: true,
-                enumerable: true,
-            });
-        }
+        this.$addKey(key);
     }
 
     this.$load(target);
@@ -59,6 +50,32 @@ Object.defineProperty(ObservableObject, '$value', {
 
 ObservableObject.prototype.__$isObservableObject = true;
 ObservableObject.prototype.__isProxy__ = true;
+
+ObservableObject.prototype.$addKey = function(key) {
+    if(!Object.hasOwn(this, key)) {
+        Object.defineProperty(this, key, {
+            get: () => this.$observables[key],
+            set: (value) => {
+                this.$observables[key].set(value);
+            },
+            configurable: true,
+            enumerable: true,
+        });
+    }
+};
+
+
+/**
+ *
+ * @param {String[]} properties
+ */
+ObservableObject.prototype.only = function(properties) {
+    const result = {};
+    for(const key of properties) {
+        result[key] = this.$observables[key]?.val();
+    }
+    return result;
+};
 
 /**
  * Initialises (or reinitialize) the internal observables map from a plain object.
@@ -182,7 +199,7 @@ ObservableObject.prototype.set = function(newData) {
                     if(firstElementFromOriginalValue.__$isObservableObject) {
                         return new ObservableObject(item, configs);
                     }
-                    return ObservableItem(item, configs);
+                    return new ObservableItem(item, configs);
                 });
                 targetItem.set(newValues);
                 continue;
@@ -190,7 +207,8 @@ ObservableObject.prototype.set = function(newData) {
             targetItem.set([...newValue]);
             continue;
         }
-        this[key] = newValue;
+        this.$observables[key] = ObservableItem.auto(newValue);
+        this.$addKey(key);
     }
 };
 ObservableObject.prototype.$set = ObservableObject.prototype.set;

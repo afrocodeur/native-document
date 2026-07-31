@@ -46,6 +46,7 @@ export interface Router {
         with?: Record<string, string>;
         layout?: (children: ValidChild) => ValidChild ;
     }): this;
+    notFound(page: (context: RouteContext) => HTMLElement | DocumentFragment): void;
 
     group(suffix: string, options: { middlewares?: Function[]; name?: string; layout?: Function }, callback: () => void): this;
 

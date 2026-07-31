@@ -278,6 +278,7 @@ ObservableArray.prototype.populateAndRender = function(iteration, callback) {
  * The filtered array updates automatically when source data or predicates change.
  *
  * @param {Object} predicates - Object mapping property names to filter conditions or functions
+ * @param {Observable[]?} dependencies - dependencies list when predicates is a function
  * @returns {ObservableArray} A new observable array containing filtered items
  * @example
  * const users = Observable.array([
@@ -287,9 +288,9 @@ ObservableArray.prototype.populateAndRender = function(iteration, callback) {
  *
  * const adults = users.where({ age: (val) => val >= 18 });
  */
-ObservableArray.prototype.where = function(predicates) {
+ObservableArray.prototype.where = function(predicates, dependencies = null) {
     if(typeof predicates === 'function') {
-        predicates = { _: predicates };
+        predicates = { _: { callback: predicates, dependencies} };
     }
     const sourceArray = this;
     const observableDependencies = [sourceArray];
@@ -322,7 +323,10 @@ ObservableArray.prototype.where = function(predicates) {
                 if(key === '_') {
                     if (!callback(item)) return false;
                 } else {
-                    if (!callback(item[key])) return false;
+                    const valueSource = item[key];
+                    if (!callback(valueSource?.__$Observable ? valueSource.val() : valueSource)) {
+                        return false;
+                    }
                 }
             }
             return true;

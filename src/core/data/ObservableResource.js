@@ -22,6 +22,7 @@ const STATE = {
  * @param {boolean} [config.lazy=false] - If true with deps, does not fetch immediately — waits for first dep change
  * @param {number} [config.debounce=0] - Debounce delay in ms for dependency-triggered re-fetches
  * @param {ObservableItem} [config.into] - Observable to write results into instead of creating a new one
+ * @param {boolean} [config.throw] - Catch abd throw the error
  * @param {Function} [config.apply] - Custom function to apply the result to this.data
  * @example
  * const userId = Observable(1);
@@ -86,7 +87,7 @@ ObservableResource.prototype.$runWithAbortController = function(isRefetch = fals
     const depValues = this.$dependencies.map(dep => dep.val());
     const args = [...depValues, signal];
 
-    Promise.resolve(this.$fn(...args))
+    return Promise.resolve(this.$fn(...args))
         .then(result => {
             if (signal.aborted) {
                 return;
@@ -98,11 +99,17 @@ ObservableResource.prototype.$runWithAbortController = function(isRefetch = fals
         })
         .catch(err => {
             if (signal.aborted) {
+                if(this.$config.throw) {
+                    throw err;
+                }
                 return;
             }
             this.error.set(err);
             this.state.set(STATE.ERRORED);
             this.$controller = null;
+            if(this.$config.throw) {
+                throw err;
+            }
         });
 };
 ObservableResource.prototype.$runWithoutAbortController = function(isRefetch = false) {
@@ -114,7 +121,7 @@ ObservableResource.prototype.$runWithoutAbortController = function(isRefetch = f
 
     const args = this.$dependencies.map(dep => dep.val());
 
-    Promise.resolve(this.$fn(...args))
+    return Promise.resolve(this.$fn(...args))
         .then(result => {
             this.$applyResult(result);
             this.error.set(null);
@@ -123,6 +130,9 @@ ObservableResource.prototype.$runWithoutAbortController = function(isRefetch = f
         .catch(err => {
             this.error.set(err);
             this.state.set(STATE.ERRORED);
+            if(this.$config.throw) {
+                throw err;
+            }
         });
 };
 
@@ -193,8 +203,7 @@ ObservableResource.prototype.into = function($observable) {
  * @returns {this}
  */
 ObservableResource.prototype.fetch = function() {
-    this.$run(false);
-    return this;
+    return this.$run(false);
 };
 
 /**
@@ -204,8 +213,7 @@ ObservableResource.prototype.fetch = function() {
  * @returns {this}
  */
 ObservableResource.prototype.refetch = function() {
-    this.$run(true);
-    return this;
+    return this.$run(true);
 };
 
 /**

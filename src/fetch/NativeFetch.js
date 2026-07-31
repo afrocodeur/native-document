@@ -32,6 +32,7 @@ export default function NativeFetch($baseUrl) {
                 ...(options.headers || {}),
             },
         };
+        let parseToString = false;
         if(params) {
             if(params instanceof FormData) {
                 configs.body = params;
@@ -39,7 +40,8 @@ export default function NativeFetch($baseUrl) {
             else {
                 if(method !== 'GET') {
                     configs.headers['Content-Type'] = 'application/json';
-                    configs.body = JSON.stringify(params);
+                    configs.body = params;
+                    parseToString = true;
                 } else {
                     const queryString = new URLSearchParams(params).toString();
                     if (queryString) {
@@ -51,6 +53,9 @@ export default function NativeFetch($baseUrl) {
 
         for(const interceptor of $interceptors.request) {
             configs = (await interceptor(configs, endpoint)) || configs;
+        }
+        if(parseToString) {
+            configs.body = JSON.stringify(configs.body);
         }
 
         let response = await fetch(endpoint, configs);
@@ -87,4 +92,31 @@ export default function NativeFetch($baseUrl) {
     this.get = function (endpoint, params = {}, options = {}) {
         return this.fetch('GET', endpoint, params, options);
     };
+};
+
+export const resolveData = (data) => {
+    if(data?.__$Observable) {
+        return data.resolve();
+    }
+    for(const key in data) {
+        const value = data[key];
+        if(value == null) {
+            continue;
+        }
+        if(value.__$Observable) {
+            data[key] = value.resolve();
+            continue;
+        }
+        if(typeof value === 'object') {
+            data[key] = resolveData(data[key]);
+        }
+    }
+    return data;
+};
+
+export const resolveObservableInterceptor = (configs) => {
+    if(configs.body && !(configs.body instanceof FormData)) {
+        configs.body = resolveData(configs.body);
+    }
+    return configs;
 };

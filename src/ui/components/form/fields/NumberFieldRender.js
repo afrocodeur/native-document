@@ -26,9 +26,7 @@ export default function NumberFieldRender($desc, instance) {
 
     const el = FieldRender($desc, instance);
 
-    if($desc.decimals != null) {
-        setupDecimalsHandling(instance, $desc);
-    }
+    setupDecimalsHandling(instance, $desc);
 
     return el;
 }
@@ -40,9 +38,9 @@ const setupDecimalsHandling = (instance, $desc) => {
     }
 
     input.nd.onBlur(() => {
-        const raw = parseFloat(input.value);
+        const raw = Number(input.value);
         if(!isNaN(raw)) {
-            const formatted = raw.toFixed($desc.decimals);
+            const formatted = $desc.decimals ? raw.toFixed($desc.decimals) : raw;
             input.value = formatted;
             if($desc.value?.__$isObservable) {
                 $desc.value.set(parseFloat(formatted));

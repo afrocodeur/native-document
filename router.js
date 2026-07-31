@@ -7,5 +7,5 @@ import { Link } from './src/router/link.js';
 export {
     RouteParamPatterns,
     Router,
-    Link
-}
+    Link,
+};

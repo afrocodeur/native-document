@@ -10,6 +10,8 @@ export default function ForEachArrayCache(isIndexesRequired) {
         return Array.from(this.$nodes.keys());
     };
 
+    this.entries = this.$nodes.entries.bind(this.$nodes);
+
     if(isIndexesRequired) {
         this.delete = function(item) {
             this.$nodes.get(item)?.nd.destroy();

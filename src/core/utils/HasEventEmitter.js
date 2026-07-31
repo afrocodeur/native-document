@@ -78,7 +78,7 @@ HasEventEmitter.prototype.trigger = async function(eventName, ...args) {
 
     let result = null;
     for(let i = 0, length = callbacks.length; i < length; i++) {
-        result = await Promise.resolve(await callbacks[i].apply(this, args));
+        result = await Promise.resolve(callbacks[i].apply(this, args));
     }
     return result;
 };

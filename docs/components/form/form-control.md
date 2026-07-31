@@ -41,7 +41,6 @@ FormControl.use(FormControlRender);
 .dispatchErrors(mapper?)
 .summarizeErrors()
 .dispatchAndSummarize(mapper?)
-.dispatchServerErrors(error)
 
 // State
 .disable(fieldName?)    // disable all or specific field
@@ -69,19 +68,5 @@ FormControl.use(FormControlRender);
 ## Example
 
 ```javascript
-const control = FormControl()
-    .fields((group) => {
-        group.add(StringField('name').label('Name').required())
-        group.add(EmailField('email').label('Email').required())
-        group.add(PasswordField('password').label('Password').required().minLength(8))
-    })
-    .onSubmit(async (values) => {
-        const valid = await control.validate();
-        if (valid) {
-            await createUser(values);
-        }
-    })
-    .onError((error) => {
-        control.dispatchErrors(error);
-    })
+
 ```

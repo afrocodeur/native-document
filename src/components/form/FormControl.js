@@ -51,6 +51,7 @@ export default function FormControl(props) {
 }
 
 FormControl.defaultTemplate = null;
+FormControl.defaultErrorsMapper = null;
 
 /**
  * Registers the render template for FormControl.
@@ -71,6 +72,10 @@ FormControl.defaultTemplate = null;
  */
 FormControl.use = function(template) {
     FormControl.defaultTemplate = template;
+};
+
+FormControl.setDefaultErrorsMapper = function(mapper) {
+    FormControl.defaultErrorsMapper = mapper;
 };
 
 /**
@@ -235,9 +240,8 @@ FormControl.prototype.renderErrors = function(renderFn) {
 
 FormControl.prototype.$dispatchServerErrors = function(error) {
     const serverErrors = error.fields;
-    const mapped = this.$description.errorsMapper
-        ? this.$description.errorsMapper(serverErrors)
-        : serverErrors;
+    const errorsMapper = this.$description.errorsMapper || FormControl.defaultErrorsMapper;
+    const mapped = errorsMapper ? errorsMapper(error) : serverErrors;
 
     if(!mapped) {
         return;
@@ -403,11 +407,12 @@ FormControl.prototype.$handleSubmit = async function(event) {
         return result;
 
     } catch(error) {
-        this.$dispatchServerErrors(error);
-        this.emit('error', error, this);
-        if(!this.hasListeners('error')) {
+        const errorsMapper = this.$description.errorsMapper || FormControl.defaultErrorsMapper;
+        if(!errorsMapper && !this.hasListeners('error')) {
             throw error;
         }
+        this.$dispatchServerErrors(error);
+        this.emit('error', error, this);
     } finally {
         this.$description.submitting.set(false);
         this.emit('afterSubmit', this);

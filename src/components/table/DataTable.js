@@ -363,20 +363,24 @@ DataTable.prototype.onSort = function(handler) {
 // ---------------------------------------------
 
 /**
- * @param {*} [enabled]
+ * @param {boolean} [enabled]
+ * @param {Observable} [model]
  * @returns {this}
  */
-DataTable.prototype.searchable = function(enabled = true) {
+DataTable.prototype.searchable = function(enabled = true, model = null) {
     this.$description.searchable = enabled;
+    this.$description.$search = model;
     return this;
 };
 
 /**
- * @param {*} [enabled]
+ * @param {boolean} [enabled]
+ * @param {Record<string, *>?} filters
  * @returns {this}
  */
-DataTable.prototype.filterable = function(enabled = true) {
+DataTable.prototype.filterable = function(enabled = true, filters = null) {
     this.$description.filterable = enabled;
+    this.$description.defaultFilter = filters;
     return this;
 };
 

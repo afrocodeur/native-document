@@ -1,0 +1,6 @@
+.is-select-field {
+    .dropdown-items {
+        max-height: 350px;
+        overflow-y: auto;
+    }
+}

@@ -53,10 +53,8 @@ export interface ButtonInterface extends BaseComponent {
 export declare function Button(label: ValidChild, props?: Record<string, unknown>): ButtonInterface;
 export declare namespace Button {
 
-
     function use(template: (description: ButtonDescription, instance: ButtonInterface) => ValidChild): void;
     function preset(name: string, callback: (instance: ButtonInterface) => ButtonInterface): void;
     function presets(presets: Record<string, (instance: ButtonInterface) => ButtonInterface>): void;
-
 
 }
